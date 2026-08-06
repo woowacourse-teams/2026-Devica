@@ -1,5 +1,7 @@
 <!-- Devica 대표 이미지가 준비되면 아래에 이미지 URL을 추가하세요. -->
-<!-- <img width="2816" height="1536" alt="Devica" src="여기에_대표_이미지_URL" /> -->
+<p align="center">
+  <img src="docs/images/logo.png" alt="Devica - W.R.B" width="100%">
+</p>
 
 # Devica
 
@@ -13,6 +15,9 @@ Devica는 전자기기를 구매할 때 필요한 정보가 여러 곳에 흩어
 
 **사용 목적에 맞는 정보와 신뢰할 수 있는 리뷰를 연결하는 전자기기 구매 결정 서비스**, Devica가 여러분의 구매 결정을 도와드립니다.
 
+
+<br>
+
 ## 서비스 소개
 
 ### 필요한 전자기기부터 탐색해보세요 💻
@@ -24,6 +29,8 @@ Devica는 전자기기를 구매할 때 필요한 정보가 여러 곳에 흩어
 노트북, 키보드 등 필요한 전자기기 카테고리를 선택하고,
 제품을 고르기 위한 기준과 리뷰를 한곳에서 확인할 수 있어요.
 
+<br>
+
 ### 나의 직군과 사용 목적에 맞춰보세요 🎯
 
 <!-- <p align="center"><img src="여기에_직군_선택_스크린샷_URL" width="25%"></p> -->
@@ -32,6 +39,8 @@ Devica는 전자기기를 구매할 때 필요한 정보가 여러 곳에 흩어
 
 프론트엔드, 백엔드, 디자인 등 자신의 직군과 사용 목적을 선택하면,
 나에게 더 적합한 구매 기준과 정보를 중심으로 탐색할 수 있어요.
+
+<br>
 
 ### 같은 일을 하는 사람의 리뷰를 확인해보세요 📝
 
@@ -42,6 +51,8 @@ Devica는 전자기기를 구매할 때 필요한 정보가 여러 곳에 흩어
 같은 직군에서 제품을 사용한 사람의 업무 환경과 장단점을 확인하고,
 단편적인 후기만으로 알기 어려운 실질적인 선택 기준을 찾아보세요.
 
+<br>
+
 ### 전문가의 핵심 정보를 빠르게 확인해보세요 ⏱️
 
 <!-- <p align="center"><img src="여기에_전문가_타임라인_스크린샷_URL" width="25%"></p> -->
@@ -51,6 +62,8 @@ Devica는 전자기기를 구매할 때 필요한 정보가 여러 곳에 흩어
 전문가 리뷰의 핵심 내용을 요약해 확인하고,
 필요한 구간은 타임라인을 통해 원본 콘텐츠에서 바로 살펴볼 수 있어요.
 
+<br>
+
 ## 멤버 소개
 
 | 와이제리(최용준) | 라텔(김규빈) | 밤밤(홍우현) |
@@ -58,11 +71,15 @@ Devica는 전자기기를 구매할 때 필요한 정보가 여러 곳에 흩어
 | Backend | Backend | Backend |
 | <a href="https://github.com/yj9107v"><img src="https://avatars.githubusercontent.com/yj9107v" width="150" alt="와이제리 GitHub 프로필"/></a> | <a href="https://github.com/bin1225"><img src="https://avatars.githubusercontent.com/bin1225" width="150" alt="라텔 GitHub 프로필"/></a> | <a href="https://github.com/Woohyeon-Hong"><img src="https://avatars.githubusercontent.com/Woohyeon-Hong" width="150" alt="밤밤 GitHub 프로필"/></a> |
 
+<br>
+
 ## 기술 스택
 
 ### Frontend
 
 프론트엔드 기술 스택은 확정 후 추가할 예정입니다.
+
+<br>
 
 ### Backend
 
@@ -86,6 +103,8 @@ Devica는 전자기기를 구매할 때 필요한 정보가 여러 곳에 흩어
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Docker Compose](https://img.shields.io/badge/Docker_Compose-V2-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![JAR](https://img.shields.io/badge/Packaging-JAR-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+
+<br>
 
 ## Document
 
