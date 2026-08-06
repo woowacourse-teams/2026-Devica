@@ -1,6 +1,7 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/devica?characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+    # 3306 이 이미 쓰이고 있으면 DB_PORT 환경변수로 바꾼다 (이 파일은 고치지 않는다)
+    url: jdbc:mysql://localhost:${DB_PORT:3306}/devica?characterEncoding=UTF-8&serverTimezone=Asia/Seoul
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
