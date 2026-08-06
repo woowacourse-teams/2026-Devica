@@ -1,4 +1,10 @@
+# 빌드 산출물·IDE 설정
 build
 .gradle
 .idea
 out
+
+.git
+docs
+.github
+.env
