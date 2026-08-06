@@ -89,6 +89,6 @@ Devica는 전자기기를 구매할 때 필요한 정보가 여러 곳에 흩어
 
 ## Document
 
-Devica 팀에 대한 자세한 정보(_기술 스택, 개발 환경, 프론트엔드 목표 및 논의 사항 등_)는 아래 링크에 정리되어 있습니다.
+Devica 팀에 대한 자세한 정보는 아래 링크에 정리되어 있습니다.
 
-👉 [Devica 개발 문서](https://app.notion.com/p/3b2108161f98809aaaa1c3f28901e67b?v=e11108161f9883028d6488b9c2901034&source=copy_link)
+🤜 [Devica Wiki](https://github.com/woowacourse-teams/2026-Devica/wiki)
