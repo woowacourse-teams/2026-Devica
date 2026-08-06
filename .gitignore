@@ -1,0 +1,21 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+out/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 로그
+*.log
+
+# 운영 환경 설정 (절대 커밋 금지)
+*.env
+application-prod.yml
