@@ -77,9 +77,9 @@ Devica는 전자기기를 구매할 때 필요한 정보가 여러 곳에 흩어
 
 ### Frontend
 
-프론트엔드 기술 스택은 확정 후 추가할 예정입니다.
-
-<br>
+![Thymeleaf](https://img.shields.io/badge/Thymeleaf-005F0F?style=for-the-badge&logo=thymeleaf&logoColor=white)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
 
 ### Backend
 

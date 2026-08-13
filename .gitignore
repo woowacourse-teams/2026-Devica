@@ -19,3 +19,8 @@ Thumbs.db
 # 운영 환경 설정 (절대 커밋 금지)
 *.env
 application-prod.yml
+
+# AI 에이전트 도구별 개인 설정
+CLAUDE.md
+.claude/
+.codex/
