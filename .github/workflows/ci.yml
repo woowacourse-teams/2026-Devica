@@ -26,6 +26,8 @@ jobs:
           MYSQL_DATABASE: devica_test
           TZ: Asia/Seoul
         ports:
+          # test/application.yml 의 TEST_DB_PORT 값을 컨테이너의 3306 에 매핑한다.
+          # 그 값을 바꾸면 이 포트도 함께 고쳐야 한다.
           - 3307:3306
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
