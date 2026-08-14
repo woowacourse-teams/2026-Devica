@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="백엔드 개발 환경에 맞는 노트북 권장 사양을 확인하세요.">
+    <title>Devica — 백엔드 개발용 노트북 사양</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/probe/index.css}">
+</head>
+<body th:attr="data-question-set-version=${page.questionSetVersion},data-question-set-approved=${page.questionSetApproved}">
+<header th:replace="~{fragments/site :: header}"></header>
+
+<main class="probe" id="main-content">
+    <section class="hero" id="intro-view" aria-labelledby="hero-title">
+        <p class="eyebrow">BACKEND LAPTOP SPEC FINDER</p>
+        <h1 id="hero-title">내 개발 환경에 맞는<br>노트북 사양을 찾아보세요</h1>
+        <p class="hero__description">
+            사용하는 도구와 작업 방식을 선택하면 필요한 사양과 그 근거를 함께 보여드립니다.
+        </p>
+
+        <div class="status-panel" th:if="${!page.questionSetApproved}">
+            <span class="status-panel__label">QUESTION SET</span>
+            <strong>질문 정책 승인 대기 중</strong>
+            <p>질문과 권장 수치가 확정되면 이 화면에서 바로 추천을 시작할 수 있습니다.</p>
+        </div>
+
+        <button class="button button--primary button--wide" id="start-button" type="button"
+                th:disabled="${!page.questionSetApproved}">
+            사양 찾기 시작
+        </button>
+    </section>
+
+    <section class="question-view is-hidden" id="question-view" aria-live="polite">
+        <div class="progress-meta">
+            <span id="progress-label">SPEC ADJUSTMENT FLOW</span>
+            <span id="progress-count"></span>
+        </div>
+        <div class="progress-track" aria-hidden="true">
+            <span id="progress-value"></span>
+        </div>
+        <div id="question-content"></div>
+        <div class="flow-actions">
+            <button class="button button--secondary" id="previous-button" type="button">이전</button>
+            <button class="button button--primary" id="next-button" type="button" disabled>다음</button>
+        </div>
+    </section>
+
+    <section class="result-view is-hidden" id="result-view" aria-labelledby="result-title">
+        <p class="eyebrow">YOUR RECOMMENDED SPEC</p>
+        <h2 id="result-title">권장 사양을 확인해 보세요</h2>
+        <p class="section-description">답변을 바탕으로 조정된 값과 변경 근거입니다.</p>
+        <div class="spec-list" id="spec-list"></div>
+        <button class="button button--secondary button--wide" id="edit-spec-button" type="button">사양 직접 수정</button>
+        <button class="button button--primary button--wide" id="product-button" type="button">이 사양에 맞는 제품 보기</button>
+    </section>
+
+    <section class="product-view is-hidden" id="product-view" aria-labelledby="product-title">
+        <p class="eyebrow">MATCHED PRODUCTS</p>
+        <h2 id="product-title">조건에 맞는 제품</h2>
+        <div class="product-list" id="product-list"></div>
+    </section>
+
+    <section class="feedback-view is-hidden" id="feedback-view" aria-labelledby="feedback-title">
+        <h2 id="feedback-title">추천 결과는 어땠나요?</h2>
+        <fieldset class="feedback-group" data-feedback="FIT_FEEDBACK_SUBMITTED">
+            <legend>내 상황에 잘 맞았나요?</legend>
+            <button class="chip" type="button" data-option="FIT">잘 맞아요</button>
+            <button class="chip" type="button" data-option="NEUTRAL">보통이에요</button>
+            <button class="chip" type="button" data-option="NOT_FIT">맞지 않아요</button>
+        </fieldset>
+        <fieldset class="feedback-group" data-feedback="UNDERSTANDING_FEEDBACK_SUBMITTED">
+            <legend>추천 이유를 이해할 수 있었나요?</legend>
+            <button class="chip" type="button" data-option="UNDERSTOOD">이해했어요</button>
+            <button class="chip" type="button" data-option="PARTIAL">일부 이해했어요</button>
+            <button class="chip" type="button" data-option="NOT_UNDERSTOOD">이해하기 어려워요</button>
+        </fieldset>
+        <p class="feedback-complete is-hidden" id="feedback-complete">의견을 남겨주셔서 감사합니다.</p>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/site :: footer}"></footer>
+<script th:src="@{/js/probe-config.js}" defer></script>
+<script th:src="@{/js/probe-app.js}" defer></script>
+</body>
+</html>

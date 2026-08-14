@@ -1,0 +1,219 @@
+.probe {
+    width: 100%;
+    max-width: 760px;
+    min-height: calc(100vh - 73px);
+    margin: 0 auto;
+    padding: 64px var(--margin-mobile) 96px;
+}
+
+.hero,
+.question-view,
+.result-view,
+.product-view,
+.feedback-view {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gutter);
+}
+
+.eyebrow,
+.progress-meta,
+.status-panel__label,
+.spec-row__label,
+.product-card__maker {
+    margin: 0;
+    font-size: var(--label-md-font-size);
+    font-weight: var(--label-md-font-weight);
+    line-height: var(--label-md-line-height);
+    letter-spacing: var(--label-md-letter-spacing);
+}
+
+h1,
+h2,
+h3,
+p {
+    margin-top: 0;
+}
+
+h1 {
+    margin-bottom: 0;
+    font-size: calc(var(--display-font-size) * 0.8);
+    line-height: var(--display-line-height);
+    letter-spacing: var(--display-letter-spacing);
+}
+
+h2 {
+    margin-bottom: 0;
+    font-size: var(--headline-lg-font-size);
+    line-height: var(--headline-lg-line-height);
+}
+
+.hero__description,
+.section-description,
+.question-description {
+    color: var(--on-surface-variant);
+}
+
+.status-panel,
+.question-option,
+.spec-row,
+.product-card,
+.feedback-view {
+    border: 1px solid var(--on-surface);
+    background: var(--surface-container-lowest);
+}
+
+.status-panel {
+    margin: 24px 0;
+    padding: var(--gutter);
+}
+
+.status-panel p {
+    margin: var(--density-high) 0 0;
+    color: var(--on-surface-variant);
+}
+
+.progress-meta {
+    display: flex;
+    justify-content: space-between;
+}
+
+.progress-track {
+    height: var(--density-high);
+    background: var(--surface-container-highest, #e2e2e2);
+}
+
+.progress-track span {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: var(--primary);
+    transition: width 160ms ease-out;
+}
+
+.question-heading {
+    margin: 40px 0 var(--density-high);
+    font-size: var(--headline-lg-font-size);
+    line-height: var(--headline-lg-line-height);
+    text-align: center;
+}
+
+.question-group {
+    display: grid;
+    gap: var(--density-med);
+    margin-top: 32px;
+}
+
+.question-option {
+    display: block;
+    width: 100%;
+    min-height: 72px;
+    padding: var(--gutter);
+    color: var(--on-surface);
+    text-align: left;
+    cursor: pointer;
+}
+
+.question-option[aria-pressed="true"] {
+    color: var(--on-primary);
+    background: var(--primary);
+}
+
+.question-option__title {
+    display: block;
+    font-weight: 600;
+}
+
+.question-option__description {
+    display: block;
+    margin-top: var(--density-high);
+    font-size: var(--body-md-font-size);
+}
+
+.flow-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--gutter);
+    margin-top: 40px;
+    padding-top: var(--gutter);
+    border-top: 1px solid var(--outline-variant);
+}
+
+.spec-list,
+.product-list {
+    display: grid;
+    gap: var(--density-med);
+    margin: var(--gutter) 0;
+}
+
+.spec-row {
+    padding: var(--gutter);
+}
+
+.spec-row__value {
+    display: block;
+    margin-top: var(--density-high);
+    font-size: var(--headline-sm-font-size);
+    font-weight: 600;
+}
+
+.spec-row__reason {
+    margin: var(--density-high) 0 0;
+    color: var(--on-surface-variant);
+    font-size: var(--body-md-font-size);
+}
+
+.product-card {
+    padding: var(--gutter);
+}
+
+.product-card h3 {
+    margin: var(--density-high) 0;
+}
+
+.feedback-view {
+    margin-top: 48px;
+    padding: var(--gutter);
+}
+
+.feedback-group {
+    margin: 0;
+    border: 0;
+    padding: var(--gutter) 0 0;
+}
+
+.feedback-group legend {
+    font-weight: 600;
+}
+
+.chip {
+    margin: var(--density-high) var(--unit) 0 0;
+    border: 1px solid var(--on-surface);
+    border-radius: 0;
+    padding: var(--density-high) var(--density-med);
+    background: var(--surface-container-lowest);
+    cursor: pointer;
+}
+
+.chip[aria-pressed="true"] {
+    color: var(--on-primary);
+    background: var(--primary);
+}
+
+.feedback-complete {
+    margin: var(--gutter) 0 0;
+    padding-top: var(--gutter);
+    border-top: 1px solid var(--outline-variant);
+    font-weight: 600;
+}
+
+@media (min-width: 768px) {
+    .probe {
+        padding-right: var(--margin-desktop);
+        padding-left: var(--margin-desktop);
+    }
+
+    h1 {
+        font-size: var(--display-font-size);
+    }
+}
