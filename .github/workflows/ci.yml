@@ -44,8 +44,16 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Node.js 20 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Gradle 설정
         uses: gradle/actions/setup-gradle@v4
+
+      - name: 추천 정책 JS 테스트
+        run: node --test src/test/js/*.test.js
 
       - name: 빌드 및 테스트
         run: ./gradlew build

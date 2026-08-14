@@ -17,18 +17,14 @@
         <p class="eyebrow">BACKEND LAPTOP SPEC FINDER</p>
         <h1 id="hero-title">내 개발 환경에 맞는<br>노트북 사양을 찾아보세요</h1>
         <p class="hero__description">
-            사용하는 도구와 작업 방식을 선택하면 필요한 사양과 그 근거를 함께 보여드립니다.
+            먼저 백엔드 개발용 기본 권장 사양을 확인하고, 사용하는 도구와 작업 방식에 맞게 조정해 보세요.
         </p>
 
-        <div class="status-panel" th:if="${!page.questionSetApproved}">
-            <span class="status-panel__label">QUESTION SET</span>
-            <strong>질문 정책 승인 대기 중</strong>
-            <p>질문과 권장 수치가 확정되면 이 화면에서 바로 추천을 시작할 수 있습니다.</p>
-        </div>
+        <div class="baseline-list" id="initial-spec-list" aria-label="OS별 기본 권장 사양"></div>
 
         <button class="button button--primary button--wide" id="start-button" type="button"
                 th:disabled="${!page.questionSetApproved}">
-            사양 찾기 시작
+            선택 사양 조정
         </button>
     </section>
 
@@ -51,6 +47,10 @@
         <p class="eyebrow">YOUR RECOMMENDED SPEC</p>
         <h2 id="result-title">권장 사양을 확인해 보세요</h2>
         <p class="section-description">답변을 바탕으로 조정된 값과 변경 근거입니다.</p>
+        <label class="result-os-control" for="result-os-select">
+            <span>표시할 OS</span>
+            <span id="result-os-control"></span>
+        </label>
         <div class="spec-list" id="spec-list"></div>
         <button class="button button--secondary button--wide" id="edit-spec-button" type="button">사양 직접 수정</button>
         <button class="button button--primary button--wide" id="product-button" type="button">이 사양에 맞는 제품 보기</button>
@@ -81,6 +81,8 @@
 </main>
 
 <footer th:replace="~{fragments/site :: footer}"></footer>
+<script th:src="@{/js/probe-policy.js}" defer></script>
+<script th:src="@{/js/probe-product-policy.js}" defer></script>
 <script th:src="@{/js/probe-config.js}" defer></script>
 <script th:src="@{/js/probe-app.js}" defer></script>
 </body>

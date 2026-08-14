@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.List;
 
 @Entity
 @Table(name = "experiment_event")
@@ -47,6 +48,9 @@ public class ExperimentEvent {
     @Column(name = "recommendation_cpu_tier", length = 64)
     private String recommendationCpuTier;
 
+    @Column(name = "recommendation_snapshots_json", columnDefinition = "json")
+    private String recommendationSnapshotsJson;
+
     @Column(name = "occurred_at", nullable = false, columnDefinition = "timestamp(6)")
     private Instant occurredAt;
 
@@ -56,8 +60,9 @@ public class ExperimentEvent {
     protected ExperimentEvent() {
     }
 
-    private ExperimentEvent(ExperimentEventRequest request, Instant receivedAt) {
-        RecommendationSnapshotRequest snapshot = request.recommendationSnapshot();
+    private ExperimentEvent(ExperimentEventRequest request, String snapshotsJson, Instant receivedAt) {
+        List<RecommendationSnapshotRequest> snapshots = request.normalizedRecommendationSnapshots();
+        RecommendationSnapshotRequest snapshot = snapshots.size() == 1 ? snapshots.getFirst() : null;
         this.sessionId = request.sessionId();
         this.questionSetVersion = request.questionSetVersion();
         this.eventName = request.eventName();
@@ -67,11 +72,20 @@ public class ExperimentEvent {
         this.recommendationMemoryGb = snapshot == null ? null : snapshot.memoryGb();
         this.recommendationStorageGb = snapshot == null ? null : snapshot.storageGb();
         this.recommendationCpuTier = snapshot == null ? null : snapshot.cpuTier();
+        this.recommendationSnapshotsJson = snapshotsJson;
         this.occurredAt = request.occurredAt();
         this.receivedAt = receivedAt;
     }
 
-    public static ExperimentEvent from(ExperimentEventRequest request, Instant receivedAt) {
-        return new ExperimentEvent(request, receivedAt);
+    public static ExperimentEvent from(ExperimentEventRequest request, String snapshotsJson, Instant receivedAt) {
+        return new ExperimentEvent(request, snapshotsJson, receivedAt);
+    }
+
+    String recommendationOs() {
+        return recommendationOs;
+    }
+
+    String recommendationSnapshotsJson() {
+        return recommendationSnapshotsJson;
     }
 }

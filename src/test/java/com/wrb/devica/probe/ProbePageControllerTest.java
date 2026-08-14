@@ -16,6 +16,6 @@ class ProbePageControllerTest {
 
         assertThat(view).isEqualTo("pages/probe/index");
         assertThat(model.get("page"))
-                .isEqualTo(new ProbePageResponse("question-set-v0.1", false));
+                .isEqualTo(new ProbePageResponse("question-set-v0.1", true));
     }
 }

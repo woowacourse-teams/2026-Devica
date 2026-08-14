@@ -55,7 +55,10 @@ h2 {
 }
 
 .status-panel,
+.baseline-card,
 .question-option,
+.current-spec-field,
+.spec-card,
 .spec-row,
 .product-card,
 .feedback-view {
@@ -71,6 +74,38 @@ h2 {
 .status-panel p {
     margin: var(--density-high) 0 0;
     color: var(--on-surface-variant);
+}
+
+.baseline-list {
+    display: grid;
+    gap: var(--gutter);
+    margin: 24px 0;
+}
+
+.baseline-card {
+    padding: var(--gutter);
+}
+
+.baseline-card h2 {
+    margin: var(--density-high) 0 var(--gutter);
+}
+
+.baseline-card dl {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--density-high) var(--gutter);
+    margin: 0;
+}
+
+.baseline-card dt {
+    color: var(--on-surface-variant);
+    font-size: var(--label-md-font-size);
+    letter-spacing: var(--label-md-letter-spacing);
+}
+
+.baseline-card dd {
+    margin: 0;
+    font-weight: 600;
 }
 
 .progress-meta {
@@ -102,6 +137,42 @@ h2 {
     display: grid;
     gap: var(--density-med);
     margin-top: 32px;
+}
+
+.question-group legend {
+    margin-bottom: var(--density-high);
+    font-weight: 700;
+}
+
+.current-spec-form {
+    display: grid;
+    gap: var(--density-med);
+    margin-top: 32px;
+}
+
+.current-spec-field {
+    display: grid;
+    gap: var(--density-high);
+    padding: var(--gutter);
+    font-weight: 600;
+}
+
+.current-spec-field select,
+.result-os-control select,
+.spec-row select {
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--on-surface);
+    border-radius: 0;
+    padding: 0 var(--density-med);
+    color: var(--on-surface);
+    background: var(--surface-container-lowest);
+}
+
+.current-spec-field select:disabled {
+    border-color: var(--outline-variant);
+    color: var(--outline);
+    background: var(--surface-container);
 }
 
 .question-option {
@@ -146,6 +217,29 @@ h2 {
     margin: var(--gutter) 0;
 }
 
+.result-os-control {
+    display: grid;
+    gap: var(--density-high);
+    margin-top: var(--gutter);
+    font-weight: 600;
+}
+
+.spec-card {
+    padding: var(--gutter);
+}
+
+.spec-card:only-child {
+    grid-column: 1 / -1;
+}
+
+.spec-card > h3 {
+    margin-bottom: var(--gutter);
+}
+
+.spec-card .spec-row + .spec-row {
+    margin-top: var(--density-med);
+}
+
 .spec-row {
     padding: var(--gutter);
 }
@@ -169,6 +263,22 @@ h2 {
 
 .product-card h3 {
     margin: var(--density-high) 0;
+}
+
+.product-card__price {
+    display: block;
+    margin: var(--density-med) 0;
+    font-size: var(--headline-sm-font-size);
+}
+
+.product-card__source,
+.product-card__spec {
+    color: var(--on-surface-variant);
+}
+
+.empty-result {
+    border: 1px solid var(--on-surface);
+    padding: var(--gutter);
 }
 
 .feedback-view {
@@ -215,5 +325,10 @@ h2 {
 
     h1 {
         font-size: var(--display-font-size);
+    }
+
+    .baseline-list,
+    .spec-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }

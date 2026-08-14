@@ -58,19 +58,23 @@ docker build -t ghcr.io/woowacourse-teams/2026-devica:"${DEPLOY_COMMIT_SHA}" .
 
 ## 3. 실험 이벤트 테이블 적용
 
-MySQL 컨테이너 환경변수를 사용해 스키마를 적용한다. SQL은 `CREATE TABLE IF NOT EXISTS`이므로 동일 파일을 다시 실행해도 기존 이벤트를 삭제하지 않는다.
+MySQL 컨테이너 환경변수를 사용해 스키마를 적용한다. 첫 SQL은 테이블이 없을 때만 만들고, 두 번째 SQL은 복수 권장안 JSON 컬럼이 없을 때만 추가한다. 둘 다 기존 이벤트를 삭제하지 않는다.
 
 ```bash
 docker compose -f docker-compose.prod.yml exec -T db \
   sh -c 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' \
   < deploy/sql/001_create_experiment_event.sql
+
+docker compose -f docker-compose.prod.yml exec -T db \
+  sh -c 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE"' \
+  < deploy/sql/002_add_recommendation_snapshots_json.sql
 ```
 
 적용 확인:
 
 ```bash
 docker compose -f docker-compose.prod.yml exec -T db \
-  sh -c 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "SHOW TABLES LIKE '\''experiment_event'\'';"'
+  sh -c 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "SHOW TABLES LIKE '\''experiment_event'\''; SHOW COLUMNS FROM experiment_event LIKE '\''recommendation_snapshots_json'\'';"'
 ```
 
 ## 4. 앱 컨테이너 교체
