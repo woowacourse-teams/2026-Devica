@@ -1,0 +1,41 @@
+# 운영 배포용. 로컬 개발은 docker-compose.yml 을 쓴다.
+#   IMAGE_TAG=<커밋 SHA> docker compose -f docker-compose.prod.yml up -d
+services:
+  app:
+    image: ghcr.io/woowacourse-teams/2026-devica:${IMAGE_TAG}
+    container_name: devica-app
+    env_file: .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      TZ: Asia/Seoul
+    ports:
+      # ELB 가 EC2 의 80 번으로 보낸다
+      - "80:8080"
+    depends_on:
+      db:
+        # MySQL 은 컨테이너가 뜬 뒤에도 초기화에 수십 초가 걸린다
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.4
+    container_name: devica-db
+    env_file: .env
+    environment:
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    volumes:
+      # 운영 데이터의 전부다. down -v 를 실행하면 사라진다
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      # $$ 는 컨테이너 안 셸이 변수를 풀도록 이스케이프한 것이다
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
