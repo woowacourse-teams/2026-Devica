@@ -1,5 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const productPolicy = require("../../main/resources/static/js/probe-product-policy.js");
 const recommendationPolicy = require("../../main/resources/static/js/probe-policy.js");
 
@@ -49,6 +51,24 @@ test("실제 승인 제품은 쿠팡 일반가와 승인된 수정 가격을 사
         approvedConfig.products.find((product) => product.id === "win-asus-zenbook14-ai7").cpuTier,
         "P_HS"
     );
+});
+
+test("실제 승인 제품은 상세 화면 표시 자료와 로컬 WebP 이미지를 가진다", () => {
+    approvedConfig.products.forEach((product) => {
+        assert.equal(product.imagePath, `/images/products/${product.id}.webp`);
+        assert.equal(product.imageAlt, `${product.brand} ${product.modelName} (${product.modelCode}) 제품 이미지`);
+        assert.ok(product.shortDescription.length > 0);
+
+        const imageFile = path.join(
+            __dirname,
+            "../../main/resources/static",
+            product.imagePath.replace(/^\//, "")
+        );
+        assert.equal(fs.existsSync(imageFile), true, `${product.id} 이미지가 있어야 합니다.`);
+        const header = fs.readFileSync(imageFile).subarray(0, 12);
+        assert.equal(header.subarray(0, 4).toString("ascii"), "RIFF");
+        assert.equal(header.subarray(8, 12).toString("ascii"), "WEBP");
+    });
 });
 
 test("실제 승인 제품 검색은 Windows 48GB 조건을 완화하지 않는다", () => {

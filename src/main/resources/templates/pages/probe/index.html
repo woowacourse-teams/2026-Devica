@@ -7,7 +7,7 @@
     <title>Devica — 백엔드 개발용 노트북 사양</title>
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
-    <link rel="stylesheet" th:href="@{/css/pages/probe/index.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/probe/index.css(v='20260818-result-v1')}">
 </head>
 <body th:attr="data-question-set-version=${page.questionSetVersion},data-question-set-approved=${page.questionSetApproved}">
 <header th:replace="~{fragments/site :: header}"></header>
@@ -46,44 +46,56 @@
     <section class="result-view is-hidden" id="result-view" aria-labelledby="result-title">
         <p class="eyebrow">YOUR RECOMMENDED SPEC</p>
         <h2 id="result-title">권장 사양을 확인해 보세요</h2>
-        <p class="section-description">답변을 바탕으로 조정된 값과 변경 근거입니다.</p>
+        <p class="section-description">사용자님의 개발 환경과 답변을 바탕으로 조정된 권장 사양입니다.</p>
         <label class="result-os-control" for="result-os-select">
             <span>표시할 OS</span>
             <span id="result-os-control"></span>
         </label>
         <div class="spec-list" id="spec-list"></div>
         <button class="button button--secondary button--wide" id="edit-spec-button" type="button">사양 직접 수정</button>
-        <button class="button button--primary button--wide" id="product-button" type="button">이 사양에 맞는 제품 보기</button>
+        <button class="button button--primary button--wide" id="product-button" type="button">이 사양으로 제품 보기</button>
+
+        <section class="feedback-view" id="feedback-view" aria-labelledby="feedback-title">
+            <h2 id="feedback-title">추천 결과는 어땠나요?</h2>
+            <fieldset class="feedback-group" data-feedback="FIT_FEEDBACK_SUBMITTED">
+                <legend>내 상황에 잘 맞았나요?</legend>
+                <button class="chip" type="button" data-option="FIT">잘 맞아요</button>
+                <button class="chip" type="button" data-option="NEUTRAL">보통이에요</button>
+                <button class="chip" type="button" data-option="NOT_FIT">맞지 않아요</button>
+            </fieldset>
+            <fieldset class="feedback-group" data-feedback="UNDERSTANDING_FEEDBACK_SUBMITTED">
+                <legend>추천 이유를 이해할 수 있었나요?</legend>
+                <button class="chip" type="button" data-option="UNDERSTOOD">이해했어요</button>
+                <button class="chip" type="button" data-option="PARTIAL">일부 이해했어요</button>
+                <button class="chip" type="button" data-option="NOT_UNDERSTOOD">이해하기 어려워요</button>
+            </fieldset>
+            <p class="feedback-complete is-hidden" id="feedback-complete">의견을 남겨주셔서 감사합니다.</p>
+        </section>
     </section>
 
-    <section class="product-view is-hidden" id="product-view" aria-labelledby="product-title">
-        <p class="eyebrow">MATCHED PRODUCTS</p>
-        <h2 id="product-title">조건에 맞는 제품</h2>
-        <div class="product-list" id="product-list"></div>
+    <section class="product-list-view is-hidden" id="product-list-view" aria-labelledby="product-list-title">
+        <button class="text-button view-back-button" id="product-list-back-button" type="button">← 권장 사양으로</button>
+        <div class="product-list-heading">
+            <div>
+                <p class="eyebrow">MATCHED PRODUCTS</p>
+                <h2 id="product-list-title">추천 노트북</h2>
+                <p class="section-description">확정한 사양을 모두 충족하는 제품만 보여드려요.</p>
+            </div>
+            <p class="product-list-order" id="product-list-order">가격 낮은 순</p>
+        </div>
+        <div class="product-list" id="product-list" aria-live="polite"></div>
     </section>
 
-    <section class="feedback-view is-hidden" id="feedback-view" aria-labelledby="feedback-title">
-        <h2 id="feedback-title">추천 결과는 어땠나요?</h2>
-        <fieldset class="feedback-group" data-feedback="FIT_FEEDBACK_SUBMITTED">
-            <legend>내 상황에 잘 맞았나요?</legend>
-            <button class="chip" type="button" data-option="FIT">잘 맞아요</button>
-            <button class="chip" type="button" data-option="NEUTRAL">보통이에요</button>
-            <button class="chip" type="button" data-option="NOT_FIT">맞지 않아요</button>
-        </fieldset>
-        <fieldset class="feedback-group" data-feedback="UNDERSTANDING_FEEDBACK_SUBMITTED">
-            <legend>추천 이유를 이해할 수 있었나요?</legend>
-            <button class="chip" type="button" data-option="UNDERSTOOD">이해했어요</button>
-            <button class="chip" type="button" data-option="PARTIAL">일부 이해했어요</button>
-            <button class="chip" type="button" data-option="NOT_UNDERSTOOD">이해하기 어려워요</button>
-        </fieldset>
-        <p class="feedback-complete is-hidden" id="feedback-complete">의견을 남겨주셔서 감사합니다.</p>
+    <section class="product-detail-view is-hidden" id="product-detail-view" aria-labelledby="product-detail-title">
+        <div id="product-detail"></div>
     </section>
 </main>
 
 <footer th:replace="~{fragments/site :: footer}"></footer>
-<script th:src="@{/js/probe-policy.js}" defer></script>
-<script th:src="@{/js/probe-product-policy.js}" defer></script>
-<script th:src="@{/js/probe-config.js}" defer></script>
-<script th:src="@{/js/probe-app.js}" defer></script>
+<script th:src="@{/js/probe-policy.js(v='20260818-result-v1')}" defer></script>
+<script th:src="@{/js/probe-product-policy.js(v='20260818-result-v1')}" defer></script>
+<script th:src="@{/js/probe-config.js(v='20260818-result-v1')}" defer></script>
+<script th:src="@{/js/probe-product-view.js(v='20260818-result-v1')}" defer></script>
+<script th:src="@{/js/probe-app.js(v='20260818-result-v1')}" defer></script>
 </body>
 </html>

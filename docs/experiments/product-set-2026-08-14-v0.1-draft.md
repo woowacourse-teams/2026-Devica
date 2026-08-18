@@ -47,7 +47,35 @@
 | `win-asus-zenbook14-ai7` | ASUS | Zenbook 14 / `UM3406GA-QL151W` | AMD Ryzen AI 7 445 / `P_HS` | 32GB / 1TB | 2,099,000원 | [쿠팡 옵션](https://www.coupang.com/vp/products/9470833374?itemId=27653967019&vendorItemId=94616357403) | [ASUS 정확한 모델](https://www.asus.com/kr/laptops/for-home/zenbook/asus-zenbook-14-oled-um3406/where-to-buy/)에서 CPU·32GB·1TB·Windows 11 확인. `Ryzen AI 7 445 → P/HS` 검색 등급 매핑은 이 행 승인에 포함 | 구매 가능 | 승인 완료 |
 | `win-asus-rog-g16-8940hx` | ASUS | ROG Strix G16 / `G614PM-TS171W` | AMD Ryzen 9 8940HX / `HX` | 32GB / 1TB | 3,814,940원 | [쿠팡 옵션](https://www.coupang.com/vp/products/9568845900?itemId=28559191661&vendorItemId=95503812693) | [ASUS ROG 정확한 모델](https://rog.asus.com/kr/laptops/rog-strix-series/?items=21116)에서 8940HX·1TB·Windows 11 Home 모델 확인, 쿠팡 정확한 옵션에서 32GB 확인 | 구매 가능·1개 남음 표시 | 승인 완료 |
 
-## 4. 검색 결과 커버리지
+## 4. 제품 표시 이미지·소개 승인
+
+- 이미지 확인일: `2026-08-18`
+- 각 이미지에는 같은 행의 정확한 쿠팡 `itemId`·`vendorItemId` 옵션에서 표시된 대표 이미지를 사용한다.
+- 런타임 외부 핫링크 없이 `/images/products/{제품 ID}.webp`로 저장한다.
+- 이미지는 최대 492px WebP로 변환하며 자르거나 내용을 변경하지 않는다.
+- 대체 텍스트는 `{브랜드} {제품명} ({모델 코드}) 제품 이미지` 형식으로 제공한다.
+- 한 줄 소개는 승인된 CPU·RAM·SSD·제품명만 사용하며 새로운 성능 평가나 마케팅 표현을 추가하지 않는다.
+
+| 제품 ID | 승인된 쿠팡 대표 이미지 |
+| --- | --- |
+| `mac-air13-m5-24-1t` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/images/2026/03/04/2/4/8eb15da4-c320-4001-b679-3c686e7dac53.jpg) |
+| `mac-air15-m5-24-1t` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/images/2026/03/04/2/7/e4b33330-97c3-43db-86eb-7a9e6d723543.jpg) |
+| `mac-pro14-m5-24-1t` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/rs_quotation_api/pfafwvmq/bf057a3fffaa47878bad2e0099427fe8.jpg) |
+| `mac-pro14-m5pro-24-1t` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/rs_quotation_api/x8zmzawh/a9a59b7d8fd5417bb32a86f43c3f5243.jpg) |
+| `mac-pro14-m5pro-48-1t` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/images/2026/03/19/11/4/a750cae8-2330-4b70-a55c-994a48c2a6af.jpg) |
+| `mac-pro14-m5pro-48-2t` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/images/2026/03/19/11/8/bfd7e996-9174-44f2-ac68-ee5489e34e2c.jpg) |
+| `mac-pro16-m5pro-48-1t` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/images/2026/03/04/3/6/02702695-a442-491b-abe5-9b7a46a77e71.jpg) |
+| `mac-pro16-m5max-48-2t` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/images/2026/03/04/3/6/07b7507e-8752-4723-a52d-29853f1ae625.jpg) |
+| `win-samsung-book6-356h` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/vendor_inventory/cfc9/4bfafde8a5adc08b0e088a07f5ec8a040a71378b0dba533b02c7cc634494.jpg) |
+| `win-samsung-book6-ultra-356h` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/vendor_inventory/c23a/3d5cd7651039ae7969c4c0c731e1ad940c117bafe338279cffc850fad8c9.jpg) |
+| `win-lg-grampro16-258v` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/vendor_inventory/0d5c/148fafcd69fdddbb353369e6bb922242ad69f0fa09cee9e342d3118480bd.jpg) |
+| `win-lg-grampro16-255h` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/vendor_inventory/7c04/27e768e517f927999071295c82c36ca9c012544b83bdf224593712816aa7.png) |
+| `win-lenovo-ideapadpro5-356h` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/images/2026/04/06/10/4/9982c696-754d-43ff-af1e-3bf9995987fb.jpg) |
+| `win-lenovo-legionpro5-275hx` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/images/2025/07/03/17/4/33f9c24d-d59e-4722-942f-a51a8a8157a0.jpg) |
+| `win-asus-zenbook14-ai7` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/images/2026/01/23/14/1/81309ffb-59f9-4be3-9b6b-89602fc99f34.jpg) |
+| `win-asus-rog-g16-8940hx` | [이미지](https://thumbnail.coupangcdn.com/thumbnails/remote/492x492ex/image/retail/images/2026/05/26/16/5/e39ee5c1-6cc1-4a72-a088-a528d89b6ec1.jpg) |
+
+## 5. 검색 결과 커버리지
 
 | 권장 결과 | 일치 후보 수 | 후보 |
 | --- | ---: | --- |
@@ -60,7 +88,7 @@
 | Windows `H / 32GB / 1TB` | 6 | Samsung 2, LG H 1, Lenovo H·HX 2, ASUS HX 1 |
 | Windows `HX / 32GB / 1TB` | 2 | Lenovo Legion, ASUS ROG |
 
-## 5. 승인 시 함께 확정되는 판단
+## 6. 승인 시 함께 확정되는 판단
 
 - 쿠팡의 현재 공개 할인가는 로그인·회원·카드·쿠폰 조건이 없으면 `GENERAL`로 사용한다.
 - 쿠폰 문구가 있는 상품은 쿠폰 적용 전 일반 판매가만 저장한다.
@@ -69,7 +97,7 @@
 - 품절 임박·잔여 수량 표시는 구매 가능으로 보되 배포 직전에 재확인한다.
 - Windows 48GB 이상 권장 결과는 현재 제품 세트에서 결과 없음이 정상이며 조건을 완화하지 않는다.
 
-## 6. 승인 반영 기록
+## 7. 승인 반영 기록
 
 1. 승인된 16개 행을 불변 정적 제품 배열에 반영한다.
 2. `productSetApproved`를 `true`로 전환한다.

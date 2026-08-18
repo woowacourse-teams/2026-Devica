@@ -16,7 +16,8 @@
             memoryGb: 24,
             storageGb: 1024,
             priceKrw: 2840000,
-            purchaseUrl: "https://www.coupang.com/vp/products/9410641464?itemId=27961674159&vendorItemId=94919713484"
+            purchaseUrl: "https://www.coupang.com/vp/products/9410641464?itemId=27961674159&vendorItemId=94919713484",
+            shortDescription: "Apple M5와 24GB 메모리, 1TB SSD를 갖춘 13형 MacBook Air입니다."
         }),
         product({
             id: "mac-air15-m5-24-1t",
@@ -30,7 +31,8 @@
             memoryGb: 24,
             storageGb: 1024,
             priceKrw: 3126240,
-            purchaseUrl: "https://www.coupang.com/vp/products/9410641499?itemId=27961674335&vendorItemId=94919713465"
+            purchaseUrl: "https://www.coupang.com/vp/products/9410641499?itemId=27961674335&vendorItemId=94919713465",
+            shortDescription: "Apple M5와 24GB 메모리, 1TB SSD를 갖춘 15형 MacBook Air입니다."
         }),
         product({
             id: "mac-pro14-m5-24-1t",
@@ -44,7 +46,8 @@
             memoryGb: 24,
             storageGb: 1024,
             priceKrw: 3321990,
-            purchaseUrl: "https://www.coupang.com/vp/products/9140128274?itemId=27033962329&vendorItemId=94002473679"
+            purchaseUrl: "https://www.coupang.com/vp/products/9140128274?itemId=27033962329&vendorItemId=94002473679",
+            shortDescription: "Apple M5와 24GB 메모리, 1TB SSD를 갖춘 14형 MacBook Pro입니다."
         }),
         product({
             id: "mac-pro14-m5pro-24-1t",
@@ -58,7 +61,8 @@
             memoryGb: 24,
             storageGb: 1024,
             priceKrw: 3826900,
-            purchaseUrl: "https://www.coupang.com/vp/products/9140128274?itemId=28078100250&vendorItemId=95034602880"
+            purchaseUrl: "https://www.coupang.com/vp/products/9140128274?itemId=28078100250&vendorItemId=95034602880",
+            shortDescription: "Apple M5 Pro와 24GB 메모리, 1TB SSD를 갖춘 14형 MacBook Pro입니다."
         }),
         product({
             id: "mac-pro14-m5pro-48-1t",
@@ -72,7 +76,8 @@
             memoryGb: 48,
             storageGb: 1024,
             priceKrw: 4846900,
-            purchaseUrl: "https://www.coupang.com/vp/products/9140128274?itemId=28093741944&vendorItemId=95050035786"
+            purchaseUrl: "https://www.coupang.com/vp/products/9140128274?itemId=28093741944&vendorItemId=95050035786",
+            shortDescription: "Apple M5 Pro와 48GB 메모리, 1TB SSD를 갖춘 14형 MacBook Pro입니다."
         }),
         product({
             id: "mac-pro14-m5pro-48-2t",
@@ -86,7 +91,8 @@
             memoryGb: 48,
             storageGb: 2048,
             priceKrw: 5961000,
-            purchaseUrl: "https://www.coupang.com/vp/products/9140128274?itemId=28093741917&vendorItemId=95050035747"
+            purchaseUrl: "https://www.coupang.com/vp/products/9140128274?itemId=28093741917&vendorItemId=95050035747",
+            shortDescription: "Apple M5 Pro와 48GB 메모리, 2TB SSD를 갖춘 14형 MacBook Pro입니다."
         }),
         product({
             id: "mac-pro16-m5pro-48-1t",
@@ -100,7 +106,8 @@
             memoryGb: 48,
             storageGb: 1024,
             priceKrw: 5566770,
-            purchaseUrl: "https://www.coupang.com/vp/products/9410700446?itemId=27961799447&vendorItemId=94919837921"
+            purchaseUrl: "https://www.coupang.com/vp/products/9410700446?itemId=27961799447&vendorItemId=94919837921",
+            shortDescription: "Apple M5 Pro와 48GB 메모리, 1TB SSD를 갖춘 16형 MacBook Pro입니다."
         }),
         product({
             id: "mac-pro16-m5max-48-2t",
@@ -114,7 +121,8 @@
             memoryGb: 48,
             storageGb: 2048,
             priceKrw: 7670000,
-            purchaseUrl: "https://www.coupang.com/vp/products/9410700446?itemId=27961799450&vendorItemId=94919837915"
+            purchaseUrl: "https://www.coupang.com/vp/products/9410700446?itemId=27961799450&vendorItemId=94919837915",
+            shortDescription: "Apple M5 Max와 48GB 메모리, 2TB SSD를 갖춘 16형 MacBook Pro입니다."
         }),
         product({
             id: "win-samsung-book6-356h",
@@ -128,7 +136,8 @@
             memoryGb: 32,
             storageGb: 1024,
             priceKrw: 2849000,
-            purchaseUrl: "https://www.coupang.com/vp/products/9458954410?itemId=28152507754&vendorItemId=95107817299"
+            purchaseUrl: "https://www.coupang.com/vp/products/9458954410?itemId=28152507754&vendorItemId=95107817299",
+            shortDescription: "Intel Core Ultra 7 356H와 32GB 메모리, 1TB SSD를 갖춘 Galaxy Book6입니다."
         }),
         product({
             id: "win-samsung-book6-ultra-356h",
@@ -142,7 +151,8 @@
             memoryGb: 32,
             storageGb: 1024,
             priceKrw: 5829000,
-            purchaseUrl: "https://www.coupang.com/vp/products/9339542914?itemId=27696774261&vendorItemId=94658532515"
+            purchaseUrl: "https://www.coupang.com/vp/products/9339542914?itemId=27696774261&vendorItemId=94658532515",
+            shortDescription: "Intel Core Ultra 7 356H와 32GB 메모리, 1TB SSD를 갖춘 Galaxy Book6 Ultra입니다."
         }),
         product({
             id: "win-lg-grampro16-258v",
@@ -156,7 +166,8 @@
             memoryGb: 32,
             storageGb: 1024,
             priceKrw: 3000000,
-            purchaseUrl: "https://www.coupang.com/vp/products/8670821592?itemId=25170697413&vendorItemId=95514237961"
+            purchaseUrl: "https://www.coupang.com/vp/products/8670821592?itemId=25170697413&vendorItemId=95514237961",
+            shortDescription: "Intel Core Ultra 7 258V와 32GB 메모리, 1TB SSD를 갖춘 gram Pro AI 16입니다."
         }),
         product({
             id: "win-lg-grampro16-255h",
@@ -170,7 +181,8 @@
             memoryGb: 32,
             storageGb: 1024,
             priceKrw: 2850000,
-            purchaseUrl: "https://www.coupang.com/vp/products/8829567591?itemId=25726533506&vendorItemId=92715203892"
+            purchaseUrl: "https://www.coupang.com/vp/products/8829567591?itemId=25726533506&vendorItemId=92715203892",
+            shortDescription: "Intel Core Ultra 7 255H와 32GB 메모리, 1TB SSD를 갖춘 gram Pro 16입니다."
         }),
         product({
             id: "win-lenovo-ideapadpro5-356h",
@@ -184,7 +196,8 @@
             memoryGb: 32,
             storageGb: 1024,
             priceKrw: 2449000,
-            purchaseUrl: "https://www.coupang.com/vp/products/9478742459?itemId=28219563534&vendorItemId=95173538944"
+            purchaseUrl: "https://www.coupang.com/vp/products/9478742459?itemId=28219563534&vendorItemId=95173538944",
+            shortDescription: "Intel Core Ultra 7 356H와 32GB 메모리, 1TB SSD를 갖춘 IdeaPad Pro 5i입니다."
         }),
         product({
             id: "win-lenovo-legionpro5-275hx",
@@ -198,7 +211,8 @@
             memoryGb: 32,
             storageGb: 1024,
             priceKrw: 4649000,
-            purchaseUrl: "https://www.coupang.com/vp/products/8888042529?itemId=25949552933&vendorItemId=92932462159"
+            purchaseUrl: "https://www.coupang.com/vp/products/8888042529?itemId=25949552933&vendorItemId=92932462159",
+            shortDescription: "Intel Core Ultra 9 275HX와 32GB 메모리, 1TB SSD를 갖춘 Legion Pro 5i입니다."
         }),
         product({
             id: "win-asus-zenbook14-ai7",
@@ -212,7 +226,8 @@
             memoryGb: 32,
             storageGb: 1024,
             priceKrw: 2099000,
-            purchaseUrl: "https://www.coupang.com/vp/products/9470833374?itemId=27653967019&vendorItemId=94616357403"
+            purchaseUrl: "https://www.coupang.com/vp/products/9470833374?itemId=27653967019&vendorItemId=94616357403",
+            shortDescription: "AMD Ryzen AI 7 445와 32GB 메모리, 1TB SSD를 갖춘 Zenbook 14입니다."
         }),
         product({
             id: "win-asus-rog-g16-8940hx",
@@ -226,7 +241,8 @@
             memoryGb: 32,
             storageGb: 1024,
             priceKrw: 3814940,
-            purchaseUrl: "https://www.coupang.com/vp/products/9568845900?itemId=28559191661&vendorItemId=95503812693"
+            purchaseUrl: "https://www.coupang.com/vp/products/9568845900?itemId=28559191661&vendorItemId=95503812693",
+            shortDescription: "AMD Ryzen 9 8940HX와 32GB 메모리, 1TB SSD를 갖춘 ROG Strix G16입니다."
         })
     ]);
     const productSetApproved = true;
@@ -347,6 +363,8 @@
     function product(fields) {
         return Object.freeze({
             ...fields,
+            imagePath: `/images/products/${fields.id}.webp`,
+            imageAlt: `${fields.brand} ${fields.modelName} (${fields.modelCode}) 제품 이미지`,
             priceType: "GENERAL",
             sourceName: "쿠팡",
             checkedAt: "2026-08-14",

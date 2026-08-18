@@ -4,9 +4,18 @@
     const config = window.DEVICA_PROBE_CONFIG;
     const policy = window.DevicaProbePolicy;
     const productPolicy = window.DevicaProductPolicy;
-    if (!config || !config.approved || !policy || !productPolicy) {
+    const productView = window.DevicaProductView;
+    if (!config || !config.approved || !policy || !productPolicy || !productView) {
         return;
     }
+
+    const VIEW = Object.freeze({
+        INTRO: "INTRO",
+        QUESTION: "QUESTION",
+        RESULT: "RESULT",
+        PRODUCT_LIST: "PRODUCT_LIST",
+        PRODUCT_DETAIL: "PRODUCT_DETAIL"
+    });
 
     const elements = {
         intro: document.querySelector("#intro-view"),
@@ -23,9 +32,11 @@
         specList: document.querySelector("#spec-list"),
         editSpec: document.querySelector("#edit-spec-button"),
         productButton: document.querySelector("#product-button"),
-        product: document.querySelector("#product-view"),
+        productListView: document.querySelector("#product-list-view"),
+        productListBack: document.querySelector("#product-list-back-button"),
         productList: document.querySelector("#product-list"),
-        feedback: document.querySelector("#feedback-view"),
+        productDetailView: document.querySelector("#product-detail-view"),
+        productDetail: document.querySelector("#product-detail"),
         feedbackComplete: document.querySelector("#feedback-complete")
     };
 
@@ -40,6 +51,9 @@
         finalSpecs: new Map(),
         resultViewMode: "BOTH",
         editMode: false,
+        activeView: VIEW.INTRO,
+        matchedProducts: [],
+        selectedProductId: null,
         lastViewedQuestionId: null,
         submittedFeedback: new Set()
     };
@@ -50,6 +64,7 @@
     elements.next.addEventListener("click", showNextQuestion);
     elements.editSpec.addEventListener("click", toggleSpecificationEdit);
     elements.productButton.addEventListener("click", showProducts);
+    elements.productListBack.addEventListener("click", showRecommendationResult);
     document.querySelectorAll("[data-feedback]").forEach(bindFeedbackGroup);
 
     function renderInitialBaselines() {
@@ -83,8 +98,7 @@
     function startRecommendation() {
         state.visibleQuestions = resolveVisibleQuestions();
         state.questionIndex = 0;
-        elements.intro.classList.add("is-hidden");
-        elements.question.classList.remove("is-hidden");
+        activateView(VIEW.QUESTION);
         recordEvent("RECOMMENDATION_STARTED");
         renderQuestion();
     }
@@ -345,9 +359,8 @@
         });
         state.resultViewMode = state.calculation.activeOs.length === 2 ? "BOTH" : state.calculation.activeOs[0];
         state.editMode = false;
-        elements.question.classList.add("is-hidden");
-        elements.result.classList.remove("is-hidden");
-        elements.feedback.classList.remove("is-hidden");
+        resetProductResults();
+        activateView(VIEW.RESULT);
         renderSpecification();
         recordEvent("RECOMMENDATION_COMPLETED");
     }
@@ -360,7 +373,7 @@
         const productSetReady = config.productSetApproved && config.productSetValidation.valid;
         elements.productButton.disabled = !productSetReady;
         elements.productButton.textContent = productSetReady
-            ? "이 사양에 맞는 제품 보기"
+            ? "이 사양으로 제품 보기"
             : "제품 목록 승인 대기";
     }
 
@@ -476,41 +489,87 @@
         if (!config.productSetApproved || !config.productSetValidation.valid) {
             return;
         }
-        const matches = productPolicy.sortByPrice(visibleResultOs().flatMap((os) => {
+        state.matchedProducts = productPolicy.sortByPrice(visibleResultOs().flatMap((os) => {
             const spec = state.finalSpecs.get(os);
             return productPolicy.findMatches(config.products, spec, policy.CPU_TIERS);
         }));
-        elements.product.classList.remove("is-hidden");
-        if (matches.length === 0) {
+        state.selectedProductId = null;
+        renderProductList();
+        activateView(VIEW.PRODUCT_LIST);
+        recordEvent("PRODUCT_LIST_VIEWED", {optionId: config.productSetVersion});
+        scrollToViewStart();
+    }
+
+    function renderProductList() {
+        if (state.matchedProducts.length === 0) {
             const empty = document.createElement("p");
             empty.className = "empty-result";
             empty.textContent = "조건에 맞는 제품이 없습니다. 사양을 직접 조정해 다시 확인해 주세요.";
             elements.productList.replaceChildren(empty);
-        } else {
-            elements.productList.replaceChildren(...matches.map(createProductCard));
+            return;
         }
-        recordEvent("PRODUCT_LIST_VIEWED", {optionId: config.productSetVersion});
-        elements.product.scrollIntoView({behavior: "smooth"});
+        elements.productList.replaceChildren(...state.matchedProducts.map((product) => {
+            return productView.createProductCard(product, {
+                formatPrice,
+                formatStorage,
+                onDetail: showProductDetail
+            });
+        }));
+    }
+
+    function showProductDetail(productId) {
+        const product = productView.findProduct(state.matchedProducts, productId);
+        if (!product) {
+            return;
+        }
+        state.selectedProductId = product.id;
+        elements.productDetail.replaceChildren(productView.createProductDetail(product, {
+            formatPrice,
+            formatStorage,
+            onBack: showProductList,
+            onPurchase: (selectedId) => recordEvent("PRODUCT_CLICKED", {optionId: selectedId})
+        }));
+        activateView(VIEW.PRODUCT_DETAIL);
+        scrollToViewStart();
+    }
+
+    function showProductList() {
+        if (state.matchedProducts.length === 0 && state.selectedProductId == null) {
+            showRecommendationResult();
+            return;
+        }
+        activateView(VIEW.PRODUCT_LIST);
+        scrollToViewStart();
+    }
+
+    function showRecommendationResult() {
+        state.selectedProductId = null;
+        activateView(VIEW.RESULT);
+        scrollToViewStart();
     }
 
     function resetProductResults() {
-        elements.product.classList.add("is-hidden");
+        state.matchedProducts = [];
+        state.selectedProductId = null;
         elements.productList.replaceChildren();
+        elements.productDetail.replaceChildren();
     }
 
-    function createProductCard(product) {
-        const card = document.createElement("article");
-        card.className = "product-card";
-        card.innerHTML = `<span class="product-card__maker"></span><h3></h3><p class="product-card__spec"></p><strong class="product-card__price"></strong><p class="product-card__source"></p><a class="button button--primary button--wide" target="_blank" rel="noopener noreferrer">제품 확인</a>`;
-        card.querySelector(".product-card__maker").textContent = product.brand;
-        card.querySelector("h3").textContent = product.modelName;
-        card.querySelector(".product-card__spec").textContent = `${product.cpuModelName} · RAM ${product.memoryGb}GB · SSD ${formatStorage(product.storageGb)}`;
-        card.querySelector(".product-card__price").textContent = `${product.priceKrw.toLocaleString("ko-KR")}원`;
-        card.querySelector(".product-card__source").textContent = `${product.sourceName} · ${product.checkedAt} 확인`;
-        const link = card.querySelector("a");
-        link.href = product.purchaseUrl;
-        link.addEventListener("click", () => recordEvent("PRODUCT_CLICKED", {optionId: product.id}));
-        return card;
+    function activateView(view) {
+        state.activeView = view;
+        [
+            [elements.intro, VIEW.INTRO],
+            [elements.question, VIEW.QUESTION],
+            [elements.result, VIEW.RESULT],
+            [elements.productListView, VIEW.PRODUCT_LIST],
+            [elements.productDetailView, VIEW.PRODUCT_DETAIL]
+        ].forEach(([element, targetView]) => {
+            element.classList.toggle("is-hidden", targetView !== view);
+        });
+    }
+
+    function scrollToViewStart() {
+        window.scrollTo({top: 0, behavior: "smooth"});
     }
 
     function bindFeedbackGroup(group) {
@@ -574,6 +633,10 @@
 
     function formatStorage(value) {
         return Number(value) >= 1024 ? `${Number(value) / 1024}TB` : `${value}GB`;
+    }
+
+    function formatPrice(value) {
+        return `${Number(value).toLocaleString("ko-KR")}원`;
     }
 
     function reasonKey(field) {
