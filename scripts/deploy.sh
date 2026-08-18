@@ -33,6 +33,6 @@ fi
 
 docker compose -f docker-compose.prod.yml up -d
 
-# 태그가 붙은 옛 이미지는 dangling 이 아니라서 그냥 두면 계속 쌓인다. 
+# 태그가 붙은 옛 이미지는 dangling 이 아니라서 그냥 두면 계속 쌓인다.
 # 배포마다 레이어가 늘어나므로 일주일치만 남긴다.
 docker image prune -af --filter "until=168h"
