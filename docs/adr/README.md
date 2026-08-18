@@ -21,7 +21,7 @@
 
 ## 작성 방법
 
-[TEMPLATE.md](TEMPLATE.md)를 복사해 `NNNN-주제.md` 형식으로 만든다. 번호는 마지막 문서 다음 번호를 이어서 쓴다.
+[Template.md](Template.md)를 복사해 `NNNN-주제.md` 형식으로 만든다. 번호는 마지막 문서 다음 번호를 이어서 쓴다.
 
 ### 상태
 
