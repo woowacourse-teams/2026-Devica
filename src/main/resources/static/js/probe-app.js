@@ -13,9 +13,13 @@
         INTRO: "INTRO",
         QUESTION: "QUESTION",
         RESULT: "RESULT",
+        SEARCH_LOADING: "SEARCH_LOADING",
         PRODUCT_LIST: "PRODUCT_LIST",
         PRODUCT_DETAIL: "PRODUCT_DETAIL"
     });
+
+    // 매칭은 즉시 끝나지만 답변이 실제로 쓰였다는 걸 보여주려고 화면만 붙잡아 둔다.
+    const SEARCH_LOADING_MS = 1800;
 
     // 전체 제품 목록에서 "뒤로"를 눌렀을 때 돌아갈 수 있는 화면. 제품 화면끼리 서로 되돌아가지 않게 한다.
     const RETURNABLE_VIEWS = Object.freeze([VIEW.INTRO, VIEW.QUESTION, VIEW.RESULT]);
@@ -38,6 +42,8 @@
         specList: document.querySelector("#spec-list"),
         editSpec: document.querySelector("#edit-spec-button"),
         productButton: document.querySelector("#product-button"),
+        searchLoadingView: document.querySelector("#search-loading-view"),
+        searchLoadingSpecs: document.querySelector("#search-loading-specs"),
         productListView: document.querySelector("#product-list-view"),
         productListBack: document.querySelector("#product-list-back-button"),
         productListEyebrow: document.querySelector("#product-list-eyebrow"),
@@ -67,6 +73,7 @@
         productListMode: "MATCHED",
         productListReturnView: VIEW.RESULT,
         selectedProductId: null,
+        searchLoadingTimer: null,
         lastViewedQuestionId: null,
         submittedFeedback: new Set()
     };
@@ -475,7 +482,7 @@
         const productSetReady = isProductSetReady();
         elements.productButton.disabled = !productSetReady;
         elements.productButton.textContent = productSetReady
-            ? "이 사양으로 제품 보기"
+            ? "확정한 사양으로 제품 검색"
             : "제품 목록 승인 대기";
     }
 
@@ -592,11 +599,47 @@
             return;
         }
         state.productListMode = "MATCHED";
+        // 매칭은 순수 계산이라 미리 끝내 둔다. 지연 중에 실패할 여지를 남기지 않는다.
         state.matchedProducts = productPolicy.sortByPrice(visibleResultOs().flatMap((os) => {
             const spec = state.finalSpecs.get(os);
             return productPolicy.findMatches(config.products, spec, policy.CPU_TIERS);
         }));
-        openProductList();
+        startSearchLoading();
+    }
+
+    function startSearchLoading() {
+        renderSearchLoadingSpecs();
+        activateView(VIEW.SEARCH_LOADING);
+        scrollToViewStart();
+        state.searchLoadingTimer = window.setTimeout(() => {
+            state.searchLoadingTimer = null;
+            openProductList();
+        }, SEARCH_LOADING_MS);
+    }
+
+    function cancelSearchLoading() {
+        if (state.searchLoadingTimer == null) {
+            return;
+        }
+        window.clearTimeout(state.searchLoadingTimer);
+        state.searchLoadingTimer = null;
+    }
+
+    // 검색 대상이 되는 사양을 OS별로 한 줄씩 보여준다. 표시 OS가 «둘 다»면 두 줄이 된다.
+    function renderSearchLoadingSpecs() {
+        elements.searchLoadingSpecs.replaceChildren(...visibleResultOs().map((os) => {
+            const spec = state.finalSpecs.get(os);
+            const line = document.createElement("p");
+            line.className = "search-loading__spec";
+            // CPU 라벨 안에 «/»가 들어가는 경우가 있어(«… 258V / … 445급») 구분자는 «·»를 쓴다.
+            line.textContent = [
+                policy.cpuLabel(os, spec.cpuTier),
+                `${spec.memoryGb}GB`,
+                formatStorage(spec.storageGb),
+                osLabel(os)
+            ].join(" · ");
+            return line;
+        }));
     }
 
     function showAllProducts() {
@@ -712,11 +755,17 @@
     }
 
     function activateView(view) {
+        // 로딩 중에 다른 화면으로 빠져나가면 예약된 전환이 나중에 그 화면을 덮어쓴다.
+        // 호출부마다 챙기지 않도록 여기 한 곳에서 끊는다.
+        if (view !== VIEW.SEARCH_LOADING) {
+            cancelSearchLoading();
+        }
         state.activeView = view;
         [
             [elements.intro, VIEW.INTRO],
             [elements.question, VIEW.QUESTION],
             [elements.result, VIEW.RESULT],
+            [elements.searchLoadingView, VIEW.SEARCH_LOADING],
             [elements.productListView, VIEW.PRODUCT_LIST],
             [elements.productDetailView, VIEW.PRODUCT_DETAIL]
         ].forEach(([element, targetView]) => {

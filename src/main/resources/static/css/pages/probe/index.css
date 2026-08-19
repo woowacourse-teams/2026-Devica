@@ -9,6 +9,7 @@
 .hero,
 .question-view,
 .result-view,
+.search-loading-view,
 .product-list-view,
 .product-detail-view,
 .feedback-view {
@@ -63,6 +64,7 @@ h2 {
 .spec-card,
 .spec-row,
 .product-card,
+.search-loading,
 .feedback-view {
     border: 1px solid var(--on-surface);
     background: var(--surface-container-lowest);
@@ -312,6 +314,56 @@ h2 {
 .button--skip:hover:not(:disabled) {
     border-color: var(--primary);
     color: var(--primary);
+}
+
+.search-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--density-med);
+    margin: 64px 0;
+    padding: 40px var(--gutter);
+    text-align: center;
+}
+
+/* 시스템에서 유일하게 둥근 요소다. 회전으로 읽히려면 원이어야 한다. */
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 2px solid var(--inverse-primary);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spinner-rotate 900ms linear infinite;
+}
+
+@keyframes spinner-rotate {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.search-loading__specs {
+    display: grid;
+    gap: var(--density-high);
+    width: 100%;
+    margin-top: var(--density-high);
+    padding-top: var(--gutter);
+    border-top: 1px solid var(--outline-variant);
+}
+
+.search-loading__spec {
+    margin: 0;
+    padding: var(--density-med);
+    color: var(--on-surface-variant);
+    background: var(--surface-container-low);
+    font-size: var(--body-md-font-size);
+}
+
+/* 회전이 꺼져도 제목 문구가 진행 중임을 알린다. */
+@media (prefers-reduced-motion: reduce) {
+    .spinner {
+        animation: none;
+    }
 }
 
 .spec-list,
