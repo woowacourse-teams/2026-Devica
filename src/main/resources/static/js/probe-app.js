@@ -149,9 +149,10 @@
     // 답을 고르지 않아도 건너뛸 수 있다. 미응답 답변은 정책에서 기본값으로 처리된다.
     function renderNextButton(question) {
         const isLastQuestion = state.questionIndex === state.visibleQuestions.length - 1;
-        elements.next.textContent = isQuestionComplete(question)
-            ? (isLastQuestion ? "결과 보기" : "다음")
-            : "건너뛰기";
+        const skipping = !isQuestionComplete(question);
+        elements.next.textContent = skipping ? "건너뛰기" : (isLastQuestion ? "결과 보기" : "다음");
+        elements.next.classList.toggle("button--primary", !skipping);
+        elements.next.classList.toggle("button--skip", skipping);
     }
 
     function createCurrentSpecContent(question) {
