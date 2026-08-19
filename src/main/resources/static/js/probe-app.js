@@ -283,6 +283,7 @@
 
     function createQuestionContent(question) {
         const fragment = createQuestionHeading(question);
+        fragment.appendChild(createFieldMessage("choice-hint", "선택한 항목을 한 번 더 누르면 해제됩니다."));
         question.groups.forEach((group) => {
             const groupContainer = document.createElement("fieldset");
             groupContainer.className = "question-group";
@@ -344,6 +345,9 @@
             } else {
                 state.answers.set(answerKey, next);
             }
+        } else if (previous === optionId) {
+            // 같은 옵션을 다시 누르면 해제한다. 사전 입력 칩·다중 선택은 이미 토글되므로 단일 선택도 맞춘다.
+            state.answers.delete(answerKey);
         } else {
             state.answers.set(answerKey, optionId);
         }
@@ -354,7 +358,7 @@
         recalculate();
         recordEvent(previous == null ? "QUESTION_ANSWERED" : "ANSWER_CHANGED", {
             questionId: answerKey,
-            optionId: Array.isArray(current) ? current.join(",") : current
+            optionId: Array.isArray(current) ? current.join(",") : (current == null ? null : String(current))
         });
         recordEvent("SPEC_ADJUSTED", {questionId: answerKey, optionId});
         renderQuestion();
