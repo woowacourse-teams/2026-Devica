@@ -351,6 +351,14 @@
 
     function showNextQuestion() {
         const question = state.visibleQuestions[state.questionIndex];
+        if (!isQuestionComplete(question)) {
+            // 건너뛰기는 experiment_event ENUM에 없어 PostHog에만 보낸다.
+            window.posthog?.capture("QUESTION_SKIPPED", {
+                questionId: question.id,
+                sessionId: state.sessionId,
+                questionSetVersion: config.version
+            });
+        }
         if (question.kind === "current-spec" && !state.currentSpecSubmitted) {
             state.currentSpecSubmitted = true;
             const status = policy.currentSpecSubmissionStatus(state.currentSpec);
