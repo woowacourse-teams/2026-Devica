@@ -107,6 +107,7 @@ h2 {
 .baseline-card dd {
     margin: 0;
     font-weight: 600;
+    text-align: right;
 }
 
 .progress-meta {

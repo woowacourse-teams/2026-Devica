@@ -18,8 +18,13 @@
     });
 
     const CPU_LABELS = Object.freeze({
-        [OS.MACOS]: Object.freeze({BASIC: "Apple M 기본", PRO: "Apple M Pro", MAX: "Apple M Max"}),
-        [OS.WINDOWS]: Object.freeze({U: "U", P_HS: "P/HS", H: "H", HX: "HX"})
+        [OS.MACOS]: Object.freeze({BASIC: "M 칩", PRO: "M Pro 칩", MAX: "M Max 칩"}),
+        [OS.WINDOWS]: Object.freeze({
+            U: "Core Ultra 5 235U / Ryzen AI 5 340급",
+            P_HS: "Core Ultra 7 258V / Ryzen AI 7 445급",
+            H: "Core Ultra 7 255H / Ryzen 7 H 260급",
+            HX: "Core Ultra 9 275HX / Ryzen 9 8940HX급"
+        })
     });
 
     const BASELINES = Object.freeze({

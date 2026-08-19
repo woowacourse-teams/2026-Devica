@@ -147,7 +147,7 @@
                 [8, "8GB 이하"], [16, "16GB"], [24, "24GB"], [32, "32GB"], [64, "64GB 이상"]
             ], state.currentSpec.memoryGb, (value) => updateCurrentNumber("memoryGb", "CURRENT_MEMORY", value)),
             createSelectField("CURRENT_STORAGE", "SSD 용량(GB)", [
-                [256, "256GB 이하"], [512, "512GB 상당 (약 460~480GB 표시)"], [1024, "1TB 이상"]
+                [256, "256GB 이하"], [512, "256GB 초과 1TB 미만"], [1024, "1TB 이상"]
             ], state.currentSpec.storageGb, (value) => updateCurrentNumber("storageGb", "CURRENT_STORAGE", value))
         );
         fragment.appendChild(form);

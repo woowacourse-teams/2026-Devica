@@ -298,7 +298,7 @@
                         options: [
                             option("JETBRAINS", "IntelliJ, PyCharm 등 JetBrains 제품"),
                             option("LIGHT_EDITOR", "VS Code, Vim, Neovim 등"),
-                            option("MULTIPLE", "여러 개를 함께 쓴다"),
+                            option("MULTIPLE", "여러 개를 동시에 함께 쓴다"),
                             option("UNKNOWN", "아직 모르겠다")
                         ]
                     },
@@ -314,10 +314,10 @@
                 ]
             },
             singleQuestion("Q4", "개발 환경을 어떻게 띄우나요?", [
-                option("MULTIPLE_SERVICES", "서비스를 서너 개씩 함께 띄운다"),
+                option("MULTIPLE_SERVICES", "로컬에 직접 설치해서 여러 개 띄운다"),
+                option("LOCAL", "로컬에 직접 설치해서 한두 개 띄운다"),
                 option("DOCKER_MANY", "도커로 여러 개를 한 번에 띄운다"),
                 option("DOCKER_FEW", "도커로 한두 개 띄운다"),
-                option("LOCAL", "로컬에 직접 설치해서 쓴다"),
                 option("REMOTE", "원격 서버에 접속해서 쓴다"),
                 option("NO_EXPERIENCE", "아직 다뤄본 적이 없다")
             ]),
