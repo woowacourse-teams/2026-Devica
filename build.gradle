@@ -37,3 +37,9 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// 라이브러리로 배포하지 않으므로 plain jar 는 만들지 않는다.
+// build 시 jar 가 두 개 생기면 Dockerfile 의 COPY build/libs/*.jar 가 실패한다.
+tasks.named('jar') {
+	enabled = false
+}

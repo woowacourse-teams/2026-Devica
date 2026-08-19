@@ -1,0 +1,70 @@
+# CodeBuild 가 읽고, CodePipeline 의 Build 단계에서 실행된다.
+#
+# 이미지를 여기서 만들어 tar 로 배포 번들에 담는다. 레지스트리를 쓰지 않는 이유는
+# CodeDeploy 가 어차피 S3 를 거쳐 EC2 로 번들을 나르기 때문이다. 통로가 이미 있는데
+# 이미지만 따로 창고(GHCR)를 두면 자격증명이 늘어난다.
+#
+# 빌드 환경(콘솔에서 지정):
+#   - ARM 컨테이너. EC2 가 ARM64 라 이미지도 arm64 여야 하는데, 여기서 이미지를
+#     만드는 순간 아키텍처가 고정되므로 러너가 ARM 이어야 한다.
+#   - privileged 모드 켬 (docker 를 쓴다)
+#   - 서비스 역할은 콘솔에서 새로 생성
+version: 0.2
+
+env:
+  variables:
+    # 레지스트리에 올리지 않으므로 로컬 이름이다. docker-compose.prod.yml 의 image 와 맞춰져 있다.
+    IMAGE_NAME: devica
+    # src/test/resources/application.yml 의 기본값과 맞춰져 있다. 한쪽만 바꾸면 테스트가 없는 DB 에 붙는다.
+    TEST_DB_PORT: "3307"
+
+phases:
+  pre_build:
+    commands:
+      # 이미지 태그는 배포된 컨테이너와 커밋을 잇는 유일한 수단이다.
+      # CodePipeline 이 넘겨주는 COMMIT_ID 를 쓰고, 비어 있으면 CodeBuild 가 채운 값으로 물러난다.
+      # 단계 사이에 셸이 이어지는지 보장할 수 없으므로 파일로 넘긴다. 이 파일은 배포 번들에도 들어간다.
+      - |
+        COMMIT_SHA="${COMMIT_ID:-$CODEBUILD_RESOLVED_SOURCE_VERSION}"
+        if [ -z "$COMMIT_SHA" ]; then
+          echo "커밋 SHA 를 알 수 없다. 태그 없이 배포하면 무엇이 떠 있는지 추적할 수 없으므로 중단한다."
+          exit 1
+        fi
+        echo "$COMMIT_SHA" | cut -c1-7 > image-tag.txt
+        echo "빌드 대상 커밋 $COMMIT_SHA / 이미지 태그 $(cat image-tag.txt)"
+      - |
+        docker run -d --name mysql-test -p "${TEST_DB_PORT}:3306" \
+          -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=devica_test -e TZ=Asia/Seoul \
+          mysql:8.4 --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
+      - |
+        for i in $(seq 1 60); do
+          if docker exec mysql-test mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; then
+            break
+          fi
+          if [ "$i" = "60" ]; then echo "MySQL 이 준비되지 않았다"; exit 1; fi
+          sleep 2
+        done
+
+  build:
+    commands:
+      - chmod +x gradlew
+      # bootJar 가 아니라 build 를 쓴다. main 에 합쳐진 트리는 두 브랜치가
+      # 처음 만나는 조합이라 CI 가 검증한 적이 없으므로 배포 직전에 한 번 더 돌린다.
+      - ./gradlew build
+      - |
+        IMAGE_TAG="$(cat image-tag.txt)"
+        docker build -t "$IMAGE_NAME:$IMAGE_TAG" .
+        docker save "$IMAGE_NAME:$IMAGE_TAG" -o image.tar
+        ls -lh image.tar
+
+  post_build:
+    commands:
+      - chmod +x scripts/*.sh
+
+artifacts:
+  files:
+    - appspec.yml
+    - image.tar
+    - image-tag.txt
+    - docker-compose.prod.yml
+    - scripts/*

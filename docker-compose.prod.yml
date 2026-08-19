@@ -2,7 +2,9 @@
 #   IMAGE_TAG=<커밋 SHA> docker compose -f docker-compose.prod.yml up -d
 services:
   app:
-    image: ghcr.io/woowacourse-teams/2026-devica:${IMAGE_TAG}
+    # 레지스트리에 없다. CodeBuild 가 만든 image.tar 를 배포 훅이 docker load 로 올린다.
+    image: devica:${IMAGE_TAG}
+    pull_policy: never
     container_name: devica-app
     env_file: .env
     environment:
