@@ -9,14 +9,14 @@
 })(typeof window !== "undefined" ? window : globalThis, () => {
     "use strict";
 
-    const PRODUCT_COUNT = 16;
-    const OS_COUNTS = Object.freeze({MACOS: 8, WINDOWS: 8});
-    const MAC_BRAND_COUNTS = Object.freeze({Apple: 8});
+    const PRODUCT_COUNT = 20;
+    const OS_COUNTS = Object.freeze({MACOS: 12, WINDOWS: 8});
+    const MAC_BRAND_COUNTS = Object.freeze({Apple: 12});
     const WINDOWS_BRAND_COUNTS = Object.freeze({Samsung: 2, LG: 2, Lenovo: 2, ASUS: 2});
     const MINIMUM_COVERAGE = Object.freeze([
         Object.freeze({label: "Mac 기본", minimum: 2, spec: Object.freeze({os: "MACOS", cpuTier: "BASIC", memoryGb: 24, storageGb: 512})}),
-        Object.freeze({label: "Mac Pro 상향", minimum: 1, spec: Object.freeze({os: "MACOS", cpuTier: "PRO", memoryGb: 40, storageGb: 512})}),
-        Object.freeze({label: "Mac Max 상향", minimum: 1, spec: Object.freeze({os: "MACOS", cpuTier: "MAX", memoryGb: 40, storageGb: 512})}),
+        Object.freeze({label: "Mac Pro 기본", minimum: 1, spec: Object.freeze({os: "MACOS", cpuTier: "PRO", memoryGb: 24, storageGb: 1024})}),
+        Object.freeze({label: "Mac Pro 고메모리", minimum: 1, spec: Object.freeze({os: "MACOS", cpuTier: "PRO", memoryGb: 48, storageGb: 1024})}),
         Object.freeze({label: "Windows 기본", minimum: 2, spec: Object.freeze({os: "WINDOWS", cpuTier: "P_HS", memoryGb: 32, storageGb: 512})}),
         Object.freeze({label: "Windows H 상향", minimum: 1, spec: Object.freeze({os: "WINDOWS", cpuTier: "H", memoryGb: 32, storageGb: 512})}),
         Object.freeze({label: "Windows HX 상향", minimum: 1, spec: Object.freeze({os: "WINDOWS", cpuTier: "HX", memoryGb: 32, storageGb: 512})})
@@ -109,6 +109,9 @@
         }
         if (!cpuTiers || !Array.isArray(cpuTiers[product.os]) || !cpuTiers[product.os].includes(product.cpuTier)) {
             errors.push(`${label}.cpuTier가 ${product.os} 등급표에 없습니다.`);
+        }
+        if (product.os === "MACOS" && product.cpuTier === "MAX") {
+            errors.push(`${label}.Mac Max 제품은 승인 제품 세트에 포함할 수 없습니다.`);
         }
         validatePurchaseUrl(product.purchaseUrl, label, errors);
     }

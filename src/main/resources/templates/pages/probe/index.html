@@ -7,7 +7,7 @@
     <title>Devica — 백엔드 개발용 노트북 사양</title>
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
-    <link rel="stylesheet" th:href="@{/css/pages/probe/index.css(v='20260820-search-loading')}">
+    <link rel="stylesheet" th:href="@{/css/pages/probe/index.css(v='20260820-search-loading-mac-specs-v1')}">
 
     <script>
         !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagResult isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
@@ -44,7 +44,7 @@
                 <li class="intro-steps__step">
                     <span class="intro-steps__index">3</span>
                     <span class="intro-steps__title">맞는 제품 보기</span>
-                    <span class="intro-steps__meta">16개 중에서</span>
+                    <span class="intro-steps__meta">20개 중에서</span>
                 </li>
             </ol>
         </section>
@@ -83,7 +83,7 @@
     <section class="result-view is-hidden" id="result-view" aria-labelledby="result-title">
         <p class="eyebrow">내 권장 사양</p>
         <h2 id="result-title">권장 사양을 확인해 보세요</h2>
-        <p class="section-description" id="result-description">사용자님의 개발 환경과 답변을 바탕으로 조정된 권장 사양입니다.</p>
+        <p class="section-description">권장 사양을 확인하고 필요에 따라 직접 수정할 수 있습니다.</p>
         <div class="result-os-control" role="group" aria-label="표시할 OS">
             <span>표시할 OS</span>
             <span id="result-os-control"></span>
@@ -138,10 +138,10 @@
 </main>
 
 <footer th:replace="~{fragments/site :: footer}"></footer>
-<script th:src="@{/js/probe-policy.js(v='20260820-search-loading')}" defer></script>
-<script th:src="@{/js/probe-product-policy.js(v='20260820-search-loading')}" defer></script>
-<script th:src="@{/js/probe-config.js(v='20260820-search-loading')}" defer></script>
-<script th:src="@{/js/probe-product-view.js(v='20260820-search-loading')}" defer></script>
-<script th:src="@{/js/probe-app.js(v='20260820-search-loading')}" defer></script>
+<script th:src="@{/js/probe-policy.js(v='20260820-search-loading-mac-specs-v1')}" defer></script>
+<script th:src="@{/js/probe-product-policy.js(v='20260820-search-loading-mac-specs-v1')}" defer></script>
+<script th:src="@{/js/probe-config.js(v='20260820-search-loading-mac-specs-v1')}" defer></script>
+<script th:src="@{/js/probe-product-view.js(v='20260820-search-loading-mac-specs-v1')}" defer></script>
+<script th:src="@{/js/probe-app.js(v='20260820-search-loading-mac-specs-v1')}" defer></script>
 </body>
 </html>

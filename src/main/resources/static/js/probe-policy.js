@@ -34,6 +34,19 @@
 
     const MEMORY_OPTIONS = Object.freeze([16, 24, 32, 40, 48, 64]);
     const STORAGE_OPTIONS = Object.freeze([256, 512, 1024]);
+    const MAC_RECOMMENDATION_SPEC_OPTIONS = Object.freeze({
+        cpuTier: Object.freeze(["BASIC", "PRO"]),
+        memoryGb: Object.freeze([16, 24, 32, 48]),
+        storageGb: Object.freeze([512, 1024])
+    });
+    const MAC_RECOMMENDATION_MEMORY_OPTIONS_BY_CPU = Object.freeze({
+        BASIC: Object.freeze([16, 24, 32]),
+        PRO: Object.freeze([24, 48])
+    });
+    const MAC_RECOMMENDATION_MEMORY_ADJUSTMENTS = Object.freeze({
+        BASIC: Object.freeze({48: 32}),
+        PRO: Object.freeze({16: 24, 32: 24})
+    });
 
     function calculateRecommendation(answers, currentSpec) {
         const languages = arrayAnswer(answers.Q2);
@@ -61,12 +74,57 @@
         return {activeOs: Object.values(OS), tracks};
     }
 
+    function recommendationSpecOptions(os, field, cpuTier) {
+        if (os === OS.MACOS) {
+            if (field === "memoryGb" && MAC_RECOMMENDATION_MEMORY_OPTIONS_BY_CPU[cpuTier]) {
+                return MAC_RECOMMENDATION_MEMORY_OPTIONS_BY_CPU[cpuTier];
+            }
+            return MAC_RECOMMENDATION_SPEC_OPTIONS[field];
+        }
+        if (field === "cpuTier") {
+            return CPU_TIERS[os];
+        }
+        return field === "memoryGb" ? MEMORY_OPTIONS : STORAGE_OPTIONS;
+    }
+
+    function adjustRecommendationMemoryForCpu(os, cpuTier, memoryGb) {
+        const memory = Number(memoryGb);
+        if (os !== OS.MACOS) {
+            return memory;
+        }
+        const options = MAC_RECOMMENDATION_MEMORY_OPTIONS_BY_CPU[cpuTier];
+        if (!options) {
+            return null;
+        }
+        if (options.includes(memory)) {
+            return memory;
+        }
+        return MAC_RECOMMENDATION_MEMORY_ADJUSTMENTS[cpuTier][memory] ?? null;
+    }
+
+    function alignRecommendationCpuToMemory(os, cpuTier, memoryGb, reasons = []) {
+        if (os !== OS.MACOS) {
+            return cpuTier;
+        }
+        const memory = Number(memoryGb);
+        const supportedCpuTiers = Object.entries(MAC_RECOMMENDATION_MEMORY_OPTIONS_BY_CPU)
+            .filter(([, options]) => options.includes(memory))
+            .map(([tier]) => tier);
+        if (supportedCpuTiers.length !== 1 || supportedCpuTiers[0] === cpuTier) {
+            return cpuTier;
+        }
+        const adjustedCpuTier = supportedCpuTiers[0];
+        reasons.push(`${memory}GB RAM 지원 조합에 맞춰 ${cpuLabel(os, adjustedCpuTier)}으로 조정했습니다.`);
+        return adjustedCpuTier;
+    }
+
     function calculateTrack(os, answers, currentSpec, javaSelected, languages) {
         const reasons = baselineReasons(os);
 
         const memory = calculateMemory(os, answers, javaSelected, reasons.memory);
-        const storage = calculateStorage(answers, currentSpec, languages, reasons.storage);
-        const cpu = calculateCpu(os, answers, currentSpec, javaSelected, reasons.cpu);
+        const storage = calculateStorage(os, answers, currentSpec, languages, reasons.storage);
+        const calculatedCpu = calculateCpu(os, answers, currentSpec, javaSelected, reasons.cpu);
+        const cpu = alignRecommendationCpuToMemory(os, calculatedCpu, memory, reasons.cpu);
 
         return {
             os,
@@ -101,11 +159,12 @@
             return baseline;
         }
         if (fullUp) {
-            reasons.push("개발 도구와 작업 부하를 고려해 메모리를 16GB 높였습니다.");
+            const increment = os === OS.MACOS ? 24 : 16;
+            reasons.push(`개발 도구와 작업 부하를 고려해 메모리를 ${increment}GB 높였습니다.`);
             if (answers.Q8 === "FIVE_PLUS_YEARS") {
                 reasons.push("오래 사용할 계획이 상향 판단을 보강했습니다.");
             }
-            return baseline + 16;
+            return baseline + increment;
         }
         if (halfUp) {
             reasons.push("가끔 발생한 메모리 부족 경험을 반영해 8GB 높였습니다.");
@@ -124,7 +183,7 @@
         return baseline;
     }
 
-    function calculateStorage(answers, currentSpec, languages, reasons) {
+    function calculateStorage(os, answers, currentSpec, languages, reasons) {
         const baseline = 512;
         const ssdAtLeast512 = Number(currentSpec.storageGb) >= 512;
         // 현재 SSD가 작다는 걸 아는 경우의 용량 부족 경험은 디스크 크기 탓이라 상향 근거로 쓰지 않는다.
@@ -150,6 +209,10 @@
             return 1024;
         }
         if (down) {
+            if (os === OS.MACOS) {
+                reasons.push("Mac 권장 사양 범위에 맞춰 512GB를 유지했습니다.");
+                return baseline;
+            }
             reasons.push("저장 공간 하향 조건이 두 개 이상 확인되어 256GB로 조정했습니다.");
             return 256;
         }
@@ -177,6 +240,10 @@
             reasons.push(os === OS.MACOS
                 ? "지속 부하와 발열 경험을 반영해 Pro 이상 등급을 검토했습니다."
                 : "지속 부하와 발열 경험을 반영해 H·HX 계열을 검토했습니다.");
+        }
+        if (os === OS.MACOS && tier === "MAX") {
+            reasons.push("예산 범위를 고려해 Mac 권장 CPU는 M Pro 칩으로 제한했습니다.");
+            return "PRO";
         }
         return tier;
     }
@@ -236,8 +303,13 @@
         BASELINES,
         MEMORY_OPTIONS,
         STORAGE_OPTIONS,
+        MAC_RECOMMENDATION_SPEC_OPTIONS,
+        MAC_RECOMMENDATION_MEMORY_OPTIONS_BY_CPU,
         calculateRecommendation,
         createBaselineRecommendation,
+        recommendationSpecOptions,
+        adjustRecommendationMemoryForCpu,
+        alignRecommendationCpuToMemory,
         resolveActiveOs,
         stepUp,
         maxTier,
