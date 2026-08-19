@@ -111,3 +111,5 @@ Devica는 전자기기를 구매할 때 필요한 정보가 여러 곳에 흩어
 Devica 팀에 대한 자세한 정보는 아래 링크에 정리되어 있습니다.
 
 🤜 [Devica Wiki](https://github.com/woowacourse-teams/2026-Devica/wiki)
+
+📁 [프로젝트 문서](docs/README.md) — 개발 환경 세팅, 팀 컨벤션, 유스케이스, 기술 선택 근거(ADR)
