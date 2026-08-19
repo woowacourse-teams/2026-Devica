@@ -7,7 +7,7 @@
     <title>Devica — 백엔드 개발용 노트북 사양</title>
     <link rel="stylesheet" th:href="@{/css/tokens.css}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
-    <link rel="stylesheet" th:href="@{/css/pages/probe/index.css(v='20260819-footer-v1')}">
+    <link rel="stylesheet" th:href="@{/css/pages/probe/index.css(v='20260819-intro-v1')}">
 
     <script>
         !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagResult isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
@@ -25,14 +25,39 @@
         <p class="eyebrow">BACKEND LAPTOP SPEC FINDER</p>
         <h1 id="hero-title">내 개발 환경에 맞는<br>노트북 사양을 찾아보세요</h1>
         <p class="hero__description">
-            먼저 백엔드 개발용 기본 권장 사양을 확인하고, 사용하는 도구와 작업 방식에 맞게 조정해 보세요.
+            질문에 답하면 사양을 정리하고, 그 사양에 맞는 노트북까지 찾아드려요.
+        </p>
+
+        <section class="intro-steps" aria-labelledby="intro-steps-heading">
+            <h2 class="intro-steps__heading" id="intro-steps-heading">이렇게 진행됩니다</h2>
+            <ol class="intro-steps__list">
+                <li class="intro-steps__step">
+                    <span class="intro-steps__index">1</span>
+                    <span class="intro-steps__title">질문에 답하기</span>
+                    <span class="intro-steps__meta">9~10개 · 약 2분</span>
+                </li>
+                <li class="intro-steps__step">
+                    <span class="intro-steps__index">2</span>
+                    <span class="intro-steps__title">권장 사양 확인</span>
+                    <span class="intro-steps__meta">직접 수정 가능</span>
+                </li>
+                <li class="intro-steps__step">
+                    <span class="intro-steps__index">3</span>
+                    <span class="intro-steps__title">맞는 제품 보기</span>
+                    <span class="intro-steps__meta">16개 중에서</span>
+                </li>
+            </ol>
+        </section>
+
+        <p class="section-description">
+            아래는 백엔드 개발용 기본 권장 사양입니다. 질문에 답하면 사용 목적에 맞게 조정됩니다.
         </p>
 
         <div class="baseline-list" id="initial-spec-list" aria-label="OS별 기본 권장 사양"></div>
 
         <button class="button button--primary button--wide" id="start-button" type="button"
                 th:disabled="${!page.questionSetApproved}">
-            선택 사양 조정
+            질문 시작하고 내 사양 찾기
         </button>
     </section>
 
@@ -85,9 +110,9 @@
         <button class="text-button view-back-button" id="product-list-back-button" type="button">← 권장 사양으로</button>
         <div class="product-list-heading">
             <div>
-                <p class="eyebrow">MATCHED PRODUCTS</p>
+                <p class="eyebrow" id="product-list-eyebrow">MATCHED PRODUCTS</p>
                 <h2 id="product-list-title">추천 노트북</h2>
-                <p class="section-description">확정한 사양을 모두 충족하는 제품만 보여드려요.</p>
+                <p class="section-description" id="product-list-description">확정한 사양을 모두 충족하는 제품만 보여드려요.</p>
             </div>
             <p class="product-list-order" id="product-list-order">가격 낮은 순</p>
         </div>
@@ -100,10 +125,10 @@
 </main>
 
 <footer th:replace="~{fragments/site :: footer}"></footer>
-<script th:src="@{/js/probe-policy.js(v='20260819-footer-v1')}" defer></script>
-<script th:src="@{/js/probe-product-policy.js(v='20260819-footer-v1')}" defer></script>
-<script th:src="@{/js/probe-config.js(v='20260819-footer-v1')}" defer></script>
-<script th:src="@{/js/probe-product-view.js(v='20260819-footer-v1')}" defer></script>
-<script th:src="@{/js/probe-app.js(v='20260819-footer-v1')}" defer></script>
+<script th:src="@{/js/probe-policy.js(v='20260819-intro-v1')}" defer></script>
+<script th:src="@{/js/probe-product-policy.js(v='20260819-intro-v1')}" defer></script>
+<script th:src="@{/js/probe-config.js(v='20260819-intro-v1')}" defer></script>
+<script th:src="@{/js/probe-product-view.js(v='20260819-intro-v1')}" defer></script>
+<script th:src="@{/js/probe-app.js(v='20260819-intro-v1')}" defer></script>
 </body>
 </html>

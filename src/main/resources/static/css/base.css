@@ -56,15 +56,26 @@ a {
 .site-nav {
     display: flex;
     align-items: center;
-    gap: var(--gutter);
+    gap: var(--unit);
 }
 
 .site-nav__item {
-    font-size: var(--body-sm-font-size);
+    border: 1px solid transparent;
+    padding: var(--density-high) var(--density-med);
+    color: var(--on-surface);
+    background: transparent;
+    font-size: var(--body-md-font-size);
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
 }
 
-.site-nav__item--disabled {
-    color: var(--outline);
+.site-nav__item:hover,
+.site-nav__item:focus-visible {
+    border-color: var(--primary);
+    color: var(--on-primary);
+    background: var(--primary);
 }
 
 .badge {
@@ -137,5 +148,13 @@ a {
     .site-footer__inner {
         padding-right: var(--margin-desktop);
         padding-left: var(--margin-desktop);
+    }
+
+    .site-nav {
+        gap: var(--density-high);
+    }
+
+    .site-nav__item {
+        font-size: var(--body-lg-font-size);
     }
 }
