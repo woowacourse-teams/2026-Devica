@@ -25,3 +25,16 @@ test("화면 전환에 참여하는 정적 파일은 같은 캐시 버전을 사
 
     assert.equal(new Set(versions).size, 1);
 });
+
+test("기본 권장 사양 제품 보기 버튼은 온보딩 시작 버튼 바로 뒤에 있다", () => {
+    const template = fs.readFileSync(
+        path.join(__dirname, "../../main/resources/templates/pages/probe/index.html"),
+        "utf8"
+    );
+    const startIndex = template.indexOf('id="start-button"');
+    const baselineIndex = template.indexOf('id="baseline-product-button"');
+
+    assert.ok(startIndex >= 0, "온보딩 시작 버튼이 있어야 합니다.");
+    assert.ok(baselineIndex > startIndex, "기본 권장 사양 버튼은 온보딩 시작 버튼 뒤에 있어야 합니다.");
+    assert.match(template, /id="baseline-product-button"[\s\S]*?기본 권장 사양으로 제품 보기/);
+});

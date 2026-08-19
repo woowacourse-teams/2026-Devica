@@ -10,6 +10,16 @@ test("OS 미정이면 Mac과 Windows 권장안을 모두 계산한다", () => {
     assert.equal(result.tracks.WINDOWS.calculatedSpec.memoryGb, 32);
 });
 
+test("기본 권장안은 온보딩 계산 없이 동일한 기준 사양을 두 OS에 적용한다", () => {
+    const result = policy.createBaselineRecommendation();
+
+    assert.deepEqual(result.activeOs, [policy.OS.MACOS, policy.OS.WINDOWS]);
+    assert.deepEqual(result.tracks.MACOS.calculatedSpec, policy.BASELINES.MACOS);
+    assert.deepEqual(result.tracks.WINDOWS.calculatedSpec, policy.BASELINES.WINDOWS);
+    assert.notEqual(result.tracks.MACOS.calculatedSpec, policy.BASELINES.MACOS);
+    assert.notEqual(result.tracks.WINDOWS.calculatedSpec, policy.BASELINES.WINDOWS);
+});
+
 test("Java 계열은 메모리 16GB와 CPU 한 단계를 상향한다", () => {
     const result = policy.calculateRecommendation({Q1: "MAC", Q2: ["JAVA_FAMILY"]}, {});
 

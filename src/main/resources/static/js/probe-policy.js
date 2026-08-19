@@ -49,14 +49,20 @@
         return {activeOs, tracks};
     }
 
+    function createBaselineRecommendation() {
+        const tracks = {};
+        Object.values(OS).forEach((os) => {
+            tracks[os] = {
+                os,
+                calculatedSpec: cloneSpec(BASELINES[os]),
+                reasons: baselineReasons(os)
+            };
+        });
+        return {activeOs: Object.values(OS), tracks};
+    }
+
     function calculateTrack(os, answers, currentSpec, javaSelected, languages) {
-        const baseline = BASELINES[os];
-        const reasons = {
-            cpu: [os === OS.MACOS ? "Mac 백엔드 개발 기본 CPU입니다." : "Windows 백엔드 개발 기본 CPU입니다."],
-            memory: [`${os === OS.MACOS ? "Mac" : "Windows"} 기본 권장 메모리에서 시작했습니다.`],
-            storage: ["백엔드 개발 기본 저장 공간에서 시작했습니다."],
-            os: [os === OS.MACOS ? "Mac 권장안입니다." : "Windows 권장안입니다."]
-        };
+        const reasons = baselineReasons(os);
 
         const memory = calculateMemory(os, answers, javaSelected, reasons.memory);
         const storage = calculateStorage(answers, currentSpec, languages, reasons.storage);
@@ -66,6 +72,15 @@
             os,
             calculatedSpec: {os, cpuTier: cpu, memoryGb: memory, storageGb: storage},
             reasons
+        };
+    }
+
+    function baselineReasons(os) {
+        return {
+            cpu: [os === OS.MACOS ? "Mac 백엔드 개발 기본 CPU입니다." : "Windows 백엔드 개발 기본 CPU입니다."],
+            memory: [`${os === OS.MACOS ? "Mac" : "Windows"} 기본 권장 메모리에서 시작했습니다.`],
+            storage: ["백엔드 개발 기본 저장 공간에서 시작했습니다."],
+            os: [os === OS.MACOS ? "Mac 권장안입니다." : "Windows 권장안입니다."]
         };
     }
 
@@ -219,6 +234,7 @@
         MEMORY_OPTIONS,
         STORAGE_OPTIONS,
         calculateRecommendation,
+        createBaselineRecommendation,
         resolveActiveOs,
         stepUp,
         maxTier,
