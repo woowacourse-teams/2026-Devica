@@ -137,7 +137,8 @@
         elements.progressCount.textContent = `${state.questionIndex + 1} / ${state.visibleQuestions.length}`;
         elements.progressValue.style.width = `${((state.questionIndex + 1) / state.visibleQuestions.length) * 100}%`;
         elements.previous.disabled = state.questionIndex === 0;
-        renderNextButton(question);
+        elements.next.disabled = !isQuestionComplete(question);
+        elements.next.textContent = state.questionIndex === state.visibleQuestions.length - 1 ? "결과 보기" : "다음";
         elements.questionContent.replaceChildren(
             question.kind === "current-spec" ? createCurrentSpecContent(question) : createQuestionContent(question)
         );
@@ -145,15 +146,6 @@
             state.lastViewedQuestionId = question.id;
             recordEvent("QUESTION_VIEWED", {questionId: question.id});
         }
-    }
-
-    // 답을 고르지 않아도 건너뛸 수 있다. 미응답 답변은 정책에서 기본값으로 처리된다.
-    function renderNextButton(question) {
-        const isLastQuestion = state.questionIndex === state.visibleQuestions.length - 1;
-        const skipping = !isQuestionComplete(question);
-        elements.next.textContent = skipping ? "건너뛰기" : (isLastQuestion ? "결과 보기" : "다음");
-        elements.next.classList.toggle("button--primary", !skipping);
-        elements.next.classList.toggle("button--skip", skipping);
     }
 
     function createCurrentSpecContent(question) {
@@ -273,7 +265,7 @@
             questionId,
             optionId: value == null ? null : String(value)
         });
-        renderNextButton(state.visibleQuestions[state.questionIndex]);
+        renderQuestion();
     }
 
     function createQuestionContent(question) {
@@ -372,7 +364,7 @@
 
     function isQuestionComplete(question) {
         if (question.kind === "current-spec") {
-            return policy.currentSpecSubmissionStatus(state.currentSpec) !== "ALL_SKIPPED";
+            return true;
         }
         return question.groups.every((group) => {
             const answer = state.answers.get(group.id || question.id);
@@ -392,12 +384,7 @@
     function showNextQuestion() {
         const question = state.visibleQuestions[state.questionIndex];
         if (!isQuestionComplete(question)) {
-            // 건너뛰기는 experiment_event ENUM에 없어 PostHog에만 보낸다.
-            window.posthog?.capture("QUESTION_SKIPPED", {
-                questionId: question.id,
-                sessionId: state.sessionId,
-                questionSetVersion: config.version
-            });
+            return;
         }
         if (question.kind === "current-spec" && !state.currentSpecSubmitted) {
             state.currentSpecSubmitted = true;

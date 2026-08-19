@@ -127,12 +127,9 @@
     function calculateStorage(answers, currentSpec, languages, reasons) {
         const baseline = 512;
         const ssdAtLeast512 = Number(currentSpec.storageGb) >= 512;
-        // 현재 SSD가 작다는 걸 아는 경우의 용량 부족 경험은 디스크 크기 탓이라 상향 근거로 쓰지 않는다.
-        // 미입력은 "작다"는 근거가 없으므로 사용자의 자기 보고를 그대로 인정한다.
-        const smallSsdKnown = currentSpec.storageGb != null && !ssdAtLeast512;
         const up = languages.includes("NODE_TYPESCRIPT")
             || ["MULTIPLE_SERVICES", "DOCKER_MANY", "DOCKER_FEW"].includes(answers.Q4)
-            || (!smallSsdKnown && answers.Q6 === "OFTEN");
+            || (ssdAtLeast512 && answers.Q6 === "OFTEN");
         const downCount = Number(answers.Q4 === "REMOTE")
             + Number(ssdAtLeast512 && answers.Q6 === "NEVER")
             + Number(answers.Q8 === "TWO_YEARS");

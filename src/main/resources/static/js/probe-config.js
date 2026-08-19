@@ -324,8 +324,7 @@
             singleQuestion("Q5", "프로그램을 여러 개 켜두면 멈추거나 껐다 켜야 했나요?", [
                 option("OFTEN", "자주 그렇다"),
                 option("SOMETIMES", "가끔 느려진다"),
-                option("FINE", "괜찮다"),
-                option("UNKNOWN", "잘 모르겠다")
+                option("FINE", "괜찮다")
             ]),
             singleQuestion("Q6", "용량이 부족해서 뭔가를 지우거나 옮긴 적이 있나요?", [
                 option("OFTEN", "자주 있다"),
@@ -335,21 +334,18 @@
             {
                 ...singleQuestion("Q7", "빌드나 테스트가 끝나기를 기다리는 게 답답했나요?", [
                     option("OFTEN", "자주 답답했다"),
-                    option("FINE", "참을 만했다 / 신경 안 쓰였다"),
-                    option("UNKNOWN", "잘 모르겠다")
+                    option("FINE", "참을 만했다 / 신경 안 쓰였다")
                 ]),
                 isVisible: (answers) => Array.isArray(answers.Q2) && answers.Q2.includes("JAVA_FAMILY")
             },
             singleQuestion("Q7_1", "개발할 때 노트북이 뜨거워지거나 팬이 크게 도나요?", [
                 option("OFTEN", "자주 그렇다"),
-                option("FINE", "가끔 / 별로 없다"),
-                option("UNKNOWN", "잘 모르겠다")
+                option("FINE", "가끔 / 별로 없다")
             ]),
             singleQuestion("Q8", "이 노트북을 얼마나 쓸 생각인가요?", [
                 option("TWO_YEARS", "2년 정도 (곧 바꿀 수 있다)"),
                 option("THREE_TO_FOUR", "3~4년"),
-                option("FIVE_PLUS_YEARS", "5년 이상 / 오래 쓰고 싶다"),
-                option("UNDECIDED", "아직 안 정했다")
+                option("FIVE_PLUS_YEARS", "5년 이상 / 오래 쓰고 싶다")
             ])
         ]),
         products,
