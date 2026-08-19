@@ -94,12 +94,6 @@ a {
     line-height: var(--body-md-line-height);
 }
 
-.site-footer__brand {
-    margin-right: var(--density-high);
-    color: var(--on-surface);
-    font-size: var(--headline-sm-font-size);
-}
-
 .button {
     min-height: 52px;
     border: 1px solid var(--primary);
