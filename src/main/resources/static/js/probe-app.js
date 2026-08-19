@@ -136,8 +136,7 @@
         elements.progressCount.textContent = `${state.questionIndex + 1} / ${state.visibleQuestions.length}`;
         elements.progressValue.style.width = `${((state.questionIndex + 1) / state.visibleQuestions.length) * 100}%`;
         elements.previous.disabled = state.questionIndex === 0;
-        elements.next.disabled = !isQuestionComplete(question);
-        elements.next.textContent = state.questionIndex === state.visibleQuestions.length - 1 ? "결과 보기" : "다음";
+        renderNextButton(question);
         elements.questionContent.replaceChildren(
             question.kind === "current-spec" ? createCurrentSpecContent(question) : createQuestionContent(question)
         );
@@ -145,6 +144,14 @@
             state.lastViewedQuestionId = question.id;
             recordEvent("QUESTION_VIEWED", {questionId: question.id});
         }
+    }
+
+    // 답을 고르지 않아도 건너뛸 수 있다. 미응답 답변은 정책에서 기본값으로 처리된다.
+    function renderNextButton(question) {
+        const isLastQuestion = state.questionIndex === state.visibleQuestions.length - 1;
+        elements.next.textContent = isQuestionComplete(question)
+            ? (isLastQuestion ? "결과 보기" : "다음")
+            : "건너뛰기";
     }
 
     function createCurrentSpecContent(question) {
@@ -226,6 +233,7 @@
             questionId,
             optionId: value == null ? null : String(value)
         });
+        renderNextButton(state.visibleQuestions[state.questionIndex]);
     }
 
     function createQuestionContent(question) {
@@ -324,7 +332,7 @@
 
     function isQuestionComplete(question) {
         if (question.kind === "current-spec") {
-            return true;
+            return policy.currentSpecSubmissionStatus(state.currentSpec) !== "ALL_SKIPPED";
         }
         return question.groups.every((group) => {
             const answer = state.answers.get(group.id || question.id);
@@ -343,9 +351,6 @@
 
     function showNextQuestion() {
         const question = state.visibleQuestions[state.questionIndex];
-        if (!isQuestionComplete(question)) {
-            return;
-        }
         if (question.kind === "current-spec" && !state.currentSpecSubmitted) {
             state.currentSpecSubmitted = true;
             const status = policy.currentSpecSubmissionStatus(state.currentSpec);
