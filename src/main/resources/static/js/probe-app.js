@@ -475,7 +475,7 @@
         const productSetReady = isProductSetReady();
         elements.productButton.disabled = !productSetReady;
         elements.productButton.textContent = productSetReady
-            ? "이 사양으로 제품 보기"
+            ? "확정한 사양으로 제품 검색"
             : "제품 목록 승인 대기";
     }
 
