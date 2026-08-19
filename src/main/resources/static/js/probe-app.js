@@ -56,6 +56,7 @@
         answers: new Map(),
         currentSpec: {},
         currentSpecSubmitted: false,
+        cpuResetByOs: false,
         calculation: null,
         recommendationSource: null,
         finalSpecs: new Map(),
@@ -160,15 +161,20 @@
         const form = document.createElement("div");
         form.className = "current-spec-form";
         form.append(
-            createSelectField("CURRENT_OS", "OS", [
+            createFieldMessage("choice-hint", "선택한 항목을 한 번 더 누르면 해제됩니다."),
+            createChoiceField("CURRENT_OS", "OS", [
                 [policy.OS.MACOS, "Mac"],
                 [policy.OS.WINDOWS, "Windows"]
             ], state.currentSpec.os, updateCurrentOs),
-            createSelectField("CURRENT_CPU", "CPU", currentCpuOptions(), state.currentSpec.cpuTier, updateCurrentCpu, !state.currentSpec.os),
-            createSelectField("CURRENT_MEMORY", "RAM(GB)", [
+            createChoiceField("CURRENT_CPU", "CPU", currentCpuOptions(), state.currentSpec.cpuTier, updateCurrentCpu, {
+                disabled: !state.currentSpec.os,
+                disabledMessage: "OS를 먼저 선택해 주세요",
+                notice: state.cpuResetByOs ? "OS가 바뀌어 CPU 선택을 지웠어요. 다시 골라 주세요." : null
+            }),
+            createChoiceField("CURRENT_MEMORY", "RAM(GB)", [
                 [8, "8GB 이하"], [16, "16GB"], [24, "24GB"], [32, "32GB"], [64, "64GB 이상"]
             ], state.currentSpec.memoryGb, (value) => updateCurrentNumber("memoryGb", "CURRENT_MEMORY", value)),
-            createSelectField("CURRENT_STORAGE", "SSD 용량(GB)", [
+            createChoiceField("CURRENT_STORAGE", "SSD 용량(GB)", [
                 [256, "256GB 이하"], [512, "256GB 초과 1TB 미만"], [1024, "1TB 이상"]
             ], state.currentSpec.storageGb, (value) => updateCurrentNumber("storageGb", "CURRENT_STORAGE", value))
         );
@@ -176,21 +182,52 @@
         return fragment;
     }
 
-    function createSelectField(id, label, options, value, onChange, disabled = false) {
-        const wrapper = document.createElement("label");
-        wrapper.className = "current-spec-field";
-        wrapper.htmlFor = id;
-        const title = document.createElement("span");
-        title.textContent = label;
-        const select = document.createElement("select");
-        select.id = id;
-        select.disabled = disabled;
-        select.appendChild(new Option(disabled ? "OS를 먼저 선택해 주세요" : "선택하지 않음", ""));
-        options.forEach(([optionValue, optionLabel]) => select.appendChild(new Option(optionLabel, String(optionValue))));
-        select.value = value == null ? "" : String(value);
-        select.addEventListener("change", () => onChange(select.value || null));
-        wrapper.append(title, select);
-        return wrapper;
+    function createChoiceField(id, label, options, value, onChange, config = {}) {
+        const field = document.createElement("fieldset");
+        field.className = "current-spec-field";
+        const legend = document.createElement("legend");
+        legend.textContent = label;
+        field.append(legend);
+
+        if (config.disabled) {
+            field.appendChild(createFieldMessage("choice-notice", config.disabledMessage));
+            return field;
+        }
+        if (config.notice) {
+            field.appendChild(createFieldMessage("choice-notice", config.notice));
+        }
+
+        const group = createChoiceGroup(options, value, onChange);
+        group.id = id;
+        field.appendChild(group);
+        if (config.hint) {
+            field.appendChild(createFieldMessage("choice-hint", config.hint));
+        }
+        return field;
+    }
+
+    // 선택된 칩을 다시 누르면 해제된다. 사전 입력 네 항목이 모두 선택 사항이라 되돌릴 경로가 필요하다.
+    function createChoiceGroup(options, value, onChange) {
+        const group = document.createElement("div");
+        group.className = "choice-group";
+        options.forEach(([optionValue, optionLabel]) => {
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "chip";
+            chip.textContent = optionLabel;
+            const selected = value != null && String(value) === String(optionValue);
+            chip.setAttribute("aria-pressed", String(selected));
+            chip.addEventListener("click", () => onChange(selected ? null : String(optionValue)));
+            group.appendChild(chip);
+        });
+        return group;
+    }
+
+    function createFieldMessage(className, text) {
+        const message = document.createElement("p");
+        message.className = className;
+        message.textContent = text;
+        return message;
     }
 
     function currentCpuOptions() {
@@ -209,6 +246,7 @@
         }
         if (previous !== value && state.currentSpec.cpuTier != null) {
             delete state.currentSpec.cpuTier;
+            state.cpuResetByOs = true;
             recordEvent("ANSWER_CHANGED", {questionId: "CURRENT_CPU", optionId: null});
         }
         recordEvent(previous ? "ANSWER_CHANGED" : "QUESTION_ANSWERED", {questionId: "CURRENT_OS", optionId: value});
@@ -216,6 +254,7 @@
     }
 
     function updateCurrentCpu(value) {
+        state.cpuResetByOs = false;
         updateCurrentValue("cpuTier", "CURRENT_CPU", value);
     }
 
@@ -420,18 +459,19 @@
     }
 
     function renderResultOsControl() {
-        const select = document.createElement("select");
-        select.id = "result-os-select";
-        [[policy.OS.MACOS, "Mac"], [policy.OS.WINDOWS, "Windows"], ["BOTH", "둘 다"]]
-            .forEach(([value, label]) => select.appendChild(new Option(label, value)));
-        select.value = state.resultViewMode;
-        select.addEventListener("change", () => {
-            state.resultViewMode = select.value;
+        const options = [[policy.OS.MACOS, "Mac"], [policy.OS.WINDOWS, "Windows"], ["BOTH", "둘 다"]];
+        const group = createChoiceGroup(options, state.resultViewMode, (value) => {
+            if (value == null) {
+                return;
+            }
+            state.resultViewMode = value;
             resetProductResults();
             renderSpecification();
-            recordEvent("FINAL_SPEC_EDITED", {questionId: "RESULT_OS", optionId: select.value});
+            recordEvent("FINAL_SPEC_EDITED", {questionId: "RESULT_OS", optionId: value});
         });
-        elements.resultOs.replaceChildren(select);
+        group.id = "result-os-select";
+        group.classList.add("choice-group--segmented");
+        elements.resultOs.replaceChildren(group);
     }
 
     function createSpecCard(os) {
@@ -456,14 +496,13 @@
             return createSpecRow(os, label, formatSpecValue(os, field, value), track.reasons[reasonKey(field)].join(" "));
         }
         const row = createSpecRow(os, label, "", track.reasons[reasonKey(field)].join(" "));
-        const valueContainer = row.querySelector(".spec-row__value");
-        const select = document.createElement("select");
-        specOptions(os, field).forEach(([optionValue, optionLabel]) => {
-            select.appendChild(new Option(optionLabel, String(optionValue)));
+        const group = createChoiceGroup(specOptions(os, field), value, (next) => {
+            // 권장 사양은 항상 값이 있어야 하므로 해제는 받지 않는다.
+            if (next != null) {
+                updateFinalSpec(os, field, next);
+            }
         });
-        select.value = String(value);
-        select.addEventListener("change", () => updateFinalSpec(os, field, select));
-        valueContainer.appendChild(select);
+        row.querySelector(".spec-row__value").replaceWith(group);
         return row;
     }
 
@@ -488,17 +527,17 @@
         return policy.STORAGE_OPTIONS.map((value) => [value, formatStorage(value)]);
     }
 
-    function updateFinalSpec(os, field, select) {
+    function updateFinalSpec(os, field, rawValue) {
         const finalSpec = state.finalSpecs.get(os);
         const calculated = state.calculation.tracks[os].calculatedSpec[field];
-        const previous = finalSpec[field];
-        const next = field === "cpuTier" ? select.value : Number(select.value);
+        const next = field === "cpuTier" ? rawValue : Number(rawValue);
+        // 취소하면 화면을 다시 그리지 않으므로 이전 선택이 그대로 남는다.
         if (isLower(os, field, next, calculated) && !window.confirm(loweringMessage(os, field))) {
-            select.value = String(previous);
             return;
         }
         finalSpec[field] = next;
         resetProductResults();
+        renderSpecification();
         recordEvent("FINAL_SPEC_EDITED", {questionId: `${os}_${field}`, optionId: String(next)});
     }
 
