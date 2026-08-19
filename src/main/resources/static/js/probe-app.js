@@ -25,6 +25,7 @@
         intro: document.querySelector("#intro-view"),
         initialSpecs: document.querySelector("#initial-spec-list"),
         start: document.querySelector("#start-button"),
+        baselineProduct: document.querySelector("#baseline-product-button"),
         question: document.querySelector("#question-view"),
         questionContent: document.querySelector("#question-content"),
         progressCount: document.querySelector("#progress-count"),
@@ -32,6 +33,7 @@
         previous: document.querySelector("#previous-button"),
         next: document.querySelector("#next-button"),
         result: document.querySelector("#result-view"),
+        resultDescription: document.querySelector("#result-description"),
         resultOs: document.querySelector("#result-os-control"),
         specList: document.querySelector("#spec-list"),
         editSpec: document.querySelector("#edit-spec-button"),
@@ -55,6 +57,7 @@
         currentSpec: {},
         currentSpecSubmitted: false,
         calculation: null,
+        recommendationSource: null,
         finalSpecs: new Map(),
         resultViewMode: "BOTH",
         editMode: false,
@@ -70,6 +73,7 @@
     renderInitialBaselines();
     elements.navProductList.addEventListener("click", showAllProducts);
     elements.start.addEventListener("click", startRecommendation);
+    elements.baselineProduct.addEventListener("click", showBaselineRecommendation);
     elements.previous.addEventListener("click", showPreviousQuestion);
     elements.next.addEventListener("click", showNextQuestion);
     elements.editSpec.addEventListener("click", toggleSpecificationEdit);
@@ -363,6 +367,17 @@
 
     function completeRecommendation() {
         recalculate();
+        state.recommendationSource = "ONBOARDING";
+        finalizeRecommendation();
+    }
+
+    function showBaselineRecommendation() {
+        state.calculation = config.createBaselineRecommendation();
+        state.recommendationSource = "BASELINE";
+        finalizeRecommendation();
+    }
+
+    function finalizeRecommendation() {
         state.finalSpecs.clear();
         Object.values(policy.OS).forEach((os) => {
             state.finalSpecs.set(os, policy.cloneSpec(state.calculation.tracks[os].calculatedSpec));
@@ -376,6 +391,9 @@
     }
 
     function renderSpecification() {
+        elements.resultDescription.textContent = state.recommendationSource === "BASELINE"
+            ? "백엔드 개발용 기본 권장 사양입니다. 필요에 따라 직접 수정할 수 있어요."
+            : "사용자님의 개발 환경과 답변을 바탕으로 조정된 권장 사양입니다.";
         renderResultOsControl();
         const osList = visibleResultOs();
         elements.specList.replaceChildren(...osList.map(createSpecCard));

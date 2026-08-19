@@ -349,7 +349,8 @@
             ])
         ]),
         products,
-        calculateRecommendation: policy.calculateRecommendation
+        calculateRecommendation: policy.calculateRecommendation,
+        createBaselineRecommendation: policy.createBaselineRecommendation
     });
 
     function singleQuestion(id, title, options) {
