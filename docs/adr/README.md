@@ -18,6 +18,7 @@
 | [0010](0010-프론트엔드-구현-방식.md) | 프론트엔드를 Thymeleaf로 구현한다 | Accepted |
 | [0011](0011-보일러플레이트.md) | 보일러플레이트 제거에 Lombok을 사용한다 | Accepted |
 | [0012](0012-코드-스타일.md) | 코드 스타일로 우테코 IntelliJ 스타일과 `.editorconfig`를 사용한다 | Accepted |
+| [0013](0013-제품-지표-수집-도구.md) | 제품 지표 수집에 PostHog Cloud를 프론트엔드로 붙인다 | Accepted |
 
 ## 작성 방법
 
