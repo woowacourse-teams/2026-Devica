@@ -262,6 +262,18 @@ h2 {
     color: var(--on-surface);
     text-align: left;
     cursor: pointer;
+    transition: background-color 120ms ease-out;
+}
+
+/* 선택된 카드는 아래 aria-pressed 규칙으로 이미 검정 반전이라 미선택 상태만 다룬다. */
+.question-option:hover:not([aria-pressed="true"]) {
+    background: var(--inverse-primary);
+}
+
+.question-option:focus-visible:not([aria-pressed="true"]) {
+    background: var(--inverse-primary);
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
 }
 
 .question-option[aria-pressed="true"] {
@@ -289,15 +301,15 @@ h2 {
     border-top: 1px solid var(--outline-variant);
 }
 
-/* 건너뛰기는 진행 수단이지만 권장 경로는 아니다. 채운 «다음»·실선 «이전»과 점선으로 구분한다. */
+/* 건너뛰기는 진행 수단이지만 권장 경로는 아니다. 채운 «다음»·실선 «이전»과 테두리 명도 차이로 위계만 낮춘다. */
+/* outline-variant·on-surface-variant는 붉은 기가 도는 회색이라, 밝기가 같은 중성 토큰으로 바꿔 쓴다. */
 .button--skip {
-    border-style: dashed;
-    border-color: var(--outline);
-    color: var(--on-surface-variant);
+    border-color: var(--inverse-primary);
+    color: var(--on-primary-fixed-variant);
     background: var(--surface-container-lowest);
 }
 
-.button--skip:hover {
+.button--skip:hover:not(:disabled) {
     border-color: var(--primary);
     color: var(--primary);
 }
@@ -573,6 +585,18 @@ h2 {
     background: var(--surface-container-lowest);
     font-weight: 600;
     cursor: pointer;
+    transition: background-color 120ms ease-out;
+}
+
+/* 선택된 칩은 아래 aria-pressed 규칙으로 이미 검정 반전이라 미선택 상태만 다룬다. */
+.chip:hover:not(:disabled):not([aria-pressed="true"]) {
+    background: var(--inverse-primary);
+}
+
+.chip:focus-visible:not([aria-pressed="true"]) {
+    background: var(--inverse-primary);
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
 }
 
 .chip[aria-pressed="true"] {
@@ -598,6 +622,13 @@ h2 {
     padding-top: var(--gutter);
     border-top: 1px solid var(--outline-variant);
     font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chip,
+    .question-option {
+        transition: none;
+    }
 }
 
 @media (min-width: 768px) {

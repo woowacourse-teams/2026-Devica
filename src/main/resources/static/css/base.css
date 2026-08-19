@@ -111,6 +111,13 @@ a {
     padding: var(--density-med) var(--gutter);
     cursor: pointer;
     font-weight: 600;
+    transition: background-color 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out;
+}
+
+/* 변형마다 바뀌는 속성이 달라(primary는 배경, skip은 테두리) 전환은 .button에 한 번만 건다. */
+.button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
 }
 
 .button--primary {
@@ -128,11 +135,23 @@ a {
     background: var(--surface-container-lowest);
 }
 
+/* 배경 명도만 낮춘다. disabled가 쓰는 --surface-container와는 두 칸 벌려 구분한다. */
+.button--secondary:hover:not(:disabled),
+.button--secondary:focus-visible {
+    background: var(--inverse-primary);
+}
+
 .button:disabled {
     border-color: var(--outline-variant);
     color: var(--outline);
     background: var(--surface-container);
     cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .button {
+        transition: none;
+    }
 }
 
 .button--wide {
