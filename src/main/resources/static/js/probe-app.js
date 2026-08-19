@@ -141,7 +141,7 @@
 
         elements.progressCount.textContent = `${state.questionIndex + 1} / ${state.visibleQuestions.length}`;
         elements.progressValue.style.width = `${((state.questionIndex + 1) / state.visibleQuestions.length) * 100}%`;
-        elements.previous.disabled = state.questionIndex === 0;
+        elements.previous.disabled = false;
         renderNextButton(question);
         elements.questionContent.replaceChildren(
             question.kind === "current-spec" ? createCurrentSpecContent(question) : createQuestionContent(question)
@@ -408,6 +408,8 @@
 
     function showPreviousQuestion() {
         if (state.questionIndex === 0) {
+            activateView(VIEW.INTRO);
+            scrollToViewStart();
             return;
         }
         state.questionIndex -= 1;

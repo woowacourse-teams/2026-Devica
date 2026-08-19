@@ -77,3 +77,27 @@ test("Mac 권장 사양 편집은 현재 칩의 RAM 선택지와 호환성 확�
     assert.match(app, /지원하지 않아 `[\s\S]*?변경됩니다\. 그래도 변경하시겠습니까\?/);
     assert.match(app, /resultViewIncludesMac\(value\)[\s\S]*?!ensureCompatibleMacSpecForEdit\(\)/);
 });
+
+test("초기 화면과 기본 권장 사양 진입은 동일한 기본 사양 데이터를 사용한다", () => {
+    const config = fs.readFileSync(
+        path.join(__dirname, "../../main/resources/static/js/probe-config.js"),
+        "utf8"
+    );
+    const policy = fs.readFileSync(
+        path.join(__dirname, "../../main/resources/static/js/probe-policy.js"),
+        "utf8"
+    );
+
+    assert.match(config, /baselineTracks:\s*policy\.DEFAULT_RECOMMENDATION_SPECS/);
+    assert.match(policy, /calculatedSpec:\s*cloneSpec\(DEFAULT_RECOMMENDATION_SPECS\[os\]\)/);
+});
+
+test("첫 질문의 이전 버튼은 초기 화면으로 돌아가고 이후 질문은 기존 이동 방식을 유지한다", () => {
+    const app = fs.readFileSync(
+        path.join(__dirname, "../../main/resources/static/js/probe-app.js"),
+        "utf8"
+    );
+
+    assert.match(app, /elements\.previous\.disabled\s*=\s*false/);
+    assert.match(app, /function showPreviousQuestion\(\)\s*{[\s\S]*?state\.questionIndex === 0[\s\S]*?activateView\(VIEW\.INTRO\);[\s\S]*?scrollToViewStart\(\);[\s\S]*?return;[\s\S]*?state\.questionIndex -= 1;[\s\S]*?renderQuestion\(\);/);
+});

@@ -6,18 +6,33 @@ test("OS 미정이면 Mac과 Windows 권장안을 모두 계산한다", () => {
     const result = policy.calculateRecommendation({Q1: "UNDECIDED"}, {});
 
     assert.deepEqual(result.activeOs, [policy.OS.MACOS, policy.OS.WINDOWS]);
+    assert.equal(policy.BASELINES.WINDOWS.memoryGb, 32);
     assert.equal(result.tracks.MACOS.calculatedSpec.memoryGb, 24);
     assert.equal(result.tracks.WINDOWS.calculatedSpec.memoryGb, 32);
 });
 
-test("기본 권장안은 온보딩 계산 없이 동일한 기준 사양을 두 OS에 적용한다", () => {
+test("기본 권장안은 온보딩 계산 기준과 분리된 초기 사양을 두 OS에 적용한다", () => {
     const result = policy.createBaselineRecommendation();
 
     assert.deepEqual(result.activeOs, [policy.OS.MACOS, policy.OS.WINDOWS]);
-    assert.deepEqual(result.tracks.MACOS.calculatedSpec, policy.BASELINES.MACOS);
-    assert.deepEqual(result.tracks.WINDOWS.calculatedSpec, policy.BASELINES.WINDOWS);
-    assert.notEqual(result.tracks.MACOS.calculatedSpec, policy.BASELINES.MACOS);
-    assert.notEqual(result.tracks.WINDOWS.calculatedSpec, policy.BASELINES.WINDOWS);
+    assert.equal(policy.DEFAULT_RECOMMENDATION_SPECS.MACOS.memoryGb, 24);
+    assert.equal(policy.DEFAULT_RECOMMENDATION_SPECS.WINDOWS.memoryGb, 24);
+    assert.deepEqual(result.tracks.MACOS.calculatedSpec, policy.DEFAULT_RECOMMENDATION_SPECS.MACOS);
+    assert.deepEqual(result.tracks.WINDOWS.calculatedSpec, policy.DEFAULT_RECOMMENDATION_SPECS.WINDOWS);
+    assert.notEqual(result.tracks.MACOS.calculatedSpec, policy.DEFAULT_RECOMMENDATION_SPECS.MACOS);
+    assert.notEqual(result.tracks.WINDOWS.calculatedSpec, policy.DEFAULT_RECOMMENDATION_SPECS.WINDOWS);
+});
+
+test("Windows 온보딩 메모리 계산은 기존 32GB 기준의 상향과 하향 값을 유지한다", () => {
+    const baseline = policy.calculateRecommendation({Q1: "WINDOWS"}, {});
+    const fullUp = policy.calculateRecommendation({Q1: "WINDOWS", Q5: "OFTEN"}, {});
+    const halfUp = policy.calculateRecommendation({Q1: "WINDOWS", Q5: "SOMETIMES"}, {});
+    const down = policy.calculateRecommendation({Q1: "WINDOWS", Q4: "REMOTE", Q8: "TWO_YEARS"}, {});
+
+    assert.equal(baseline.tracks.WINDOWS.calculatedSpec.memoryGb, 32);
+    assert.equal(fullUp.tracks.WINDOWS.calculatedSpec.memoryGb, 48);
+    assert.equal(halfUp.tracks.WINDOWS.calculatedSpec.memoryGb, 40);
+    assert.equal(down.tracks.WINDOWS.calculatedSpec.memoryGb, 24);
 });
 
 test("Java 계열은 Mac 메모리를 48GB로, CPU를 한 단계 상향한다", () => {
