@@ -54,6 +54,16 @@ test("SSD 512GB 상당 이상과 Q6 답변을 저장 공간 판정에 사용한�
     assert.equal(unchanged.tracks.MACOS.calculatedSpec.storageGb, 512);
 });
 
+test("현재 SSD 미입력이면 용량 부족 경험을 상향에 반영하되 하향에는 쓰지 않는다", () => {
+    const up = policy.calculateRecommendation({Q1: "MAC", Q2: [], Q6: "OFTEN"}, {});
+    const small = policy.calculateRecommendation({Q1: "MAC", Q2: [], Q6: "OFTEN"}, {storageGb: 256});
+    const down = policy.calculateRecommendation({Q1: "MAC", Q2: [], Q4: "REMOTE", Q6: "NEVER"}, {});
+
+    assert.equal(up.tracks.MACOS.calculatedSpec.storageGb, 1024);
+    assert.equal(small.tracks.MACOS.calculatedSpec.storageGb, 512);
+    assert.equal(down.tracks.MACOS.calculatedSpec.storageGb, 512);
+});
+
 test("저장 공간 상향과 하향이 함께 성립하면 512GB로 상쇄한다", () => {
     const result = policy.calculateRecommendation({
         Q1: "MAC",

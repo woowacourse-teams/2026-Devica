@@ -27,7 +27,7 @@ MVP가 실제로 동작하는지 확인하려고 PostHog를 붙인다. 확인할
 ①~③은 이미 앱에 있는 이벤트다. ④만 새로 만든다. 세팅에서 할 일은 **스니펫을 넣고, 기존 이벤트를 PostHog로도 보내는 것**이 전부다.
 
 > **왜 이렇게 하나**
-> 도구 선택 근거는 [ADR 0013](adr/0013-제품-지표-수집-도구.md)에, ④를 새로 만든 이유는 [부록](#product_detail_viewed만-posthog-전용인-이유)에 있다.
+> 도구 선택 근거는 [ADR 0013](adr/0013-제품-지표-수집-도구.md)에, ④를 새로 만든 이유는 [부록](#posthog-전용-이벤트가-따로-있는-이유)에 있다.
 
 ### 시작 전에 알아둘 것
 
@@ -140,7 +140,29 @@ Devica는 **템플릿이 `index.html` 하나뿐인 단일 페이지 앱**이다.
         // ...기존 코드 그대로
 ```
 
-여기만 `recordEvent()`를 안 쓰고 `posthog.capture()`를 직접 부른다. [이유는 부록에](#product_detail_viewed만-posthog-전용인-이유).
+여기만 `recordEvent()`를 안 쓰고 `posthog.capture()`를 직접 부른다. [이유는 부록에](#posthog-전용-이벤트가-따로-있는-이유).
+
+### 건너뛴 질문 기록
+
+지표 1·2에는 안 쓰이지만, **어느 질문이 자주 버려지는지**는 문항을 다듬는 근거가 된다. 같은 파일의 `showNextQuestion()` 맨 앞에 넣는다.
+
+```js
+    function showNextQuestion() {
+        const question = state.visibleQuestions[state.questionIndex];
+        if (!isQuestionComplete(question)) {
+            // 건너뛰기는 experiment_event ENUM에 없어 PostHog에만 보낸다.
+            window.posthog?.capture("QUESTION_SKIPPED", {
+                questionId: question.id,
+                sessionId: state.sessionId,
+                questionSetVersion: config.version
+            });
+        }
+        // ...기존 코드 그대로
+```
+
+건너뛰기는 답을 저장하지 않으므로 `recordEvent()`를 타지 않는다. 이 호출이 없으면 **PostHog에 아무 흔적도 남지 않는다.** `PRODUCT_DETAIL_VIEWED`와 같은 이유로 DB에는 안 넣는다.
+
+`questionId`로 분해하면 질문별 건너뛰기 수가 바로 나온다. Product analytics → Trends에서 `QUESTION_SKIPPED`를 고르고 **Breakdown**에 `questionId`를 지정하면 된다.
 
 ### 지금은 안 해도 되는 것
 
@@ -155,10 +177,12 @@ Devica는 **템플릿이 `index.html` 하나뿐인 단일 페이지 앱**이다.
 
 1. 앱을 띄우고 **플로우를 끝까지 한 번 통과**한다.
    시작 → 질문 답변 → 결과 확인 → 제품 보기 → **제품 하나의 «상세 보기»** 까지 눌러야 네 단계가 다 발생한다.
+   도중에 **질문 하나는 아무것도 고르지 말고 «건너뛰기»** 로 넘긴다. `QUESTION_SKIPPED`까지 같이 확인할 수 있다.
 2. PostHog 왼쪽 메뉴에서 **Activity**를 연다. 30초마다 자동 갱신된다.
    기간 기본값이 **Last hour**라 비어 보이기 쉽다. **Last 7 days**로 바꿔 본다.
 3. 네 이벤트가 다 올라왔는지 확인한다.
    `RECOMMENDATION_STARTED` · `RECOMMENDATION_COMPLETED` · `PRODUCT_LIST_VIEWED` · `PRODUCT_DETAIL_VIEWED`
+   건너뛴 질문이 있으면 `QUESTION_SKIPPED`도 함께 보인다.
 
 확인이 끝나면 **`?v=` 캐시 버스터 값을 올리고 배포**한다.
 
@@ -274,6 +298,7 @@ DB에서 먼저 이상한 세션을 찾았다면, PostHog 검색창에 그 `sess
 - [ ] `index.html`에 스니펫 삽입, `defaults` 포함 확인 *(2장)*
 - [ ] `recordEvent()`에 미러링 블록 추가 *(3장)*
 - [ ] `showProductDetail()`에 `PRODUCT_DETAIL_VIEWED` 추가 *(3장)*
+- [ ] `showNextQuestion()`에 `QUESTION_SKIPPED` 추가 *(3장)*
 - [ ] 로컬에서 플로우 1회 통과, Activity에서 이벤트 4개 확인 *(4장)*
 - [ ] `?v=` 값 갱신 후 배포 *(4장)*
 - [ ] 4단계 퍼널 생성, `Host = devica.co.kr` 필터, 대시보드에 고정 *(5장)*
@@ -285,17 +310,20 @@ DB에서 먼저 이상한 세션을 찾았다면, PostHog 검색창에 그 `sess
 
 도구 선택 근거 — 왜 PostHog인지, 왜 프론트엔드 수집인지 — 는 [ADR 0013](adr/0013-제품-지표-수집-도구.md)에 있다. 여기에는 운영하면서 참고할 것만 둔다.
 
-### `PRODUCT_DETAIL_VIEWED`만 PostHog 전용인 이유
+### PostHog 전용 이벤트가 따로 있는 이유
 
-**상세 화면 진입을 기록하는 이벤트가 원래 없었다.** 이름이 비슷한 `PRODUCT_CLICKED`는 상세 화면 안의 **구매 링크 클릭**이라, 지표 2가 묻는 "리스트를 살펴봤는가"보다 한참 뒤의 행동이다.
+`PRODUCT_DETAIL_VIEWED`와 `QUESTION_SKIPPED` 두 개는 `recordEvent()`를 안 타고 `posthog.capture()`를 직접 부른다. **DB에 대응하는 행동이 원래 없었다는 점**이 같다.
+
+- **`PRODUCT_DETAIL_VIEWED`** — 이름이 비슷한 `PRODUCT_CLICKED`는 상세 화면 안의 **구매 링크 클릭**이라, 지표 2가 묻는 "리스트를 살펴봤는가"보다 한참 뒤의 행동이다.
+- **`QUESTION_SKIPPED`** — 건너뛰기는 저장할 답이 없어서 `QUESTION_ANSWERED`가 발생하지 않는다. 이벤트가 아예 안 나가므로 **부재로만 추론**해야 하는데, 그 추론은 퍼널로 짜기 번거롭다.
 
 그렇다고 DB에 이벤트를 추가하기는 비싸다. `experiment_event.event_name`이 MySQL **`ENUM` 컬럼**이라 값을 늘리면 컬럼 타입을 바꿔야 하는데, `ddl-auto`가 로컬 `update`·운영 `validate`이고 저장소에 마이그레이션 도구가 없다. **이벤트 하나에 수동 `ALTER TABLE`이 따라온다.**
 
-PostHog에만 보내면 그 비용 없이 지표 2를 잴 수 있다. 지금 필요한 건 전환율뿐이다.
+PostHog에만 보내면 그 비용 없이 둘 다 잴 수 있다.
 
 나머지 12종은 이미 DB에 있는 행동이라 새 이름을 붙이지 않는다. **이름을 공유해야 DB에서 찾은 세션을 PostHog에서 그대로 조회할 수 있다.**
 
-DB 집계까지 필요해지면 그때 `ExperimentEventName`에 값을 추가하고 `ALTER TABLE`로 `ENUM`을 넓힌 뒤, 이 호출을 `recordEvent()`로 바꾼다.
+DB 집계까지 필요해지면 그때 `ExperimentEventName`에 값을 추가하고 `ALTER TABLE`로 `ENUM`을 넓힌 뒤, 해당 호출을 `recordEvent()`로 바꾼다.
 
 ### 무료 티어 한도
 
