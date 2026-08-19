@@ -1,0 +1,20 @@
+# CodeDeploy 가 번들 루트에서 찾고, EC2 의 codedeploy-agent 가 이 파일대로 훅을 실행한다.
+version: 0.0
+os: linux
+
+files:
+  - source: /
+    destination: /opt/app/release
+file_exists_behavior: OVERWRITE
+
+# ApplicationStop 훅은 두지 않는다. 컨테이너를 미리 내리면 헬스체크 실패로 롤백하는 동안
+# 서비스가 더 오래 죽어 있다. docker compose up -d 가 바뀐 컨테이너만 교체한다.
+hooks:
+  AfterInstall:
+    - location: scripts/deploy.sh
+      timeout: 300
+      runas: root
+  ValidateService:
+    - location: scripts/validate.sh
+      timeout: 120
+      runas: root
