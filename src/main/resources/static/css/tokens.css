@@ -12,6 +12,8 @@
     --outline-variant: #cfc4c5;
     --primary: #000000;
     --on-primary: #ffffff;
+    --inverse-primary: #c6c6c6;
+    --on-primary-fixed-variant: #474747;
     --error: #ba1a1a;
     --display-font-size: 48px;
     --display-font-weight: 700;
