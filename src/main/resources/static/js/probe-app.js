@@ -37,7 +37,6 @@
         previous: document.querySelector("#previous-button"),
         next: document.querySelector("#next-button"),
         result: document.querySelector("#result-view"),
-        resultDescription: document.querySelector("#result-description"),
         resultOs: document.querySelector("#result-os-control"),
         specList: document.querySelector("#spec-list"),
         editSpec: document.querySelector("#edit-spec-button"),
@@ -64,7 +63,6 @@
         currentSpecSubmitted: false,
         cpuResetByOs: false,
         calculation: null,
-        recommendationSource: null,
         finalSpecs: new Map(),
         resultViewMode: "BOTH",
         editMode: false,
@@ -448,13 +446,11 @@
 
     function completeRecommendation() {
         recalculate();
-        state.recommendationSource = "ONBOARDING";
         finalizeRecommendation();
     }
 
     function showBaselineRecommendation() {
         state.calculation = config.createBaselineRecommendation();
-        state.recommendationSource = "BASELINE";
         finalizeRecommendation();
     }
 
@@ -472,9 +468,6 @@
     }
 
     function renderSpecification() {
-        elements.resultDescription.textContent = state.recommendationSource === "BASELINE"
-            ? "백엔드 개발용 기본 권장 사양입니다. 필요에 따라 직접 수정할 수 있어요."
-            : "사용자님의 개발 환경과 답변을 바탕으로 조정된 권장 사양입니다.";
         renderResultOsControl();
         const osList = visibleResultOs();
         elements.specList.replaceChildren(...osList.map(createSpecCard));
@@ -490,6 +483,9 @@
         const options = [[policy.OS.MACOS, "Mac"], [policy.OS.WINDOWS, "Windows"], ["BOTH", "둘 다"]];
         const group = createChoiceGroup(options, state.resultViewMode, (value) => {
             if (value == null) {
+                return;
+            }
+            if (state.editMode && resultViewIncludesMac(value) && !ensureCompatibleMacSpecForEdit()) {
                 return;
             }
             state.resultViewMode = value;
@@ -546,24 +542,41 @@
     }
 
     function specOptions(os, field) {
-        if (field === "cpuTier") {
-            return policy.CPU_TIERS[os].map((tier) => [tier, policy.cpuLabel(os, tier)]);
-        }
-        if (field === "memoryGb") {
-            return policy.MEMORY_OPTIONS.map((value) => [value, `${value}GB`]);
-        }
-        return policy.STORAGE_OPTIONS.map((value) => [value, formatStorage(value)]);
+        const cpuTier = state.finalSpecs.get(os)?.cpuTier;
+        const values = policy.recommendationSpecOptions(os, field, cpuTier);
+        return values.map((value) => [value, formatSpecValue(os, field, value)]);
     }
 
     function updateFinalSpec(os, field, rawValue) {
         const finalSpec = state.finalSpecs.get(os);
         const calculated = state.calculation.tracks[os].calculatedSpec[field];
         const next = field === "cpuTier" ? rawValue : Number(rawValue);
+        let adjustedMemoryGb = finalSpec.memoryGb;
+        let requiresMemoryAdjustment = false;
+        if (os === policy.OS.MACOS && field === "cpuTier") {
+            adjustedMemoryGb = policy.adjustRecommendationMemoryForCpu(os, next, finalSpec.memoryGb);
+            if (adjustedMemoryGb == null) {
+                return;
+            }
+            requiresMemoryAdjustment = adjustedMemoryGb !== finalSpec.memoryGb;
+            if (requiresMemoryAdjustment && !window.confirm(chipMemoryAdjustmentMessage(
+                next,
+                finalSpec.memoryGb,
+                adjustedMemoryGb
+            ))) {
+                return;
+            }
+        }
         // 취소하면 화면을 다시 그리지 않으므로 이전 선택이 그대로 남는다.
-        if (isLower(os, field, next, calculated) && !window.confirm(loweringMessage(os, field))) {
+        if (!requiresMemoryAdjustment
+            && isLower(os, field, next, calculated)
+            && !window.confirm(loweringMessage(os, field))) {
             return;
         }
         finalSpec[field] = next;
+        if (requiresMemoryAdjustment) {
+            finalSpec.memoryGb = adjustedMemoryGb;
+        }
         resetProductResults();
         renderSpecification();
         recordEvent("FINAL_SPEC_EDITED", {questionId: `${os}_${field}`, optionId: String(next)});
@@ -583,9 +596,49 @@
         return `${fieldLabel(field)}: 권장값보다 낮은 값을 선택했습니다. ${expansion} 이 값으로 변경할까요?`;
     }
 
+    function chipMemoryAdjustmentMessage(cpuTier, currentMemoryGb, adjustedMemoryGb) {
+        return `${policy.cpuLabel(policy.OS.MACOS, cpuTier)}은 ${currentMemoryGb}GB RAM을 지원하지 않아 `
+            + `RAM이 ${adjustedMemoryGb}GB로 변경됩니다. 그래도 변경하시겠습니까?`;
+    }
+
+    function ensureCompatibleMacSpecForEdit() {
+        const finalSpec = state.finalSpecs.get(policy.OS.MACOS);
+        if (!finalSpec) {
+            return true;
+        }
+        const adjustedMemoryGb = policy.adjustRecommendationMemoryForCpu(
+            policy.OS.MACOS,
+            finalSpec.cpuTier,
+            finalSpec.memoryGb
+        );
+        if (adjustedMemoryGb == null) {
+            return false;
+        }
+        if (adjustedMemoryGb === finalSpec.memoryGb) {
+            return true;
+        }
+        if (!window.confirm(chipMemoryAdjustmentMessage(
+            finalSpec.cpuTier,
+            finalSpec.memoryGb,
+            adjustedMemoryGb
+        ))) {
+            return false;
+        }
+        finalSpec.memoryGb = adjustedMemoryGb;
+        resetProductResults();
+        return true;
+    }
+
     function toggleSpecificationEdit() {
+        if (!state.editMode && resultViewIncludesMac(state.resultViewMode) && !ensureCompatibleMacSpecForEdit()) {
+            return;
+        }
         state.editMode = !state.editMode;
         renderSpecification();
+    }
+
+    function resultViewIncludesMac(viewMode) {
+        return viewMode === policy.OS.MACOS || viewMode === "BOTH";
     }
 
     function visibleResultOs() {

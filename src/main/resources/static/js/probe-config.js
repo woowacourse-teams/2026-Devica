@@ -5,6 +5,22 @@
     const productPolicy = window.DevicaProductPolicy;
     const products = Object.freeze([
         product({
+            id: "mac-air13-m5-16-512",
+            brand: "Apple",
+            modelName: "MacBook Air 13 M5",
+            modelCode: "MDH74KH/A",
+            os: "MACOS",
+            cpuManufacturer: "Apple",
+            cpuModelName: "Apple M5 10코어 CPU·8코어 GPU",
+            cpuTier: "BASIC",
+            memoryGb: 16,
+            storageGb: 512,
+            priceKrw: 2080500,
+            purchaseUrl: "https://www.coupang.com/vp/products/9410641464?itemId=27961674147&vendorItemId=94919713475",
+            checkedAt: "2026-08-19",
+            shortDescription: "Apple M5와 16GB 메모리, 512GB SSD를 갖춘 13형 MacBook Air입니다."
+        }),
+        product({
             id: "mac-air13-m5-24-1t",
             brand: "Apple",
             modelName: "MacBook Air 13 M5",
@@ -18,6 +34,22 @@
             priceKrw: 2840000,
             purchaseUrl: "https://www.coupang.com/vp/products/9410641464?itemId=27961674159&vendorItemId=94919713484",
             shortDescription: "Apple M5와 24GB 메모리, 1TB SSD를 갖춘 13형 MacBook Air입니다."
+        }),
+        product({
+            id: "mac-air15-m5-16-512",
+            brand: "Apple",
+            modelName: "MacBook Air 15 M5",
+            modelCode: "MDVD4KH/A",
+            os: "MACOS",
+            cpuManufacturer: "Apple",
+            cpuModelName: "Apple M5 10코어 CPU·10코어 GPU",
+            cpuTier: "BASIC",
+            memoryGb: 16,
+            storageGb: 512,
+            priceKrw: 2330640,
+            purchaseUrl: "https://www.coupang.com/vp/products/9410641499?itemId=27961674328&vendorItemId=94919713458",
+            checkedAt: "2026-08-19",
+            shortDescription: "Apple M5와 16GB 메모리, 512GB SSD를 갖춘 15형 MacBook Air입니다."
         }),
         product({
             id: "mac-air15-m5-24-1t",
@@ -35,6 +67,22 @@
             shortDescription: "Apple M5와 24GB 메모리, 1TB SSD를 갖춘 15형 MacBook Air입니다."
         }),
         product({
+            id: "mac-pro14-m5-16-1t",
+            brand: "Apple",
+            modelName: "MacBook Pro 14 M5",
+            modelCode: "MDE14KH/A",
+            os: "MACOS",
+            cpuManufacturer: "Apple",
+            cpuModelName: "Apple M5 10코어 CPU·10코어 GPU",
+            cpuTier: "BASIC",
+            memoryGb: 16,
+            storageGb: 1024,
+            priceKrw: 3047370,
+            purchaseUrl: "https://www.coupang.com/vp/products/9140128274?itemId=26906195808&vendorItemId=93875613386",
+            checkedAt: "2026-08-19",
+            shortDescription: "Apple M5와 16GB 메모리, 1TB SSD를 갖춘 14형 MacBook Pro입니다."
+        }),
+        product({
             id: "mac-pro14-m5-24-1t",
             brand: "Apple",
             modelName: "MacBook Pro 14 M5",
@@ -48,6 +96,22 @@
             priceKrw: 3321990,
             purchaseUrl: "https://www.coupang.com/vp/products/9140128274?itemId=27033962329&vendorItemId=94002473679",
             shortDescription: "Apple M5와 24GB 메모리, 1TB SSD를 갖춘 14형 MacBook Pro입니다."
+        }),
+        product({
+            id: "mac-pro14-m5-32-1t",
+            brand: "Apple",
+            modelName: "MacBook Pro 14 M5",
+            modelCode: "Z1KN0001E",
+            os: "MACOS",
+            cpuManufacturer: "Apple",
+            cpuModelName: "Apple M5 10코어 CPU·10코어 GPU",
+            cpuTier: "BASIC",
+            memoryGb: 32,
+            storageGb: 1024,
+            priceKrw: 3970000,
+            purchaseUrl: "https://www.coupang.com/vp/products/9140128274?itemId=27033962079&vendorItemId=94002473487",
+            checkedAt: "2026-08-19",
+            shortDescription: "Apple M5와 32GB 메모리, 1TB SSD를 갖춘 14형 MacBook Pro입니다."
         }),
         product({
             id: "mac-pro14-m5pro-24-1t",
@@ -95,6 +159,22 @@
             shortDescription: "Apple M5 Pro와 48GB 메모리, 2TB SSD를 갖춘 14형 MacBook Pro입니다."
         }),
         product({
+            id: "mac-pro16-m5pro-24-1t",
+            brand: "Apple",
+            modelName: "MacBook Pro 16 M5 Pro",
+            modelCode: "MGE44KH/A",
+            os: "MACOS",
+            cpuManufacturer: "Apple",
+            cpuModelName: "Apple M5 Pro 18코어 CPU·20코어 GPU",
+            cpuTier: "PRO",
+            memoryGb: 24,
+            storageGb: 1024,
+            priceKrw: 4491000,
+            purchaseUrl: "https://www.coupang.com/vp/products/9410700446?itemId=27961799434&vendorItemId=94919837914",
+            checkedAt: "2026-08-19",
+            shortDescription: "Apple M5 Pro와 24GB 메모리, 1TB SSD를 갖춘 16형 MacBook Pro입니다."
+        }),
+        product({
             id: "mac-pro16-m5pro-48-1t",
             brand: "Apple",
             modelName: "MacBook Pro 16 M5 Pro",
@@ -108,21 +188,6 @@
             priceKrw: 5566770,
             purchaseUrl: "https://www.coupang.com/vp/products/9410700446?itemId=27961799447&vendorItemId=94919837921",
             shortDescription: "Apple M5 Pro와 48GB 메모리, 1TB SSD를 갖춘 16형 MacBook Pro입니다."
-        }),
-        product({
-            id: "mac-pro16-m5max-48-2t",
-            brand: "Apple",
-            modelName: "MacBook Pro 16 M5 Max",
-            modelCode: "MGEE4KH/A",
-            os: "MACOS",
-            cpuManufacturer: "Apple",
-            cpuModelName: "Apple M5 Max 18코어 CPU·40코어 GPU",
-            cpuTier: "MAX",
-            memoryGb: 48,
-            storageGb: 2048,
-            priceKrw: 7670000,
-            purchaseUrl: "https://www.coupang.com/vp/products/9410700446?itemId=27961799450&vendorItemId=94919837915",
-            shortDescription: "Apple M5 Max와 48GB 메모리, 2TB SSD를 갖춘 16형 MacBook Pro입니다."
         }),
         product({
             id: "win-samsung-book6-356h",
@@ -254,7 +319,7 @@
 
     window.DEVICA_PROBE_CONFIG = Object.freeze({
         version: "question-set-v0.1",
-        productSetVersion: "product-set-2026-08-14-v0.1",
+        productSetVersion: "product-set-2026-08-19-v0.2",
         approved: true,
         productSetApproved,
         productSetValidation,
@@ -372,7 +437,7 @@
             imageAlt: `${fields.brand} ${fields.modelName} (${fields.modelCode}) 제품 이미지`,
             priceType: "GENERAL",
             sourceName: "쿠팡",
-            checkedAt: "2026-08-14",
+            checkedAt: fields.checkedAt || "2026-08-14",
             active: true
         });
     }
