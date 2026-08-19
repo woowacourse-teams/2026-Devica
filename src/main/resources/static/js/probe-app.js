@@ -93,7 +93,7 @@
         const card = document.createElement("article");
         card.className = "baseline-card";
         card.innerHTML = `<p class="eyebrow"></p><h2></h2><dl></dl>`;
-        card.querySelector(".eyebrow").textContent = os;
+        card.querySelector(".eyebrow").textContent = "기본 권장 사양";
         card.querySelector("h2").textContent = osLabel(os);
         const list = card.querySelector("dl");
         [
@@ -166,15 +166,15 @@
                 [policy.OS.MACOS, "Mac"],
                 [policy.OS.WINDOWS, "Windows"]
             ], state.currentSpec.os, updateCurrentOs),
-            createChoiceField("CURRENT_CPU", "CPU", currentCpuOptions(), state.currentSpec.cpuTier, updateCurrentCpu, {
+            createChoiceField("CURRENT_CPU", "PROCESSOR", currentCpuOptions(), state.currentSpec.cpuTier, updateCurrentCpu, {
                 disabled: !state.currentSpec.os,
                 disabledMessage: "OS를 먼저 선택해 주세요",
                 notice: state.cpuResetByOs ? "OS가 바뀌어 CPU 선택을 지웠어요. 다시 골라 주세요." : null
             }),
-            createChoiceField("CURRENT_MEMORY", "RAM(GB)", [
+            createChoiceField("CURRENT_MEMORY", "MEMORY", [
                 [8, "8GB 이하"], [16, "16GB"], [24, "24GB"], [32, "32GB"], [64, "64GB 이상"]
             ], state.currentSpec.memoryGb, (value) => updateCurrentNumber("memoryGb", "CURRENT_MEMORY", value)),
-            createChoiceField("CURRENT_STORAGE", "SSD 용량(GB)", [
+            createChoiceField("CURRENT_STORAGE", "STORAGE", [
                 [256, "256GB 이하"], [512, "256GB 초과 1TB 미만"], [1024, "1TB 이상"]
             ], state.currentSpec.storageGb, (value) => updateCurrentNumber("storageGb", "CURRENT_STORAGE", value))
         );
@@ -569,7 +569,7 @@
         const expansion = os === policy.OS.MACOS
             ? "Mac은 메모리와 저장 공간을 나중에 늘릴 수 없습니다."
             : "Windows는 모델에 따라 메모리나 M.2 SSD를 추가할 수 있습니다.";
-        return `권장값보다 낮은 ${fieldLabel(field)}을 선택했습니다. ${expansion} 이 값으로 변경할까요?`;
+        return `${fieldLabel(field)}: 권장값보다 낮은 값을 선택했습니다. ${expansion} 이 값으로 변경할까요?`;
     }
 
     function toggleSpecificationEdit() {
@@ -616,7 +616,8 @@
 
     function renderProductListHeading() {
         const showsAll = state.productListMode === "ALL";
-        elements.productListEyebrow.textContent = showsAll ? "ALL PRODUCTS" : "MATCHED PRODUCTS";
+        // eyebrow와 제목이 같은 말이 되지 않게 나눈다. 제목이 목록의 정체를, eyebrow가 상위 분류를 맡는다.
+        elements.productListEyebrow.textContent = showsAll ? "제품 목록" : "조건에 맞는 제품";
         elements.productListTitle.textContent = showsAll ? "전체 제품" : "추천 노트북";
         elements.productListDescription.textContent = showsAll
             ? "지금 비교할 수 있는 노트북 전체입니다."
