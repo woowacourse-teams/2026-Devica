@@ -2,9 +2,9 @@ name: CI
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, develop, prototype ]
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, prototype ]
 
 # 같은 브랜치에 새 커밋이 올라오면 진행 중이던 검증은 취소한다
 concurrency:
