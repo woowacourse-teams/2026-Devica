@@ -501,7 +501,7 @@ h2 {
 
 .product-spec-item dt {
     color: var(--on-surface-variant);
-    font-family: var(--font-label, Geist, sans-serif);
+    font-family: var(--font-label);
     font-size: var(--label-sm-font-size);
     letter-spacing: var(--label-sm-letter-spacing);
 }
