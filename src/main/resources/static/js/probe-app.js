@@ -17,7 +17,11 @@
         PRODUCT_DETAIL: "PRODUCT_DETAIL"
     });
 
+    // 전체 제품 목록에서 "뒤로"를 눌렀을 때 돌아갈 수 있는 화면. 제품 화면끼리 서로 되돌아가지 않게 한다.
+    const RETURNABLE_VIEWS = Object.freeze([VIEW.INTRO, VIEW.QUESTION, VIEW.RESULT]);
+
     const elements = {
+        navProductList: document.querySelector("#nav-product-list-button"),
         intro: document.querySelector("#intro-view"),
         initialSpecs: document.querySelector("#initial-spec-list"),
         start: document.querySelector("#start-button"),
@@ -34,6 +38,9 @@
         productButton: document.querySelector("#product-button"),
         productListView: document.querySelector("#product-list-view"),
         productListBack: document.querySelector("#product-list-back-button"),
+        productListEyebrow: document.querySelector("#product-list-eyebrow"),
+        productListTitle: document.querySelector("#product-list-title"),
+        productListDescription: document.querySelector("#product-list-description"),
         productList: document.querySelector("#product-list"),
         productDetailView: document.querySelector("#product-detail-view"),
         productDetail: document.querySelector("#product-detail"),
@@ -53,18 +60,21 @@
         editMode: false,
         activeView: VIEW.INTRO,
         matchedProducts: [],
+        productListMode: "MATCHED",
+        productListReturnView: VIEW.RESULT,
         selectedProductId: null,
         lastViewedQuestionId: null,
         submittedFeedback: new Set()
     };
 
     renderInitialBaselines();
+    elements.navProductList.addEventListener("click", showAllProducts);
     elements.start.addEventListener("click", startRecommendation);
     elements.previous.addEventListener("click", showPreviousQuestion);
     elements.next.addEventListener("click", showNextQuestion);
     elements.editSpec.addEventListener("click", toggleSpecificationEdit);
     elements.productButton.addEventListener("click", showProducts);
-    elements.productListBack.addEventListener("click", showRecommendationResult);
+    elements.productListBack.addEventListener("click", leaveProductList);
     document.querySelectorAll("[data-feedback]").forEach(bindFeedbackGroup);
 
     function renderInitialBaselines() {
@@ -370,7 +380,7 @@
         const osList = visibleResultOs();
         elements.specList.replaceChildren(...osList.map(createSpecCard));
         elements.editSpec.textContent = state.editMode ? "수정 완료" : "사양 직접 수정";
-        const productSetReady = config.productSetApproved && config.productSetValidation.valid;
+        const productSetReady = isProductSetReady();
         elements.productButton.disabled = !productSetReady;
         elements.productButton.textContent = productSetReady
             ? "이 사양으로 제품 보기"
@@ -486,18 +496,65 @@
     }
 
     function showProducts() {
-        if (!config.productSetApproved || !config.productSetValidation.valid) {
+        if (!isProductSetReady()) {
             return;
         }
+        state.productListMode = "MATCHED";
         state.matchedProducts = productPolicy.sortByPrice(visibleResultOs().flatMap((os) => {
             const spec = state.finalSpecs.get(os);
             return productPolicy.findMatches(config.products, spec, policy.CPU_TIERS);
         }));
+        openProductList();
+    }
+
+    function showAllProducts() {
+        if (!isProductSetReady()) {
+            return;
+        }
+        state.productListMode = "ALL";
+        state.productListReturnView = RETURNABLE_VIEWS.includes(state.activeView) ? state.activeView : VIEW.RESULT;
+        state.matchedProducts = productPolicy.sortByPrice(config.products.filter((product) => product.active));
+        openProductList();
+    }
+
+    function openProductList() {
         state.selectedProductId = null;
+        renderProductListHeading();
         renderProductList();
         activateView(VIEW.PRODUCT_LIST);
         recordEvent("PRODUCT_LIST_VIEWED", {optionId: config.productSetVersion});
         scrollToViewStart();
+    }
+
+    function renderProductListHeading() {
+        const showsAll = state.productListMode === "ALL";
+        elements.productListEyebrow.textContent = showsAll ? "ALL PRODUCTS" : "MATCHED PRODUCTS";
+        elements.productListTitle.textContent = showsAll ? "전체 제품" : "추천 노트북";
+        elements.productListDescription.textContent = showsAll
+            ? "지금 비교할 수 있는 노트북 전체입니다."
+            : "확정한 사양을 모두 충족하는 제품만 보여드려요.";
+        elements.productListBack.textContent = showsAll ? backLabel(state.productListReturnView) : "← 권장 사양으로";
+    }
+
+    function backLabel(view) {
+        if (view === VIEW.INTRO) {
+            return "← 처음으로";
+        }
+        return view === VIEW.QUESTION ? "← 질문으로" : "← 권장 사양으로";
+    }
+
+    function leaveProductList() {
+        if (state.productListMode !== "ALL") {
+            showRecommendationResult();
+            return;
+        }
+        state.selectedProductId = null;
+        activateView(state.productListReturnView);
+        scrollToViewStart();
+    }
+
+    function isProductSetReady() {
+        return config.productSetApproved && config.productSetValidation.valid;
     }
 
     function renderProductList() {
