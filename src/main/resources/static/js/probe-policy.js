@@ -32,6 +32,11 @@
         [OS.WINDOWS]: Object.freeze({os: OS.WINDOWS, cpuTier: "P_HS", memoryGb: 32, storageGb: 512})
     });
 
+    const DEFAULT_RECOMMENDATION_SPECS = Object.freeze({
+        [OS.MACOS]: Object.freeze({os: OS.MACOS, cpuTier: "BASIC", memoryGb: 24, storageGb: 512}),
+        [OS.WINDOWS]: Object.freeze({os: OS.WINDOWS, cpuTier: "P_HS", memoryGb: 24, storageGb: 512})
+    });
+
     const MEMORY_OPTIONS = Object.freeze([16, 24, 32, 40, 48, 64]);
     const STORAGE_OPTIONS = Object.freeze([256, 512, 1024]);
     const MAC_RECOMMENDATION_SPEC_OPTIONS = Object.freeze({
@@ -67,7 +72,7 @@
         Object.values(OS).forEach((os) => {
             tracks[os] = {
                 os,
-                calculatedSpec: cloneSpec(BASELINES[os]),
+                calculatedSpec: cloneSpec(DEFAULT_RECOMMENDATION_SPECS[os]),
                 reasons: baselineReasons(os)
             };
         });
@@ -301,6 +306,7 @@
         CPU_TIERS,
         CPU_LABELS,
         BASELINES,
+        DEFAULT_RECOMMENDATION_SPECS,
         MEMORY_OPTIONS,
         STORAGE_OPTIONS,
         MAC_RECOMMENDATION_SPEC_OPTIONS,

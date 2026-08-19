@@ -323,7 +323,7 @@
         approved: true,
         productSetApproved,
         productSetValidation,
-        baselineTracks: policy.BASELINES,
+        baselineTracks: policy.DEFAULT_RECOMMENDATION_SPECS,
         questions: Object.freeze([
             {
                 id: "CURRENT_SPEC",
