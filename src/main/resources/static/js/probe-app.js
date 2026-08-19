@@ -137,8 +137,7 @@
         elements.progressCount.textContent = `${state.questionIndex + 1} / ${state.visibleQuestions.length}`;
         elements.progressValue.style.width = `${((state.questionIndex + 1) / state.visibleQuestions.length) * 100}%`;
         elements.previous.disabled = state.questionIndex === 0;
-        elements.next.disabled = !isQuestionComplete(question);
-        elements.next.textContent = state.questionIndex === state.visibleQuestions.length - 1 ? "결과 보기" : "다음";
+        renderNextButton(question);
         elements.questionContent.replaceChildren(
             question.kind === "current-spec" ? createCurrentSpecContent(question) : createQuestionContent(question)
         );
@@ -146,6 +145,15 @@
             state.lastViewedQuestionId = question.id;
             recordEvent("QUESTION_VIEWED", {questionId: question.id});
         }
+    }
+
+    // 답을 고르지 않아도 건너뛸 수 있다. 미응답 답변은 정책에서 기본값으로 처리된다.
+    function renderNextButton(question) {
+        const isLastQuestion = state.questionIndex === state.visibleQuestions.length - 1;
+        const skipping = !hasAnyAnswer(question);
+        elements.next.textContent = skipping ? "건너뛰기" : (isLastQuestion ? "결과 보기" : "다음");
+        elements.next.classList.toggle("button--primary", !skipping);
+        elements.next.classList.toggle("button--skip", skipping);
     }
 
     function createCurrentSpecContent(question) {
@@ -202,14 +210,18 @@
     function createChoiceGroup(options, value, onChange) {
         const group = document.createElement("div");
         group.className = "choice-group";
-        options.forEach(([optionValue, optionLabel]) => {
+        options.forEach(([optionValue, optionLabel], index) => {
             const chip = document.createElement("button");
             chip.type = "button";
             chip.className = "chip";
             chip.textContent = optionLabel;
             const selected = value != null && String(value) === String(optionValue);
             chip.setAttribute("aria-pressed", String(selected));
-            chip.addEventListener("click", () => onChange(selected ? null : String(optionValue)));
+            chip.addEventListener("click", () => {
+                onChange(selected ? null : String(optionValue));
+                // 선택하면 화면을 다시 그려 칩이 교체된다. 키보드 사용자가 자리를 잃지 않게 되돌린다.
+                document.querySelectorAll(`#${group.id} .chip`)[index]?.focus();
+            });
             group.appendChild(chip);
         });
         return group;
@@ -265,6 +277,7 @@
             questionId,
             optionId: value == null ? null : String(value)
         });
+        // 칩은 aria-pressed로만 선택을 표시한다. 다시 그리지 않으면 눌러도 반응이 없어 보인다.
         renderQuestion();
     }
 
@@ -362,14 +375,26 @@
         return Array.isArray(answer) ? answer.includes(optionId) : answer === optionId;
     }
 
+    function isGroupAnswered(question, group) {
+        const answer = state.answers.get(group.id || question.id);
+        return Array.isArray(answer) ? answer.length > 0 : answer != null;
+    }
+
+    // 버튼 라벨용. 한 그룹이라도 답했으면 건너뛰는 게 아니므로 「다음」으로 보여준다.
+    function hasAnyAnswer(question) {
+        if (question.kind === "current-spec") {
+            return policy.currentSpecSubmissionStatus(state.currentSpec) !== "ALL_SKIPPED";
+        }
+        return question.groups.some((group) => isGroupAnswered(question, group));
+    }
+
+    // QUESTION_SKIPPED 판정용. 라벨과 달리 모든 그룹을 답해야 완료로 본다.
     function isQuestionComplete(question) {
+        // 현재 사양은 CURRENT_SPEC_SUBMITTED가 ALL_SKIPPED까지 기록하므로 QUESTION_SKIPPED를 따로 보내지 않는다.
         if (question.kind === "current-spec") {
             return true;
         }
-        return question.groups.every((group) => {
-            const answer = state.answers.get(group.id || question.id);
-            return Array.isArray(answer) ? answer.length > 0 : answer != null;
-        });
+        return question.groups.every((group) => isGroupAnswered(question, group));
     }
 
     function showPreviousQuestion() {
@@ -384,7 +409,12 @@
     function showNextQuestion() {
         const question = state.visibleQuestions[state.questionIndex];
         if (!isQuestionComplete(question)) {
-            return;
+            // 건너뛰기는 experiment_event ENUM에 없어 PostHog에만 보낸다.
+            window.posthog?.capture("QUESTION_SKIPPED", {
+                questionId: question.id,
+                sessionId: state.sessionId,
+                questionSetVersion: config.version
+            });
         }
         if (question.kind === "current-spec" && !state.currentSpecSubmitted) {
             state.currentSpecSubmitted = true;
