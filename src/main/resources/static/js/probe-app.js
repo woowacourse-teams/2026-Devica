@@ -523,6 +523,12 @@
             return;
         }
         state.selectedProductId = product.id;
+        // 상세 진입은 experiment_event ENUM에 없어 PostHog에만 보낸다. DB 집계가 필요해지면 ENUM을 확장한다.
+        window.posthog?.capture("PRODUCT_DETAIL_VIEWED", {
+            optionId: product.id,
+            sessionId: state.sessionId,
+            questionSetVersion: config.version
+        });
         elements.productDetail.replaceChildren(productView.createProductDetail(product, {
             formatPrice,
             formatStorage,
@@ -589,6 +595,13 @@
     }
 
     function recordEvent(eventName, details = {}) {
+        // DB로 보내는 이벤트를 PostHog로도 그대로 미러링한다.
+        window.posthog?.capture(eventName, {
+            ...details,
+            sessionId: state.sessionId,
+            questionSetVersion: config.version
+        });
+
         const request = {
             sessionId: state.sessionId,
             questionSetVersion: config.version,
