@@ -211,26 +211,47 @@ h2 {
 .current-spec-field {
     display: grid;
     gap: var(--density-high);
+    min-width: 0;
+    margin: 0;
     padding: var(--gutter);
     font-weight: 600;
 }
 
-.current-spec-field select,
-.result-os-control select,
-.spec-row select {
-    width: 100%;
-    min-height: 48px;
-    border: 1px solid var(--on-surface);
-    border-radius: 0;
-    padding: 0 var(--density-med);
-    color: var(--on-surface);
-    background: var(--surface-container-lowest);
+.current-spec-field legend {
+    padding: 0 var(--unit);
+    font-weight: 600;
 }
 
-.current-spec-field select:disabled {
-    border-color: var(--outline-variant);
-    color: var(--outline);
-    background: var(--surface-container);
+.choice-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--density-high);
+}
+
+/* 인접한 칩의 테두리를 겹쳐 하나의 스위치로 읽히게 한다. */
+.choice-group--segmented {
+    gap: 0;
+}
+
+.choice-group--segmented .chip + .chip {
+    margin-left: -1px;
+}
+
+.choice-hint,
+.choice-notice {
+    margin: 0;
+    color: var(--on-surface-variant);
+    font-size: var(--body-md-font-size);
+    font-weight: 400;
+}
+
+.choice-notice {
+    color: var(--on-surface);
+    font-weight: 600;
+}
+
+.spec-row .choice-group {
+    margin-top: var(--density-high);
 }
 
 .question-option {
@@ -530,17 +551,33 @@ h2 {
 }
 
 .chip {
+    min-height: 44px;
     margin: var(--density-high) var(--unit) 0 0;
     border: 1px solid var(--on-surface);
     border-radius: 0;
     padding: var(--density-high) var(--density-med);
+    color: var(--on-surface);
     background: var(--surface-container-lowest);
+    font-weight: 600;
     cursor: pointer;
 }
 
 .chip[aria-pressed="true"] {
+    position: relative;
     color: var(--on-primary);
     background: var(--primary);
+}
+
+.chip:disabled {
+    border-color: var(--outline-variant);
+    color: var(--outline);
+    background: var(--surface-container);
+    cursor: not-allowed;
+}
+
+/* 칩 사이 간격은 .choice-group의 gap이 맡는다. */
+.choice-group .chip {
+    margin: 0;
 }
 
 .feedback-complete {
