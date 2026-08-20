@@ -24,6 +24,8 @@
     // 전체 제품 목록에서 "뒤로"를 눌렀을 때 돌아갈 수 있는 화면. 제품 화면끼리 서로 되돌아가지 않게 한다.
     const RETURNABLE_VIEWS = Object.freeze([VIEW.INTRO, VIEW.QUESTION, VIEW.RESULT]);
 
+    const EAGER_IMAGE_COUNT = 2;
+
     const elements = {
         navProductList: document.querySelector("#nav-product-list-button"),
         intro: document.querySelector("#intro-view"),
@@ -49,6 +51,12 @@
         productListTitle: document.querySelector("#product-list-title"),
         productListDescription: document.querySelector("#product-list-description"),
         productList: document.querySelector("#product-list"),
+        productListCaption: document.querySelector("#product-list-caption"),
+        productFilterToggle: document.querySelector("#product-filter-toggle"),
+        productFilterPanel: document.querySelector("#product-filter-panel"),
+        productFilters: Array.from(document.querySelectorAll("#product-filter-panel select")),
+        productSort: document.querySelector("#product-sort"),
+        productSortRecommended: document.querySelector("#product-sort option[value='RECOMMENDED']"),
         productDetailView: document.querySelector("#product-detail-view"),
         productDetail: document.querySelector("#product-detail"),
         feedbackComplete: document.querySelector("#feedback-complete")
@@ -67,7 +75,11 @@
         resultViewMode: "BOTH",
         editMode: false,
         activeView: VIEW.INTRO,
+        // baseProducts는 사양 매칭 결과, matchedProducts는 거기에 검색 조건과 정렬까지 적용한 표시용 목록이다.
+        baseProducts: [],
         matchedProducts: [],
+        searchCondition: emptySearchCondition(),
+        sortKey: productPolicy.SORT_KEYS.PRICE_ASC,
         productListMode: "MATCHED",
         productListReturnView: VIEW.RESULT,
         selectedProductId: null,
@@ -85,6 +97,9 @@
     elements.editSpec.addEventListener("click", toggleSpecificationEdit);
     elements.productButton.addEventListener("click", showProducts);
     elements.productListBack.addEventListener("click", leaveProductList);
+    elements.productFilterToggle.addEventListener("click", toggleFilterPanel);
+    elements.productSort.addEventListener("change", changeSort);
+    elements.productFilters.forEach((select) => select.addEventListener("change", changeSearchCondition));
     document.querySelectorAll("[data-feedback]").forEach(bindFeedbackGroup);
 
     function renderInitialBaselines() {
@@ -421,11 +436,7 @@
         const question = state.visibleQuestions[state.questionIndex];
         if (!isQuestionComplete(question)) {
             // 건너뛰기는 experiment_event ENUM에 없어 PostHog에만 보낸다.
-            window.posthog?.capture("QUESTION_SKIPPED", {
-                questionId: question.id,
-                sessionId: state.sessionId,
-                questionSetVersion: config.version
-            });
+            captureToPostHog("QUESTION_SKIPPED", {questionId: question.id});
         }
         if (question.kind === "current-spec" && !state.currentSpecSubmitted) {
             state.currentSpecSubmitted = true;
@@ -655,7 +666,7 @@
         }
         state.productListMode = "MATCHED";
         // 매칭은 순수 계산이라 미리 끝내 둔다. 지연 중에 실패할 여지를 남기지 않는다.
-        state.matchedProducts = productPolicy.sortByPrice(visibleResultOs().flatMap((os) => {
+        state.baseProducts = productPolicy.sortByPrice(visibleResultOs().flatMap((os) => {
             const spec = state.finalSpecs.get(os);
             return productPolicy.findMatches(config.products, spec, policy.CPU_TIERS);
         }));
@@ -703,13 +714,17 @@
         }
         state.productListMode = "ALL";
         state.productListReturnView = RETURNABLE_VIEWS.includes(state.activeView) ? state.activeView : VIEW.RESULT;
-        state.matchedProducts = productPolicy.sortByPrice(config.products.filter((product) => product.active));
+        state.baseProducts = productPolicy.sortByPrice(config.products.filter((product) => product.active));
         openProductList();
     }
 
     function openProductList() {
         state.selectedProductId = null;
+        state.searchCondition = emptySearchCondition();
+        renderSortOptions();
+        closeFilterPanel();
         renderProductListHeading();
+        renderFilterOptions();
         renderProductList();
         activateView(VIEW.PRODUCT_LIST);
         recordEvent("PRODUCT_LIST_VIEWED", {optionId: config.productSetVersion});
@@ -748,21 +763,211 @@
         return config.productSetApproved && config.productSetValidation.valid;
     }
 
+    function emptySearchCondition() {
+        return {maxPriceKrw: null, cpu: null, minMemoryGb: null, minStorageGb: null};
+    }
+
+    function hasSearchCondition() {
+        return Object.values(state.searchCondition).some((value) => value !== null);
+    }
+
+    function describeSearchCondition() {
+        const {maxPriceKrw, cpu, minMemoryGb, minStorageGb} = state.searchCondition;
+        return [
+            maxPriceKrw !== null && `${formatPrice(maxPriceKrw)} 이하`,
+            cpu !== null && cpuFilterLabel(cpu.os, cpu.tier),
+            minMemoryGb !== null && `RAM ${minMemoryGb}GB 이상`,
+            minStorageGb !== null && `저장장치 ${formatStorage(minStorageGb)} 이상`
+        ].filter(Boolean).join(" · ");
+    }
+
+    function toggleFilterPanel() {
+        const opening = elements.productFilterPanel.classList.contains("is-hidden");
+        elements.productFilterPanel.classList.toggle("is-hidden", !opening);
+        elements.productFilterToggle.setAttribute("aria-expanded", String(opening));
+    }
+
+    function closeFilterPanel() {
+        elements.productFilterPanel.classList.add("is-hidden");
+        elements.productFilterToggle.setAttribute("aria-expanded", "false");
+    }
+
+    // 사양을 확정하기 전에는 견줄 기준이 없어 추천순을 내린다.
+    function renderSortOptions() {
+        const recommendable = state.finalSpecs.size > 0;
+        elements.productSortRecommended.hidden = !recommendable;
+        elements.productSortRecommended.disabled = !recommendable;
+        // 추천 목록은 권장 사양이 곧 목적이라 추천순으로 열고, 전체 목록은 훑어보는 곳이라 가격순으로 연다.
+        state.sortKey = recommendable && state.productListMode !== "ALL"
+            ? productPolicy.SORT_KEYS.RECOMMENDED
+            : productPolicy.SORT_KEYS.PRICE_ASC;
+        elements.productSort.value = state.sortKey;
+    }
+
+    function sortContext() {
+        return {specs: Object.fromEntries(state.finalSpecs), cpuTiers: policy.CPU_TIERS};
+    }
+
+    function renderFilterOptions() {
+        const options = productPolicy.buildFilterOptions(state.baseProducts, policy.CPU_TIERS);
+        fillFilter("maxPriceKrw", "전체", options.maxPriceKrw.map(
+            (price) => ({value: String(price), label: `${formatPrice(price)} 이하`})
+        ));
+        fillCpuFilter(options.cpu);
+        fillFilter("minMemoryGb", "전체", options.minMemoryGb.map(
+            (memory) => ({value: String(memory), label: `${memory}GB 이상`})
+        ));
+        fillFilter("minStorageGb", "전체", options.minStorageGb.map(
+            (storage) => ({value: String(storage), label: `${formatStorage(storage)} 이상`})
+        ));
+    }
+
+    function fillFilter(field, placeholder, entries) {
+        const select = filterSelect(field);
+        const children = [createSelectOption("", placeholder)].concat(
+            entries.map(({value, label}) => createSelectOption(value, label))
+        );
+        select.replaceChildren(...children);
+        setFilterAvailability(select, entries.length);
+    }
+
+    function fillCpuFilter(groups) {
+        const select = filterSelect("cpu");
+        const children = [createSelectOption("", "전체")];
+        let count = 0;
+        groups.forEach(({os, tiers}) => {
+            const group = document.createElement("optgroup");
+            group.label = os === policy.OS.MACOS ? "맥" : "윈도우";
+            tiers.forEach((tier) => {
+                group.appendChild(createSelectOption(`${os}:${tier}`, cpuFilterLabel(os, tier)));
+                count += 1;
+            });
+            children.push(group);
+        });
+        select.replaceChildren(...children);
+        setFilterAvailability(select, count);
+    }
+
+    // Windows 등급 라벨은 "A / B급"처럼 두 계열을 함께 적어 좁은 드롭다운에서 잘린다. 필터에서는 앞쪽 하나만 쓴다.
+    function cpuFilterLabel(os, tier) {
+        const label = policy.CPU_LABELS[os][tier];
+        return label.includes(" / ") ? `${label.split(" / ")[0]}급 이상` : `${label} 이상`;
+    }
+
+    // 고를 값이 하나뿐이면 거는 의미가 없다. 흐리게만 두지 않고 왜 못 고르는지 적는다.
+    function setFilterAvailability(select, optionCount) {
+        const usable = optionCount > 1;
+        select.disabled = !usable;
+        if (!usable) {
+            select.replaceChildren(createSelectOption("", "선택지 없음"));
+        }
+        select.value = "";
+    }
+
+    function createSelectOption(value, label) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        return option;
+    }
+
+    function filterSelect(field) {
+        return elements.productFilters.find((select) => select.dataset.filter === field);
+    }
+
+    function changeSearchCondition(event) {
+        const field = event.target.dataset.filter;
+        const raw = event.target.value;
+        state.searchCondition[field] = raw === "" ? null : parseConditionValue(field, raw);
+        renderProductList();
+        // 검색 조건 변경은 experiment_event ENUM에 없어 PostHog에만 보낸다.
+        captureToPostHog("SEARCH_CONDITION_CHANGED", {field, value: raw, resultCount: state.matchedProducts.length});
+    }
+
+    function parseConditionValue(field, raw) {
+        if (field !== "cpu") {
+            return Number(raw);
+        }
+        const [os, tier] = raw.split(":");
+        return {os, tier};
+    }
+
+    function changeSort(event) {
+        state.sortKey = event.target.value;
+        renderProductList();
+        // 정렬 변경도 ENUM에 없어 PostHog에만 보낸다.
+        captureToPostHog("PRODUCT_SORT_CHANGED", {sortKey: state.sortKey, resultCount: state.matchedProducts.length});
+    }
+
+    function resetSearchCondition() {
+        state.searchCondition = emptySearchCondition();
+        elements.productFilters.forEach((select) => {
+            select.value = "";
+        });
+        renderProductList();
+    }
+
+    // 목록만 다시 그린다. 헤더와 검색 조건은 그대로 둬야 조작이 끊기지 않는다.
     function renderProductList() {
+        state.matchedProducts = productPolicy.sortProducts(
+            productPolicy.applySearchCondition(state.baseProducts, state.searchCondition, policy.CPU_TIERS),
+            state.sortKey,
+            sortContext()
+        );
+        renderProductListCaption();
         if (state.matchedProducts.length === 0) {
-            const empty = document.createElement("p");
-            empty.className = "empty-result";
-            empty.textContent = "조건에 맞는 제품이 없습니다. 사양을 직접 조정해 다시 확인해 주세요.";
-            elements.productList.replaceChildren(empty);
+            elements.productList.replaceChildren(createEmptyResult());
             return;
         }
-        elements.productList.replaceChildren(...state.matchedProducts.map((product) => {
+        elements.productList.replaceChildren(...state.matchedProducts.map((product, index) => {
             return productView.createProductCard(product, {
                 formatPrice,
                 formatStorage,
-                onDetail: showProductDetail
+                onDetail: showProductDetail,
+                // 첫 화면에 보이는 두 장만 즉시 받고 나머지는 스크롤할 때 받는다.
+                eagerImage: index < EAGER_IMAGE_COUNT
             });
         }));
+    }
+
+    function renderProductListCaption() {
+        const total = state.baseProducts.length;
+        const shown = state.matchedProducts.length;
+        const count = shown === total ? `${total}개` : `${total}개 중 ${shown}개`;
+        elements.productListCaption.textContent = `${count} · 가격은 ${config.priceCheckedOn} 기준입니다`;
+    }
+
+    function createEmptyResult() {
+        const empty = document.createElement("div");
+        empty.className = "empty-result";
+
+        const message = document.createElement("p");
+        message.textContent = hasSearchCondition()
+            ? "조건에 맞는 제품이 없습니다."
+            : "조건에 맞는 제품이 없습니다. 사양을 직접 조정해 다시 확인해 주세요.";
+        empty.appendChild(message);
+
+        if (hasSearchCondition()) {
+            const applied = document.createElement("p");
+            applied.className = "empty-result__condition";
+            applied.textContent = `적용한 검색 조건 — ${describeSearchCondition()}`;
+            empty.append(applied, alternativeButton("검색 조건 지우기", resetSearchCondition));
+            return empty;
+        }
+        // 조건 없이 0건이면 사양이 높은 것이다. 목록을 넓혀 볼 길을 준다.
+        if (state.productListMode !== "ALL") {
+            empty.appendChild(alternativeButton("전체 제품 보기", showAllProducts));
+        }
+        return empty;
+    }
+
+    function alternativeButton(label, onClick) {
+        const button = document.createElement("button");
+        button.className = "button button--secondary";
+        button.type = "button";
+        button.textContent = label;
+        button.addEventListener("click", onClick);
+        return button;
     }
 
     function showProductDetail(productId) {
@@ -772,11 +977,7 @@
         }
         state.selectedProductId = product.id;
         // 상세 진입은 experiment_event ENUM에 없어 PostHog에만 보낸다. DB 집계가 필요해지면 ENUM을 확장한다.
-        window.posthog?.capture("PRODUCT_DETAIL_VIEWED", {
-            optionId: product.id,
-            sessionId: state.sessionId,
-            questionSetVersion: config.version
-        });
+        captureToPostHog("PRODUCT_DETAIL_VIEWED", {optionId: product.id});
         elements.productDetail.replaceChildren(productView.createProductDetail(product, {
             formatPrice,
             formatStorage,
@@ -803,9 +1004,12 @@
     }
 
     function resetProductResults() {
+        state.baseProducts = [];
         state.matchedProducts = [];
+        state.searchCondition = emptySearchCondition();
         state.selectedProductId = null;
         elements.productList.replaceChildren();
+        elements.productListCaption.textContent = "";
         elements.productDetail.replaceChildren();
     }
 
@@ -848,13 +1052,18 @@
         });
     }
 
-    function recordEvent(eventName, details = {}) {
-        // DB로 보내는 이벤트를 PostHog로도 그대로 미러링한다.
+    // experiment_event ENUM에 없는 이름은 서버가 400으로 막는다. 그런 이벤트는 이 함수로 PostHog에만 남긴다.
+    function captureToPostHog(eventName, details = {}) {
         window.posthog?.capture(eventName, {
             ...details,
             sessionId: state.sessionId,
             questionSetVersion: config.version
         });
+    }
+
+    function recordEvent(eventName, details = {}) {
+        // DB로 보내는 이벤트를 PostHog로도 그대로 미러링한다.
+        captureToPostHog(eventName, details);
 
         const request = {
             sessionId: state.sessionId,

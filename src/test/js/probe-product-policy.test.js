@@ -249,6 +249,185 @@ test("제품 검색은 사양을 완화하지 않고 일반가 오름차순으�
     );
 });
 
+test("검색 조건 선택지는 목록에 실제로 있는 값만 만든다", () => {
+    const products = [
+        spec(sampleProduct("WINDOWS", "LG", "P_HS", 1, 1_800_000), {memoryGb: 16, storageGb: 512}),
+        spec(sampleProduct("WINDOWS", "Samsung", "H", 2, 2_900_000), {memoryGb: 32, storageGb: 1024}),
+        spec(sampleProduct("MACOS", "Apple", "PRO", 3, 4_800_000), {memoryGb: 48, storageGb: 1024})
+    ];
+
+    const options = productPolicy.buildFilterOptions(products, CPU_TIERS);
+
+    // 최저가가 180만원이라 150만원 이하 눈금은 후보가 없어 빠진다.
+    assert.deepEqual(options.maxPriceKrw, [2_000_000, 2_500_000, 3_000_000, 4_000_000, 5_000_000]);
+    assert.deepEqual(options.minMemoryGb, [16, 32, 48]);
+    assert.deepEqual(options.minStorageGb, [512, 1024]);
+    // 제품이 없는 등급(Mac BASIC, Windows U)은 바로 아래 등급과 결과가 같아 선택지에서 빠진다.
+    assert.deepEqual(options.cpu, [
+        {os: "MACOS", tiers: ["PRO"]},
+        {os: "WINDOWS", tiers: ["P_HS", "H"]}
+    ]);
+});
+
+test("비활성 제품은 검색 조건 선택지를 만들지 않는다", () => {
+    const products = [
+        spec(sampleProduct("WINDOWS", "LG", "P_HS", 1), {memoryGb: 32}),
+        spec(sampleProduct("WINDOWS", "Samsung", "H", 2), {memoryGb: 64, active: false})
+    ];
+
+    assert.deepEqual(productPolicy.buildFilterOptions(products, CPU_TIERS).minMemoryGb, [32]);
+});
+
+test("검색 조건은 가격 이하와 사양 이상으로 좁힌다", () => {
+    const cheap = spec(sampleProduct("WINDOWS", "LG", "P_HS", 1, 1_800_000), {memoryGb: 16, storageGb: 512});
+    const middle = spec(sampleProduct("WINDOWS", "Samsung", "H", 2, 2_900_000), {memoryGb: 32, storageGb: 1024});
+    const mac = spec(sampleProduct("MACOS", "Apple", "PRO", 3, 4_800_000), {memoryGb: 48, storageGb: 1024});
+    const products = [cheap, middle, mac];
+    const apply = (condition) => productPolicy
+        .applySearchCondition(products, condition, CPU_TIERS)
+        .map((product) => product.id);
+
+    assert.deepEqual(apply({}), [cheap.id, middle.id, mac.id]);
+    assert.deepEqual(apply({maxPriceKrw: 3_000_000}), [cheap.id, middle.id]);
+    assert.deepEqual(apply({minMemoryGb: 32}), [middle.id, mac.id]);
+    assert.deepEqual(apply({minStorageGb: 1024}), [middle.id, mac.id]);
+    // CPU 조건은 그 OS의 등급 이상만 남긴다. 다른 OS 제품은 함께 걸러진다.
+    assert.deepEqual(apply({cpu: {os: "WINDOWS", tier: "P_HS"}}), [cheap.id, middle.id]);
+    assert.deepEqual(apply({cpu: {os: "WINDOWS", tier: "H"}}), [middle.id]);
+    assert.deepEqual(apply({cpu: {os: "MACOS", tier: "BASIC"}}), [mac.id]);
+    assert.deepEqual(apply({maxPriceKrw: 3_000_000, minMemoryGb: 32}), [middle.id]);
+});
+
+test("선택지에 있는 값 하나만 걸면 결과가 비지 않는다", () => {
+    const products = [
+        spec(sampleProduct("WINDOWS", "LG", "P_HS", 1, 1_800_000), {memoryGb: 16, storageGb: 512}),
+        spec(sampleProduct("WINDOWS", "Samsung", "HX", 2, 4_900_000), {memoryGb: 64, storageGb: 2048}),
+        spec(sampleProduct("MACOS", "Apple", "MAX", 3, 3_300_000), {memoryGb: 48, storageGb: 1024})
+    ];
+    const options = productPolicy.buildFilterOptions(products, CPU_TIERS);
+    const singleConditions = [
+        ...options.maxPriceKrw.map((maxPriceKrw) => ({maxPriceKrw})),
+        ...options.minMemoryGb.map((minMemoryGb) => ({minMemoryGb})),
+        ...options.minStorageGb.map((minStorageGb) => ({minStorageGb})),
+        ...options.cpu.flatMap(({os, tiers}) => tiers.map((tier) => ({cpu: {os, tier}})))
+    ];
+
+    singleConditions.forEach((condition) => {
+        assert.ok(
+            productPolicy.applySearchCondition(products, condition, CPU_TIERS).length > 0,
+            `조건 하나로 0건이 되면 안 된다: ${JSON.stringify(condition)}`
+        );
+    });
+});
+
+test("가격 정렬은 양방향을 지원하고 입력을 바꾸지 않는다", () => {
+    const high = sampleProduct("WINDOWS", "Samsung", "H", 1, 2_900_000);
+    const low = sampleProduct("WINDOWS", "LG", "H", 2, 1_900_000);
+    const products = [high, low];
+    const ids = (sortKey) => productPolicy.sortProducts(products, sortKey).map((product) => product.id);
+
+    assert.deepEqual(ids(productPolicy.SORT_KEYS.PRICE_ASC), [low.id, high.id]);
+    assert.deepEqual(ids(productPolicy.SORT_KEYS.PRICE_DESC), [high.id, low.id]);
+    // 모르는 정렬 값이 와도 기본값인 가격 낮은 순으로 떨어진다.
+    assert.deepEqual(ids(undefined), [low.id, high.id]);
+    assert.deepEqual(products.map((product) => product.id), [high.id, low.id]);
+});
+
+test("추천순은 권장 사양을 적게 넘긴 제품을 위에 둔다", () => {
+    const specs = {WINDOWS: {os: "WINDOWS", cpuTier: "P_HS", memoryGb: 32, storageGb: 512}};
+    const exact = spec(sampleProduct("WINDOWS", "ASUS", "P_HS", 1, 2_000_000), {memoryGb: 32, storageGb: 512});
+    const oneTierUp = spec(sampleProduct("WINDOWS", "LG", "H", 2, 2_100_000), {memoryGb: 32, storageGb: 512});
+    const doubleStorage = spec(sampleProduct("WINDOWS", "Samsung", "P_HS", 3, 2_200_000), {memoryGb: 32, storageGb: 1024});
+    const overshot = spec(sampleProduct("WINDOWS", "Lenovo", "HX", 4, 4_600_000), {memoryGb: 64, storageGb: 2048});
+
+    const sorted = productPolicy.sortProducts(
+        [overshot, doubleStorage, oneTierUp, exact],
+        productPolicy.SORT_KEYS.RECOMMENDED,
+        {specs, cpuTiers: CPU_TIERS}
+    );
+
+    // 초과분: exact 0 / oneTierUp 1(CPU) / doubleStorage 1(저장 2배) / overshot 2+1+2=5
+    assert.deepEqual(
+        sorted.map((product) => product.id),
+        [exact.id, oneTierUp.id, doubleStorage.id, overshot.id]
+    );
+});
+
+test("추천순은 제품마다 자기 OS의 권장 사양과 견준다", () => {
+    const specs = {
+        MACOS: {os: "MACOS", cpuTier: "BASIC", memoryGb: 24, storageGb: 512},
+        WINDOWS: {os: "WINDOWS", cpuTier: "P_HS", memoryGb: 32, storageGb: 512}
+    };
+    // Mac은 24GB가 기준이라 딱 맞고, Windows는 32GB 기준에서 두 배를 넘겼다.
+    const macExact = spec(sampleProduct("MACOS", "Apple", "BASIC", 1, 3_300_000), {memoryGb: 24, storageGb: 512});
+    const winOver = spec(sampleProduct("WINDOWS", "LG", "P_HS", 2, 2_100_000), {memoryGb: 64, storageGb: 512});
+
+    const sorted = productPolicy.sortProducts(
+        [winOver, macExact],
+        productPolicy.SORT_KEYS.RECOMMENDED,
+        {specs, cpuTiers: CPU_TIERS}
+    );
+
+    assert.deepEqual(sorted.map((product) => product.id), [macExact.id, winOver.id]);
+});
+
+test("추천순은 사양 미달을 초과와 똑같은 거리로 센다", () => {
+    const specs = {WINDOWS: {os: "WINDOWS", cpuTier: "H", memoryGb: 32, storageGb: 1024}};
+    const exact = spec(sampleProduct("WINDOWS", "LG", "H", 1, 3_000_000), {memoryGb: 32, storageGb: 1024});
+    const halfMemory = spec(sampleProduct("WINDOWS", "ASUS", "H", 2, 1_500_000), {memoryGb: 16, storageGb: 1024});
+    const lowerTier = spec(sampleProduct("WINDOWS", "Samsung", "P_HS", 3, 1_600_000), {memoryGb: 32, storageGb: 1024});
+
+    const sorted = productPolicy.sortProducts(
+        [halfMemory, lowerTier, exact],
+        productPolicy.SORT_KEYS.RECOMMENDED,
+        {specs, cpuTiers: CPU_TIERS}
+    );
+
+    // 거리에 부호를 남기면 값싼 미달 제품이 맨 위로 올라간다. 딱 맞는 제품이 먼저여야 한다.
+    assert.equal(sorted[0].id, exact.id);
+    assert.deepEqual(sorted.map((product) => product.id), [exact.id, halfMemory.id, lowerTier.id]);
+});
+
+test("추천순은 초과분이 같으면 싼 쪽을 위에 둔다", () => {
+    const specs = {WINDOWS: {os: "WINDOWS", cpuTier: "P_HS", memoryGb: 32, storageGb: 512}};
+    const expensive = spec(sampleProduct("WINDOWS", "Samsung", "H", 1, 4_600_000), {memoryGb: 32, storageGb: 512});
+    const cheap = spec(sampleProduct("WINDOWS", "LG", "H", 2, 2_000_000), {memoryGb: 32, storageGb: 512});
+
+    const sorted = productPolicy.sortProducts(
+        [expensive, cheap],
+        productPolicy.SORT_KEYS.RECOMMENDED,
+        {specs, cpuTiers: CPU_TIERS}
+    );
+
+    assert.deepEqual(sorted.map((product) => product.id), [cheap.id, expensive.id]);
+});
+
+test("권장 사양이 없으면 추천순은 가격 낮은 순으로 떨어진다", () => {
+    const high = spec(sampleProduct("WINDOWS", "Samsung", "H", 1, 2_900_000), {id: "win-high"});
+    const low = spec(sampleProduct("WINDOWS", "LG", "H", 2, 1_900_000), {id: "win-low"});
+    const ids = (context) => productPolicy
+        .sortProducts([high, low], productPolicy.SORT_KEYS.RECOMMENDED, context)
+        .map((product) => product.id);
+
+    assert.deepEqual(ids({}), ["win-low", "win-high"]);
+    assert.deepEqual(ids({specs: {}, cpuTiers: CPU_TIERS}), ["win-low", "win-high"]);
+});
+
+test("값이 같은 제품은 정렬 방향과 무관하게 같은 순서를 유지한다", () => {
+    const second = spec(sampleProduct("WINDOWS", "Samsung", "H", 2, 2_500_000), {id: "win-b"});
+    const first = spec(sampleProduct("WINDOWS", "LG", "H", 1, 2_500_000), {id: "win-a"});
+    const products = [second, first];
+    const ids = (sortKey) => productPolicy.sortProducts(products, sortKey).map((product) => product.id);
+
+    // reverse()로 뒤집으면 여기서 순서가 뒤바뀐다. 정렬을 바꿔도 동점끼리는 자리를 지켜야 한다.
+    assert.deepEqual(ids("PRICE_ASC"), ["win-a", "win-b"]);
+    assert.deepEqual(ids("PRICE_DESC"), ["win-a", "win-b"]);
+});
+
+function spec(product, overrides) {
+    return {...product, ...overrides};
+}
+
 function sampleProduct(os, brand, cpuTier, index, priceKrw = 2_000_000 + index) {
     return {
         id: `${os.toLowerCase()}-${brand.toLowerCase()}-${index}`,

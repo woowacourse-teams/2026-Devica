@@ -320,6 +320,8 @@
     window.DEVICA_PROBE_CONFIG = Object.freeze({
         version: "question-set-v0.1",
         productSetVersion: "product-set-2026-08-19-v0.2",
+        // 가격은 정적 스냅샷이라 목록에 기준 시점을 밝힌다.
+        priceCheckedOn: "2026년 8월",
         approved: true,
         productSetApproved,
         productSetValidation,
