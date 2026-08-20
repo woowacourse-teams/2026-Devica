@@ -7,7 +7,7 @@
         <nav class="site-nav" aria-label="주요 메뉴">
             <a class="site-nav__item"
                th:href="@{/guide}">가이드</a>
-            <button class="site-nav__item" id="nav-product-list-button" type="button">제품 목록</button>
+            <a class="site-nav__item" id="nav-product-list-button" th:href="@{/(view=products)}">제품 목록</a>
         </nav>
     </div>
 </header>
