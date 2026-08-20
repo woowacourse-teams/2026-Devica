@@ -1,0 +1,145 @@
+.guide-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--density-high);
+    margin-bottom: 32px;
+    color: var(--on-surface-variant);
+    font-size: var(--body-md-font-size);
+    line-height: var(--body-md-line-height);
+}
+
+.guide-breadcrumb a,
+.guide-detail-card a {
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+}
+
+.guide-breadcrumb a:hover,
+.guide-breadcrumb a:focus-visible,
+.guide-detail-card a:hover,
+.guide-detail-card a:focus-visible {
+    color: var(--primary);
+    text-decoration-thickness: 2px;
+}
+
+.guide-detail-heading p {
+    max-width: 760px;
+    line-height: var(--body-lg-line-height);
+}
+
+.guide-detail-introduction {
+    margin: 48px 0 24px;
+    color: var(--on-surface-variant);
+    font-size: var(--body-lg-font-size);
+    line-height: 1.8;
+}
+
+.guide-detail-overview {
+    margin-top: 48px;
+}
+
+.guide-detail-card {
+    border: 1px solid var(--on-surface);
+    padding: 24px;
+    background: var(--surface-container-lowest);
+}
+
+.guide-detail-card + .guide-detail-card {
+    margin-top: var(--gutter);
+}
+
+.guide-detail-card h2 {
+    margin: 0 0 32px;
+    font-size: var(--headline-md-font-size);
+    line-height: var(--headline-md-line-height);
+}
+
+.guide-detail-card p {
+    margin: 0;
+    line-height: 1.8;
+}
+
+.guide-detail-card p + p,
+.guide-detail-card .guide-table-scroll + p,
+.guide-detail-card .guide-note + p {
+    margin-top: var(--gutter);
+}
+
+.guide-detail-points {
+    display: grid;
+    gap: var(--density-high);
+    margin: var(--gutter) 0;
+    padding-left: 24px;
+}
+
+.guide-detail-points li {
+    line-height: 1.7;
+}
+
+.guide-table-scroll {
+    width: 100%;
+    margin: 24px 0;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.guide-table-scroll table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    background: var(--surface-container-lowest);
+    font-size: var(--body-md-font-size);
+    line-height: var(--body-md-line-height);
+}
+
+.guide-table-scroll th,
+.guide-table-scroll td {
+    border: 1px solid var(--on-surface);
+    padding: var(--density-med) var(--gutter);
+    text-align: left;
+    vertical-align: top;
+}
+
+.guide-table-scroll th {
+    background: var(--surface-container-low);
+    font-weight: 700;
+}
+
+.guide-detail-card .guide-note {
+    margin: 24px 0;
+}
+
+.guide-detail-card code {
+    border: 1px solid var(--outline-variant);
+    padding: 2px var(--unit);
+    background: var(--surface-container-high);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.9em;
+    overflow-wrap: anywhere;
+}
+
+.guide-detail-references ul {
+    display: grid;
+    gap: var(--density-med);
+    margin: 0 0 24px;
+    padding-left: 24px;
+}
+
+.guide-detail-references li {
+    line-height: 1.7;
+}
+
+.guide-detail-return {
+    display: grid;
+    margin-top: 32px;
+    place-items: center;
+    text-align: center;
+    text-decoration: none;
+}
+
+@media (min-width: 768px) {
+    .guide-detail-card {
+        padding: 40px;
+    }
+}

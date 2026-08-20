@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="백엔드 개발자를 위한 노트북 선택 기준과 기본 권장 사양을 확인하세요.">
+    <title>Devica — 노트북 선택 가이드</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/guide/index.css(v='20260820-guide-detail-v1')}">
+</head>
+<body class="guide-page">
+<header th:replace="~{fragments/site :: header}"></header>
+
+<main class="guide" id="main-content">
+    <button class="guide-back-button" id="guide-back-button" type="button">← 뒤로 가기</button>
+
+    <header class="guide-heading">
+        <h1>노트북 선택 가이드</h1>
+        <p>백엔드 개발자용</p>
+    </header>
+
+    <section class="guide-section" aria-labelledby="guide-summary-title">
+        <h2 id="guide-summary-title">먼저 결론부터</h2>
+
+        <div class="guide-spec-grid">
+            <article class="guide-spec-card">
+                <h3><span class="guide-spec-card__icon" aria-hidden="true">RAM</span>메모리(RAM)</h3>
+                <p class="guide-spec-card__value">24GB</p>
+            </article>
+            <article class="guide-spec-card">
+                <h3><span class="guide-spec-card__icon" aria-hidden="true">SSD</span>저장 공간(SSD)</h3>
+                <p class="guide-spec-card__value">512GB</p>
+            </article>
+            <article class="guide-spec-card">
+                <h3><span class="guide-spec-card__icon" aria-hidden="true">MAC</span>CPU — Mac</h3>
+                <p class="guide-spec-card__description">M2 이후 세대, 기본 칩으로 충분</p>
+            </article>
+            <article class="guide-spec-card">
+                <h3><span class="guide-spec-card__icon" aria-hidden="true">WIN</span>CPU — Windows</h3>
+                <p class="guide-spec-card__description">Intel Core Ultra 7 또는 AMD Ryzen 7 이상</p>
+            </article>
+            <article class="guide-spec-card guide-spec-card--wide">
+                <h3><span class="guide-spec-card__icon" aria-hidden="true">OS</span>OS 제안</h3>
+                <p class="guide-spec-card__value">Mac</p>
+            </article>
+        </div>
+
+        <aside class="guide-note">
+            <p>⭐ 위 사양은 정답이 아니라 하나의 제안입니다. 본인의 작업 환경과 예산에 맞춰 유연하게 선택하세요.</p>
+        </aside>
+    </section>
+
+    <section class="guide-section guide-section--topics" aria-labelledby="guide-topics-title">
+        <h2 class="guide-topics-title" id="guide-topics-title">더 알아보기</h2>
+        <p class="guide-topics-description">이 값들이 어떻게 나왔는지 궁금하시다면 아래 가이드를 확인해 보세요.</p>
+
+        <div class="guide-topic-list">
+            <a class="guide-topic-card guide-topic-card--link" th:href="@{/guide/why-24gb-512gb}">
+                <span class="guide-topic-card__index" aria-hidden="true">01</span>
+                <div>
+                    <h3>왜 24GB · 512GB인가</h3>
+                    <p>백엔드 개발 환경에서의 리소스 사용량 분석</p>
+                </div>
+            </a>
+            <a class="guide-topic-card guide-topic-card--link" th:href="@{/guide/what-to-consider}">
+                <span class="guide-topic-card__index" aria-hidden="true">02</span>
+                <div>
+                    <h3>무엇을 기준으로 봐야 하나</h3>
+                    <p>CPU 코어 수, 메모리 대역폭 등 핵심 지표 안내</p>
+                </div>
+            </a>
+            <a class="guide-topic-card guide-topic-card--link" th:href="@{/guide/adjust-for-your-needs}">
+                <span class="guide-topic-card__index" aria-hidden="true">03</span>
+                <div>
+                    <h3>내 상황에 맞게 조정하기</h3>
+                    <p>가상화 도구 사용 여부나 예산에 따른 옵션</p>
+                </div>
+            </a>
+        </div>
+    </section>
+</main>
+
+<footer th:replace="~{fragments/site :: footer}"></footer>
+<script th:src="@{/js/guide-app.js(v='20260820-internal-guide-v1')}" defer></script>
+</body>
+</html>
