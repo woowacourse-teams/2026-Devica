@@ -89,10 +89,7 @@
     };
 
     renderInitialBaselines();
-    elements.navProductList.addEventListener("click", (event) => {
-        event.preventDefault();
-        showAllProducts();
-    });
+    elements.navProductList.addEventListener("click", showAllProducts);
     elements.start.addEventListener("click", startRecommendation);
     elements.baselineProduct.addEventListener("click", showBaselineRecommendation);
     elements.previous.addEventListener("click", showPreviousQuestion);
@@ -104,11 +101,6 @@
     elements.productSort.addEventListener("change", changeSort);
     elements.productFilters.forEach((select) => select.addEventListener("change", changeSearchCondition));
     document.querySelectorAll("[data-feedback]").forEach(bindFeedbackGroup);
-
-    // 다른 페이지의 헤더에서는 링크로 넘어오므로, 여기서 제품 목록 화면을 바로 연다.
-    if (new URLSearchParams(window.location.search).get("view") === "products") {
-        showAllProducts();
-    }
 
     function renderInitialBaselines() {
         elements.initialSpecs.replaceChildren(

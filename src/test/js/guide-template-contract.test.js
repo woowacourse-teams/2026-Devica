@@ -280,17 +280,3 @@ test("상황별 조정 상세 페이지는 원문에 없는 외부 링크를 추
     assert.match(adjustTemplate, /th:href="@\{\/guide\/why-24gb-512gb}"[^>]*>「왜 24GB · 512GB인가」<\/a>/);
     assert.doesNotMatch(adjustTemplate, /target="_blank"/);
 });
-
-test("헤더의 제품 목록은 어느 페이지에서든 이동할 수 있는 링크다", () => {
-    const siteFragment = fs.readFileSync(
-        path.join(__dirname, "../../main/resources/templates/fragments/site.html"),
-        "utf8"
-    );
-    const probeApp = fs.readFileSync(
-        path.join(__dirname, "../../main/resources/static/js/probe-app.js"),
-        "utf8"
-    );
-
-    assert.match(siteFragment, /id="nav-product-list-button" th:href="@\{\/\(view=products\)}">제품 목록<\/a>/);
-    assert.match(probeApp, /view"\) === "products"/);
-});
