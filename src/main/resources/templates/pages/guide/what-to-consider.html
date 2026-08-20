@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="백엔드 개발용 노트북을 선택할 때 확인할 사양 기준을 알아보세요.">
+    <title>Devica — 무엇을 기준으로 봐야 하나</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/guide/index.css(v='20260820-guide-detail-v1')}">
+    <link rel="stylesheet" th:href="@{/css/pages/guide/detail.css(v='20260820-guide-detail-v2')}">
+</head>
+<body class="guide-page">
+<header th:replace="~{fragments/site :: header}"></header>
+
+<main class="guide guide-detail" id="main-content">
+    <a class="guide-back-button" th:href="@{/guide}">← 뒤로 가기</a>
+
+    <nav class="guide-breadcrumb" aria-label="Breadcrumb">
+        <a th:href="@{/guide}">노트북 선택 가이드</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">무엇을 기준으로 봐야 하나</span>
+    </nav>
+
+    <header class="guide-heading guide-detail-heading">
+        <h1>무엇을 기준으로 봐야 하나</h1>
+        <p>노트북 사양 가운데 백엔드 개발에 실제로 영향을 주고, 구매 후 바꾸기 어려운 항목을 기준으로 정리합니다.</p>
+    </header>
+
+    <article class="guide-detail-card guide-detail-overview" aria-label="선정 기준 도입">
+        <p>노트북 스펙표에는 볼 것이 많다. 그중 메모리, 저장 공간, CPU 세 가지만 남겼다.</p>
+        <p>무엇을 남길지는 두 가지로 걸렀다.</p>
+        <ul class="guide-detail-points">
+            <li>백엔드 작업에서 실제로 병목이 되는가</li>
+            <li>살 때 정하면 나중에 바꾸기 어려운가</li>
+        </ul>
+        <p>둘 다 걸리면 기준으로 삼았고, 하나만 걸리거나 사람마다 답이 다른 것은 뺐다. 아래는 항목별로 그 판단을 적은 것이다.</p>
+    </article>
+
+    <article class="guide-detail-card" aria-labelledby="criteria-memory-title">
+        <h2 id="criteria-memory-title">1. 메모리</h2>
+        <p>백엔드는 여러 개를 동시에 띄우는 편이다. 코드를 쓰는 동안 IDE와 Docker, 데이터베이스, 내가 만든 서비스가 함께 떠 있다. 하나씩 켜고 끄기보다 하루 종일 같이 물려 있는 구조에 가깝다.</p>
+        <p><a href="https://survey.stackoverflow.co/2025/">Stack Overflow Developer Survey 2025</a>에서 백엔드로 답한 6,252명을 보면 이 구조가 드물지 않다. Docker를 쓰는 사람이 80.8%이고, 동시에 다루는 데이터베이스가 평균 2.72개다.</p>
+        <p>그래서 메모리는 쓰는 사람의 작업 방식이 비교적 직접적으로 드러나는 항목이다.</p>
+        <p>그리고 모자랄 때 체감이 크게 온다. 물리 메모리를 넘기면 스왑이 시작되면서 전체가 함께 느려진다. CPU가 약할 때처럼 "조금 느린 상태로 계속 쓰는" 구간이 상대적으로 짧다.</p>
+        <p>게다가 되돌리기가 가장 어렵다. Apple Silicon은 전 모델이 그렇고, 얇은 윈도우 노트북도 온보드 메모리를 쓰는 경우가 적지 않다. 두 조건에 가장 뚜렷하게 걸려서 첫 번째 항목으로 뒀다.</p>
+    </article>
+
+    <article class="guide-detail-card" aria-labelledby="criteria-storage-title">
+        <h2 id="criteria-storage-title">2. 저장 공간</h2>
+        <p>메모리가 지금 이 순간의 문제라면, 저장 공간은 시간이 지나며 생기는 문제다.</p>
+        <p>컨테이너 이미지와 볼륨, 빌드 캐시, 언어별 런타임은 한 번 받으면 지우기 전까지 남는다. 백엔드가 다루는 것들이 대체로 이런 성격이라, 쓸수록 조금씩 차오른다.</p>
+        <p>작업 방식이 드러난다는 점은 메모리와 같다. 다루는 데이터베이스가 많을수록 받아 둔 이미지도 많아지고, 프로젝트를 여러 개 유지할수록 캐시도 그만큼 쌓인다.</p>
+        <p>두 번째 조건에도 걸리기는 한다. Mac은 내장 SSD를 늘릴 방법이 없다. 다만 윈도우는 M.2 슬롯이 있는 모델이라면 교체나 추가가 가능하고, 어느 쪽이든 외장 SSD를 붙이는 우회 수단이 있다. 모자랐을 때의 손해가 메모리만큼 크지는 않다는 뜻이라, 기준으로는 두되 우선순위는 셋 중 가장 낮게 뒀다.</p>
+    </article>
+
+    <article class="guide-detail-card" aria-labelledby="criteria-cpu-title">
+        <h2 id="criteria-cpu-title">3. CPU</h2>
+        <p>백엔드의 CPU 부하는 한곳에 몰리는 편이다. 코드를 쓰는 동안에도 IDE 인덱싱처럼 CPU를 쓰는 일이 있지만, 빌드와 테스트를 돌릴 때와는 규모가 다르다. 기다리는 시간이 길게 느껴지는 쪽은 대개 후자다.</p>
+        <p>부하가 이런 모양이라 볼 것도 정해진다. 빌드는 여러 코어에 나뉘어 돌아가므로 코어 개수가 먼저다. 그다음이 부하가 이어질 때 성능이 유지되는가인데, 짧은 순간의 최고 속도를 재는 벤치마크 점수로는 이게 잘 잡히지 않는다. 같은 칩이라도 노트북의 냉각 설계에 따라 결과가 달라지는 이유이기도 하다.</p>
+        <p>Mac에서는 항목이 하나 더 얽힌다. 칩 등급이 곧 살 수 있는 메모리 상한이라, CPU를 고르는 일이 메모리를 고르는 일이 된다. 1번과 3번이 따로 놀지 않는다는 뜻이다.</p>
+        <p>CPU도 나중에 바꿀 수 없다. 두 조건 모두에 걸린다.</p>
+    </article>
+
+    <article class="guide-detail-card" aria-labelledby="excluded-title">
+        <h2 id="excluded-title">이 셋에 들지 못한 것</h2>
+        <p><strong>OS</strong> — 두 조건 중 첫 번째에 걸리지 않는다. 프레임워크는 OS를 가리지 않고, Docker도 어느 쪽에서든 리눅스 VM 위에서 돌아간다. 백엔드 작업 자체가 막히는 지점은 없다는 뜻이다. 권장 사양표에 Mac이 적혀 있긴 하지만 성격이 다른 항목이라, 그 근거는 「왜 24GB · 512GB인가」의 마지막 절에서 따로 다뤘다.</p>
+        <p><strong>독립 그래픽카드</strong> — 백엔드 작업에서 GPU를 쓰는 일은 드물다. 다만 로컬에서 LLM을 돌릴 계획이라면 예외다.</p>
+        <p><strong>고주사율 화면</strong> — 코딩할 때 체감되는 이득이 크지 않다는 의견이 많다. 다만 이건 취향이 갈리는 영역이다.</p>
+        <p><strong>배터리 시간</strong> — 두 번째 조건에는 걸리지만, 제조사가 적은 숫자를 기준으로 삼기 어렵다. 웹 브라우징 기준이라 빌드를 돌리기 시작하면 그대로 적용되지 않는다. 매일 들고 다닌다면 중요한 항목이지만, 스펙표 숫자만으로는 판단하기 어려워서 뺐다.</p>
+        <p><strong>화면 크기와 무게</strong> — 앞의 것들과 이유가 다르다. 중요하지 않아서가 아니라 사람마다 답이 정반대여서 뺐다. 외장 모니터를 상시 쓴다면 노트북 화면은 작아도 되고, 반대라면 커야 한다. 기준을 하나로 정하기 어려운 항목이다.</p>
+    </article>
+
+    <article class="guide-detail-card" aria-labelledby="backend-title">
+        <h2 id="backend-title">왜 백엔드 기준인가</h2>
+        <p>노트북 추천 글은 보통 개발자 전체를 대상으로 한다. 위 판단이 백엔드에 특히 해당하는지는 옆 직군과 견줘 보면 드러난다. 같은 조사에서 프론트엔드로 답한 1,793명을 나란히 놓았다.</p>
+
+        <div class="guide-table-scroll">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col">무엇을 쓰는가</th>
+                    <th scope="col">백엔드</th>
+                    <th scope="col">프론트엔드</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Docker</td>
+                    <td>80.8%</td>
+                    <td>59.9%</td>
+                </tr>
+                <tr>
+                    <td>PostgreSQL</td>
+                    <td>64.1%</td>
+                    <td>48.9%</td>
+                </tr>
+                <tr>
+                    <td>Kubernetes</td>
+                    <td>43.8%</td>
+                    <td>14.5%</td>
+                </tr>
+                <tr>
+                    <td>Redis</td>
+                    <td>42.0%</td>
+                    <td>15.2%</td>
+                </tr>
+                <tr>
+                    <td>Elasticsearch</td>
+                    <td>23.6%</td>
+                    <td>9.7%</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p>Docker와 PostgreSQL은 프론트엔드도 절반 안팎이 쓴다. 갈리는 곳은 그 위에 무엇을 더 얹느냐다. Kubernetes와 Redis, Elasticsearch에서는 세 배 가까이 차이가 난다.</p>
+        <p>동시에 다루는 데이터베이스도 백엔드가 평균 2.72개인 반면 프론트엔드는 1.98개다. 앞에서 메모리를 첫 항목으로 둔 근거가 프론트엔드에서는 그만큼 약해진다는 뜻이다.</p>
+        <p>개발자 전체를 대상으로 한 추천은 이 차이를 평균으로 뭉갠다.</p>
+    </article>
+
+    <article class="guide-detail-card" aria-labelledby="language-title">
+        <h2 id="language-title">언어별로도 나눠야 하지 않나</h2>
+        <p>한 걸음 더 좁히면 더 정확할 것 같지만, 여기서는 그렇게 하지 않았다.</p>
+        <p>같은 백엔드라도 쓰는 언어는 JavaScript 56.3%, Python 53.9%, Java 36.5%, Go 24.4%로 흩어진다. 어느 하나로 글을 쓰면 백엔드 개발자의 절반도 담지 못한다.</p>
+        <p>그리고 언어가 달라져도 봐야 할 항목 자체는 크게 달라지지 않는다. Docker를 띄우고, 데이터베이스를 여러 개 다루고, 빌드에 부하가 몰린다는 구조는 대체로 공통이다. 달라지는 것은 각 항목의 값 쪽이다. JVM 계열이 메모리와 빌드 시간을 더 요구하는 것처럼, 언어에 따라 무게가 옮겨간다. 그 부분은 조정 문서에서 다룬다.</p>
+    </article>
+
+    <article class="guide-detail-card" aria-labelledby="limitations-title">
+        <h2 id="limitations-title">이 기준의 한계</h2>
+        <p>같은 백엔드끼리도 답이 갈린다. Kubernetes를 쓰는 사람은 43.8%로 절반 넘게는 쓰지 않고, IDE도 VS Code와 IntelliJ로 나뉜다.</p>
+        <p>그래서 이 세 항목을 본다는 것까지가 공통이고, 얼마나 필요한지는 사람마다 다르다. 권장 사양은 가장 흔한 경우를 잡은 값이고, 자기 자리는 조정 문서에서 맞추게 된다.</p>
+    </article>
+
+    <article class="guide-detail-card guide-detail-references" aria-labelledby="criteria-references-title">
+        <h2 id="criteria-references-title">참고 자료</h2>
+        <ul>
+            <li><a href="https://survey.stackoverflow.co/2025/">Stack Overflow Developer Survey 2025</a> — 도구 사용률, 데이터베이스 개수, 언어 분포. 원본 응답 데이터를 직업 개발자 기준으로 집계했다. 복수 응답 문항이라 합이 100%를 넘는다.</li>
+        </ul>
+    </article>
+
+    <a class="button button--secondary button--wide guide-detail-return" th:href="@{/guide}">노트북 선택 가이드로 돌아가기</a>
+</main>
+
+<footer th:replace="~{fragments/site :: footer}"></footer>
+</body>
+</html>

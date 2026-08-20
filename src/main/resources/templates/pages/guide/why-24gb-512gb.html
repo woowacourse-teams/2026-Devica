@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="백엔드 개발용 노트북의 24GB 메모리와 512GB 저장 공간 권장 근거를 확인하세요.">
+    <title>Devica — 왜 24GB · 512GB인가</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/guide/index.css(v='20260820-guide-detail-v1')}">
+    <link rel="stylesheet" th:href="@{/css/pages/guide/detail.css(v='20260820-guide-detail-v2')}">
+</head>
+<body class="guide-page">
+<header th:replace="~{fragments/site :: header}"></header>
+
+<main class="guide guide-detail" id="main-content">
+    <a class="guide-back-button" th:href="@{/guide}">← 뒤로 가기</a>
+
+    <nav class="guide-breadcrumb" aria-label="Breadcrumb">
+        <a th:href="@{/guide}">노트북 선택 가이드</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">왜 24GB · 512GB인가</span>
+    </nav>
+
+    <header class="guide-heading guide-detail-heading">
+        <h1>왜 24GB · 512GB인가</h1>
+        <p>24GB와 512GB라는 권장 사양이 어떤 근거로 나왔는지, 메모리·저장 공간·CPU·OS 기준으로 살펴봅니다.</p>
+    </header>
+
+    <p class="guide-detail-introduction">이 페이지에서는 24GB, 512GB 같은 값이 어떻게 나왔는지 항목별로 짚어 본다.</p>
+
+    <article class="guide-detail-card" aria-labelledby="memory-title">
+        <h2 id="memory-title">1. 메모리, 왜 24GB인가</h2>
+        <p>먼저 메모리부터 살펴보겠다. 개발 환경을 띄우는 것만으로 가장 가벼운 조합에서도 11GB가 나간다.</p>
+
+        <div class="guide-table-scroll">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col">무엇이</th>
+                    <th scope="col">얼마나</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>운영체제와 브라우저</td>
+                    <td>5~9GB</td>
+                </tr>
+                <tr>
+                    <td>IDE</td>
+                    <td>1~5GB</td>
+                </tr>
+                <tr>
+                    <td>Docker</td>
+                    <td>5~6GB</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p>셋 중 IDE는 무엇을 쓰느냐에 따라 다섯 배까지 갈린다. VS Code 계열은 1~2GB지만, IntelliJ IDEA처럼 JVM 위에서 도는 것은 인덱싱하는 동안 3~5GB까지 올라간다.</p>
+        <p>반면 Docker는 백엔드에서 사실상 기본값에 가깝다. 컨테이너를 하나도 띄우지 않아도 5GB 안팎을 쓴다. Docker Desktop 자체가 1.5GB쯤, 그것이 띄우는 리눅스 VM이 4GB쯤이다. 다만 이건 Docker Desktop 기준이고, OrbStack이나 colima, Podman처럼 더 가벼운 런타임을 쓰면 줄어든다.</p>
+        <p>그래서 아직 아무 일도 하지 않은 상태에서 가벼우면 11GB, 무거우면 20GB로 벌어진다. 시작점부터 두 배 차이가 나는 셈이다.</p>
+        <p>그 위에 데이터베이스와 애플리케이션, 캐시 같은 것들이 올라간다. 이쪽은 무엇을 돌리느냐에 따라 하나당 열 배 넘게 벌어진다.</p>
+
+        <div class="guide-table-scroll">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col">무게</th>
+                    <th scope="col">예</th>
+                    <th scope="col">하나당</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>가벼움</td>
+                    <td>캐시(Redis), Go·Node 애플리케이션</td>
+                    <td>0.1~0.3GB</td>
+                </tr>
+                <tr>
+                    <td>보통</td>
+                    <td>데이터베이스(PostgreSQL, MySQL, MongoDB), JVM 애플리케이션</td>
+                    <td>0.5~1GB</td>
+                </tr>
+                <tr>
+                    <td>무거움</td>
+                    <td>검색·메시징(Elasticsearch, Kafka)</td>
+                    <td>1~4GB</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <blockquote class="guide-note">
+            <p>이 절의 메모리 수치는 공식 문서로 확인되는 값이 아니라 일반적인 사용 환경에서의 어림값이다. 정확한 값은 구성에 따라 달라진다.</p>
+        </blockquote>
+
+        <p>여기서도 앞서 IDE에서 본 것과 같은 규칙이 나타난다. 같은 역할이어도 JVM 위에서 도는 쪽이 두어 배 무겁다. 애플리케이션이 두 줄에 걸쳐 있는 이유다.</p>
+        <p>이제 두 표를 합쳐 양쪽 끝을 잡아 보자.</p>
+
+        <div class="guide-table-scroll">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col">어떤 구성인가</th>
+                    <th scope="col">얼마나</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>VS Code + 데이터베이스 두 개</td>
+                    <td>12~19GB</td>
+                </tr>
+                <tr>
+                    <td>IntelliJ + JVM 애플리케이션 + Elasticsearch</td>
+                    <td>15~25GB</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p>가벼운 구성이라면 16GB로도 맞출 수는 있다. 다만 그건 표의 아래쪽 값이 겹쳤을 때 이야기이고, 위쪽으로 가면 같은 구성도 16GB를 넘는다.</p>
+        <p>무거운 쪽은 25GB에 이른다. 그런데 Mac은 16GB 다음 선택지가 24GB다. 중간이 없다.</p>
+        <p>그래서 24GB를 권한다. 위 두 구성의 대부분을 담을 수 있는 가장 작은 값이다. 다만 무거운 쪽 상단, 그러니까 IntelliJ에 무거운 컨테이너를 여럿 붙인 상태가 상시라면 24GB로도 빠듯해서 M4 이후 기본 칩이나 Pro 등급의 32GB를 봐야 한다.</p>
+        <p>더 정확히 알고 싶다면 지금 쓰는 노트북에서 직접 재보는 게 가장 빠르다. 컨테이너는 <code>docker stats</code>로, 전체는 작업 관리자나 활성 상태 보기로 확인할 수 있다.</p>
+    </article>
+
+    <article class="guide-detail-card" aria-labelledby="storage-title">
+        <h2 id="storage-title">2. 저장 공간, 왜 512GB인가</h2>
+        <p>메모리가 한 번에 차오르는 것이라면, 저장 공간은 쓰다 보면 조금씩 쌓이는 쪽이다. 그래서 지금 얼마나 쓰는지보다 몇 년 뒤에 얼마가 되어 있을지를 봐야 한다.</p>
+        <p>먼저 한 번 깔면 그대로 남는 몫부터 보자.</p>
+
+        <div class="guide-table-scroll">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col">무엇이</th>
+                    <th scope="col">얼마나</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>운영체제</td>
+                    <td>40~60GB</td>
+                </tr>
+                <tr>
+                    <td>Docker Desktop과 베이스 VM</td>
+                    <td>6GB</td>
+                </tr>
+                <tr>
+                    <td>IDE와 언어별 런타임</td>
+                    <td>10~25GB</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p>운영체제부터 가볍지 않다. 윈도우 11은 <a href="https://learn.microsoft.com/en-us/windows/whats-new/windows-11-requirements">마이크로소프트가 요구하는 저장 공간만</a> <a href="https://learn.microsoft.com/en-us/windows/whats-new/windows-11-requirements">64GB</a>이고 업데이트를 위한 여유가 따로 필요하다. macOS는 시스템 자체는 작지만 앱 캐시가 시스템 데이터로 잡히면서 실제로는 수십 GB를 차지한다.</p>
+        <p><a href="https://docs.docker.com/desktop/setup/install/windows-install/">Docker Desktop은 설치와 베이스 VM 이미지에만 6GB를 요구한다.</a> 이건 컨테이너를 하나도 받기 전의 값이다. 다른 런타임을 쓴다면 이보다 작을 수 있다.</p>
+        <p>언어별 런타임이 폭이 넓은 이유는 하나만 쓰는 사람이 드물기 때문이다. 백엔드 개발자가 최근 1년간 다룬 언어는 평균 5.51개이고, 다섯 개 이상인 사람이 59.9%다(<a href="https://survey.stackoverflow.co/2025/">Stack Overflow Developer Survey 2025</a> 원본 데이터 집계). 전부 로컬에 깔려 있다는 뜻은 아니지만, JDK 하나로 끝나는 경우도 흔치 않다. 언어마다 런타임과 SDK, 패키지 매니저가 따로 자리를 차지한다.</p>
+        <p>여기까지가 아직 아무것도 만들지 않은 상태에서 60~90GB다.</p>
+        <p>그 위에 일하면서 쌓이는 몫이 올라간다. 쌓이는 곳이 셋으로 나뉜다.</p>
+
+        <div class="guide-table-scroll">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col">어디에 쌓이나</th>
+                    <th scope="col">얼마나</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>프로젝트 폴더 안</td>
+                    <td>하나당 2~10GB</td>
+                </tr>
+                <tr>
+                    <td>홈 디렉터리의 캐시 폴더</td>
+                    <td>5~20GB</td>
+                </tr>
+                <tr>
+                    <td>Docker</td>
+                    <td>20~40GB</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p>프로젝트 폴더 안에는 소스만 있는 게 아니다. <code>node_modules</code> 같은 의존성과 빌드 결과물, IDE가 만드는 인덱스가 함께 들어간다. 저장소에서 받은 코드보다 몇 배가 되고, 프로젝트를 지우면 함께 사라진다.</p>
+        <p>홈 디렉터리의 캐시 폴더는 프로젝트를 지워도 남는다. <code>~/.gradle</code>이나 <code>~/.npm</code>처럼 한 번 받은 라이브러리를 모아 두는 곳이라, 여러 프로젝트가 공유한다. 정리했다고 생각해도 그대로 있는 게 이쪽이다.</p>
+        <p>Docker는 아예 다른 곳에 쌓인다. 데이터베이스 볼륨과 빌드 캐시, 언어별 베이스 이미지가 겹치면서 흔한 구성에서도 20~40GB에 이른다. <code>docker system prune</code>을 따로 돌리지 않으면 계속 남는다.</p>
+        <p>이제 합쳐 보자. 프로젝트 서너 개 기준으로 100~150GB다. 256GB로도 당장은 된다.</p>
+        <p>문제는 SSD를 가득 채워 쓰기는 어렵다는 점이다. 여유가 없으면 쓰기 속도가 떨어지고 수명도 줄어서 20% 정도는 비워 두게 된다. 256GB에서 실제로 쓸 수 있는 것은 200GB 남짓이고, 여기서 여유가 50GB밖에 남지 않는다.</p>
+        <p>그래서 512GB를 권한다. 다만 세 항목 중 우선순위는 가장 낮다. 내장 SSD도 나중에 늘리기 어렵지만, 외장 SSD를 붙이는 우회 수단이 있어서 손해가 메모리만큼 크지 않다. 예산을 줄여야 한다면 여기부터 양보하고, 아낀 만큼 메모리로 옮기는 편이 낫다.</p>
+    </article>
+
+    <article class="guide-detail-card" aria-labelledby="mac-cpu-title">
+        <h2 id="mac-cpu-title">3. CPU(Mac), 왜 기본 칩부터인가</h2>
+        <p>백엔드 작업에서 CPU가 하는 일은 크게 둘로 나뉜다.</p>
+
+        <div class="guide-table-scroll">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col">무엇을 할 때</th>
+                    <th scope="col">무엇이 좌우하나</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>컨테이너 구동, 코드 편집, 애플리케이션 기동</td>
+                    <td>코어 하나의 속도</td>
+                </tr>
+                <tr>
+                    <td>빌드, 테스트 전체 실행</td>
+                    <td>코어 개수</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p>앞쪽은 이미 넉넉하다. <a href="https://www.apple.com/newsroom/2020/11/introducing-the-next-generation-of-mac/">Apple은 M1 발표 당시 이전 세대 인텔 모델 대비 CPU 성능이 최대 3.5배라고 밝혔고</a>, 이후 세대는 여기서 더 올라갔다. 컨테이너를 대여섯 개 띄우고 IDE를 함께 쓰는 정도로는 웬만해서는 부족함이 드러나지 않는다.</p>
+        <p>기본 칩부터 권하는 이유가 여기에 있다.</p>
+        <p>뒤쪽은 다르다. 빌드와 테스트는 여러 코어에 잘 나뉘어서 코어가 많을수록 그대로 빨라진다. 기본 칩은 성능 코어가 네 개 안팎인 반면, Pro 등급은 그 두 배 안팎이다.</p>
+        <p>그래서 등급을 올릴지는 빌드를 얼마나 자주, 얼마나 큰 프로젝트로 돌리는가에 달려 있다. Java나 Kotlin은 빌드가 잦은 편이다. <a href="https://lp.jetbrains.com/the-state-of-java-2025/">JetBrains 조사에서 Java 개발자의 67%가 Maven을 쓴다</a>.</p>
+        <p>다만 코어 수가 두 배라도 줄어드는 것은 빌드 시간의 절대값이다. 모듈 하나를 빌드하는 수십 초 규모에서는 차이가 몇 초에 그친다. 하루에 빌드를 수십 번 돌리는 규모를 다루기 시작할 때, 그때 Pro가 값을 한다.</p>
+        <p>Mac에는 조건이 하나 더 붙는다. 메모리를 나중에 늘릴 수 없고, 살 수 있는 최대 용량이 칩 등급으로 정해져 있다.</p>
+
+        <div class="guide-table-scroll">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col">칩</th>
+                    <th scope="col">최대 메모리</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>M1 기본</td>
+                    <td>16GB</td>
+                </tr>
+                <tr>
+                    <td>M2 · M3 기본</td>
+                    <td>24GB</td>
+                </tr>
+                <tr>
+                    <td>M4 이후 기본</td>
+                    <td>32GB</td>
+                </tr>
+                <tr>
+                    <td>Pro 등급</td>
+                    <td>세대에 따라 36~64GB</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p>성능만 보면 M1도 문제가 없다. 그런데 16GB가 상한이라 앞에서 정한 24GB를 담지 못한다. 느려서가 아니라 그릇이 작아서 빠지는 셈이다.</p>
+        <p>그래서 M2 이후의 기본 칩부터가 선택지가 된다. 32GB 넘게 필요하다면 M4 이후의 기본 칩이나 Pro 등급으로 올라가야 한다. 결국 Mac에서는 칩을 성능으로 고르기보다, 원하는 메모리가 뜨는 가장 싼 칩을 고르는 문제에 가깝다.</p>
+    </article>
+
+    <article class="guide-detail-card" aria-labelledby="windows-cpu-title">
+        <h2 id="windows-cpu-title">4. CPU(Windows), 왜 Core Ultra 7 · Ryzen 7 이상인가</h2>
+        <p>윈도우는 메모리를 따로 고를 수 있어서 Mac과 사정이 다르다. CPU는 CPU대로만 보면 된다.</p>
+        <p>앞에서 본 두 가지 일 중 코어 하나의 속도는 윈도우 역시 요즘 나오는 노트북용 CPU라면 등급을 가리지 않고 충분하다. 그래서 기준이 되는 것은 코어 개수, 그중에서도 성능 코어 쪽이다.</p>
+        <p>빌드 시간이 코어 수를 따라가는데, 성능 코어 여섯 개 이상을 안정적으로 기대할 수 있는 구간이 대체로 Intel Core Ultra 7이나 AMD Ryzen 7 이상이다. 5나 3 등급으로 내려가면 코어 수와 개별 성능이 함께 떨어져서 빌드가 길어진다.</p>
+        <p>다만 같은 등급 안에서도 모델에 따라 코어 구성이 달라진다. 7 등급이라도 저전력 모델은 성능 코어가 네 개인 경우가 있고, 세대에 따라 성능 코어와 효율 코어의 구분 방식 자체가 다르기도 하다. 등급은 출발점으로 삼되, 실제 모델의 사양표를 확인하는 편이 좋다.</p>
+        <p>계열도 갈린다.</p>
+
+        <div class="guide-table-scroll">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col">계열</th>
+                    <th scope="col">성격</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>U</td>
+                    <td>저전력. 얇고 가벼운 모델에 들어간다</td>
+                </tr>
+                <tr>
+                    <td>H · HX</td>
+                    <td>고성능. 발열을 감수하고 성능을 낸다</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p>빌드와 테스트는 수십 초에서 몇 분씩 CPU를 계속 붙잡는다. U 계열은 전력 한계가 낮게 잡혀 있어, 등급이 같아도 지속 성능에서 차이가 날 수 있다. 다만 실제 차이는 노트북의 냉각 설계에도 크게 좌우된다.</p>
+        <p>그렇다고 H 계열이 항상 정답은 아니다. 발열과 배터리 시간, 무게를 대가로 내주기 때문에, 매일 들고 다니는 노트북이라면 손해가 더 클 수 있다.</p>
+        <p>그래서 계열은 성능보다 사용 방식으로 고르는 편이 낫다. 어느 쪽을 고르든 스펙표에서 모델명 뒤에 붙은 알파벳은 확인하고 사는 게 좋다.</p>
+    </article>
+
+    <article class="guide-detail-card" aria-labelledby="os-title">
+        <h2 id="os-title">5. OS, 왜 Mac을 제안하나</h2>
+        <p>OS는 앞의 세 항목과 성격이 다르다. 판단 기준 문서에서 기준 항목에 넣지 않은 것도 그래서다. 어느 쪽으로도 백엔드 개발은 문제없이 할 수 있다.</p>
+        <p>Spring이든 Node든 프레임워크는 OS를 가리지 않는다. Docker 역시 어느 쪽에서도 결국 리눅스 VM 위에서 돌아간다. 실행 환경이 리눅스인 것과 개발 노트북이 무엇인지는 별개의 문제다.</p>
+        <p>그럼에도 하나를 고르라면 Mac을 제안하는 이유는 하나다. 비슷한 일을 하는 사람들이 그쪽에 조금 더 많다.</p>
+
+        <div class="guide-table-scroll">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col">업무에 사용하는 운영체제</th>
+                    <th scope="col">macOS</th>
+                    <th scope="col">윈도우</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>개발자 전체</td>
+                    <td>39.1%</td>
+                    <td>52.2%</td>
+                </tr>
+                <tr>
+                    <td>백엔드</td>
+                    <td>42.2%</td>
+                    <td>41.5%</td>
+                </tr>
+                <tr>
+                    <td>백엔드 중 Docker 사용자</td>
+                    <td>46.8%</td>
+                    <td>37.0%</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p><a href="https://survey.stackoverflow.co/2025/">Stack Overflow Developer Survey 2025</a> 원본 응답 데이터를 직업 개발자 기준으로 집계했다. 복수 응답 문항이라 합이 100%를 넘는다.</p>
+        <p>개발자 전체로 보면 윈도우가 13%p 앞선다. 백엔드만 떼면 차이가 사라지고, 여기서 Docker까지 쓰는 사람으로 좁히면 10%p 차이로 앞뒤가 바뀐다.</p>
+        <p>이 차이가 어디서 오는지까지는 설문으로 알 수 없다. 다만 결과만 놓고 보면, 막혔을 때 검색해서 나오는 해결책이 내 환경에 그대로 맞을 확률이 조금 달라진다. 백엔드 도구의 설치 문서와 튜토리얼이 macOS나 리눅스 기준으로 쓰인 경우가 상대적으로 많다. 처음 환경을 잡는 몇 주 동안은 이 차이가 시간으로 돌아온다.</p>
+        <p>이 문서가 다루는 범위에서 Mac을 제안할 근거는 이것뿐이다. 오히려 걸리는 것이 있다. Apple Silicon은 ARM 기반이라, 사내에서 오래전에 만든 x86 전용 이미지가 남아 있다면 확인이 필요하다. 공개 이미지는 대부분 ARM을 함께 지원한다.</p>
+        <p>반대로 윈도우가 유리한 상황도 분명하다.</p>
+        <p>같은 예산이면 메모리와 저장 공간을 더 받는다. 앞의 1·2번을 생각하면 작지 않은 차이다.</p>
+        <p>실무 환경이 윈도우인 회사가 적지 않다. Active Directory나 Entra ID로 계정과 보안 정책을 묶어 두면 개발 노트북도 윈도우로 통일되는 편이다.</p>
+        <p>C#/.NET처럼 윈도우 쪽 기술을 다룰 계획이라면 처음부터 윈도우가 맞다.</p>
+        <p>배터리 시간이나 키보드처럼 개발과 직접 관계없는 요소는 여기서 다루지 않았다. 그쪽까지 넣으면 판단이 달라질 수 있다.</p>
+        <p>정리하면 제안이지 필수는 아니다. 이미 윈도우에 익숙하다면 바꿀 이유가 없다. 처음 고르는 상황이고 어느 쪽이든 상관없다면, 자료가 조금 더 많은 쪽이 Mac이다.</p>
+    </article>
+
+    <article class="guide-detail-card guide-detail-references" aria-labelledby="references-title">
+        <h2 id="references-title">참고 자료</h2>
+        <ul>
+            <li><a href="https://survey.stackoverflow.co/2025/">Stack Overflow Developer Survey 2025</a> — 언어 사용 개수, 빌드 도구, 운영체제 분포. 원본 응답 데이터를 직업 백엔드 개발자 기준으로 집계했다.</li>
+            <li><a href="https://lp.jetbrains.com/the-state-of-java-2025/">JetBrains, The State of Java 2025</a> — Java 개발자의 Maven 사용률</li>
+            <li><a href="https://learn.microsoft.com/en-us/windows/whats-new/windows-11-requirements">Windows 11 requirements — Microsoft Learn</a> — 최소 저장 공간</li>
+            <li><a href="https://docs.docker.com/desktop/setup/install/windows-install/">Install Docker Desktop — Docker Docs</a> — 설치 요구 사양</li>
+            <li><a href="https://www.apple.com/newsroom/2020/11/introducing-the-next-generation-of-mac/">Introducing the next generation of Mac — Apple Newsroom</a> — M1 성능 수치</li>
+        </ul>
+        <p>메모리 사용량, IDE·런타임 설치 용량, CPU 코어 수와 빌드 시간 차이는 공식 자료로 확인되지 않는 어림값이다.</p>
+    </article>
+
+    <a class="button button--secondary button--wide guide-detail-return" th:href="@{/guide}">노트북 선택 가이드로 돌아가기</a>
+</main>
+
+<footer th:replace="~{fragments/site :: footer}"></footer>
+</body>
+</html>
