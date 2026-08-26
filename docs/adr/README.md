@@ -18,6 +18,11 @@
 | [0010](0010-프론트엔드-구현-방식.md) | 프론트엔드를 Thymeleaf로 구현한다 | Accepted |
 | [0011](0011-보일러플레이트.md) | 보일러플레이트 제거에 Lombok을 사용한다 | Accepted |
 | [0012](0012-코드-스타일.md) | 코드 스타일로 우테코 IntelliJ 스타일과 `.editorconfig`를 사용한다 | Accepted |
+| [0013](0013-CI-도구.md) | CI 도구로 GitHub Actions를 사용한다 | Accepted |
+| [0014](0014-CD-파이프라인.md) | CD 파이프라인으로 AWS CodePipeline과 CodeDeploy를 사용한다 | Accepted |
+| [0015](0015-배포-이미지-전달-방식.md) | 배포 이미지를 레지스트리 없이 배포 번들로 전달한다 | Accepted |
+| [0016](0016-HTTPS-처리-지점.md) | HTTPS 처리를 ALB에 맡긴다 | Accepted |
+| [0017](0017-서버-환경-분리.md) | 개발 서버는 public subnet에, 운영 서버는 private subnet에 둔다 | Accepted |
 
 ## 작성 방법
 
