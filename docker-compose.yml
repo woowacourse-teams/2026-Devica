@@ -1,5 +1,5 @@
 # 로컬 개발용. DB만 띄우고 앱은 IDE에서 실행한다 (개발 환경 가이드 §6-4)
-# 배포용은 별도 docker-compose.prod.yml 로 분리한다 (배포 문서에서 작성)
+# 배포용은 별도 docker-compose.server.yml 로 분리한다 (개발·운영 서버 공통)
 services:
   mysql:
     image: mysql:8.4
