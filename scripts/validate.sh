@@ -6,7 +6,7 @@
 # image-tag.txt 가 들어 있어 정확히 이전 이미지로 돌아간다. 직접 구현하는 것보다 정확하다.
 set -euo pipefail
 
-# ELB 가 EC2 의 80 번으로 보내고, compose 가 80 -> 컨테이너 8080 을 매핑한다.
+# compose 가 호스트 80 -> 컨테이너 8080 을 매핑하므로 호스트의 80 을 본다.
 # application-prod.yml 이 health 엔드포인트만 노출해 두었다.
 HEALTH_URL="http://localhost/actuator/health"
 MAX_ATTEMPTS=20
