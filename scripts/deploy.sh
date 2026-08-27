@@ -20,7 +20,7 @@ docker load -i "${RELEASE_DIR}/image.tar"
 rm -f "${RELEASE_DIR}/image.tar"
 
 # 배포되는 커밋의 compose 파일이 항상 적용되게 한다.
-install -m 644 "${RELEASE_DIR}/docker-compose.prod.yml" "${APP_DIR}/docker-compose.prod.yml"
+install -m 644 "${RELEASE_DIR}/docker-compose.server.yml" "${APP_DIR}/docker-compose.server.yml"
 
 cd "${APP_DIR}"
 
@@ -31,7 +31,7 @@ else
   echo "IMAGE_TAG=${IMAGE_TAG}" >> .env
 fi
 
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.server.yml up -d
 
 # 태그가 붙은 옛 이미지는 dangling 이 아니라서 그냥 두면 계속 쌓인다.
 # 배포마다 레이어가 늘어나므로 일주일치만 남긴다.
