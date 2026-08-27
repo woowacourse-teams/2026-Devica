@@ -1,0 +1,39 @@
+# 서버 배포용. 개발 서버와 운영 서버가 이 파일 하나를 함께 쓴다. 로컬 개발은 docker-compose.yml 을 쓴다.
+#   IMAGE_TAG=<커밋 SHA> docker compose -f docker-compose.server.yml up -d
+services:
+  app:
+    image: devica:${IMAGE_TAG}
+    pull_policy: never
+    container_name: devica-app
+    env_file: .env
+    environment:
+      # .env에 SPRING_PROFILES_ACTIVE 값이 없으면 실패한다.
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:?각 서버의 .env 에 SPRING_PROFILES_ACTIVE 를 지정한다}
+      TZ: Asia/Seoul
+    ports:
+      - "80:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.4
+    container_name: devica-db
+    env_file: .env
+    environment:
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
