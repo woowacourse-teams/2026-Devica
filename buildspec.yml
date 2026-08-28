@@ -13,7 +13,7 @@ version: 0.2
 
 env:
   variables:
-    # 레지스트리에 올리지 않으므로 로컬 이름이다. docker-compose.prod.yml 의 image 와 맞춰져 있다.
+    # 레지스트리에 올리지 않으므로 로컬 이름이다. docker-compose.server.yml 의 image 와 맞춰져 있다.
     IMAGE_NAME: devica
     # src/test/resources/application.yml 의 기본값과 맞춰져 있다. 한쪽만 바꾸면 테스트가 없는 DB 에 붙는다.
     TEST_DB_PORT: "3307"
@@ -66,5 +66,5 @@ artifacts:
     - appspec.yml
     - image.tar
     - image-tag.txt
-    - docker-compose.prod.yml
+    - docker-compose.server.yml
     - scripts/*
