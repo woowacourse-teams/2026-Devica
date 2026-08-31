@@ -8,6 +8,11 @@ spring:
   jpa:
     # main 의 application.yml 은 테스트에서 아예 로드되지 않으므로 여기 다시 적는다
     open-in-view: false
+    defer-datasource-initialization: true
     hibernate:
       ddl-auto: create-drop
     show-sql: true
+
+  sql:
+    init:
+      mode: always

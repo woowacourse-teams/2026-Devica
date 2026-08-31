@@ -7,10 +7,15 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
+    defer-datasource-initialization: true
     hibernate:
       # 엔티티가 자주 바뀌는 단계라 자동 반영한다. 운영은 validate 다.
       ddl-auto: update
     show-sql: true
+
+  sql:
+    init:
+      mode: always
 
 logging:
   level:

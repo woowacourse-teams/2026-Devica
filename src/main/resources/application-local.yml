@@ -7,9 +7,15 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
+    # 켜지 않으면 data.sql 이 Hibernate 의 테이블 생성보다 먼저 실행되어 실패한다
+    defer-datasource-initialization: true
     hibernate:
       ddl-auto: update
     show-sql: true
+
+  sql:
+    init:
+      mode: always
 
 logging:
   level:
