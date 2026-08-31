@@ -19,12 +19,10 @@ spring:
 
 logging:
   level:
-    # 쿼리의 ? 자리에 실제로 들어간 값을 보여준다
     org.hibernate.orm.jdbc.bind: trace
 
 management:
   endpoints:
     web:
       exposure:
-        # 배포 훅의 헬스체크가 이 엔드포인트를 본다
         include: health

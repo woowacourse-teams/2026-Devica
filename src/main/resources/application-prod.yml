@@ -7,8 +7,7 @@ spring:
 
   jpa:
     hibernate:
-      # 환경 변수로 열어두지 않는다. 운영에서 update 로 뜨면 배포가 곧 스키마 변경이 되어
-      # 애플리케이션만 되돌아가고 스키마는 남는다. 즉 롤백이 성립하지 않는다.
+      # 엔티티 매핑과 실제 스키마가 어긋나면 기동을 실패시킨다.
       ddl-auto: validate
     show-sql: false
 
