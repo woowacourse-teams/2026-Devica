@@ -7,19 +7,22 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
+    defer-datasource-initialization: true
     hibernate:
       # 엔티티가 자주 바뀌는 단계라 자동 반영한다. 운영은 validate 다.
       ddl-auto: update
     show-sql: true
 
+  sql:
+    init:
+      mode: always
+
 logging:
   level:
-    # 쿼리의 ? 자리에 실제로 들어간 값을 보여준다
     org.hibernate.orm.jdbc.bind: trace
 
 management:
   endpoints:
     web:
       exposure:
-        # 배포 훅의 헬스체크가 이 엔드포인트를 본다
         include: health
