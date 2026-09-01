@@ -7,12 +7,10 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.Getter;
 
 @Getter
 @Entity
-@Table(name = "product_category")
 public class ProductCategory {
 
     @Id
@@ -20,8 +18,8 @@ public class ProductCategory {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "name", nullable = false, unique = true, length = 64)
-    private ProductCategoryName name;
+    @Column(nullable = false, unique = true)
+    private ProductCategoryCode code;
 
     protected ProductCategory() {
     }

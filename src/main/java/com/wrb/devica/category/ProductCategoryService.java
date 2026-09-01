@@ -1,13 +1,12 @@
 package com.wrb.devica.category;
 
-import org.springframework.stereotype.Service;
-
 import java.util.List;
+import org.springframework.stereotype.Service;
 
 @Service
 public class ProductCategoryService {
 
-    public List<ProductCategoryName> findAll() {
-        return List.of(ProductCategoryName.values());
+    public List<ProductCategoryCode> findAll() {
+        return List.of(ProductCategoryCode.values());
     }
 }
