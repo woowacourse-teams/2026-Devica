@@ -25,6 +25,7 @@
 | [0017](0017-서버-환경-분리.md) | 개발 서버는 public subnet에, 운영 서버는 private subnet에 둔다 | Accepted |
 | [0018](0018-환경-분리.md) | 개발 환경과 운영 환경을 분리한다 | Accepted |
 | [0019](0019-환경별-설정-관리.md) | 환경별 설정을 프로파일과 서버 환경 변수로 나눈다 | Accepted |
+| [0020](0020-API-문서화.md) | API 문서화에 springdoc-openapi를 사용한다 | Accepted |
 
 ## 작성 방법
 
