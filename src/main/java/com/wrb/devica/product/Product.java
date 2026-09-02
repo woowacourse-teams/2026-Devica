@@ -46,4 +46,14 @@ public abstract class Product extends BaseTimeEntity {
     private String description;
 
     private LocalDate releasedAt;
+
+    protected Product(ProductCategory category, String brand, String name, String code,
+                      String description, LocalDate releasedAt) {
+        this.category = category;
+        this.brand = brand;
+        this.name = name;
+        this.code = code;
+        this.description = description;
+        this.releasedAt = releasedAt;
+    }
 }

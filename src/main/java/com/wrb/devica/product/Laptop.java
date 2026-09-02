@@ -1,5 +1,6 @@
 package com.wrb.devica.product;
 
+import com.wrb.devica.category.ProductCategory;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -9,7 +10,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -38,4 +41,18 @@ public class Laptop extends Product {
 
     @Column(nullable = false, precision = 3, scale = 1)
     private BigDecimal screenSizeInch;
+
+    @Builder
+    private Laptop(ProductCategory category, String brand, String name, String code,
+                   String description, LocalDate releasedAt,
+                   Cpu cpu, Os os, int memoryGb, int storageGb, int weightG,
+                   BigDecimal screenSizeInch) {
+        super(category, brand, name, code, description, releasedAt);
+        this.cpu = cpu;
+        this.os = os;
+        this.memoryGb = memoryGb;
+        this.storageGb = storageGb;
+        this.weightG = weightG;
+        this.screenSizeInch = screenSizeInch;
+    }
 }

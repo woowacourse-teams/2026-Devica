@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.Builder;
 import lombok.NoArgsConstructor;
 
 @Entity
@@ -32,4 +33,12 @@ public class Cpu extends BaseTimeEntity {
 
     @Column(nullable = false)
     private int score;
+
+    @Builder
+    private Cpu(String manufacturer, String name, int coreCount, int score) {
+        this.manufacturer = manufacturer;
+        this.name = name;
+        this.coreCount = coreCount;
+        this.score = score;
+    }
 }
