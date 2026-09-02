@@ -27,7 +27,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception exception) {
         log.error("처리하지 못한 예외가 발생", exception);
-        ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
+        ErrorCode errorCode = CommonErrorCode.INTERNAL_SERVER_ERROR;
         return ResponseEntity.status(errorCode.getStatus()).body(ErrorResponse.from(errorCode));
     }
 
@@ -39,6 +39,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             .filter(fieldError -> !fieldError.isBindingFailure())
             .map(DefaultMessageSourceResolvable::getDefaultMessage)
             .collect(Collectors.joining(" "));
+
         return toResponse(status, message);
     }
 
@@ -50,6 +51,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             .flatMap(result -> result.getResolvableErrors().stream())
             .map(MessageSourceResolvable::getDefaultMessage)
             .collect(Collectors.joining(" "));
+
         return toResponse(status, message);
     }
 
@@ -57,12 +59,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     protected ResponseEntity<Object> handleExceptionInternal(
         Exception exception, Object body, HttpHeaders headers,
         HttpStatusCode status, WebRequest request) {
-        return ResponseEntity.status(status).body(ErrorResponse.from(ErrorCode.from(status)));
+        log.error("처리하지 못한 예외가 발생", exception);
+        return toResponse(status, "");
     }
 
     private ResponseEntity<Object> toResponse(HttpStatusCode status, String message) {
-        ErrorCode errorCode = ErrorCode.from(status);
-        String body = message.isBlank() ? errorCode.getMessage() : message;
-        return ResponseEntity.status(status).body(new ErrorResponse(body, errorCode.name()));
+        CommonErrorCode errorCode = CommonErrorCode.from(status);
+
+        if (message.isBlank()) {
+            message = errorCode.getMessage();
+        }
+
+        return ResponseEntity.status(status).body(ErrorResponse.of(errorCode, message));
     }
 }
