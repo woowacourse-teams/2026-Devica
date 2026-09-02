@@ -1,8 +1,11 @@
 package com.wrb.devica.product;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
+import com.wrb.devica.common.BusinessErrorCode;
+import com.wrb.devica.common.BusinessException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
@@ -90,6 +93,49 @@ class LaptopServiceTest extends LaptopJpaTestSupport {
         assertThat(response.memoryGb()).isEqualTo(laptop.getMemoryGb());
         assertThat(response.storageGb()).isEqualTo(laptop.getStorageGb());
         assertThat(response.screenSizeInch()).isEqualByComparingTo(laptop.getScreenSizeInch());
+    }
+
+    @Test
+    void 상세를_조회하면_판매처를_가격_오름차순으로_담는다() {
+        // given
+        Laptop laptop = saveLaptopWithoutOffer("gram Pro 16", Os.WINDOWS, 10000, 32, 1024);
+        saveOffer(laptop, 2_990_000L, OfferStatus.ON_SALE);
+        saveOffer(laptop, 2_850_000L, OfferStatus.ON_SALE);
+        saveOffer(laptop, 2_500_000L, OfferStatus.SOLD_OUT);
+
+        // when
+        LaptopDetailResponse found = findLaptopById(laptop.getId());
+
+        // then
+        assertThat(found.offers()).extracting(OfferResponse::price)
+            .containsExactly(2_850_000L, 2_990_000L);
+    }
+
+    @Test
+    void 없는_id로_상세를_조회하면_예외가_발생한다() {
+        // when & then
+        assertThatThrownBy(() -> findLaptopById(-1L))
+            .isInstanceOf(BusinessException.class)
+            .extracting(exception -> ((BusinessException) exception).getErrorCode())
+            .isEqualTo(BusinessErrorCode.LAPTOP_NOT_FOUND);
+    }
+
+    @Test
+    void 판매_중인_오퍼가_없는_노트북의_상세를_조회하면_예외가_발생한다() {
+        // given
+        Laptop laptop = saveLaptopWithoutOffer("판매종료", Os.WINDOWS, 10000, 16, 512);
+        saveOffer(laptop, 900_000L, OfferStatus.DISCONTINUED);
+
+        // when & then
+        assertThatThrownBy(() -> findLaptopById(laptop.getId()))
+            .isInstanceOf(BusinessException.class)
+            .extracting(exception -> ((BusinessException) exception).getErrorCode())
+            .isEqualTo(BusinessErrorCode.LAPTOP_NOT_FOUND);
+    }
+
+    private LaptopDetailResponse findLaptopById(Long id) {
+        flushAndClear();
+        return laptopService.findLaptopById(id);
     }
 
     private Slice<LaptopSummaryResponse> findLaptops() {
