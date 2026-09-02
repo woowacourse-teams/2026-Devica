@@ -55,18 +55,30 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
     }
 
     private BooleanExpression osEq(Os os) {
-        return os == null ? null : laptop.os.eq(os);
+        if (os == null) {
+            return null;
+        }
+        return laptop.os.eq(os);
     }
 
     private BooleanExpression cpuScoreGoe(Integer cpuScore) {
-        return cpuScore == null ? null : cpu.score.goe(cpuScore);
+        if (cpuScore == null) {
+            return null;
+        }
+        return cpu.score.goe(cpuScore);
     }
 
     private BooleanExpression memoryGbGoe(Integer memoryGb) {
-        return memoryGb == null ? null : laptop.memoryGb.goe(memoryGb);
+        if (memoryGb == null) {
+            return null;
+        }
+        return laptop.memoryGb.goe(memoryGb);
     }
 
     private BooleanExpression storageGbGoe(Integer storageGb) {
-        return storageGb == null ? null : laptop.storageGb.goe(storageGb);
+        if (storageGb == null) {
+            return null;
+        }
+        return laptop.storageGb.goe(storageGb);
     }
 }
