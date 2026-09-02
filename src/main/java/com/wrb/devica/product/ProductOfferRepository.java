@@ -17,4 +17,6 @@ public interface ProductOfferRepository extends JpaRepository<ProductOffer, Long
         """)
     List<ProductMinPrice> findMinPrices(@Param("productIds") Collection<Long> productIds,
                                         @Param("status") OfferStatus status);
+
+    List<ProductOffer> findAllByProductIdAndStatusOrderByPriceAsc(Long productId, OfferStatus status);
 }
