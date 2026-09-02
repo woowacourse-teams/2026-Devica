@@ -20,7 +20,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         saveOnSaleLaptop("B", Os.MAC, 20000, 32, 1024);
 
         // when
-        Slice<Laptop> found = findLaptops(null, null, null, null, 0, 10);
+        Slice<Laptop> found = findLaptops(0, 10);
 
         // then
         assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("A", "B");
@@ -90,7 +90,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         saveOnSaleLaptop("3", Os.WINDOWS, 10000, 16, 512);
 
         // when
-        Slice<Laptop> firstPage = findLaptops(null, null, null, null, 0, 2);
+        Slice<Laptop> firstPage = findLaptops(0, 2);
 
         // then
         assertThat(firstPage.getContent()).extracting(Laptop::getName).containsExactly("1", "2");
@@ -105,7 +105,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         saveOnSaleLaptop("3", Os.WINDOWS, 10000, 16, 512);
 
         // when
-        Slice<Laptop> lastPage = findLaptops(null, null, null, null, 1, 2);
+        Slice<Laptop> lastPage = findLaptops(1, 2);
 
         // then
         assertThat(lastPage.getContent()).extracting(Laptop::getName).containsExactly("3");
@@ -132,7 +132,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         saveOnSaleLaptop("2", Os.WINDOWS, 10000, 16, 512);
 
         // when
-        Slice<Laptop> found = findLaptops(null, null, null, null, 5, 10);
+        Slice<Laptop> found = findLaptops(5, 10);
 
         // then
         assertThat(found.getContent()).isEmpty();
@@ -146,7 +146,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         saveLaptopWithoutOffer("오퍼없음", Os.WINDOWS, 10000, 16, 512);
 
         // when
-        Slice<Laptop> found = findLaptops(null, null, null, null, 0, 10);
+        Slice<Laptop> found = findLaptops(0, 10);
 
         // then
         assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("판매중");
@@ -160,7 +160,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         saveOffer(soldOut, 1_000_000L, OfferStatus.DISCONTINUED);
 
         // when
-        Slice<Laptop> found = findLaptops(null, null, null, null, 0, 10);
+        Slice<Laptop> found = findLaptops(0, 10);
 
         // then
         assertThat(found.getContent()).isEmpty();
@@ -171,6 +171,13 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         flushAndClear();
         return laptopRepository.findAllByCondition(
             new LaptopSearchCondition(os, cpuScore, memoryGb, storageGb),
+            PageRequest.of(page, size, Sort.by("id")));
+    }
+
+    private Slice<Laptop> findLaptops(int page, int size) {
+        flushAndClear();
+        return laptopRepository.findAllByCondition(
+            new LaptopSearchCondition(null, null, null, null),
             PageRequest.of(page, size, Sort.by("id")));
     }
 }
