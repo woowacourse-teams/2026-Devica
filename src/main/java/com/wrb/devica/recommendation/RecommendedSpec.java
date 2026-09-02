@@ -1,7 +1,7 @@
 package com.wrb.devica.recommendation;
 
 import com.wrb.devica.product.Spec;
-import com.wrb.devica.product.SpecItem;
+import com.wrb.devica.product.SpecValue;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -14,8 +14,8 @@ public record RecommendedSpec(Spec spec, Map<String, String> itemReasons) {
     }
 
     private static void validateItemsAndReasonsMatch(Spec spec, Map<String, String> itemReasons) {
-        Set<String> itemCodes = spec.toItems().stream()
-            .map(SpecItem::code)
+        Set<String> itemCodes = spec.values().stream()
+            .map(SpecValue::code)
             .collect(Collectors.toSet());
         if (!itemCodes.equals(itemReasons.keySet())) {
             throw new IllegalArgumentException(

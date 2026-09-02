@@ -2,7 +2,7 @@ package com.wrb.devica.recommendation;
 
 import com.wrb.devica.common.BusinessException;
 import com.wrb.devica.common.ErrorCode;
-import com.wrb.devica.product.SpecItem;
+import com.wrb.devica.product.SpecValue;
 import com.wrb.devica.purpose.UsagePurposeCode;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -24,10 +24,10 @@ class RecommendationServiceTest {
 
         // then
         assertThat(recommendedSpecs).isNotEmpty().allSatisfy(recommended -> {
-            List<SpecItem> items = recommended.spec().toItems();
-            assertThat(items).isNotEmpty();
-            assertThat(items).allSatisfy(item ->
-                    assertThat(recommended.itemReasons().get(item.code())).isNotBlank());
+            List<SpecValue> values = recommended.spec().values();
+            assertThat(values).isNotEmpty();
+            assertThat(values).allSatisfy(value ->
+                    assertThat(recommended.itemReasons().get(value.code())).isNotBlank());
         });
     }
 

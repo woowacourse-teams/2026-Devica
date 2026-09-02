@@ -13,21 +13,21 @@ import org.junit.jupiter.params.provider.ValueSource;
 class LaptopSpecTest {
 
     @Test
-    void 사양을_항목_코드와_표시값으로_변환한다() {
+    void 사양을_항목_코드와_원본_값으로_변환한다() {
         // given
         LaptopSpec spec = new LaptopSpec(Os.MACOS, "M 칩", 24, 512);
 
         // when
-        List<SpecItem> items = spec.toItems();
+        List<SpecValue> values = spec.values();
 
         // then
-        assertThat(items)
-            .extracting(SpecItem::code, SpecItem::value, SpecItem::displayValue)
+        assertThat(values)
+            .extracting(SpecValue::code, SpecValue::value)
             .containsExactly(
-                tuple("OS", "MACOS", "Mac"),
-                tuple("CPU", "M 칩", "M 칩"),
-                tuple("MEMORY", "24", "24GB"),
-                tuple("STORAGE", "512", "512GB"));
+                tuple("OS", "MACOS"),
+                tuple("CPU", "M 칩"),
+                tuple("MEMORY", "24"),
+                tuple("STORAGE", "512"));
     }
 
     @ParameterizedTest

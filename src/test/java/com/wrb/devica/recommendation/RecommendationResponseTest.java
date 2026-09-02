@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.tuple;
 
 import com.wrb.devica.product.LaptopSpec;
 import com.wrb.devica.product.Os;
-import com.wrb.devica.product.SpecItem;
 import com.wrb.devica.recommendation.RecommendationResponse.ItemResponse;
 import java.util.List;
 import java.util.Map;
@@ -36,20 +35,19 @@ class RecommendationResponseTest {
     }
 
     @Test
-    void 사양_항목의_각_필드를_응답_항목의_같은_필드로_옮긴다() {
-        // given
-        SpecItem specItem = MAC_SPEC.toItems().getFirst();
-
+    void 사양_항목의_원본_값에_표시_형태를_입힌다() {
         // when
         RecommendationResponse response = RecommendationResponse.from(RECOMMENDED_SPECS);
 
         // then
-        ItemResponse itemResponse = response.specs().getFirst().items().getFirst();
-
-        assertThat(itemResponse.code()).isEqualTo(specItem.code());
-        assertThat(itemResponse.displayName()).isEqualTo(specItem.displayName());
-        assertThat(itemResponse.value()).isEqualTo(specItem.value());
-        assertThat(itemResponse.displayValue()).isEqualTo(specItem.displayValue());
+        assertThat(response.specs().getFirst().items())
+            .extracting(ItemResponse::code, ItemResponse::displayName, ItemResponse::value,
+                ItemResponse::displayValue)
+            .containsExactly(
+                tuple("OS", "운영체제", "MACOS", "Mac"),
+                tuple("CPU", "CPU", "M 칩", "M 칩"),
+                tuple("MEMORY", "메모리", "24", "24GB"),
+                tuple("STORAGE", "저장 공간", "512", "512GB"));
     }
 
     @Test
