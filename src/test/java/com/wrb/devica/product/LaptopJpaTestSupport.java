@@ -1,7 +1,7 @@
 package com.wrb.devica.product;
 
 import com.wrb.devica.category.ProductCategory;
-import com.wrb.devica.category.ProductCategoryName;
+import com.wrb.devica.category.ProductCategoryCode;
 import com.wrb.devica.common.JpaSliceTest;
 import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
@@ -20,7 +20,7 @@ abstract class LaptopJpaTestSupport {
 
     @BeforeEach
     void setUpCategory() {
-        category = ProductCategory.from(ProductCategoryName.LAPTOP);
+        category = ProductCategory.from(ProductCategoryCode.LAPTOP);
         entityManager.persist(category);
     }
 

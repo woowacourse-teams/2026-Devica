@@ -1,17 +1,19 @@
 package com.wrb.devica.category;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.transaction.annotation.Transactional;
 
 // 조회는 enum 으로 하고 다른 엔티티는 테이블을 FK 로 참조하므로, 둘이 어긋나면
 // 참조할 카테고리 행이 DB 에 없는 상태가 된다
 @SpringBootTest
-@TestPropertySource(properties = "spring.sql.init.mode=always")
+@Sql("/data.sql")
+@Transactional
 class ProductCategorySeedTest {
 
     @Autowired
