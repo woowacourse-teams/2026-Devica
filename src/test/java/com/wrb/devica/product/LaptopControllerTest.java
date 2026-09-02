@@ -3,9 +3,12 @@ package com.wrb.devica.product;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,6 +39,42 @@ class LaptopControllerTest {
                 List.of(),
                 PageRequest.of(invocation.getArgument(1), invocation.getArgument(2)),
                 false));
+    }
+
+    @Test
+    void 조회하면_스펙에_정의된_형식으로_응답한다() throws Exception {
+        //given
+        LaptopSummaryResponse laptop = new LaptopSummaryResponse(
+            1L, "LG", "gram Pro 16", 2_850_000L, Os.WINDOWS,
+            "Intel Core Ultra 7 255H", 16, 32, 1024, new BigDecimal("16.0"));
+
+        willReturn(new SliceImpl<>(List.of(laptop), PageRequest.of(0, 20), true))
+            .given(laptopService).findLaptops(any(), anyInt(), anyInt());
+
+        //when & then
+        mockMvc.perform(get(PATH))
+            .andExpect(status().isOk())
+            .andExpect(content().json("""
+                {
+                  "content": [
+                    {
+                      "id": 1,
+                      "brand": "LG",
+                      "name": "gram Pro 16",
+                      "minPrice": 2850000,
+                      "os": "WINDOWS",
+                      "cpuName": "Intel Core Ultra 7 255H",
+                      "cpuCoreCount": 16,
+                      "memoryGb": 32,
+                      "storageGb": 1024,
+                      "screenSizeInch": 16.0
+                    }
+                  ],
+                  "page": 0,
+                  "size": 20,
+                  "hasNext": true
+                }
+                """, true));
     }
 
     @Test

@@ -126,6 +126,20 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
     }
 
     @Test
+    void 페이지가_범위를_넘을_때_조회하면_빈_결과를_반환한다() {
+        // given
+        saveOnSaleLaptop("1", Os.WINDOWS, 10000, 16, 512);
+        saveOnSaleLaptop("2", Os.WINDOWS, 10000, 16, 512);
+
+        // when
+        Slice<Laptop> found = findLaptops(null, null, null, null, 5, 10);
+
+        // then
+        assertThat(found.getContent()).isEmpty();
+        assertThat(found.hasNext()).isFalse();
+    }
+
+    @Test
     void 판매_중인_오퍼가_없을_때_조회하면_결과에서_제외된다() {
         // given
         saveOnSaleLaptop("판매중", Os.WINDOWS, 10000, 16, 512);
