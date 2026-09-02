@@ -82,14 +82,14 @@ class LaptopServiceTest extends LaptopJpaTestSupport {
 
         // then
         assertThat(response.id()).isEqualTo(laptop.getId());
-        assertThat(response.brand()).isEqualTo("브랜드");
-        assertThat(response.name()).isEqualTo("gram Pro 16");
+        assertThat(response.brand()).isEqualTo(laptop.getBrand());
+        assertThat(response.name()).isEqualTo(laptop.getName());
         assertThat(response.os()).isEqualTo(Os.WINDOWS);
-        assertThat(response.cpuName()).isEqualTo("Core 10000");
-        assertThat(response.cpuCoreCount()).isEqualTo(8);
-        assertThat(response.memoryGb()).isEqualTo(32);
-        assertThat(response.storageGb()).isEqualTo(1024);
-        assertThat(response.screenSizeInch()).isEqualByComparingTo("16.0");
+        assertThat(response.cpuName()).isEqualTo(laptop.getCpu().getName());
+        assertThat(response.cpuCoreCount()).isEqualTo(laptop.getCpu().getCoreCount());
+        assertThat(response.memoryGb()).isEqualTo(laptop.getMemoryGb());
+        assertThat(response.storageGb()).isEqualTo(laptop.getStorageGb());
+        assertThat(response.screenSizeInch()).isEqualByComparingTo(laptop.getScreenSizeInch());
     }
 
     private Slice<LaptopSummaryResponse> findLaptops() {
