@@ -24,9 +24,11 @@ public class ProductCategory {
     @Column(nullable = false, unique = true)
     private ProductCategoryCode code;
 
+    public ProductCategory(ProductCategoryCode code) {
+        this.code = code;
+    }
+
     public static ProductCategory from(ProductCategoryCode code) {
-        ProductCategory category = new ProductCategory();
-        category.code = code;
-        return category;
+        return new ProductCategory(code);
     }
 }
