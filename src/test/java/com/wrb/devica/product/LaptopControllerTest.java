@@ -26,13 +26,11 @@ class LaptopControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    // 이 테스트는 파라미터 검증만 확인한다. 조회 결과는 LaptopRepositoryTest 가 다룬다.
     @MockitoBean
     private LaptopService laptopService;
 
     @BeforeEach
     void setUp() {
-        // 컨트롤러가 page·size 를 Slice 에서 꺼내 쓰므로 unpaged 가 아닌 값을 돌려줘야 한다.
         given(laptopService.findLaptops(any(), anyInt(), anyInt()))
             .willAnswer(invocation -> new SliceImpl<>(
                 List.of(),
@@ -46,7 +44,6 @@ class LaptopControllerTest {
                 .andExpect(status().isOk());
     }
 
-    // os= 처럼 값이 비어 있으면 조건을 주지 않은 것으로 본다. 스펙상 os 는 선택 항목이다.
     @ParameterizedTest
     @ValueSource(strings = {
             "os=WINDOWS",
