@@ -14,11 +14,11 @@ public record LaptopSpec(Os os, String cpu, int memoryGb, int storageGb) impleme
     }
 
     @Override
-    public List<SpecItem> toItems() {
+    public List<SpecValue> values() {
         return List.of(
-            new SpecItem("OS", "운영체제", os.name(), os.getDisplayName()),
-            new SpecItem("CPU", "CPU", cpu, cpu),
-            new SpecItem("MEMORY", "메모리", String.valueOf(memoryGb), memoryGb + "GB"),
-            new SpecItem("STORAGE", "저장 공간", String.valueOf(storageGb), storageGb + "GB"));
+            new SpecValue("OS", os.name()),
+            new SpecValue("CPU", cpu),
+            new SpecValue("MEMORY", String.valueOf(memoryGb)),
+            new SpecValue("STORAGE", String.valueOf(storageGb)));
     }
 }
