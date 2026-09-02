@@ -1,5 +1,7 @@
 package com.wrb.devica.product;
 
+import com.wrb.devica.common.BusinessErrorCode;
+import com.wrb.devica.common.BusinessException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -48,4 +50,19 @@ public class LaptopService {
                 )
             );
     }
+
+    public LaptopDetailResponse findLaptopById(Long id) {
+        Laptop laptop = laptopRepository.findById(id)
+            .orElseThrow(() -> new BusinessException(BusinessErrorCode.LAPTOP_NOT_FOUND));
+
+        List<ProductOffer> offers = productOfferRepository
+            .findAllByProductIdAndStatusOrderByPriceAsc(id, OfferStatus.ON_SALE);
+
+        if (offers.isEmpty()) {
+            throw new BusinessException(BusinessErrorCode.LAPTOP_NOT_FOUND);
+        }
+
+        return LaptopDetailResponse.of(laptop, offers);
+    }
+
 }
