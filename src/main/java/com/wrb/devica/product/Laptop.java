@@ -36,7 +36,7 @@ public class Laptop extends Product {
     @Column(nullable = false)
     private int storageGb;
 
-    @Column(nullable = false)
+    @Column(name = "weight_g", nullable = false)
     private int weightG;
 
     @Column(nullable = false, precision = 3, scale = 1)
