@@ -13,11 +13,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"product_category_id", "code"}))
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UsagePurpose {
 
     @Id
@@ -31,7 +34,4 @@ public class UsagePurpose {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UsagePurposeCode code;
-
-    protected UsagePurpose() {
-    }
 }

@@ -7,10 +7,13 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ProductCategory {
 
     @Id
@@ -20,7 +23,4 @@ public class ProductCategory {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, unique = true)
     private ProductCategoryCode code;
-
-    protected ProductCategory() {
-    }
 }
