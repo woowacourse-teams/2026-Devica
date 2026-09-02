@@ -3,25 +3,16 @@ package com.wrb.devica.product;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Slice;
 
+@Import(LaptopService.class)
 class LaptopServiceTest extends LaptopJpaTestSupport {
 
     @Autowired
-    private LaptopRepository laptopRepository;
-
-    @Autowired
-    private ProductOfferRepository productOfferRepository;
-
     private LaptopService laptopService;
-
-    @BeforeEach
-    void setUp() {
-        laptopService = new LaptopService(laptopRepository, productOfferRepository);
-    }
 
     @Test
     void 오퍼가_여러_개일_때_조회하면_가장_낮은_가격을_반환한다() {
