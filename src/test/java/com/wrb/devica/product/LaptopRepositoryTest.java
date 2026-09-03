@@ -22,10 +22,10 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         offer().product(laptop().name("B").save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(0, 10);
+        Slice<LaptopSummaryResponse> found = findLaptops(0, 10);
 
         // then
-        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("A", "B");
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("A", "B");
         assertThat(found.hasNext()).isFalse();
     }
 
@@ -36,11 +36,11 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         offer().product(laptop().name("맥").os(Os.MAC).save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(Os.MAC, null,
+        Slice<LaptopSummaryResponse> found = findLaptops(new LaptopSearchCondition(Os.MAC, null,
             null, null, null, null));
 
         // then
-        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("맥");
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("맥");
     }
 
     @Test
@@ -51,11 +51,11 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         offer().product(laptop().name("높음").cpuScore(10001).save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(null,
+        Slice<LaptopSummaryResponse> found = findLaptops(new LaptopSearchCondition(null,
             10000, null, null, null, null));
 
         // then
-        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("중간", "높음");
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("중간", "높음");
     }
 
     @ParameterizedTest
@@ -66,11 +66,11 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         offer().product(laptop().brand("Apple").name("MacBook Air").os(Os.MAC).save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(null,
+        Slice<LaptopSummaryResponse> found = findLaptops(new LaptopSearchCondition(null,
             null, null, null, keyword, null));
 
         // then
-        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("gram 프로 16");
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("gram 프로 16");
     }
 
     @Test
@@ -80,11 +80,11 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         offer().product(laptop().name("B").save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(null,
+        Slice<LaptopSummaryResponse> found = findLaptops(new LaptopSearchCondition(null,
             null, null, null, "   ", null));
 
         // then
-        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("A", "B");
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("A", "B");
     }
 
     @Test
@@ -94,11 +94,11 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         offer().product(laptop().brand("LG전자").name("그램2").save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(null,
+        Slice<LaptopSummaryResponse> found = findLaptops(new LaptopSearchCondition(null,
             null, null, null, null, "LG"));
 
         // then
-        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("그램");
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("그램");
     }
 
     @Test
@@ -116,11 +116,11 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
             .cpuScore(20000).memoryGb(32).storageGb(1024).save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(
+        Slice<LaptopSummaryResponse> found = findLaptops(
             new LaptopSearchCondition(Os.MAC, 10000, 16, 512, "그램", "LG"));
 
         // then
-        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("그램 16");
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("그램 16");
     }
 
     @Test
@@ -131,13 +131,13 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         offer().product(laptop().name("3").save()).save();
 
         // when
-        Slice<Laptop> firstPage = findLaptops(0, 2);
-        Slice<Laptop> lastPage = findLaptops(1, 2);
+        Slice<LaptopSummaryResponse> firstPage = findLaptops(0, 2);
+        Slice<LaptopSummaryResponse> lastPage = findLaptops(1, 2);
 
         // then
-        assertThat(firstPage.getContent()).extracting(Laptop::getName).containsExactly("1", "2");
+        assertThat(firstPage.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("1", "2");
         assertThat(firstPage.hasNext()).isTrue();
-        assertThat(lastPage.getContent()).extracting(Laptop::getName).containsExactly("3");
+        assertThat(lastPage.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("3");
         assertThat(lastPage.hasNext()).isFalse();
     }
 
@@ -147,7 +147,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         offer().product(laptop().name("유일").save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(Os.MAC, null, null, null, null, null));
+        Slice<LaptopSummaryResponse> found = findLaptops(new LaptopSearchCondition(Os.MAC, null, null, null, null, null));
 
         // then
         assertThat(found.getContent()).isEmpty();
@@ -161,7 +161,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         offer().product(laptop().name("2").save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(5, 10);
+        Slice<LaptopSummaryResponse> found = findLaptops(5, 10);
 
         // then
         assertThat(found.getContent()).isEmpty();
@@ -178,22 +178,22 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         offer().product(soldOut).price(1_000_000L).status(OfferStatus.DISCONTINUED).save();
 
         // when
-        Slice<Laptop> found = findLaptops(0, 10);
+        Slice<LaptopSummaryResponse> found = findLaptops(0, 10);
 
         // then
-        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("판매중");
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("판매중");
     }
 
-    private Slice<Laptop> findLaptops(LaptopSearchCondition condition) {
+    private Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition) {
         return findLaptops(condition, 0, 10);
     }
 
-    private Slice<Laptop> findLaptops(int page, int size) {
+    private Slice<LaptopSummaryResponse> findLaptops(int page, int size) {
         return findLaptops(new LaptopSearchCondition(null, null,
             null, null, null, null), page, size);
     }
 
-    private Slice<Laptop> findLaptops(LaptopSearchCondition condition, int page, int size) {
+    private Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, int page, int size) {
         flushAndClear();
         return laptopRepository.findAllByCondition(condition, PageRequest.of(page, size, Sort.by("id")));
     }
