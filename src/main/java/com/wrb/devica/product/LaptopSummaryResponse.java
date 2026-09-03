@@ -1,5 +1,6 @@
 package com.wrb.devica.product;
 
+import com.querydsl.core.annotations.QueryProjection;
 import java.math.BigDecimal;
 
 public record LaptopSummaryResponse(
@@ -14,18 +15,8 @@ public record LaptopSummaryResponse(
         int storageGb,
         BigDecimal screenSizeInch
 ) {
-    public static LaptopSummaryResponse from(Laptop laptop, long minPrice) {
-        return new LaptopSummaryResponse(
-            laptop.getId(),
-            laptop.getBrand(),
-            laptop.getName(),
-            minPrice,
-            laptop.getOs(),
-            laptop.getCpu().getName(),
-            laptop.getCpu().getCoreCount(),
-            laptop.getMemoryGb(),
-            laptop.getStorageGb(),
-            laptop.getScreenSizeInch()
-        );
+
+    @QueryProjection
+    public LaptopSummaryResponse {
     }
 }
