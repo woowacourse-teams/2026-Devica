@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 @Service
@@ -51,6 +52,7 @@ public class LaptopService {
             );
     }
 
+    @Transactional(readOnly = true)
     public LaptopDetailResponse findLaptopById(Long id) {
         Laptop laptop = laptopRepository.findById(id)
             .orElseThrow(() -> new BusinessException(BusinessErrorCode.LAPTOP_NOT_FOUND));
