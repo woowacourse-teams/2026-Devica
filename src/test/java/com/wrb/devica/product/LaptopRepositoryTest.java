@@ -37,7 +37,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
 
         // when
         Slice<Laptop> found = findLaptops(new LaptopSearchCondition(Os.MAC, null,
-            null, null));
+            null, null, null, null));
 
         // then
         assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("맥");
@@ -52,27 +52,75 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
 
         // when
         Slice<Laptop> found = findLaptops(new LaptopSearchCondition(null,
-            10000, null, null));
+            10000, null, null, null, null));
 
         // then
         assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("중간", "높음");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"gram", "GRAM", "프로", "LG", "lg"})
+    void 검색어가_브랜드나_제품명에_포함되면_조회한다(String keyword) {
+        // given
+        offer().product(laptop().brand("LG").name("gram 프로 16").save()).save();
+        offer().product(laptop().brand("Apple").name("MacBook Air").os(Os.MAC).save()).save();
 
+        // when
+        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(null,
+            null, null, null, keyword, null));
 
+        // then
+        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("gram 프로 16");
+    }
+
+    @Test
+    void 검색어가_공백뿐일_때_조회하면_조건으로_보지_않는다() {
+        // given
+        offer().product(laptop().name("A").save()).save();
+        offer().product(laptop().name("B").save()).save();
+
+        // when
+        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(null,
+            null, null, null, "   ", null));
+
+        // then
+        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("A", "B");
+    }
+
+    @Test
+    void 브랜드를_지정할_때_조회하면_완전히_일치하는_것만_반환한다() {
+        // given
+        offer().product(laptop().brand("LG").name("그램").save()).save();
+        offer().product(laptop().brand("LG전자").name("그램2").save()).save();
+
+        // when
+        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(null,
+            null, null, null, null, "LG"));
+
+        // then
+        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("그램");
+    }
 
     @Test
     void 조건을_여러_개_지정할_때_조회하면_모두_만족하는_것만_반환한다() {
         // given
-        offer().product(laptop().name("맥_고사양").os(Os.MAC).cpuScore(20000).memoryGb(32).storageGb(1024).save()).save();
-        offer().product(laptop().name("맥_저사양").os(Os.MAC).cpuScore(5000).memoryGb(32).storageGb(1024).save()).save();
-        offer().product(laptop().name("윈도우_고사양").cpuScore(20000).memoryGb(32).storageGb(1024).save()).save();
+        offer().product(laptop().brand("LG").name("그램 16").os(Os.MAC)
+            .cpuScore(20000).memoryGb(32).storageGb(1024).save()).save();
+        offer().product(laptop().brand("LG").name("그램 저사양").os(Os.MAC)
+            .cpuScore(5000).memoryGb(32).storageGb(1024).save()).save();
+        offer().product(laptop().brand("LG").name("울트라 PC").os(Os.MAC)
+            .cpuScore(20000).memoryGb(32).storageGb(1024).save()).save();
+        offer().product(laptop().brand("Apple").name("그램과 비슷한 것").os(Os.MAC)
+            .cpuScore(20000).memoryGb(32).storageGb(1024).save()).save();
+        offer().product(laptop().brand("LG").name("그램 윈도우")
+            .cpuScore(20000).memoryGb(32).storageGb(1024).save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(Os.MAC, 10000, 16, 512));
+        Slice<Laptop> found = findLaptops(
+            new LaptopSearchCondition(Os.MAC, 10000, 16, 512, "그램", "LG"));
 
         // then
-        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("맥_고사양");
+        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("그램 16");
     }
 
     @Test
@@ -99,7 +147,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         offer().product(laptop().name("유일").save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(Os.MAC, null, null, null));
+        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(Os.MAC, null, null, null, null, null));
 
         // then
         assertThat(found.getContent()).isEmpty();
@@ -142,7 +190,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
 
     private Slice<Laptop> findLaptops(int page, int size) {
         return findLaptops(new LaptopSearchCondition(null, null,
-            null, null), page, size);
+            null, null, null, null), page, size);
     }
 
     private Slice<Laptop> findLaptops(LaptopSearchCondition condition, int page, int size) {
