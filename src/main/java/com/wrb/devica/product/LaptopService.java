@@ -1,13 +1,14 @@
 package com.wrb.devica.product;
 
+import com.wrb.devica.common.BusinessErrorCode;
+import com.wrb.devica.common.BusinessException;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 @Service
@@ -20,32 +21,25 @@ public class LaptopService {
     private final ProductOfferRepository productOfferRepository;
 
     public Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, int page, int size) {
-        Slice<Laptop> laptops = laptopRepository.findAllByCondition(
+        return laptopRepository.findAllByCondition(
             condition,
             PageRequest.of(page, size, DEFAULT_SORT)
         );
-
-        Map<Long, Long> minPrices = findMinPrices(laptops.getContent());
-
-        return laptops.map(laptop ->
-            LaptopSummaryResponse.from(laptop, minPrices.get(laptop.getId()))
-        );
     }
 
-    private Map<Long, Long> findMinPrices(List<Laptop> laptops) {
-        List<Long> productIds = laptops.stream()
-            .map(Laptop::getId).toList();
+    @Transactional(readOnly = true)
+    public LaptopDetailResponse findLaptopById(Long id) {
+        Laptop laptop = laptopRepository.findById(id)
+            .orElseThrow(() -> new BusinessException(BusinessErrorCode.LAPTOP_NOT_FOUND));
 
-        if (productIds.isEmpty()) {
-            return Map.of();
+        List<ProductOffer> offers = productOfferRepository
+            .findAllByProductIdAndStatusOrderByPriceAsc(id, OfferStatus.ON_SALE);
+
+        if (offers.isEmpty()) {
+            throw new BusinessException(BusinessErrorCode.LAPTOP_NOT_FOUND);
         }
 
-        return productOfferRepository.findMinPrices(productIds, OfferStatus.ON_SALE).stream()
-            .collect(
-                Collectors.toMap(
-                    ProductMinPrice::productId,
-                    ProductMinPrice::minPrice
-                )
-            );
+        return LaptopDetailResponse.of(laptop, offers);
     }
+
 }

@@ -28,6 +28,7 @@
 | [0020](0020-API-문서화.md) | API 문서화에 springdoc-openapi를 사용한다 | Accepted |
 | [0021](0021-페이징-파라미터-수신-방식.md) | 페이징 파라미터를 Pageable 대신 page·size 로 직접 받는다 | Accepted |
 | [0022](0022-동적-쿼리-작성-방식.md) | 동적 쿼리를 QueryDSL 로 작성한다 | Accepted |
+| [0023](0023-목록-최저가-산출-위치.md) | 목록의 최저가를 조회 쿼리 안에서 구한다 | Accepted |
 
 ## 작성 방법
 

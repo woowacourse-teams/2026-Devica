@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS product_offer
     created_at       DATETIME    NOT NULL,
     updated_at       DATETIME    NOT NULL,
     PRIMARY KEY (id),
+    KEY idx_product_offer_product_status_price (product_id, status, price),
     CONSTRAINT fk_product_offer_product
         FOREIGN KEY (product_id) REFERENCES product (id)
 ) ENGINE = InnoDB

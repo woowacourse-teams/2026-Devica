@@ -5,13 +5,13 @@ import static com.wrb.devica.product.QLaptop.laptop;
 import static com.wrb.devica.product.QProductOffer.productOffer;
 
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
+import org.springframework.util.StringUtils;
 
 public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
 
@@ -22,18 +22,40 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
     }
 
     @Override
-    public Slice<Laptop> findAllByCondition(LaptopSearchCondition condition, Pageable pageable) {
+    public Slice<LaptopSummaryResponse> findAllByCondition(LaptopSearchCondition condition, Pageable pageable) {
         int pageSize = pageable.getPageSize();
 
-        List<Laptop> found = queryFactory
-            .selectFrom(laptop)
-            .join(laptop.cpu, cpu).fetchJoin()
+        List<LaptopSummaryResponse> found = queryFactory
+            .select(new QLaptopSummaryResponse(
+                laptop.id,
+                laptop.brand,
+                laptop.name,
+                productOffer.price.min(),
+                laptop.os,
+                cpu.name,
+                cpu.coreCount,
+                laptop.memoryGb,
+                laptop.storageGb,
+                laptop.screenSizeInch
+            ))
+            .from(laptop)
+            .join(laptop.cpu, cpu)
+            .join(productOffer).on(
+                productOffer.product.id.eq(laptop.id),
+                productOffer.status.eq(OfferStatus.ON_SALE)
+            )
             .where(
-                onSaleOfferExists(),
                 osEq(condition.os()),
                 cpuScoreGoe(condition.cpuScore()),
                 memoryGbGoe(condition.memoryGb()),
-                storageGbGoe(condition.storageGb())
+                storageGbGoe(condition.storageGb()),
+                keywordContains(condition.keyword()),
+                brandEq(condition.brand())
+            )
+            .groupBy(laptop.id, cpu.id)
+            .having(
+                minPriceGoe(condition.minPrice()),
+                minPriceLoe(condition.maxPrice())
             )
             .orderBy(laptop.id.asc())
             .offset(pageable.getOffset())
@@ -44,14 +66,33 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
         return new SliceImpl<>(hasNext ? found.subList(0, pageSize) : found, pageable, hasNext);
     }
 
-    private BooleanExpression onSaleOfferExists() {
-        return JPAExpressions.selectOne()
-            .from(productOffer)
-            .where(
-                productOffer.product.id.eq(laptop.id),
-                productOffer.status.eq(OfferStatus.ON_SALE)
-            )
-            .exists();
+    private BooleanExpression minPriceGoe(Long minPrice) {
+        if (minPrice == null) {
+            return null;
+        }
+        return productOffer.price.min().goe(minPrice);
+    }
+
+    private BooleanExpression minPriceLoe(Long maxPrice) {
+        if (maxPrice == null) {
+            return null;
+        }
+        return productOffer.price.min().loe(maxPrice);
+    }
+
+    private BooleanExpression keywordContains(String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return null;
+        }
+        return laptop.brand.containsIgnoreCase(keyword)
+            .or(laptop.name.containsIgnoreCase(keyword));
+    }
+
+    private BooleanExpression brandEq(String brand) {
+        if (!StringUtils.hasText(brand)) {
+            return null;
+        }
+        return laptop.brand.eq(brand);
     }
 
     private BooleanExpression osEq(Os os) {
