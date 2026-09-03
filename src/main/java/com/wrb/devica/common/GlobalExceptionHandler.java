@@ -1,14 +1,22 @@
 package com.wrb.devica.common;
 
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSourceResolvable;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 @Slf4j
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException exception) {
@@ -16,17 +24,52 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(errorCode.getStatus()).body(ErrorResponse.from(errorCode));
     }
 
-    // favicon.ico 요청이나 경로 오타처럼 서버 잘못이 아닌 요청은 404로 응답한다
-    @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNoResourceFoundException() {
-        ErrorCode errorCode = ErrorCode.NOT_FOUND;
-        return ResponseEntity.status(errorCode.getStatus()).body(ErrorResponse.from(errorCode));
-    }
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception exception) {
         log.error("처리하지 못한 예외가 발생", exception);
-        ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
+        ErrorCode errorCode = CommonErrorCode.INTERNAL_SERVER_ERROR;
         return ResponseEntity.status(errorCode.getStatus()).body(ErrorResponse.from(errorCode));
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+        MethodArgumentNotValidException exception, HttpHeaders headers,
+        HttpStatusCode status, WebRequest request) {
+        String message = exception.getBindingResult().getFieldErrors().stream()
+            .filter(fieldError -> !fieldError.isBindingFailure())
+            .map(DefaultMessageSourceResolvable::getDefaultMessage)
+            .collect(Collectors.joining(" "));
+
+        return toResponse(status, message);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleHandlerMethodValidationException(
+        HandlerMethodValidationException exception, HttpHeaders headers,
+        HttpStatusCode status, WebRequest request) {
+        String message = exception.getParameterValidationResults().stream()
+            .flatMap(result -> result.getResolvableErrors().stream())
+            .map(MessageSourceResolvable::getDefaultMessage)
+            .collect(Collectors.joining(" "));
+
+        return toResponse(status, message);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleExceptionInternal(
+        Exception exception, Object body, HttpHeaders headers,
+        HttpStatusCode status, WebRequest request) {
+        log.error("처리하지 못한 예외가 발생", exception);
+        return toResponse(status, "");
+    }
+
+    private ResponseEntity<Object> toResponse(HttpStatusCode status, String message) {
+        CommonErrorCode errorCode = CommonErrorCode.from(status);
+
+        if (message.isBlank()) {
+            message = errorCode.getMessage();
+        }
+
+        return ResponseEntity.status(status).body(ErrorResponse.of(errorCode, message));
     }
 }

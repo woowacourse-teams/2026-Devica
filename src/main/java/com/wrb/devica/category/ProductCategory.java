@@ -23,4 +23,12 @@ public class ProductCategory {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, unique = true)
     private ProductCategoryCode code;
+
+    public ProductCategory(ProductCategoryCode code) {
+        this.code = code;
+    }
+
+    public static ProductCategory from(ProductCategoryCode code) {
+        return new ProductCategory(code);
+    }
 }
