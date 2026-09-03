@@ -1,6 +1,8 @@
 package com.wrb.devica.purpose;
 
 import com.wrb.devica.category.ProductCategoryCode;
+import com.wrb.devica.common.BusinessException;
+import com.wrb.devica.common.ErrorCode;
 import java.util.Arrays;
 import java.util.List;
 import lombok.Getter;
@@ -16,6 +18,13 @@ public enum UsagePurposeCode {
     UsagePurposeCode(ProductCategoryCode category, String displayName) {
         this.category = category;
         this.displayName = displayName;
+    }
+
+    public static UsagePurposeCode from(String code) {
+        return Arrays.stream(values())
+                .filter(purpose -> purpose.name().equals(code))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ErrorCode.USAGE_PURPOSE_NOT_FOUND));
     }
 
     public static List<UsagePurposeCode> findByCategory(ProductCategoryCode category) {
