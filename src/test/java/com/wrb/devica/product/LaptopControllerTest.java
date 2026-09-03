@@ -100,6 +100,8 @@ class LaptopControllerTest {
             "size=100",
             "os=",
             "keyword=&brand=",
+            "minPrice=0",
+            "minPrice=1000000&maxPrice=1000000",
             "page=2&size=50"
     })
     void 유효한_파라미터일_때_목록을_조회하면_200을_반환한다(String query) throws Exception {
@@ -125,7 +127,8 @@ class LaptopControllerTest {
             "cpuScore=abc",
             "memoryGb=16.5",
             "page=one",
-            "size=twenty"
+            "size=twenty",
+            "minPrice=abc"
     })
     void 파라미터_타입이_맞지_않을_때_목록을_조회하면_400을_반환한다(String query) throws Exception {
         mockMvc.perform(get(PATH + "?" + query))
@@ -155,6 +158,22 @@ class LaptopControllerTest {
     void 사양_값이_1_미만일_때_목록을_조회하면_400을_반환한다(String query) throws Exception {
         mockMvc.perform(get(PATH + "?" + query))
                 .andExpect(status().isBadRequest());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"minPrice=-1", "maxPrice=-1"})
+    void 가격이_음수일_때_목록을_조회하면_400을_반환한다(String query) throws Exception {
+        mockMvc.perform(get(PATH + "?" + query))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void 최소_가격이_최대_가격보다_클_때_목록을_조회하면_400을_반환한다() throws Exception {
+        mockMvc.perform(get(PATH + "?minPrice=2000000&maxPrice=1000000"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().json("""
+                        {"message": "최소 가격은 최대 가격보다 클 수 없습니다.", "code": "INVALID_REQUEST"}
+                        """, true));
     }
 
     @ParameterizedTest
