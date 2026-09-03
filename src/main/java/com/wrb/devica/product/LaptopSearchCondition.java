@@ -9,6 +9,8 @@ public record LaptopSearchCondition(
         @Positive(message = "메모리 용량은 1GB 이상이어야 합니다.")
         Integer memoryGb,
         @Positive(message = "스토리지 용량은 1GB 이상이어야 합니다.")
-        Integer storageGb
+        Integer storageGb,
+        String keyword,
+        String brand
 ) {
 }
