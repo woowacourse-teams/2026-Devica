@@ -20,10 +20,11 @@ class LaptopServiceTest extends LaptopJpaTestSupport {
     @Test
     void 오퍼가_여러_개일_때_조회하면_가장_낮은_가격을_반환한다() {
         // given
-        Laptop laptop = saveLaptopWithoutOffer("노트북", Os.WINDOWS, 10000, 16, 512);
-        saveOffer(laptop, 2_500_000L, OfferStatus.ON_SALE);
-        saveOffer(laptop, 1_900_000L, OfferStatus.ON_SALE);
-        saveOffer(laptop, 2_100_000L, OfferStatus.ON_SALE);
+        Laptop laptop = laptop().name("노트북").save();
+
+        offer().product(laptop).price(2_500_000L).status(OfferStatus.ON_SALE).save();
+        offer().product(laptop).price(1_900_000L).status(OfferStatus.ON_SALE).save();
+        offer().product(laptop).price(2_100_000L).status(OfferStatus.ON_SALE).save();
 
         // when
         Slice<LaptopSummaryResponse> found = findLaptops();
@@ -37,10 +38,11 @@ class LaptopServiceTest extends LaptopJpaTestSupport {
     @Test
     void 판매_중이_아닌_오퍼가_더_쌀_때_조회하면_최저가에_포함하지_않는다() {
         // given
-        Laptop laptop = saveLaptopWithoutOffer("노트북", Os.WINDOWS, 10000, 16, 512);
-        saveOffer(laptop, 900_000L, OfferStatus.SOLD_OUT);
-        saveOffer(laptop, 800_000L, OfferStatus.DISCONTINUED);
-        saveOffer(laptop, 2_000_000L, OfferStatus.ON_SALE);
+        Laptop laptop = laptop().name("노트북").save();
+
+        offer().product(laptop).price(900_000L).status(OfferStatus.SOLD_OUT).save();
+        offer().product(laptop).price(800_000L).status(OfferStatus.DISCONTINUED).save();
+        offer().product(laptop).price(2_000_000L).status(OfferStatus.ON_SALE).save();
 
         // when
         Slice<LaptopSummaryResponse> found = findLaptops();
@@ -54,13 +56,13 @@ class LaptopServiceTest extends LaptopJpaTestSupport {
     @Test
     void 노트북이_여러_대일_때_조회하면_각자의_최저가를_반환한다() {
         // given
-        Laptop first = saveLaptopWithoutOffer("첫번째", Os.WINDOWS, 10000, 16, 512);
-        saveOffer(first, 1_000_000L, OfferStatus.ON_SALE);
-        saveOffer(first, 1_200_000L, OfferStatus.ON_SALE);
+        Laptop first = laptop().name("첫번째").save();
+        offer().product(first).price(1_000_000L).status(OfferStatus.ON_SALE).save();
+        offer().product(first).price(1_200_000L).status(OfferStatus.ON_SALE).save();
 
-        Laptop second = saveLaptopWithoutOffer("두번째", Os.WINDOWS, 10000, 32, 1024);
-        saveOffer(second, 3_000_000L, OfferStatus.ON_SALE);
-        saveOffer(second, 2_800_000L, OfferStatus.ON_SALE);
+        Laptop second = laptop().name("두번째").memoryGb(32).storageGb(1024).save();
+        offer().product(second).price(3_000_000L).status(OfferStatus.ON_SALE).save();
+        offer().product(second).price(2_800_000L).status(OfferStatus.ON_SALE).save();
 
         // when
         Slice<LaptopSummaryResponse> found = findLaptops();
@@ -77,8 +79,8 @@ class LaptopServiceTest extends LaptopJpaTestSupport {
     @Test
     void 조회하면_노트북과_cpu_정보를_응답에_담는다() {
         // given
-        Laptop laptop = saveLaptopWithoutOffer("gram Pro 16", Os.WINDOWS, 10000, 32, 1024);
-        saveOffer(laptop, 2_850_000L, OfferStatus.ON_SALE);
+        Laptop laptop = laptop().name("gram Pro 16").memoryGb(32).storageGb(1024).save();
+        offer().product(laptop).price(2_850_000L).status(OfferStatus.ON_SALE).save();
 
         // when
         LaptopSummaryResponse response = findLaptops().getContent().getFirst();
@@ -98,10 +100,11 @@ class LaptopServiceTest extends LaptopJpaTestSupport {
     @Test
     void 상세를_조회하면_판매처를_가격_오름차순으로_담는다() {
         // given
-        Laptop laptop = saveLaptopWithoutOffer("gram Pro 16", Os.WINDOWS, 10000, 32, 1024);
-        saveOffer(laptop, 2_990_000L, OfferStatus.ON_SALE);
-        saveOffer(laptop, 2_850_000L, OfferStatus.ON_SALE);
-        saveOffer(laptop, 2_500_000L, OfferStatus.SOLD_OUT);
+        Laptop laptop = laptop().name("gram Pro 16").memoryGb(32).storageGb(1024).save();
+
+        offer().product(laptop).price(2_990_000L).status(OfferStatus.ON_SALE).save();
+        offer().product(laptop).price(2_850_000L).status(OfferStatus.ON_SALE).save();
+        offer().product(laptop).price(2_500_000L).status(OfferStatus.SOLD_OUT).save();
 
         // when
         LaptopDetailResponse found = findLaptopById(laptop.getId());
@@ -123,8 +126,8 @@ class LaptopServiceTest extends LaptopJpaTestSupport {
     @Test
     void 판매_중인_오퍼가_없는_노트북의_상세를_조회하면_예외가_발생한다() {
         // given
-        Laptop laptop = saveLaptopWithoutOffer("판매종료", Os.WINDOWS, 10000, 16, 512);
-        saveOffer(laptop, 900_000L, OfferStatus.DISCONTINUED);
+        Laptop laptop = laptop().name("판매종료").save();
+        offer().product(laptop).price(900_000L).status(OfferStatus.DISCONTINUED).save();
 
         // when & then
         assertThatThrownBy(() -> findLaptopById(laptop.getId()))

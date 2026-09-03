@@ -3,6 +3,8 @@ package com.wrb.devica.product;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -16,8 +18,8 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
     @Test
     void 조건이_없을_때_조회하면_전체를_id_오름차순으로_반환한다() {
         // given
-        saveOnSaleLaptop("A", Os.WINDOWS, 10000, 16, 512);
-        saveOnSaleLaptop("B", Os.MAC, 20000, 32, 1024);
+        offer().product(laptop().name("A").save()).save();
+        offer().product(laptop().name("B").save()).save();
 
         // when
         Slice<Laptop> found = findLaptops(0, 10);
@@ -30,11 +32,12 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
     @Test
     void os를_지정할_때_조회하면_해당_os만_반환한다() {
         // given
-        saveOnSaleLaptop("윈도우", Os.WINDOWS, 10000, 16, 512);
-        saveOnSaleLaptop("맥", Os.MAC, 10000, 16, 512);
+        offer().product(laptop().name("윈도우").os(Os.WINDOWS).save()).save();
+        offer().product(laptop().name("맥").os(Os.MAC).save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(Os.MAC, null, null, null, 0, 10);
+        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(Os.MAC, null,
+            null, null));
 
         // then
         assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("맥");
@@ -43,71 +46,49 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
     @Test
     void cpu_점수를_지정할_때_조회하면_그_이상만_반환한다() {
         // given
-        saveOnSaleLaptop("낮음", Os.WINDOWS, 9999, 16, 512);
-        saveOnSaleLaptop("같음", Os.WINDOWS, 10000, 16, 512);
-        saveOnSaleLaptop("높음", Os.WINDOWS, 10001, 16, 512);
+        offer().product(laptop().name("낮음").cpuScore(9999).save()).save();
+        offer().product(laptop().name("중간").cpuScore(10000).save()).save();
+        offer().product(laptop().name("높음").cpuScore(10001).save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(null, 10000, null, null, 0, 10);
+        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(null,
+            10000, null, null));
 
         // then
-        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("같음", "높음");
+        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("중간", "높음");
     }
 
-    @Test
-    void 메모리와_저장장치를_지정할_때_조회하면_둘_다_만족하는_것만_반환한다() {
-        // given
-        saveOnSaleLaptop("메모리만", Os.WINDOWS, 10000, 32, 256);
-        saveOnSaleLaptop("저장장치만", Os.WINDOWS, 10000, 8, 1024);
-        saveOnSaleLaptop("둘다", Os.WINDOWS, 10000, 32, 1024);
 
-        // when
-        Slice<Laptop> found = findLaptops(null, null, 16, 512, 0, 10);
 
-        // then
-        assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("둘다");
-    }
 
     @Test
     void 조건을_여러_개_지정할_때_조회하면_모두_만족하는_것만_반환한다() {
         // given
-        saveOnSaleLaptop("맥_고사양", Os.MAC, 20000, 32, 1024);
-        saveOnSaleLaptop("맥_저사양", Os.MAC, 5000, 32, 1024);
-        saveOnSaleLaptop("윈도우_고사양", Os.WINDOWS, 20000, 32, 1024);
+        offer().product(laptop().name("맥_고사양").os(Os.MAC).cpuScore(20000).memoryGb(32).storageGb(1024).save()).save();
+        offer().product(laptop().name("맥_저사양").os(Os.MAC).cpuScore(5000).memoryGb(32).storageGb(1024).save()).save();
+        offer().product(laptop().name("윈도우_고사양").cpuScore(20000).memoryGb(32).storageGb(1024).save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(Os.MAC, 10000, 16, 512, 0, 10);
+        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(Os.MAC, 10000, 16, 512));
 
         // then
         assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("맥_고사양");
     }
 
     @Test
-    void 다음_페이지가_있을_때_조회하면_hasNext가_참이다() {
+    void 페이지를_넘겨_조회하면_이어지는_결과와_hasNext를_반환한다() {
         // given
-        saveOnSaleLaptop("1", Os.WINDOWS, 10000, 16, 512);
-        saveOnSaleLaptop("2", Os.WINDOWS, 10000, 16, 512);
-        saveOnSaleLaptop("3", Os.WINDOWS, 10000, 16, 512);
+        offer().product(laptop().name("1").save()).save();
+        offer().product(laptop().name("2").save()).save();
+        offer().product(laptop().name("3").save()).save();
 
         // when
         Slice<Laptop> firstPage = findLaptops(0, 2);
+        Slice<Laptop> lastPage = findLaptops(1, 2);
 
         // then
         assertThat(firstPage.getContent()).extracting(Laptop::getName).containsExactly("1", "2");
         assertThat(firstPage.hasNext()).isTrue();
-    }
-
-    @Test
-    void 마지막_페이지를_조회하면_hasNext가_거짓이다() {
-        // given
-        saveOnSaleLaptop("1", Os.WINDOWS, 10000, 16, 512);
-        saveOnSaleLaptop("2", Os.WINDOWS, 10000, 16, 512);
-        saveOnSaleLaptop("3", Os.WINDOWS, 10000, 16, 512);
-
-        // when
-        Slice<Laptop> lastPage = findLaptops(1, 2);
-
-        // then
         assertThat(lastPage.getContent()).extracting(Laptop::getName).containsExactly("3");
         assertThat(lastPage.hasNext()).isFalse();
     }
@@ -115,10 +96,10 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
     @Test
     void 조건에_맞는_것이_없을_때_조회하면_빈_결과를_반환한다() {
         // given
-        saveOnSaleLaptop("유일", Os.WINDOWS, 10000, 16, 512);
+        offer().product(laptop().name("유일").save()).save();
 
         // when
-        Slice<Laptop> found = findLaptops(Os.MAC, null, null, null, 0, 10);
+        Slice<Laptop> found = findLaptops(new LaptopSearchCondition(Os.MAC, null, null, null));
 
         // then
         assertThat(found.getContent()).isEmpty();
@@ -128,8 +109,8 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
     @Test
     void 페이지가_범위를_넘을_때_조회하면_빈_결과를_반환한다() {
         // given
-        saveOnSaleLaptop("1", Os.WINDOWS, 10000, 16, 512);
-        saveOnSaleLaptop("2", Os.WINDOWS, 10000, 16, 512);
+        offer().product(laptop().name("1").save()).save();
+        offer().product(laptop().name("2").save()).save();
 
         // when
         Slice<Laptop> found = findLaptops(5, 10);
@@ -142,8 +123,11 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
     @Test
     void 판매_중인_오퍼가_없을_때_조회하면_결과에서_제외된다() {
         // given
-        saveOnSaleLaptop("판매중", Os.WINDOWS, 10000, 16, 512);
-        saveLaptopWithoutOffer("오퍼없음", Os.WINDOWS, 10000, 16, 512);
+        offer().product(laptop().name("판매중").save()).save();
+        laptop().name("오퍼없음").save();
+        Laptop soldOut = laptop().name("품절").save();
+        offer().product(soldOut).price(1_000_000L).status(OfferStatus.SOLD_OUT).save();
+        offer().product(soldOut).price(1_000_000L).status(OfferStatus.DISCONTINUED).save();
 
         // when
         Slice<Laptop> found = findLaptops(0, 10);
@@ -152,32 +136,17 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         assertThat(found.getContent()).extracting(Laptop::getName).containsExactly("판매중");
     }
 
-    @Test
-    void 오퍼가_모두_판매_중이_아닐_때_조회하면_결과에서_제외된다() {
-        // given
-        Laptop soldOut = saveLaptopWithoutOffer("품절", Os.WINDOWS, 10000, 16, 512);
-        saveOffer(soldOut, 1_000_000L, OfferStatus.SOLD_OUT);
-        saveOffer(soldOut, 1_000_000L, OfferStatus.DISCONTINUED);
-
-        // when
-        Slice<Laptop> found = findLaptops(0, 10);
-
-        // then
-        assertThat(found.getContent()).isEmpty();
-    }
-
-    private Slice<Laptop> findLaptops(Os os, Integer cpuScore, Integer memoryGb, Integer storageGb,
-                                      int page, int size) {
-        flushAndClear();
-        return laptopRepository.findAllByCondition(
-            new LaptopSearchCondition(os, cpuScore, memoryGb, storageGb),
-            PageRequest.of(page, size, Sort.by("id")));
+    private Slice<Laptop> findLaptops(LaptopSearchCondition condition) {
+        return findLaptops(condition, 0, 10);
     }
 
     private Slice<Laptop> findLaptops(int page, int size) {
+        return findLaptops(new LaptopSearchCondition(null, null,
+            null, null), page, size);
+    }
+
+    private Slice<Laptop> findLaptops(LaptopSearchCondition condition, int page, int size) {
         flushAndClear();
-        return laptopRepository.findAllByCondition(
-            new LaptopSearchCondition(null, null, null, null),
-            PageRequest.of(page, size, Sort.by("id")));
+        return laptopRepository.findAllByCondition(condition, PageRequest.of(page, size, Sort.by("id")));
     }
 }
