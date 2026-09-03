@@ -37,7 +37,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
 
         // when
         Slice<LaptopSummaryResponse> found = findLaptops(new LaptopSearchCondition(Os.MAC, null,
-            null, null, null, null));
+            null, null, null, null, null, null));
 
         // then
         assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("맥");
@@ -52,7 +52,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
 
         // when
         Slice<LaptopSummaryResponse> found = findLaptops(new LaptopSearchCondition(null,
-            10000, null, null, null, null));
+            10000, null, null, null, null, null, null));
 
         // then
         assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("중간", "높음");
@@ -67,7 +67,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
 
         // when
         Slice<LaptopSummaryResponse> found = findLaptops(new LaptopSearchCondition(null,
-            null, null, null, keyword, null));
+            null, null, null, keyword, null, null, null));
 
         // then
         assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("gram 프로 16");
@@ -81,7 +81,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
 
         // when
         Slice<LaptopSummaryResponse> found = findLaptops(new LaptopSearchCondition(null,
-            null, null, null, "   ", null));
+            null, null, null, "   ", null, null, null));
 
         // then
         assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("A", "B");
@@ -95,10 +95,73 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
 
         // when
         Slice<LaptopSummaryResponse> found = findLaptops(new LaptopSearchCondition(null,
-            null, null, null, null, "LG"));
+            null, null, null, null, "LG", null, null));
 
         // then
         assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("그램");
+    }
+
+    @Test
+    void 최소_가격을_지정할_때_조회하면_최저가가_그_이상인_것만_반환한다() {
+        // given
+        offer().product(laptop().name("싼것").save()).price(1_000_000L).save();
+        offer().product(laptop().name("같은것").save()).price(2_000_000L).save();
+        offer().product(laptop().name("비싼것").save()).price(3_000_000L).save();
+
+        // when
+        Slice<LaptopSummaryResponse> found = findLaptops(
+            new LaptopSearchCondition(null, null, null, null, null, null, 2_000_000L, null));
+
+        // then
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name)
+            .containsExactly("같은것", "비싼것");
+    }
+
+    @Test
+    void 최대_가격을_지정할_때_조회하면_최저가가_그_이하인_것만_반환한다() {
+        // given
+        offer().product(laptop().name("싼것").save()).price(1_000_000L).save();
+        offer().product(laptop().name("같은것").save()).price(2_000_000L).save();
+        offer().product(laptop().name("비싼것").save()).price(3_000_000L).save();
+
+        // when
+        Slice<LaptopSummaryResponse> found = findLaptops(
+            new LaptopSearchCondition(null, null, null, null, null, null, null, 2_000_000L));
+
+        // then
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name)
+            .containsExactly("싼것", "같은것");
+    }
+
+    @Test
+    void 가격_범위를_지정할_때_조회하면_그_사이만_반환한다() {
+        // given
+        offer().product(laptop().name("아래").save()).price(1_000_000L).save();
+        offer().product(laptop().name("안").save()).price(2_000_000L).save();
+        offer().product(laptop().name("위").save()).price(3_000_000L).save();
+
+        // when
+        Slice<LaptopSummaryResponse> found = findLaptops(
+            new LaptopSearchCondition(null, null, null, null, null, null, 1_500_000L, 2_500_000L));
+
+        // then
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("안");
+    }
+
+    @Test
+    void 가격_조건은_판매_중인_오퍼의_최저가를_기준으로_한다() {
+        // given
+        Laptop laptop = laptop().name("노트북").save();
+        offer().product(laptop).price(3_000_000L).status(OfferStatus.ON_SALE).save();
+        offer().product(laptop).price(2_000_000L).status(OfferStatus.ON_SALE).save();
+        offer().product(laptop).price(1_000_000L).status(OfferStatus.SOLD_OUT).save();
+
+        // when
+        Slice<LaptopSummaryResponse> found = findLaptops(
+            new LaptopSearchCondition(null, null, null, null, null, null, null, 1_500_000L));
+
+        // then
+        assertThat(found.getContent()).isEmpty();
     }
 
     @Test
@@ -117,7 +180,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
 
         // when
         Slice<LaptopSummaryResponse> found = findLaptops(
-            new LaptopSearchCondition(Os.MAC, 10000, 16, 512, "그램", "LG"));
+            new LaptopSearchCondition(Os.MAC, 10000, 16, 512, "그램", "LG", null, null));
 
         // then
         assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("그램 16");
@@ -147,7 +210,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
         offer().product(laptop().name("유일").save()).save();
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(new LaptopSearchCondition(Os.MAC, null, null, null, null, null));
+        Slice<LaptopSummaryResponse> found = findLaptops(new LaptopSearchCondition(Os.MAC, null, null, null, null, null, null, null));
 
         // then
         assertThat(found.getContent()).isEmpty();
@@ -190,7 +253,7 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
 
     private Slice<LaptopSummaryResponse> findLaptops(int page, int size) {
         return findLaptops(new LaptopSearchCondition(null, null,
-            null, null, null, null), page, size);
+            null, null, null, null, null, null), page, size);
     }
 
     private Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, int page, int size) {

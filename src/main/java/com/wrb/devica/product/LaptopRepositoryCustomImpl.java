@@ -53,6 +53,10 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
                 brandEq(condition.brand())
             )
             .groupBy(laptop.id, cpu.id)
+            .having(
+                minPriceGoe(condition.minPrice()),
+                minPriceLoe(condition.maxPrice())
+            )
             .orderBy(laptop.id.asc())
             .offset(pageable.getOffset())
             .limit(pageSize + 1L)
@@ -60,6 +64,20 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
 
         boolean hasNext = found.size() > pageSize;
         return new SliceImpl<>(hasNext ? found.subList(0, pageSize) : found, pageable, hasNext);
+    }
+
+    private BooleanExpression minPriceGoe(Long minPrice) {
+        if (minPrice == null) {
+            return null;
+        }
+        return productOffer.price.min().goe(minPrice);
+    }
+
+    private BooleanExpression minPriceLoe(Long maxPrice) {
+        if (maxPrice == null) {
+            return null;
+        }
+        return productOffer.price.min().loe(maxPrice);
     }
 
     private BooleanExpression keywordContains(String keyword) {
