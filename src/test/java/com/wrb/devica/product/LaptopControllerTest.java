@@ -1,8 +1,10 @@
 package com.wrb.devica.product;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willReturn;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.PageRequest;
@@ -96,11 +99,25 @@ class LaptopControllerTest {
             "page=0&size=1",
             "size=100",
             "os=",
-            "os=MAC&cpuScore=15000&memoryGb=16&storageGb=512&page=2&size=50"
+            "keyword=&brand=",
+            "page=2&size=50"
     })
     void 유효한_파라미터일_때_목록을_조회하면_200을_반환한다(String query) throws Exception {
         mockMvc.perform(get(PATH + "?" + query))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void 검색어를_비워서_조회하면_빈_문자열로_전달된다() throws Exception {
+        //given
+        ArgumentCaptor<LaptopSearchCondition> captor = ArgumentCaptor.forClass(LaptopSearchCondition.class);
+
+        //when
+        mockMvc.perform(get(PATH + "?keyword=")).andExpect(status().isOk());
+
+        //then
+        then(laptopService).should().findLaptops(captor.capture(), anyInt(), anyInt());
+        assertThat(captor.getValue().keyword()).isEmpty();
     }
 
     @ParameterizedTest

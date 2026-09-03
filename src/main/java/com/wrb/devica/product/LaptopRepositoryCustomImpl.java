@@ -12,6 +12,7 @@ import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
+import org.springframework.util.StringUtils;
 
 public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
 
@@ -33,7 +34,9 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
                 osEq(condition.os()),
                 cpuScoreGoe(condition.cpuScore()),
                 memoryGbGoe(condition.memoryGb()),
-                storageGbGoe(condition.storageGb())
+                storageGbGoe(condition.storageGb()),
+                keywordContains(condition.keyword()),
+                brandEq(condition.brand())
             )
             .orderBy(laptop.id.asc())
             .offset(pageable.getOffset())
@@ -52,6 +55,21 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
                 productOffer.status.eq(OfferStatus.ON_SALE)
             )
             .exists();
+    }
+
+    private BooleanExpression keywordContains(String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return null;
+        }
+        return laptop.brand.containsIgnoreCase(keyword)
+            .or(laptop.name.containsIgnoreCase(keyword));
+    }
+
+    private BooleanExpression brandEq(String brand) {
+        if (!StringUtils.hasText(brand)) {
+            return null;
+        }
+        return laptop.brand.eq(brand);
     }
 
     private BooleanExpression osEq(Os os) {

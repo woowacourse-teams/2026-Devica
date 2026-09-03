@@ -144,6 +144,6 @@ class LaptopServiceTest extends LaptopJpaTestSupport {
     private Slice<LaptopSummaryResponse> findLaptops() {
         flushAndClear();
         return laptopService.findLaptops(
-            new LaptopSearchCondition(null, null, null, null), 0, 10);
+            new LaptopSearchCondition(null, null, null, null, null, null), 0, 10);
     }
 }
