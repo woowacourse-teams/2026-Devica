@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS usage_purpose
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 
+<<<<<<< HEAD
 CREATE TABLE IF NOT EXISTS cpu
 (
     id           BIGINT       NOT NULL AUTO_INCREMENT,
@@ -82,5 +83,33 @@ CREATE TABLE IF NOT EXISTS product_offer
     KEY idx_product_offer_product_status_price (product_id, status, price),
     CONSTRAINT fk_product_offer_product
         FOREIGN KEY (product_id) REFERENCES product (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE IF NOT EXISTS question
+(
+    id               BIGINT       NOT NULL AUTO_INCREMENT,
+    usage_purpose_id BIGINT       NOT NULL,
+    code             VARCHAR(255) NOT NULL,
+    title            VARCHAR(256) NOT NULL,
+    description      VARCHAR(512) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_question_purpose_code (usage_purpose_id, code),
+    CONSTRAINT fk_question_usage_purpose
+        FOREIGN KEY (usage_purpose_id) REFERENCES usage_purpose (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE IF NOT EXISTS question_option
+(
+    id          BIGINT       NOT NULL AUTO_INCREMENT,
+    question_id BIGINT       NOT NULL,
+    code        VARCHAR(64)  NOT NULL,
+    content     VARCHAR(128) NOT NULL,
+    description VARCHAR(256) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_question_option_question_code (question_id, code),
+    CONSTRAINT fk_question_option_question
+        FOREIGN KEY (question_id) REFERENCES question (id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
