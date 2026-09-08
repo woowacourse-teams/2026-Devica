@@ -10,9 +10,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 사용 목적별 노트북 권장 사양 및 근거를 관리한다.
+ * 사용 목적만으로 정해지는 노트북 기본 권장 사양과 근거를 관리한다.
+ * 사용자의 답변으로 조정되기 전의 기본안이다.
  */
-public enum LaptopRecommendation {
+public enum DefaultLaptopRecommendation {
 
     BACKEND_DEVELOPMENT(UsagePurposeCode.BACKEND_DEVELOPMENT, List.of(
         new RecommendedSpec(
@@ -33,7 +34,7 @@ public enum LaptopRecommendation {
     private final UsagePurposeCode purpose;
     private final List<RecommendedSpec> recommendedSpecs;
 
-    LaptopRecommendation(UsagePurposeCode purpose, List<RecommendedSpec> recommendedSpecs) {
+    DefaultLaptopRecommendation(UsagePurposeCode purpose, List<RecommendedSpec> recommendedSpecs) {
         this.purpose = purpose;
         this.recommendedSpecs = recommendedSpecs;
     }
