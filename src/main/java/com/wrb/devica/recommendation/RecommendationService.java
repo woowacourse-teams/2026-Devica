@@ -9,6 +9,6 @@ public class RecommendationService {
 
     public List<RecommendedSpec> findByPurposeCode(String purposeCode) {
         UsagePurposeCode purpose = UsagePurposeCode.from(purposeCode);
-        return LaptopRecommendation.findByPurpose(purpose);
+        return DefaultLaptopRecommendation.findByPurpose(purpose);
     }
 }
