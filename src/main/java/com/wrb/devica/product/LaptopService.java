@@ -21,7 +21,7 @@ public class LaptopService {
     private final ProductOfferRepository productOfferRepository;
 
     public Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, int page, int size) {
-        return laptopRepository.findAllByCondition(
+        return laptopRepository.findOnSaleSummariesWithMinPriceByCondition(
             condition,
             PageRequest.of(page, size, DEFAULT_SORT)
         );

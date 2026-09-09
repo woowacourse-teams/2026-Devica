@@ -258,6 +258,6 @@ class LaptopRepositoryTest extends LaptopJpaTestSupport {
 
     private Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, int page, int size) {
         flushAndClear();
-        return laptopRepository.findAllByCondition(condition, PageRequest.of(page, size, Sort.by("id")));
+        return laptopRepository.findOnSaleSummariesWithMinPriceByCondition(condition, PageRequest.of(page, size, Sort.by("id")));
     }
 }
