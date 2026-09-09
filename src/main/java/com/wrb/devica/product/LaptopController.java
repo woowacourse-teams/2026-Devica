@@ -29,7 +29,7 @@ public class LaptopController {
         @Max(value = 100, message = "페이지 크기는 100 이하여야 합니다.") int size
     ) {
         Slice<LaptopSummaryResponse> laptopSlice = laptopService.findLaptops(condition, page, size);
-        LaptopListResponse laptopListResponse = LaptopListResponse.of(laptopSlice);
+        LaptopListResponse laptopListResponse = LaptopListResponse.from(laptopSlice);
         return ResponseEntity.ok().body(laptopListResponse);
     }
 
