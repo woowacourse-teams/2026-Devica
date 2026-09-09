@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.wrb.devica.category.ProductCategory;
 import com.wrb.devica.category.ProductCategoryCode;
+import com.wrb.devica.category.ProductCategoryRepository;
 import com.wrb.devica.common.E2ETest;
 import com.wrb.devica.fixture.CpuFixture;
 import com.wrb.devica.fixture.LaptopFixture;
@@ -14,18 +15,30 @@ import com.wrb.devica.fixture.ProductOfferFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Import;
 
 class LaptopE2ETest extends E2ETest {
 
     private static final String PATH = "/api/laptops";
+
+    @Autowired
+    private ProductCategoryRepository productCategoryRepository;
+
+    @Autowired
+    private CpuRepository cpuRepository;
+
+    @Autowired
+    private LaptopRepository laptopRepository;
+
+    @Autowired
+    private ProductOfferRepository productOfferRepository;
+
     private ProductCategory category;
 
     private Cpu cpu;
 
     @BeforeEach
     void setUpCategory() {
-        category = saveWithTransaction(() -> saver.save(ProductCategory.from(ProductCategoryCode.LAPTOP)));
+        category = productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP));
         cpu = saveCpu();
     }
 
@@ -33,20 +46,16 @@ class LaptopE2ETest extends E2ETest {
     @Test
     void 노트북_목록을_조회하면_사양과_최저가를_함께_받는다() {
         // given
-        saveWithTransaction(() -> {
-            Laptop saved = saver.save(LaptopFixture.laptop().category(category)
-                .brand("LG")
-                .name("gram Pro 16")
-                .cpu(saver.save(CpuFixture.cpu().name("Intel Core Ultra 7 255H").coreCount(16).score(20000).build()))
-                .memoryGb(32)
-                .storageGb(1024)
-                .build());
+        Laptop saved = laptopRepository.save(LaptopFixture.laptop().category(category)
+            .brand("LG")
+            .name("gram Pro 16")
+            .cpu(cpuRepository.save(CpuFixture.cpu().name("Intel Core Ultra 7 255H").coreCount(16).score(20000).build()))
+            .memoryGb(32)
+            .storageGb(1024)
+            .build());
 
-            addOnSaleOffer(saved, 2_990_000L);
-            addOnSaleOffer(saved, 2_850_000L);
-
-            return saved;
-        });
+        addOnSaleOffer(saved, 2_990_000L);
+        addOnSaleOffer(saved, 2_850_000L);
 
         // when & then
         given()
@@ -61,21 +70,17 @@ class LaptopE2ETest extends E2ETest {
     // UC-07/UC-08: 검색어와 가격·사양·OS·브랜드 조건을 적용할 수 있고, 조건을 지정하면 조건을 만족하는 제품만 반환한다
     @Test
     void 조건을_지정하면_전부_만족하는_노트북만_받는다() {
-        saveWithTransaction(() -> {
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("대상 프로").build()), 2_500_000L);
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("대상 프로").build()), 2_500_000L);
 
-            // 조건을 하나씩만 어긋나게 둔다
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("os 프로").os(Os.MAC).build()), 2_500_000L);
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("cpu 프로").cpu(saver.save(CpuFixture.cpu().score(5000).build())).build()), 2_500_000L);
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("메모리 프로").memoryGb(8).build()), 2_500_000L);
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("저장장치 프로").storageGb(256).build()), 2_500_000L);
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("싼 프로").build()), 900_000L);
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("비싼 프로").build()), 5_000_000L);
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("Apple").name("브랜드 프로").build()), 2_500_000L);
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("검색어 불일치").build()), 2_500_000L);
-
-            return null;
-        });
+        // 조건을 하나씩만 어긋나게 둔다
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("os 프로").os(Os.MAC).build()), 2_500_000L);
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("cpu 프로").cpu(cpuRepository.save(CpuFixture.cpu().score(5000).build())).build()), 2_500_000L);
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("메모리 프로").memoryGb(8).build()), 2_500_000L);
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("저장장치 프로").storageGb(256).build()), 2_500_000L);
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("싼 프로").build()), 900_000L);
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("비싼 프로").build()), 5_000_000L);
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("Apple").name("브랜드 프로").build()), 2_500_000L);
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("검색어 불일치").build()), 2_500_000L);
 
         // when & then
         given()
@@ -97,13 +102,9 @@ class LaptopE2ETest extends E2ETest {
     @Test
     void 페이지를_넘기면_이어지는_노트북과_다음_페이지_여부를_받는다() {
         // given
-        saveWithTransaction(() -> {
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).name("첫째").build()), 1_000_000L);
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).name("둘째").build()), 1_000_000L);
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).name("셋째").build()), 1_000_000L);
-
-            return null;
-        });
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).name("첫째").build()), 1_000_000L);
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).name("둘째").build()), 1_000_000L);
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).name("셋째").build()), 1_000_000L);
 
         // when & then
         given()
@@ -126,12 +127,8 @@ class LaptopE2ETest extends E2ETest {
     @Test
     void 조건을_빼면_다시_전체를_받는다() {
         // given
-        saveWithTransaction(() -> {
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("그램").build()), 2_850_000L);
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("Apple").name("맥북").build()), 1_890_000L);
-
-            return null;
-        });
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("LG").name("그램").build()), 2_850_000L);
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).brand("Apple").name("맥북").build()), 1_890_000L);
 
         // when & then
         given()
@@ -150,11 +147,7 @@ class LaptopE2ETest extends E2ETest {
     @Test
     void 조건에_맞는_노트북이_없으면_빈_목록을_받는다() {
         // given
-        saveWithTransaction(() -> {
-            addOnSaleOffer(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).name("그램").build()), 2_850_000L);
-
-            return null;
-        });
+        addOnSaleOffer(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).name("그램").build()), 2_850_000L);
 
         // when & then
         given()
@@ -169,17 +162,13 @@ class LaptopE2ETest extends E2ETest {
     @Test
     void 살_수_없는_노트북은_목록에_나오지_않는다() {
         // given
-        saveWithTransaction(() -> {
-            saver.save(ProductOfferFixture.판매_중_오퍼(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).name("판매중").build())));
+        productOfferRepository.save(ProductOfferFixture.판매_중_오퍼(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).name("판매중").build())));
 
-            saver.save(LaptopFixture.laptop().category(category).cpu(cpu).name("오퍼없음").build());
+        laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).name("오퍼없음").build());
 
-            saver.save(ProductOfferFixture.offer()
-                .product(saver.save(LaptopFixture.laptop().category(category).cpu(cpu).name("품절").build()))
-                .status(OfferStatus.SOLD_OUT).build());
-
-            return null;
-        });
+        productOfferRepository.save(ProductOfferFixture.offer()
+            .product(laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).name("품절").build()))
+            .status(OfferStatus.SOLD_OUT).build());
 
         // when & then
         given()
@@ -193,24 +182,20 @@ class LaptopE2ETest extends E2ETest {
     @Test
     void 상세를_조회하면_판매_중인_판매처를_싼_순으로_받는다() {
         // given
-        Laptop laptop = saveWithTransaction(() -> {
-            Laptop saved = saver.save(LaptopFixture.laptop().category(category)
-                .brand("LG")
-                .name("gram Pro 16")
-                .cpu(saver.save(CpuFixture.cpu().name("Intel Core Ultra 7 255H").coreCount(16).score(20000).build()))
-                .memoryGb(32)
-                .storageGb(1024)
-                .build());
+        Laptop laptop = laptopRepository.save(LaptopFixture.laptop().category(category)
+            .brand("LG")
+            .name("gram Pro 16")
+            .cpu(cpuRepository.save(CpuFixture.cpu().name("Intel Core Ultra 7 255H").coreCount(16).score(20000).build()))
+            .memoryGb(32)
+            .storageGb(1024)
+            .build());
 
-            saver.save(ProductOfferFixture.판매_중_오퍼(saved, 2_990_000L));
-            saver.save(ProductOfferFixture.판매_중_오퍼(saved, 2_850_000L));
-            saver.save(ProductOfferFixture.offer()
-                .product(saved)
-                .price(2_500_000L).status(OfferStatus.SOLD_OUT)
-                .build());
-
-            return saved;
-        });
+        productOfferRepository.save(ProductOfferFixture.판매_중_오퍼(laptop, 2_990_000L));
+        productOfferRepository.save(ProductOfferFixture.판매_중_오퍼(laptop, 2_850_000L));
+        productOfferRepository.save(ProductOfferFixture.offer()
+            .product(laptop)
+            .price(2_500_000L).status(OfferStatus.SOLD_OUT)
+            .build());
 
         // when & then
         given()
@@ -225,12 +210,8 @@ class LaptopE2ETest extends E2ETest {
     @Test
     void 살_수_없는_노트북의_상세는_없는_노트북과_똑같이_응답한다() {
         // given
-        Laptop soldOut = saveWithTransaction(() -> {
-            Laptop saved = saver.save(LaptopFixture.laptop().category(category).cpu(cpu).name("판매종료").build());
-            saver.save(ProductOfferFixture.offer().product(saved).status(OfferStatus.DISCONTINUED).build());
-
-            return saved;
-        });
+        Laptop soldOut = laptopRepository.save(LaptopFixture.laptop().category(category).cpu(cpu).name("판매종료").build());
+        productOfferRepository.save(ProductOfferFixture.offer().product(soldOut).status(OfferStatus.DISCONTINUED).build());
 
         // when
         String notSelling = get404(PATH + "/" + soldOut.getId());
@@ -242,7 +223,7 @@ class LaptopE2ETest extends E2ETest {
     }
 
     private void addOnSaleOffer(Product product, long price) {
-        saver.save(ProductOfferFixture.판매_중_오퍼(product, price));
+        productOfferRepository.save(ProductOfferFixture.판매_중_오퍼(product, price));
     }
 
     private String get404(String path) {
@@ -253,6 +234,6 @@ class LaptopE2ETest extends E2ETest {
     }
 
     private Cpu saveCpu() {
-        return saveWithTransaction(() -> saver.save(CpuFixture.cpu().build()));
+        return cpuRepository.save(CpuFixture.cpu().build());
     }
 }
