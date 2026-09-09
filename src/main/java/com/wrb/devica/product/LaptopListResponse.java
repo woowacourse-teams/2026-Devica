@@ -9,7 +9,7 @@ public record LaptopListResponse(
         int size,
         boolean hasNext
 ) {
-    public static LaptopListResponse of(Slice<LaptopSummaryResponse> laptopSlice) {
+    public static LaptopListResponse from(Slice<LaptopSummaryResponse> laptopSlice) {
         return new LaptopListResponse(
             laptopSlice.getContent(),
             laptopSlice.getPageable().getPageNumber(),
