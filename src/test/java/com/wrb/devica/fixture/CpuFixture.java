@@ -10,7 +10,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class CpuFixture {
 
-    @Builder(builderMethodName = "cpu")
+    public static CpuBuilder cpu() {
+        return builder();
+    }
+
+    @Builder
     private static Cpu cpuBuilder(String manufacturer, String name, Integer coreCount, Integer score) {
         int targetScore = requireNonNullElse(score, 10000);
 
