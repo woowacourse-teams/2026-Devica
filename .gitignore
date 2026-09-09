@@ -18,3 +18,7 @@ Thumbs.db
 
 # 운영 환경 비밀값 (절대 커밋 금지)
 *.env
+
+# Claude Code (개인 설정, 커밋하지 않는다)
+CLAUDE.md
+.claude/
