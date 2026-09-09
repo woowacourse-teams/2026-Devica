@@ -63,7 +63,12 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             .fetch();
 
         boolean hasNext = found.size() > pageSize;
-        return new SliceImpl<>(hasNext ? found.subList(0, pageSize) : found, pageable, hasNext);
+
+        if (hasNext) {
+            found = found.subList(0, pageSize);
+        }
+
+        return new SliceImpl<>(found, pageable, hasNext);
     }
 
     private BooleanExpression minPriceGoe(Long minPrice) {
