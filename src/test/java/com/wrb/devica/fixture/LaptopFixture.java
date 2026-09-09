@@ -16,8 +16,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class LaptopFixture {
 
-    @Builder(builderMethodName = "laptop")
-    private static Laptop laptopBuilder(ProductCategory category, String brand, String name, String code,
+    public static LaptopBuilder laptop() {
+        return builder();
+    }
+
+    @Builder
+    public static Laptop laptopBuilder(ProductCategory category, String brand, String name, String code,
                                         Os os, Cpu cpu, Integer memoryGb, Integer storageGb,
                                         BigDecimal screenSizeInch, Integer weightG) {
         requireNonNull(category, "노트북은 카테고리가 있어야 한다. laptop().category(...) 로 지정한다");
