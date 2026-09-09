@@ -1,5 +1,6 @@
 package com.wrb.devica.common;
 
+import com.wrb.devica.fixture.FixtureSaver;
 import io.restassured.RestAssured;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterEach;
@@ -11,7 +12,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Import(DatabaseCleaner.class)
+@Import({DatabaseCleaner.class, FixtureSaver.class})
 public abstract class E2ETest {
 
     @LocalServerPort
@@ -22,6 +23,9 @@ public abstract class E2ETest {
 
     @Autowired
     private DatabaseCleaner databaseCleaner;
+
+    @Autowired
+    protected FixtureSaver saver;
 
     @BeforeEach
     void setUpPortAndData() {
