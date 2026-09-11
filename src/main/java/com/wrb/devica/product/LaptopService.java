@@ -22,7 +22,7 @@ public class LaptopService {
     private final ProductOfferRepository productOfferRepository;
 
     public Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, LaptopPageCondition pageCondition) {
-        return laptopRepository.findOnSaleSummariesWithMinPriceByCondition(
+        return laptopRepository.findSummariesWithMinPriceByCondition(
             condition,
             PageRequest.of(pageCondition.page(), pageCondition.size(), DEFAULT_SORT)
         );

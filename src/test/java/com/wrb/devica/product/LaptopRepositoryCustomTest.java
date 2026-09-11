@@ -6,6 +6,7 @@ import static com.wrb.devica.fixture.LaptopSearchConditionFixture.condition;
 import static com.wrb.devica.fixture.ProductOfferFixture.offer;
 import static com.wrb.devica.fixture.ProductOfferFixture.onSaleOffer;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.wrb.devica.category.ProductCategory;
 import com.wrb.devica.category.ProductCategoryCode;
@@ -259,7 +260,7 @@ class LaptopRepositoryCustomTest {
     }
 
     @Test
-    void 판매_중인_오퍼가_없을_때_조회하면_결과에서_제외된다() {
+    void 판매_중인_오퍼가_없어도_조회하고_최저가는_비워둔다() {
         // given
         onSaleLaptop(laptop().name("판매중"));
         laptopOf(laptop().name("오퍼없음"));
@@ -269,6 +270,26 @@ class LaptopRepositoryCustomTest {
 
         // when
         Slice<LaptopSummaryResponse> found = findLaptops(0, 10);
+
+        // then
+        assertThat(found.getContent())
+            .extracting(LaptopSummaryResponse::name, LaptopSummaryResponse::minPrice)
+            .containsExactly(
+                tuple("판매중", DEFAULT_PRICE),
+                tuple("오퍼없음", null),
+                tuple("품절", null)
+            );
+    }
+
+    @Test
+    void 가격_조건을_지정할_때_조회하면_최저가가_없는_노트북은_제외한다() {
+        // given
+        onSaleLaptop(laptop().name("판매중"), 1_000_000L);
+        laptopOf(laptop().name("오퍼없음"));
+
+        // when
+        Slice<LaptopSummaryResponse> found = findLaptops(
+            condition().minPrice(0L).build());
 
         // then
         assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("판매중");
@@ -285,7 +306,7 @@ class LaptopRepositoryCustomTest {
     private Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, int page, int size) {
         entityManager.flush();
         entityManager.clear();
-        return laptopRepository.findOnSaleSummariesWithMinPriceByCondition(condition, PageRequest.of(page, size, Sort.by("id")));
+        return laptopRepository.findSummariesWithMinPriceByCondition(condition, PageRequest.of(page, size, Sort.by("id")));
     }
 
     private Cpu saveCpu() {

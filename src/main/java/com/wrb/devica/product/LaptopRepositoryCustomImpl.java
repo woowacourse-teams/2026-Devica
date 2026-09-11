@@ -22,7 +22,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
     }
 
     @Override
-    public Slice<LaptopSummaryResponse> findOnSaleSummariesWithMinPriceByCondition(LaptopSearchCondition condition, Pageable pageable) {
+    public Slice<LaptopSummaryResponse> findSummariesWithMinPriceByCondition(LaptopSearchCondition condition, Pageable pageable) {
         int pageSize = pageable.getPageSize();
 
         List<LaptopSummaryResponse> found = queryFactory
@@ -40,7 +40,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             ))
             .from(laptop)
             .join(laptop.cpu, cpu)
-            .join(productOffer).on(
+            .leftJoin(productOffer).on(
                 productOffer.product.id.eq(laptop.id),
                 productOffer.status.eq(OfferStatus.ON_SALE)
             )
