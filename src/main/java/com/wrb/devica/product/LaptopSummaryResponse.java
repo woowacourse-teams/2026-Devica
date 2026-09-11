@@ -7,7 +7,7 @@ public record LaptopSummaryResponse(
         Long id,
         String brand,
         String name,
-        long minPrice,
+        Long minPrice,
         Os os,
         String cpuName,
         int cpuCoreCount,

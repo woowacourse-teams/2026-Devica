@@ -159,9 +159,9 @@ class LaptopE2ETest extends E2ETest {
             .body("hasNext", is(false));
     }
 
-    // UC-07: 살 수 없는 제품은 목록에 넣지 않는다
+    // UC-07: 판매 중인 구매처가 없는 제품도 목록에 넣고 가격은 비워둔다
     @Test
-    void 살_수_없는_노트북은_목록에_나오지_않는다() {
+    void 살_수_없는_노트북도_목록에_나오고_최저가는_비어_있다() {
         // given
         onSaleLaptop(laptop().name("판매중"));
 
@@ -175,8 +175,8 @@ class LaptopE2ETest extends E2ETest {
         given()
             .when().get(PATH)
             .then().statusCode(200)
-            .body("content.size()", is(1))
-            .body("content[0].name", is("판매중"));
+            .body("content.name", contains("판매중", "오퍼없음", "품절"))
+            .body("content.minPrice", contains(1_000_000, null, null));
     }
 
     // UC-11: 가격을 확인하고 외부 구매처로 이동할 수 있다
