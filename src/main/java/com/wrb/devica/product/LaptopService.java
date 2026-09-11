@@ -1,14 +1,16 @@
 package com.wrb.devica.product;
 
+import com.wrb.devica.common.BusinessErrorCode;
+import com.wrb.devica.common.BusinessException;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+@Transactional(readOnly = true)
 @RequiredArgsConstructor
 @Service
 public class LaptopService {
@@ -19,33 +21,21 @@ public class LaptopService {
     private final LaptopRepository laptopRepository;
     private final ProductOfferRepository productOfferRepository;
 
-    public Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, int page, int size) {
-        Slice<Laptop> laptops = laptopRepository.findAllByCondition(
+    public Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, LaptopPageCondition pageCondition) {
+        return laptopRepository.findSummariesWithMinPriceByCondition(
             condition,
-            PageRequest.of(page, size, DEFAULT_SORT)
-        );
-
-        Map<Long, Long> minPrices = findMinPrices(laptops.getContent());
-
-        return laptops.map(laptop ->
-            LaptopSummaryResponse.from(laptop, minPrices.get(laptop.getId()))
+            PageRequest.of(pageCondition.page(), pageCondition.size(), DEFAULT_SORT)
         );
     }
 
-    private Map<Long, Long> findMinPrices(List<Laptop> laptops) {
-        List<Long> productIds = laptops.stream()
-            .map(Laptop::getId).toList();
+    public LaptopDetailResponse findLaptopById(Long id) {
+        Laptop laptop = laptopRepository.findById(id)
+            .orElseThrow(() -> new BusinessException(BusinessErrorCode.LAPTOP_NOT_FOUND));
 
-        if (productIds.isEmpty()) {
-            return Map.of();
-        }
+        List<ProductOffer> offers = productOfferRepository
+            .findAllByProductIdAndStatusOrderByPriceAsc(id, OfferStatus.ON_SALE);
 
-        return productOfferRepository.findMinPrices(productIds, OfferStatus.ON_SALE).stream()
-            .collect(
-                Collectors.toMap(
-                    ProductMinPrice::productId,
-                    ProductMinPrice::minPrice
-                )
-            );
+        return LaptopDetailResponse.of(laptop, offers);
     }
+
 }
