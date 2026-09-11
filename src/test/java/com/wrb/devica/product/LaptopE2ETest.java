@@ -5,7 +5,6 @@ import static com.wrb.devica.fixture.LaptopFixture.laptop;
 import static com.wrb.devica.fixture.ProductOfferFixture.offer;
 import static com.wrb.devica.fixture.ProductOfferFixture.onSaleOffer;
 import static io.restassured.RestAssured.given;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
@@ -208,31 +207,8 @@ class LaptopE2ETest extends E2ETest {
             .body("offers[0].purchaseUrl", is("https://example.com/" + laptop.getCode()));
     }
 
-    // UC-11: 조회할 수 없는 제품은 목록으로 안내한다
-    @Test
-    void 살_수_없는_노트북의_상세는_없는_노트북과_똑같이_응답한다() {
-        // given
-        Laptop soldOut = laptopOf(laptop().name("판매종료"));
-        productOfferRepository.save(offer().product(soldOut).status(OfferStatus.DISCONTINUED).build());
-
-        // when
-        String notSelling = get404(PATH + "/" + soldOut.getId());
-        String notExisting = get404(PATH + "/999999");
-
-        // then
-        assertThat(notSelling).isEqualTo(notExisting);
-        assertThat(notSelling).contains("조회할 수 없는 노트북입니다.", "LAPTOP_NOT_FOUND");
-    }
-
     private void addOnSaleOffer(Product product, long price) {
         productOfferRepository.save(onSaleOffer(product, price));
-    }
-
-    private String get404(String path) {
-        return given()
-            .when().get(path)
-            .then().statusCode(404)
-            .extract().asString();
     }
 
     private Cpu saveCpu() {

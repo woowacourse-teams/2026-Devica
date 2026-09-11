@@ -171,17 +171,15 @@ class LaptopServiceTest {
     }
 
     @Test
-    void 판매_중인_오퍼가_없는_노트북의_상세를_조회하면_예외가_발생한다() {
+    void 판매_중인_판매처가_없어도_상세를_조회한다() {
         // given
-        Laptop laptop = laptopOf(laptop().name("판매종료"));
-        productOfferRepository.save(offer().product(laptop).price(900_000L).status(OfferStatus.DISCONTINUED).build());
+        Laptop laptop = laptopOf(laptop().name("판매처없음"));
 
+        // when
+        LaptopDetailResponse found = findLaptopById(laptop.getId());
 
-        // when & then
-        assertThatThrownBy(() -> findLaptopById(laptop.getId()))
-            .isInstanceOf(BusinessException.class)
-            .extracting(exception -> ((BusinessException) exception).getErrorCode())
-            .isEqualTo(BusinessErrorCode.LAPTOP_NOT_FOUND);
+        // then
+        assertThat(found.offers()).isEmpty();
     }
 
     private LaptopDetailResponse findLaptopById(Long id) {
