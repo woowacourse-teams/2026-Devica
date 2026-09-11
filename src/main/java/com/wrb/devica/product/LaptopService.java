@@ -21,10 +21,10 @@ public class LaptopService {
     private final LaptopRepository laptopRepository;
     private final ProductOfferRepository productOfferRepository;
 
-    public Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, int page, int size) {
+    public Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, LaptopPageCondition pageCondition) {
         return laptopRepository.findOnSaleSummariesWithMinPriceByCondition(
             condition,
-            PageRequest.of(page, size, DEFAULT_SORT)
+            PageRequest.of(pageCondition.page(), pageCondition.size(), DEFAULT_SORT)
         );
     }
 
