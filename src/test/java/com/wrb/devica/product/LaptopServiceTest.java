@@ -194,7 +194,7 @@ class LaptopServiceTest {
         entityManager.flush();
         entityManager.clear();
         return laptopService.findLaptops(
-            condition().build(), 0, 10);
+            condition().build(), new LaptopPageCondition(0, 10));
     }
 
     private Cpu saveCpu() {
