@@ -35,10 +35,6 @@ public class LaptopService {
         List<ProductOffer> offers = productOfferRepository
             .findAllByProductIdAndStatusOrderByPriceAsc(id, OfferStatus.ON_SALE);
 
-        if (offers.isEmpty()) {
-            throw new BusinessException(BusinessErrorCode.LAPTOP_NOT_FOUND);
-        }
-
         return LaptopDetailResponse.of(laptop, offers);
     }
 
