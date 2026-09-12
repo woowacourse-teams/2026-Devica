@@ -338,9 +338,40 @@ class LaptopRepositoryCustomTest {
         assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("판매중", "품절이더쌈");
     }
 
+    @Test
+    void 추천순으로_조회하면_사양_점수를_최저가로_나눈_값이_큰_순으로_반환한다() {
+        // given
+        // 사양 점수 1.02 ÷ 189만 ≒ 0.54
+        onSaleLaptop(laptop().name("싸고_사양_기준").memoryGb(16).storageGb(512), saveCpu(21_000), 1_890_000L);
+        // 사양 점수 1.68 ÷ 285만 ≒ 0.59
+        onSaleLaptop(laptop().name("비싸고_사양_높음").memoryGb(32).storageGb(1024), saveCpu(24_000), 2_850_000L);
+
+        // when
+        Slice<LaptopSummaryResponse> found = findLaptops(SortType.RECOMMENDED);
+
+        // then
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name)
+            .containsExactly("비싸고_사양_높음", "싸고_사양_기준");
+    }
+
+    @Test
+    void 추천순은_사양을_권장_사양의_2배까지만_점수에_반영한다() {
+        // given
+        // SSD 8배 → 2배로 잘려 사양 점수 1.2. 자르지 않으면 2.4 로 앞선다
+        onSaleLaptop(laptop().name("SSD만_큼").memoryGb(16).storageGb(4096), saveCpu(20_000), DEFAULT_PRICE);
+        // CPU 2배 → 사양 점수 1.4
+        onSaleLaptop(laptop().name("CPU_2배").memoryGb(16).storageGb(512), saveCpu(40_000), DEFAULT_PRICE);
+
+        // when
+        Slice<LaptopSummaryResponse> found = findLaptops(SortType.RECOMMENDED);
+
+        // then
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("CPU_2배", "SSD만_큼");
+    }
+
     @ParameterizedTest
-    @EnumSource(names = {"PRICE_ASC", "PRICE_DESC"})
-    void 가격순으로_조회할_때_최저가가_같으면_id_오름차순으로_반환한다(SortType sort) {
+    @EnumSource(SortType.class)
+    void 정렬_기준을_지정할_때_정렬_값이_같으면_id_오름차순으로_반환한다(SortType sort) {
         // given
         onSaleLaptop(laptop().name("먼저"), 1_000_000L);
         onSaleLaptop(laptop().name("나중"), 1_000_000L);
@@ -353,8 +384,8 @@ class LaptopRepositoryCustomTest {
     }
 
     @ParameterizedTest
-    @EnumSource(names = {"PRICE_ASC", "PRICE_DESC"})
-    void 가격순으로_조회하면_최저가가_없는_노트북은_맨_뒤에_둔다(SortType sort) {
+    @EnumSource(SortType.class)
+    void 정렬_기준을_지정하면_최저가가_없는_노트북은_맨_뒤에_둔다(SortType sort) {
         // given
         laptopOf(laptop().name("오퍼없음"));
         onSaleLaptop(laptop().name("판매중"), 1_000_000L);

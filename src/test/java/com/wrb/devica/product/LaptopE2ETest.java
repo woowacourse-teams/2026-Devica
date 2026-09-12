@@ -163,12 +163,20 @@ class LaptopE2ETest extends E2ETest {
     @Test
     void 정렬_기준을_고르면_조건을_유지한_채_그_순서대로_받는다() {
         // given
-        onSaleLaptop(laptop().brand("LG").name("비쌈"), 3_000_000L);
+        // 가성비: 쌈 0.8 ÷ 100만, 비쌈 2.0 ÷ 300만, 중간 0.8 ÷ 200만
+        onSaleLaptop(laptop().brand("LG").name("비쌈").memoryGb(32).storageGb(1024), saveCpu(40_000), 3_000_000L);
         onSaleLaptop(laptop().brand("LG").name("쌈"), 1_000_000L);
         onSaleLaptop(laptop().brand("LG").name("중간"), 2_000_000L);
         onSaleLaptop(laptop().brand("Apple").name("브랜드 불일치"), 500_000L);
 
         // when & then
+        given()
+            .queryParam("brand", "LG")
+            .queryParam("sort", "RECOMMENDED")
+            .when().get(PATH)
+            .then().statusCode(200)
+            .body("content.name", contains("쌈", "비쌈", "중간"));
+
         given()
             .queryParam("brand", "LG")
             .queryParam("sort", "PRICE_ASC")
