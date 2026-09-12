@@ -4,7 +4,6 @@ import static com.wrb.devica.fixture.CpuFixture.cpu;
 import static com.wrb.devica.fixture.LaptopFixture.laptop;
 import static com.wrb.devica.fixture.LaptopSearchConditionFixture.condition;
 import static com.wrb.devica.fixture.ProductOfferFixture.offer;
-import static com.wrb.devica.fixture.ProductOfferFixture.onSaleOffer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -28,7 +27,6 @@ import org.springframework.data.domain.Slice;
 @Import(ProductService.class)
 class ProductServiceTest {
 
-    private static final long DEFAULT_PRICE = 1_000_000L;
     private static final String PURPOSE = "BACKEND_DEVELOPMENT";
 
     @Autowired
@@ -172,30 +170,14 @@ class ProductServiceTest {
         entityManager.flush();
         entityManager.clear();
         return productService.findProducts(PURPOSE,
-            condition().build(), new LaptopPageCondition(0, 10));
+            condition().build(), new PageCondition(0, 10, null));
     }
 
     private Cpu saveCpu() {
         return cpuRepository.save(cpu().build());
     }
 
-    private Laptop onSaleLaptop(LaptopBuilder builder) {
-        return onSaleLaptop(builder, DEFAULT_PRICE);
-    }
-
-    private Laptop onSaleLaptop(LaptopBuilder builder, long price) {
-        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
-        productOfferRepository.save(onSaleOffer(laptop, price));
-        return laptop;
-    }
-
     private Laptop laptopOf(LaptopBuilder builder) {
         return laptopRepository.save(builder.category(category).cpu(cpu).build());
-    }
-
-    private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, long price) {
-        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
-        productOfferRepository.save(onSaleOffer(laptop, price));
-        return laptop;
     }
 }

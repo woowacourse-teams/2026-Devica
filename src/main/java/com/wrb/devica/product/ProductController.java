@@ -21,7 +21,7 @@ public class ProductController {
     public ResponseEntity<ProductListResponse> findProducts(
         @PathVariable String purposeCode,
         @Validated @ModelAttribute LaptopSearchCondition condition,
-        @Validated @ModelAttribute LaptopPageCondition pageCondition
+        @Validated @ModelAttribute PageCondition pageCondition
     ) {
         Slice<ProductSummaryResponse> productSlice = productService.findProducts(purposeCode,
             condition, pageCondition);

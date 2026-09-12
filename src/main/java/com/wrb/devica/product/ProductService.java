@@ -7,7 +7,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,30 +15,28 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ProductService {
 
-    // TODO: 목록은 id 오름차순으로 고정한다. 정렬 선택지는 UC-09 에서 추가된다.
-    private static final Sort DEFAULT_SORT = Sort.by("id");
-
     private final LaptopRepository laptopRepository;
     private final ProductOfferRepository productOfferRepository;
 
     public Slice<ProductSummaryResponse> findProducts(String purposeCode, LaptopSearchCondition condition,
-                                                      LaptopPageCondition pageCondition) {
+                                                      PageCondition pageCondition) {
         validatePurposeExists(purposeCode);
 
         return laptopRepository.findSummariesWithMinPriceByCondition(
             condition,
-            PageRequest.of(pageCondition.page(), pageCondition.size(), DEFAULT_SORT)
+            pageCondition.sort(),
+            PageRequest.of(pageCondition.page(), pageCondition.size())
         );
     }
 
-    public ProductDetailResponse findProductById(String purposeCode, Long id) {
+    public ProductDetailResponse findProductById(String purposeCode, Long productId) {
         validatePurposeExists(purposeCode);
 
-        Laptop laptop = laptopRepository.findById(id)
+        Laptop laptop = laptopRepository.findById(productId)
             .orElseThrow(() -> new BusinessException(BusinessErrorCode.LAPTOP_NOT_FOUND));
 
         List<ProductOffer> offers = productOfferRepository
-            .findAllByProductIdAndStatusOrderByPriceAsc(id, OfferStatus.ON_SALE);
+            .findAllByProductIdAndStatusOrderByPriceAsc(productId, OfferStatus.ON_SALE);
 
         return ProductDetailResponse.of(laptop, laptop.allSpecValues(), offers);
     }
