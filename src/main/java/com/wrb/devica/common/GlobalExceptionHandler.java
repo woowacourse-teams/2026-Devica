@@ -55,14 +55,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return toResponse(status, message);
     }
 
-    @Override
-    protected ResponseEntity<Object> handleExceptionInternal(
-        Exception exception, Object body, HttpHeaders headers,
-        HttpStatusCode status, WebRequest request) {
-        log.error("처리하지 못한 예외가 발생", exception);
-        return toResponse(status, "");
-    }
-
     private ResponseEntity<Object> toResponse(HttpStatusCode status, String message) {
         CommonErrorCode errorCode = CommonErrorCode.from(status);
 
@@ -71,5 +63,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         }
 
         return ResponseEntity.status(status).body(ErrorResponse.of(errorCode, message));
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleExceptionInternal(
+        Exception exception, Object body, HttpHeaders headers,
+        HttpStatusCode status, WebRequest request) {
+        log.error("처리하지 못한 예외가 발생", exception);
+        return ResponseEntity.status(status)
+            .body(ErrorResponse.from(CommonErrorCode.from(status)));
     }
 }
