@@ -4,7 +4,9 @@ import static com.wrb.devica.product.QCpu.cpu;
 import static com.wrb.devica.product.QLaptop.laptop;
 import static com.wrb.devica.product.QProductOffer.productOffer;
 
+import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import java.util.List;
@@ -22,7 +24,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
     }
 
     @Override
-    public Slice<LaptopSummaryResponse> findSummariesWithMinPriceByCondition(LaptopSearchCondition condition, Pageable pageable) {
+    public Slice<LaptopSummaryResponse> findSummariesWithMinPriceByCondition(LaptopSearchCondition condition, SortType sort, Pageable pageable) {
         int pageSize = pageable.getPageSize();
 
         List<LaptopSummaryResponse> found = queryFactory
@@ -57,7 +59,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
                 minPriceGoe(condition.minPrice()),
                 minPriceLoe(condition.maxPrice())
             )
-            .orderBy(laptop.id.asc())
+            .orderBy(orderBy(sort))
             .offset(pageable.getOffset())
             .limit(pageSize + 1L)
             .fetch();
@@ -69,6 +71,27 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
         }
 
         return new SliceImpl<>(found, pageable, hasNext);
+    }
+
+    private OrderSpecifier<?>[] orderBy(SortType sort) {
+        OrderSpecifier<?> sortOrder = sortOrder(sort);
+
+        if (sortOrder == null) {
+            return new OrderSpecifier<?>[]{laptop.id.asc()};
+        }
+        return new OrderSpecifier<?>[]{sortOrder, laptop.id.asc()};
+    }
+
+    private OrderSpecifier<?> sortOrder(SortType sort) {
+        if (sort == null) {
+            return null;
+        }
+
+        NumberExpression<Long> minPrice = productOffer.price.min();
+        return switch (sort) {
+            case PRICE_ASC -> minPrice.asc().nullsLast();
+            case PRICE_DESC -> minPrice.desc().nullsLast();
+        };
     }
 
     private BooleanExpression minPriceGoe(Long minPrice) {

@@ -20,7 +20,7 @@ public class LaptopController {
     @GetMapping
     public ResponseEntity<LaptopListResponse> findLaptops(
         @Validated @ModelAttribute LaptopSearchCondition condition,
-        @Validated @ModelAttribute LaptopPageCondition pageCondition
+        @Validated @ModelAttribute PageCondition pageCondition
     ) {
         Slice<LaptopSummaryResponse> laptopSlice = laptopService.findLaptops(condition, pageCondition);
         LaptopListResponse laptopListResponse = LaptopListResponse.from(laptopSlice);

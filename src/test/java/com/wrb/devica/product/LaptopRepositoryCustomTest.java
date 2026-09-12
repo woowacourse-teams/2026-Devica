@@ -18,11 +18,11 @@ import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.Sort;
 
 @JpaSliceTest
 class LaptopRepositoryCustomTest {
@@ -295,22 +295,75 @@ class LaptopRepositoryCustomTest {
         assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("판매중");
     }
 
-    private Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition) {
-        return findLaptops(condition, 0, 10);
+    @Test
+    void 가격_낮은_순으로_조회하면_최저가_오름차순으로_반환한다() {
+        // given
+        onSaleLaptop(laptop().name("비쌈"), 3_000_000L);
+        onSaleLaptop(laptop().name("쌈"), 1_000_000L);
+        onSaleLaptop(laptop().name("중간"), 2_000_000L);
+
+        // when
+        Slice<LaptopSummaryResponse> found = findLaptops(SortType.PRICE_ASC);
+
+        // then
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("쌈", "중간", "비쌈");
     }
 
-    private Slice<LaptopSummaryResponse> findLaptops(int page, int size) {
-        return findLaptops(condition().build(), page, size);
+    @Test
+    void 가격_높은_순으로_조회하면_최저가_내림차순으로_반환한다() {
+        // given
+        onSaleLaptop(laptop().name("쌈"), 1_000_000L);
+        onSaleLaptop(laptop().name("비쌈"), 3_000_000L);
+        onSaleLaptop(laptop().name("중간"), 2_000_000L);
+
+        // when
+        Slice<LaptopSummaryResponse> found = findLaptops(SortType.PRICE_DESC);
+
+        // then
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("비쌈", "중간", "쌈");
     }
 
-    private Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, int page, int size) {
-        entityManager.flush();
-        entityManager.clear();
-        return laptopRepository.findSummariesWithMinPriceByCondition(condition, PageRequest.of(page, size, Sort.by("id")));
+    @Test
+    void 가격순은_판매_중인_오퍼의_최저가를_기준으로_한다() {
+        // given
+        Laptop soldOutCheaper = laptopOf(laptop().name("품절이더쌈"));
+        productOfferRepository.save(offer().product(soldOutCheaper).price(3_000_000L).status(OfferStatus.ON_SALE).build());
+        productOfferRepository.save(offer().product(soldOutCheaper).price(500_000L).status(OfferStatus.SOLD_OUT).build());
+        onSaleLaptop(laptop().name("판매중"), 2_000_000L);
+
+        // when
+        Slice<LaptopSummaryResponse> found = findLaptops(SortType.PRICE_ASC);
+
+        // then
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("판매중", "품절이더쌈");
     }
 
-    private Cpu saveCpu() {
-        return cpuRepository.save(cpu().build());
+    @ParameterizedTest
+    @EnumSource(names = {"PRICE_ASC", "PRICE_DESC"})
+    void 가격순으로_조회할_때_최저가가_같으면_id_오름차순으로_반환한다(SortType sort) {
+        // given
+        onSaleLaptop(laptop().name("먼저"), 1_000_000L);
+        onSaleLaptop(laptop().name("나중"), 1_000_000L);
+
+        // when
+        Slice<LaptopSummaryResponse> found = findLaptops(sort);
+
+        // then
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("먼저", "나중");
+    }
+
+    @ParameterizedTest
+    @EnumSource(names = {"PRICE_ASC", "PRICE_DESC"})
+    void 가격순으로_조회하면_최저가가_없는_노트북은_맨_뒤에_둔다(SortType sort) {
+        // given
+        laptopOf(laptop().name("오퍼없음"));
+        onSaleLaptop(laptop().name("판매중"), 1_000_000L);
+
+        // when
+        Slice<LaptopSummaryResponse> found = findLaptops(sort);
+
+        // then
+        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("판매중", "오퍼없음");
     }
 
     private Laptop onSaleLaptop(LaptopBuilder builder) {
@@ -318,6 +371,10 @@ class LaptopRepositoryCustomTest {
     }
 
     private Laptop onSaleLaptop(LaptopBuilder builder, long price) {
+        return onSaleLaptop(builder, cpu, price);
+    }
+
+    private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, long price) {
         Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
         productOfferRepository.save(onSaleOffer(laptop, price));
         return laptop;
@@ -327,13 +384,34 @@ class LaptopRepositoryCustomTest {
         return laptopRepository.save(builder.category(category).cpu(cpu).build());
     }
 
-    private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, long price) {
-        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
-        productOfferRepository.save(onSaleOffer(laptop, price));
-        return laptop;
+    private Cpu saveCpu() {
+        return cpuRepository.save(cpu().build());
     }
 
     private Cpu saveCpu(int score) {
         return cpuRepository.save(cpu().score(score).build());
+    }
+
+    private Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition) {
+        return findLaptops(condition, 0, 10);
+    }
+
+    private Slice<LaptopSummaryResponse> findLaptops(int page, int size) {
+        return findLaptops(condition().build(), page, size);
+    }
+
+    private Slice<LaptopSummaryResponse> findLaptops(SortType sort) {
+        return findLaptops(condition().build(), sort, 0, 10);
+    }
+
+    private Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, int page, int size) {
+        return findLaptops(condition, null, page, size);
+    }
+
+    private Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, SortType sort,
+                                                     int page, int size) {
+        entityManager.flush();
+        entityManager.clear();
+        return laptopRepository.findSummariesWithMinPriceByCondition(condition, sort, PageRequest.of(page, size));
     }
 }
