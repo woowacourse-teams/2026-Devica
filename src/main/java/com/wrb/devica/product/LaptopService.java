@@ -6,7 +6,6 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,25 +14,23 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class LaptopService {
 
-    // TODO: 목록은 id 오름차순으로 고정한다. 정렬 선택지는 UC-09 에서 추가된다.
-    private static final Sort DEFAULT_SORT = Sort.by("id");
-
     private final LaptopRepository laptopRepository;
     private final ProductOfferRepository productOfferRepository;
 
-    public Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, LaptopPageCondition pageCondition) {
+    public Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, PageCondition pageCondition) {
         return laptopRepository.findSummariesWithMinPriceByCondition(
             condition,
-            PageRequest.of(pageCondition.page(), pageCondition.size(), DEFAULT_SORT)
+            pageCondition.sort(),
+            PageRequest.of(pageCondition.page(), pageCondition.size())
         );
     }
 
-    public LaptopDetailResponse findLaptopById(Long id) {
-        Laptop laptop = laptopRepository.findById(id)
+    public LaptopDetailResponse findLaptopById(Long productId) {
+        Laptop laptop = laptopRepository.findById(productId)
             .orElseThrow(() -> new BusinessException(BusinessErrorCode.LAPTOP_NOT_FOUND));
 
         List<ProductOffer> offers = productOfferRepository
-            .findAllByProductIdAndStatusOrderByPriceAsc(id, OfferStatus.ON_SALE);
+            .findAllByProductIdAndStatusOrderByPriceAsc(productId, OfferStatus.ON_SALE);
 
         return LaptopDetailResponse.of(laptop, offers);
     }

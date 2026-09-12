@@ -159,6 +159,54 @@ class LaptopE2ETest extends E2ETest {
             .body("hasNext", is(false));
     }
 
+    // UC-09: 추천순·가격 낮은 순·가격 높은 순으로 정렬한다. 검색 조건을 유지한 채 정렬된 목록을 표시한다.
+    @Test
+    void 정렬_기준을_고르면_조건을_유지한_채_그_순서대로_받는다() {
+        // given
+        // 가성비: 쌈 0.8 ÷ 100만, 비쌈 2.0 ÷ 300만, 중간 0.8 ÷ 200만
+        onSaleLaptop(laptop().brand("LG").name("비쌈").memoryGb(32).storageGb(1024), saveCpu(40_000), 3_000_000L);
+        onSaleLaptop(laptop().brand("LG").name("쌈"), 1_000_000L);
+        onSaleLaptop(laptop().brand("LG").name("중간"), 2_000_000L);
+        onSaleLaptop(laptop().brand("Apple").name("브랜드 불일치"), 500_000L);
+
+        // when & then
+        given()
+            .queryParam("brand", "LG")
+            .queryParam("sort", "RECOMMENDED")
+            .when().get(PATH)
+            .then().statusCode(200)
+            .body("content.name", contains("쌈", "비쌈", "중간"));
+
+        given()
+            .queryParam("brand", "LG")
+            .queryParam("sort", "PRICE_ASC")
+            .when().get(PATH)
+            .then().statusCode(200)
+            .body("content.name", contains("쌈", "중간", "비쌈"));
+
+        given()
+            .queryParam("brand", "LG")
+            .queryParam("sort", "PRICE_DESC")
+            .when().get(PATH)
+            .then().statusCode(200)
+            .body("content.name", contains("비쌈", "중간", "쌈"));
+    }
+
+    // UC-09: 정렬 기준을 고르지 않으면 추천순으로 정렬한다
+    @Test
+    void 정렬_기준을_고르지_않으면_추천순으로_받는다() {
+        // given
+        // 가성비: 비쌈 2.0 ÷ 300만, 쌈 0.8 ÷ 100만. id 순이면 비쌈이 앞선다
+        onSaleLaptop(laptop().name("비쌈").memoryGb(32).storageGb(1024), saveCpu(40_000), 3_000_000L);
+        onSaleLaptop(laptop().name("쌈"), 1_000_000L);
+
+        // when & then
+        given()
+            .when().get(PATH)
+            .then().statusCode(200)
+            .body("content.name", contains("쌈", "비쌈"));
+    }
+
     // UC-07: 판매 중인 구매처가 없는 제품도 목록에 넣고 가격은 비워둔다
     @Test
     void 살_수_없는_노트북도_목록에_나오고_최저가는_비어_있다() {
@@ -216,14 +264,12 @@ class LaptopE2ETest extends E2ETest {
     }
 
     private Laptop onSaleLaptop(LaptopBuilder builder) {
-        long defalutPrice =  1_000_000L;
-        return onSaleLaptop(builder, defalutPrice);
+        long defaultPrice = 1_000_000L;
+        return onSaleLaptop(builder, defaultPrice);
     }
 
     private Laptop onSaleLaptop(LaptopBuilder builder, long price) {
-        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
-        productOfferRepository.save(onSaleOffer(laptop, price));
-        return laptop;
+        return onSaleLaptop(builder, cpu, price);
     }
 
     private Laptop laptopOf(LaptopBuilder builder) {
