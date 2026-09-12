@@ -16,8 +16,11 @@ public record PageCondition(
 
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 20;
+    private static final SortType DEFAULT_SORT = SortType.RECOMMENDED;
+
     public PageCondition {
         page = Objects.requireNonNullElse(page, DEFAULT_PAGE);
         size = Objects.requireNonNullElse(size, DEFAULT_SIZE);
+        sort = Objects.requireNonNullElse(sort, DEFAULT_SORT);
     }
 }

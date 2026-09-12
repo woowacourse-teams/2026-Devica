@@ -192,6 +192,21 @@ class LaptopE2ETest extends E2ETest {
             .body("content.name", contains("비쌈", "중간", "쌈"));
     }
 
+    // UC-09: 정렬 기준을 고르지 않으면 추천순으로 정렬한다
+    @Test
+    void 정렬_기준을_고르지_않으면_추천순으로_받는다() {
+        // given
+        // 가성비: 비쌈 2.0 ÷ 300만, 쌈 0.8 ÷ 100만. id 순이면 비쌈이 앞선다
+        onSaleLaptop(laptop().name("비쌈").memoryGb(32).storageGb(1024), saveCpu(40_000), 3_000_000L);
+        onSaleLaptop(laptop().name("쌈"), 1_000_000L);
+
+        // when & then
+        given()
+            .when().get(PATH)
+            .then().statusCode(200)
+            .body("content.name", contains("쌈", "비쌈"));
+    }
+
     // UC-07: 판매 중인 구매처가 없는 제품도 목록에 넣고 가격은 비워둔다
     @Test
     void 살_수_없는_노트북도_목록에_나오고_최저가는_비어_있다() {
