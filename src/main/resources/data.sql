@@ -63,7 +63,6 @@ FROM product,
       UNION ALL SELECT 'LG-GRAM-PRO-16', '네이버', 2850000, 'https://example.com/gram/naver', 'ON_SALE'
       UNION ALL SELECT 'LG-GRAM-PRO-16', '11번가', 2500000, 'https://example.com/gram/11st', 'SOLD_OUT'
       UNION ALL SELECT 'APPLE-MBA-13-M4', '애플', 1890000, 'https://example.com/mba/apple', 'ON_SALE'
-      -- Galaxy Book5 는 판매 중 오퍼가 없어 목록에서 빠진다
       UNION ALL SELECT 'SS-GB5-16', '쿠팡', 1290000, 'https://example.com/book/coupang', 'DISCONTINUED'
      ) offer
 WHERE product.code = offer.product_code
