@@ -5,8 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
 /**
- * 도메인 규칙을 어겼을 때 쓴다. BusinessException 이 직접 들고 다니므로
- * 상태로 되짚을 일이 없고, 코드가 늘어나도 CommonErrorCode 에 영향을 주지 않는다.
+ * 도메인 규칙을 어겼을 때 쓴다.
  */
 @Getter
 @RequiredArgsConstructor
