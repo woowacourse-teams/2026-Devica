@@ -1,5 +1,6 @@
 package com.wrb.devica.recommendation;
 
+import com.wrb.devica.product.SpecItemView;
 import com.wrb.devica.product.SpecValue;
 import java.util.List;
 

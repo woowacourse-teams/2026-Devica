@@ -14,7 +14,8 @@ public enum BusinessErrorCode implements ErrorCode {
 
     PRODUCT_CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 제품 종류입니다."),
     USAGE_PURPOSE_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 사용 목적입니다."),
-    RECOMMENDATION_NOT_FOUND(HttpStatus.NOT_FOUND, "권장 사양이 존재하지 않습니다.");
+    RECOMMENDATION_NOT_FOUND(HttpStatus.NOT_FOUND, "권장 사양이 존재하지 않습니다."),
+    LAPTOP_NOT_FOUND(HttpStatus.NOT_FOUND, "조회할 수 없는 노트북입니다.");
 
     private final HttpStatus status;
     private final String message;

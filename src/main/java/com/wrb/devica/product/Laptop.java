@@ -10,6 +10,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Stream;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -52,5 +54,20 @@ public class Laptop extends Product {
         this.storageGb = storageGb;
         this.weightG = weightG;
         this.screenSizeInch = screenSizeInch;
+    }
+
+    public LaptopSpec spec() {
+        return new LaptopSpec(os, cpu.getName(), memoryGb, storageGb);
+    }
+
+    // 노트북이 가진 모든 사양. 추천에 쓰는 사양 뒤에 나머지 사양을 이어 붙인다
+    public List<SpecValue> allSpecValues() {
+        return Stream.concat(
+            spec().values().stream(),
+            Stream.of(
+                new SpecValue("CPU_CORE", String.valueOf(cpu.getCoreCount())),
+                new SpecValue("SCREEN_SIZE", screenSizeInch.toPlainString()),
+                new SpecValue("WEIGHT", String.valueOf(weightG)))
+        ).toList();
     }
 }

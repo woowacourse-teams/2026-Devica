@@ -4,14 +4,15 @@ import static com.wrb.devica.product.QCpu.cpu;
 import static com.wrb.devica.product.QLaptop.laptop;
 import static com.wrb.devica.product.QProductOffer.productOffer;
 
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
+import org.springframework.util.StringUtils;
 
 public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
 
@@ -22,18 +23,35 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
     }
 
     @Override
-    public Slice<Laptop> findAllByCondition(LaptopSearchCondition condition, Pageable pageable) {
+    public Slice<ProductSummaryResponse> findSummariesWithMinPriceByCondition(LaptopSearchCondition condition, Pageable pageable) {
         int pageSize = pageable.getPageSize();
 
-        List<Laptop> found = queryFactory
-            .selectFrom(laptop)
-            .join(laptop.cpu, cpu).fetchJoin()
+        List<ProductSummaryResponse> found = queryFactory
+            .select(new QProductSummaryResponse(
+                laptop.id,
+                laptop.brand,
+                laptop.name,
+                productOffer.price.min(),
+                Projections.constructor(LaptopSpec.class, laptop.os, cpu.name, laptop.memoryGb, laptop.storageGb)
+            ))
+            .from(laptop)
+            .join(laptop.cpu, cpu)
+            .leftJoin(productOffer).on(
+                productOffer.product.id.eq(laptop.id),
+                productOffer.status.eq(OfferStatus.ON_SALE)
+            )
             .where(
-                onSaleOfferExists(),
                 osEq(condition.os()),
                 cpuScoreGoe(condition.cpuScore()),
                 memoryGbGoe(condition.memoryGb()),
-                storageGbGoe(condition.storageGb())
+                storageGbGoe(condition.storageGb()),
+                keywordContains(condition.keyword()),
+                brandEq(condition.brand())
+            )
+            .groupBy(laptop.id, cpu.id)
+            .having(
+                minPriceGoe(condition.minPrice()),
+                minPriceLoe(condition.maxPrice())
             )
             .orderBy(laptop.id.asc())
             .offset(pageable.getOffset())
@@ -41,17 +59,41 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             .fetch();
 
         boolean hasNext = found.size() > pageSize;
-        return new SliceImpl<>(hasNext ? found.subList(0, pageSize) : found, pageable, hasNext);
+
+        if (hasNext) {
+            found = found.subList(0, pageSize);
+        }
+
+        return new SliceImpl<>(found, pageable, hasNext);
     }
 
-    private BooleanExpression onSaleOfferExists() {
-        return JPAExpressions.selectOne()
-            .from(productOffer)
-            .where(
-                productOffer.product.id.eq(laptop.id),
-                productOffer.status.eq(OfferStatus.ON_SALE)
-            )
-            .exists();
+    private BooleanExpression minPriceGoe(Long minPrice) {
+        if (minPrice == null) {
+            return null;
+        }
+        return productOffer.price.min().goe(minPrice);
+    }
+
+    private BooleanExpression minPriceLoe(Long maxPrice) {
+        if (maxPrice == null) {
+            return null;
+        }
+        return productOffer.price.min().loe(maxPrice);
+    }
+
+    private BooleanExpression keywordContains(String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return null;
+        }
+        return laptop.brand.containsIgnoreCase(keyword)
+            .or(laptop.name.containsIgnoreCase(keyword));
+    }
+
+    private BooleanExpression brandEq(String brand) {
+        if (!StringUtils.hasText(brand)) {
+            return null;
+        }
+        return laptop.brand.eq(brand);
     }
 
     private BooleanExpression osEq(Os os) {
