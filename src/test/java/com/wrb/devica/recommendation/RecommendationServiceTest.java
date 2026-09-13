@@ -1,20 +1,24 @@
 package com.wrb.devica.recommendation;
 
-import com.wrb.devica.common.BusinessException;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.wrb.devica.common.BusinessErrorCode;
+import com.wrb.devica.common.BusinessException;
 import com.wrb.devica.product.SpecValue;
 import com.wrb.devica.purpose.UsagePurposeCode;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
+@SpringBootTest
 class RecommendationServiceTest {
 
-    private final RecommendationService recommendationService = new RecommendationService();
+    @Autowired
+    private RecommendationService recommendationService;
 
     @ParameterizedTest
     @EnumSource(UsagePurposeCode.class)
@@ -27,7 +31,7 @@ class RecommendationServiceTest {
             List<SpecValue> values = recommended.spec().values();
             assertThat(values).isNotEmpty();
             assertThat(values).allSatisfy(value ->
-                    assertThat(recommended.itemReasons().get(value.code())).isNotBlank());
+                assertThat(recommended.itemReasons().get(value.code())).isNotBlank());
         });
     }
 
@@ -35,8 +39,8 @@ class RecommendationServiceTest {
     void 존재하지_않는_사용_목적_코드면_예외가_발생한다() {
         // when & then
         assertThatThrownBy(() -> recommendationService.findByPurposeCode("NOT_EXIST"))
-                .isInstanceOf(BusinessException.class)
-                .extracting(thrown -> ((BusinessException) thrown).getErrorCode())
-                .isEqualTo(BusinessErrorCode.USAGE_PURPOSE_NOT_FOUND);
+            .isInstanceOf(BusinessException.class)
+            .extracting(thrown -> ((BusinessException) thrown).getErrorCode())
+            .isEqualTo(BusinessErrorCode.USAGE_PURPOSE_NOT_FOUND);
     }
 }
