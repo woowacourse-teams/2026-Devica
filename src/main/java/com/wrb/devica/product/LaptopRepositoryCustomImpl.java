@@ -4,6 +4,7 @@ import static com.wrb.devica.product.QCpu.cpu;
 import static com.wrb.devica.product.QLaptop.laptop;
 import static com.wrb.devica.product.QProductOffer.productOffer;
 
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
@@ -22,21 +23,16 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
     }
 
     @Override
-    public Slice<LaptopSummaryResponse> findSummariesWithMinPriceByCondition(LaptopSearchCondition condition, Pageable pageable) {
+    public Slice<ProductSummaryResponse> findSummariesWithMinPriceByCondition(LaptopSearchCondition condition, Pageable pageable) {
         int pageSize = pageable.getPageSize();
 
-        List<LaptopSummaryResponse> found = queryFactory
-            .select(new QLaptopSummaryResponse(
+        List<ProductSummaryResponse> found = queryFactory
+            .select(new QProductSummaryResponse(
                 laptop.id,
                 laptop.brand,
                 laptop.name,
                 productOffer.price.min(),
-                laptop.os,
-                cpu.name,
-                cpu.coreCount,
-                laptop.memoryGb,
-                laptop.storageGb,
-                laptop.screenSizeInch
+                Projections.constructor(LaptopSpec.class, laptop.os, cpu.name, laptop.memoryGb, laptop.storageGb)
             ))
             .from(laptop)
             .join(laptop.cpu, cpu)

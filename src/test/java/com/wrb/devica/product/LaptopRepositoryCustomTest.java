@@ -60,10 +60,10 @@ class LaptopRepositoryCustomTest {
         onSaleLaptop(laptop().name("B"));
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(0, 10);
+        Slice<ProductSummaryResponse> found = findLaptops(0, 10);
 
         // then
-        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("A", "B");
+        assertThat(found.getContent()).extracting(ProductSummaryResponse::name).containsExactly("A", "B");
         assertThat(found.hasNext()).isFalse();
     }
 
@@ -74,10 +74,10 @@ class LaptopRepositoryCustomTest {
         onSaleLaptop(laptop().name("맥").os(Os.MAC));
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(condition().os(Os.MAC).build());
+        Slice<ProductSummaryResponse> found = findLaptops(condition().os(Os.MAC).build());
 
         // then
-        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("맥");
+        assertThat(found.getContent()).extracting(ProductSummaryResponse::name).containsExactly("맥");
     }
 
     @Test
@@ -88,10 +88,10 @@ class LaptopRepositoryCustomTest {
         onSaleLaptop(laptop().name("높음"), saveCpu(10001), DEFAULT_PRICE);
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(condition().cpuScore(10000).build());
+        Slice<ProductSummaryResponse> found = findLaptops(condition().cpuScore(10000).build());
 
         // then
-        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("중간", "높음");
+        assertThat(found.getContent()).extracting(ProductSummaryResponse::name).containsExactly("중간", "높음");
     }
 
     @ParameterizedTest
@@ -102,10 +102,10 @@ class LaptopRepositoryCustomTest {
         onSaleLaptop(laptop().brand("Apple").name("MacBook Air").os(Os.MAC));
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(condition().keyword(keyword).build());
+        Slice<ProductSummaryResponse> found = findLaptops(condition().keyword(keyword).build());
 
         // then
-        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("gram 프로 16");
+        assertThat(found.getContent()).extracting(ProductSummaryResponse::name).containsExactly("gram 프로 16");
     }
 
     @Test
@@ -115,10 +115,10 @@ class LaptopRepositoryCustomTest {
         onSaleLaptop(laptop().name("B"));
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(condition().keyword("   ").build());
+        Slice<ProductSummaryResponse> found = findLaptops(condition().keyword("   ").build());
 
         // then
-        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("A", "B");
+        assertThat(found.getContent()).extracting(ProductSummaryResponse::name).containsExactly("A", "B");
     }
 
     @Test
@@ -128,10 +128,10 @@ class LaptopRepositoryCustomTest {
         onSaleLaptop(laptop().brand("LG전자").name("그램2"));
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(condition().brand("LG").build());
+        Slice<ProductSummaryResponse> found = findLaptops(condition().brand("LG").build());
 
         // then
-        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("그램");
+        assertThat(found.getContent()).extracting(ProductSummaryResponse::name).containsExactly("그램");
     }
 
     @Test
@@ -142,11 +142,11 @@ class LaptopRepositoryCustomTest {
         onSaleLaptop(laptop().name("비싼것"), 3_000_000L);
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(
+        Slice<ProductSummaryResponse> found = findLaptops(
             condition().minPrice(2_000_000L).build());
 
         // then
-        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name)
+        assertThat(found.getContent()).extracting(ProductSummaryResponse::name)
             .containsExactly("같은것", "비싼것");
     }
 
@@ -158,11 +158,11 @@ class LaptopRepositoryCustomTest {
         onSaleLaptop(laptop().name("비싼것"), 3_000_000L);
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(
+        Slice<ProductSummaryResponse> found = findLaptops(
             condition().maxPrice(2_000_000L).build());
 
         // then
-        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name)
+        assertThat(found.getContent()).extracting(ProductSummaryResponse::name)
             .containsExactly("싼것", "같은것");
     }
 
@@ -174,11 +174,11 @@ class LaptopRepositoryCustomTest {
         onSaleLaptop(laptop().name("위"), 3_000_000L);
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(
+        Slice<ProductSummaryResponse> found = findLaptops(
             condition().minPrice(1_500_000L).maxPrice(2_500_000L).build());
 
         // then
-        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("안");
+        assertThat(found.getContent()).extracting(ProductSummaryResponse::name).containsExactly("안");
     }
 
     @Test
@@ -190,7 +190,7 @@ class LaptopRepositoryCustomTest {
         productOfferRepository.save(offer().product(laptop).price(1_000_000L).status(OfferStatus.SOLD_OUT).build());
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(
+        Slice<ProductSummaryResponse> found = findLaptops(
             condition().maxPrice(1_500_000L).build());
 
         // then
@@ -207,11 +207,11 @@ class LaptopRepositoryCustomTest {
         onSaleLaptop(laptop().brand("LG").name("그램 윈도우"), saveCpu(20000), DEFAULT_PRICE);
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(
+        Slice<ProductSummaryResponse> found = findLaptops(
             condition().os(Os.MAC).cpuScore(10000).memoryGb(16).storageGb(512).keyword("그램").brand("LG").build());
 
         // then
-        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("그램 16");
+        assertThat(found.getContent()).extracting(ProductSummaryResponse::name).containsExactly("그램 16");
     }
 
     @Test
@@ -222,13 +222,13 @@ class LaptopRepositoryCustomTest {
         onSaleLaptop(laptop().name("3"));
 
         // when
-        Slice<LaptopSummaryResponse> firstPage = findLaptops(0, 2);
-        Slice<LaptopSummaryResponse> lastPage = findLaptops(1, 2);
+        Slice<ProductSummaryResponse> firstPage = findLaptops(0, 2);
+        Slice<ProductSummaryResponse> lastPage = findLaptops(1, 2);
 
         // then
-        assertThat(firstPage.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("1", "2");
+        assertThat(firstPage.getContent()).extracting(ProductSummaryResponse::name).containsExactly("1", "2");
         assertThat(firstPage.hasNext()).isTrue();
-        assertThat(lastPage.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("3");
+        assertThat(lastPage.getContent()).extracting(ProductSummaryResponse::name).containsExactly("3");
         assertThat(lastPage.hasNext()).isFalse();
     }
 
@@ -238,7 +238,7 @@ class LaptopRepositoryCustomTest {
         onSaleLaptop(laptop().name("유일"));
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(condition().os(Os.MAC).build());
+        Slice<ProductSummaryResponse> found = findLaptops(condition().os(Os.MAC).build());
 
         // then
         assertThat(found.getContent()).isEmpty();
@@ -252,7 +252,7 @@ class LaptopRepositoryCustomTest {
         onSaleLaptop(laptop().name("2"));
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(5, 10);
+        Slice<ProductSummaryResponse> found = findLaptops(5, 10);
 
         // then
         assertThat(found.getContent()).isEmpty();
@@ -269,11 +269,11 @@ class LaptopRepositoryCustomTest {
         productOfferRepository.save(offer().product(soldOut).price(1_000_000L).status(OfferStatus.DISCONTINUED).build());
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(0, 10);
+        Slice<ProductSummaryResponse> found = findLaptops(0, 10);
 
         // then
         assertThat(found.getContent())
-            .extracting(LaptopSummaryResponse::name, LaptopSummaryResponse::minPrice)
+            .extracting(ProductSummaryResponse::name, ProductSummaryResponse::minPrice)
             .containsExactly(
                 tuple("판매중", DEFAULT_PRICE),
                 tuple("오퍼없음", null),
@@ -288,22 +288,22 @@ class LaptopRepositoryCustomTest {
         laptopOf(laptop().name("오퍼없음"));
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops(
+        Slice<ProductSummaryResponse> found = findLaptops(
             condition().minPrice(0L).build());
 
         // then
-        assertThat(found.getContent()).extracting(LaptopSummaryResponse::name).containsExactly("판매중");
+        assertThat(found.getContent()).extracting(ProductSummaryResponse::name).containsExactly("판매중");
     }
 
-    private Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition) {
+    private Slice<ProductSummaryResponse> findLaptops(LaptopSearchCondition condition) {
         return findLaptops(condition, 0, 10);
     }
 
-    private Slice<LaptopSummaryResponse> findLaptops(int page, int size) {
+    private Slice<ProductSummaryResponse> findLaptops(int page, int size) {
         return findLaptops(condition().build(), page, size);
     }
 
-    private Slice<LaptopSummaryResponse> findLaptops(LaptopSearchCondition condition, int page, int size) {
+    private Slice<ProductSummaryResponse> findLaptops(LaptopSearchCondition condition, int page, int size) {
         entityManager.flush();
         entityManager.clear();
         return laptopRepository.findSummariesWithMinPriceByCondition(condition, PageRequest.of(page, size, Sort.by("id")));

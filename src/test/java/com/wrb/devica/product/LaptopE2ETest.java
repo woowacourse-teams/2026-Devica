@@ -19,7 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 class LaptopE2ETest extends E2ETest {
 
-    private static final String PATH = "/api/laptops";
+    private static final String PATH = "/api/usage-purposes/BACKEND_DEVELOPMENT/products";
 
     @Autowired
     private ProductCategoryRepository productCategoryRepository;
@@ -64,8 +64,18 @@ class LaptopE2ETest extends E2ETest {
             .then().statusCode(200)
             .body("content.size()", is(1))
             .body("content[0].name", is("gram Pro 16"))
-            .body("content[0].cpuName", is("Intel Core Ultra 7 255H"))
+            .body("content[0].specs.code", contains("OS", "CPU", "MEMORY", "STORAGE"))
+            .body("content[0].specs.displayValue", contains("Windows", "Intel Core Ultra 7 255H", "32GB", "1024GB"))
             .body("content[0].minPrice", is(2_850_000));
+    }
+
+    // UC-07: 지원하지 않는 사용 목적으로는 제품을 조회할 수 없다
+    @Test
+    void 없는_사용_목적으로_조회하면_404를_받는다() {
+        given()
+            .when().get("/api/usage-purposes/WRONG/products")
+            .then().statusCode(404)
+            .body("code", is("USAGE_PURPOSE_NOT_FOUND"));
     }
 
     // UC-07/UC-08: 검색어와 가격·사양·OS·브랜드 조건을 적용할 수 있고, 조건을 지정하면 조건을 만족하는 제품만 반환한다
@@ -203,6 +213,7 @@ class LaptopE2ETest extends E2ETest {
             .when().get(PATH + "/" + laptop.getId())
             .then().statusCode(200)
             .body("name", is("gram Pro 16"))
+            .body("specs.code", contains("OS", "CPU", "MEMORY", "STORAGE", "CPU_CORE", "SCREEN_SIZE", "WEIGHT"))
             .body("offers.price", contains(2_850_000, 2_990_000))
             .body("offers[0].purchaseUrl", is("https://example.com/" + laptop.getCode()));
     }

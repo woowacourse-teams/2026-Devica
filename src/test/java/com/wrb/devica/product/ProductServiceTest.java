@@ -25,10 +25,11 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Slice;
 
 @JpaSliceTest
-@Import(LaptopService.class)
-class LaptopServiceTest {
+@Import(ProductService.class)
+class ProductServiceTest {
 
     private static final long DEFAULT_PRICE = 1_000_000L;
+    private static final String PURPOSE = "BACKEND_DEVELOPMENT";
 
     @Autowired
     private ProductCategoryRepository productCategoryRepository;
@@ -49,7 +50,7 @@ class LaptopServiceTest {
 
     private Cpu cpu;
     @Autowired
-    private LaptopService laptopService;
+    private ProductService productService;
 
     @BeforeEach
     void setUpCategory() {
@@ -67,11 +68,11 @@ class LaptopServiceTest {
         productOfferRepository.save(offer().product(laptop).price(2_100_000L).status(OfferStatus.ON_SALE).build());
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops();
+        Slice<ProductSummaryResponse> found = findLaptops();
 
         // then
         assertThat(found.getContent()).singleElement()
-            .extracting(LaptopSummaryResponse::minPrice)
+            .extracting(ProductSummaryResponse::minPrice)
             .isEqualTo(1_900_000L);
     }
 
@@ -85,11 +86,11 @@ class LaptopServiceTest {
         productOfferRepository.save(offer().product(laptop).price(2_000_000L).status(OfferStatus.ON_SALE).build());
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops();
+        Slice<ProductSummaryResponse> found = findLaptops();
 
         // then
         assertThat(found.getContent()).singleElement()
-            .extracting(LaptopSummaryResponse::minPrice)
+            .extracting(ProductSummaryResponse::minPrice)
             .isEqualTo(2_000_000L);
     }
 
@@ -105,36 +106,15 @@ class LaptopServiceTest {
         productOfferRepository.save(offer().product(second).price(2_800_000L).status(OfferStatus.ON_SALE).build());
 
         // when
-        Slice<LaptopSummaryResponse> found = findLaptops();
+        Slice<ProductSummaryResponse> found = findLaptops();
 
         // then
         assertThat(found.getContent())
-            .extracting(LaptopSummaryResponse::name, LaptopSummaryResponse::minPrice)
+            .extracting(ProductSummaryResponse::name, ProductSummaryResponse::minPrice)
             .containsExactly(
                 tuple("첫번째", 1_000_000L),
                 tuple("두번째", 2_800_000L)
             );
-    }
-
-    @Test
-    void 조회하면_노트북과_cpu_정보를_응답에_담는다() {
-        // given
-        Laptop laptop = laptopOf(laptop().name("gram Pro 16").memoryGb(32).storageGb(1024));
-        productOfferRepository.save(offer().product(laptop).price(2_850_000L).status(OfferStatus.ON_SALE).build());
-
-        // when
-        LaptopSummaryResponse response = findLaptops().getContent().getFirst();
-
-        // then
-        assertThat(response.id()).isEqualTo(laptop.getId());
-        assertThat(response.brand()).isEqualTo(laptop.getBrand());
-        assertThat(response.name()).isEqualTo(laptop.getName());
-        assertThat(response.os()).isEqualTo(Os.WINDOWS);
-        assertThat(response.cpuName()).isEqualTo(laptop.getCpu().getName());
-        assertThat(response.cpuCoreCount()).isEqualTo(laptop.getCpu().getCoreCount());
-        assertThat(response.memoryGb()).isEqualTo(laptop.getMemoryGb());
-        assertThat(response.storageGb()).isEqualTo(laptop.getStorageGb());
-        assertThat(response.screenSizeInch()).isEqualByComparingTo(laptop.getScreenSizeInch());
     }
 
     @Test
@@ -150,7 +130,7 @@ class LaptopServiceTest {
         entityManager.clear();
 
         // when
-        LaptopDetailResponse found = laptopService.findLaptopById(laptop.getId());
+        ProductDetailResponse found = productService.findProductById(PURPOSE, laptop.getId());
 
         // then
         assertThat(found.offers()).extracting(OfferResponse::price)
@@ -164,7 +144,7 @@ class LaptopServiceTest {
         entityManager.clear();
 
         // when & then
-        assertThatThrownBy(() -> laptopService.findLaptopById(-1L))
+        assertThatThrownBy(() -> productService.findProductById(PURPOSE, -1L))
             .isInstanceOf(BusinessException.class)
             .extracting(exception -> ((BusinessException) exception).getErrorCode())
             .isEqualTo(BusinessErrorCode.LAPTOP_NOT_FOUND);
@@ -176,22 +156,22 @@ class LaptopServiceTest {
         Laptop laptop = laptopOf(laptop().name("판매처없음"));
 
         // when
-        LaptopDetailResponse found = findLaptopById(laptop.getId());
+        ProductDetailResponse found = findLaptopById(laptop.getId());
 
         // then
         assertThat(found.offers()).isEmpty();
     }
 
-    private LaptopDetailResponse findLaptopById(Long id) {
+    private ProductDetailResponse findLaptopById(Long id) {
         entityManager.flush();
         entityManager.clear();
-        return laptopService.findLaptopById(id);
+        return productService.findProductById(PURPOSE, id);
     }
 
-    private Slice<LaptopSummaryResponse> findLaptops() {
+    private Slice<ProductSummaryResponse> findLaptops() {
         entityManager.flush();
         entityManager.clear();
-        return laptopService.findLaptops(
+        return productService.findProducts(PURPOSE,
             condition().build(), new LaptopPageCondition(0, 10));
     }
 
