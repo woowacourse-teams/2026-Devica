@@ -31,7 +31,8 @@ class RecommendationServiceTest {
             List<SpecValue> values = recommended.spec().values();
             assertThat(values).isNotEmpty();
             assertThat(values).allSatisfy(value ->
-                assertThat(recommended.itemReasons().get(value.code())).isNotBlank());
+                assertThat(recommended.itemReasons().get(value.code()))
+                    .isNotEmpty().allSatisfy(reason -> assertThat(reason).isNotBlank()));
         });
     }
 

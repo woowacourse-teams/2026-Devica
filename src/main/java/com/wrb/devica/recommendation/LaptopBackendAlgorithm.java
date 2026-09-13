@@ -18,17 +18,17 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
         new RecommendedSpec(
             new LaptopSpec(Os.MAC, CpuTier.BASIC, 24, 512),
             Map.of(
-                "OS", "Mac 권장안입니다.",
-                "CPU_TIER", "Mac 백엔드 개발 기본 CPU 입니다.",
-                "MEMORY", "Mac 백엔드 개발 기본 권장 메모리입니다.",
-                "STORAGE", "백엔드 개발 기본 저장 공간입니다.")),
+                "OS", List.of("Mac 권장안입니다."),
+                "CPU_TIER", List.of("Mac 백엔드 개발 기본 CPU 입니다."),
+                "MEMORY", List.of("Mac 백엔드 개발 기본 권장 메모리입니다."),
+                "STORAGE", List.of("백엔드 개발 기본 저장 공간입니다."))),
         new RecommendedSpec(
             new LaptopSpec(Os.WINDOWS, CpuTier.P_HS, 24, 512),
             Map.of(
-                "OS", "Windows 권장안입니다.",
-                "CPU_TIER", "Windows 백엔드 개발 기본 CPU 입니다.",
-                "MEMORY", "Windows 백엔드 개발 기본 권장 메모리입니다.",
-                "STORAGE", "백엔드 개발 기본 저장 공간입니다.")));
+                "OS", List.of("Windows 권장안입니다."),
+                "CPU_TIER", List.of("Windows 백엔드 개발 기본 CPU 입니다."),
+                "MEMORY", List.of("Windows 백엔드 개발 기본 권장 메모리입니다."),
+                "STORAGE", List.of("백엔드 개발 기본 저장 공간입니다."))));
 
     @Override
     public UsagePurposeCode purpose() {

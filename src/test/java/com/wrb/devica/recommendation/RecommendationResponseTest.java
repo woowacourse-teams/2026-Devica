@@ -15,11 +15,11 @@ class RecommendationResponseTest {
 
     private static final LaptopSpec MAC_SPEC = new LaptopSpec(Os.MAC, CpuTier.BASIC, 24, 512);
     private static final LaptopSpec WINDOWS_SPEC = new LaptopSpec(Os.WINDOWS, CpuTier.H, 16, 256);
-    private static final Map<String, String> ITEM_REASONS = Map.of(
-        "OS", "os 근거",
-        "CPU_TIER", "cpu 근거",
-        "MEMORY", "memory 근거",
-        "STORAGE", "storage 근거");
+    private static final Map<String, List<String>> ITEM_REASONS = Map.of(
+        "OS", List.of("os 근거"),
+        "CPU_TIER", List.of("cpu 근거", "cpu 보강 근거"),
+        "MEMORY", List.of("memory 근거"),
+        "STORAGE", List.of("storage 근거"));
     private static final List<RecommendedSpec> RECOMMENDED_SPECS = List.of(
         new RecommendedSpec(MAC_SPEC, ITEM_REASONS),
         new RecommendedSpec(WINDOWS_SPEC, ITEM_REASONS));
@@ -52,17 +52,17 @@ class RecommendationResponseTest {
     }
 
     @Test
-    void 권장_사양의_각_항목마다_선택_근거를_붙인다() {
+    void 권장_사양의_각_항목마다_선택_근거를_줄_단위로_붙인다() {
         // when
         RecommendationResponse response = RecommendationResponse.from(RECOMMENDED_SPECS);
 
         // then
         assertThat(response.specs().getFirst().items())
-            .extracting(ItemResponse::code, ItemResponse::reason)
+            .extracting(ItemResponse::code, ItemResponse::reasons)
             .containsExactly(
-                tuple("OS", "os 근거"),
-                tuple("CPU_TIER", "cpu 근거"),
-                tuple("MEMORY", "memory 근거"),
-                tuple("STORAGE", "storage 근거"));
+                tuple("OS", List.of("os 근거")),
+                tuple("CPU_TIER", List.of("cpu 근거", "cpu 보강 근거")),
+                tuple("MEMORY", List.of("memory 근거")),
+                tuple("STORAGE", List.of("storage 근거")));
     }
 }

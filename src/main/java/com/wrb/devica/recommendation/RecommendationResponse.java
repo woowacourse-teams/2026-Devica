@@ -16,9 +16,9 @@ public record RecommendationResponse(List<SpecResponse> specs) {
 
         private static SpecResponse from(RecommendedSpec recommended) {
             return new SpecResponse(recommended.spec().values().stream()
-                .map(value -> ItemResponse.from(
+                .map(value -> ItemResponse.of(
                     value,
-                    recommended.itemReasons().get(value.code())))
+                    recommended.itemReasons().getOrDefault(value.code(), List.of())))
                 .toList());
         }
     }
@@ -28,16 +28,16 @@ public record RecommendationResponse(List<SpecResponse> specs) {
         String displayName,
         String value,
         String displayValue,
-        String reason) {
+        List<String> reasons) {
 
-        private static ItemResponse from(SpecValue specValue, String reason) {
+        private static ItemResponse of(SpecValue specValue, List<String> reasons) {
             SpecItemView view = SpecItemView.valueOf(specValue.code());
             return new ItemResponse(
                 specValue.code(),
                 view.displayName(),
                 specValue.value(),
                 view.displayValue(specValue.value()),
-                reason);
+                reasons);
         }
     }
 }
