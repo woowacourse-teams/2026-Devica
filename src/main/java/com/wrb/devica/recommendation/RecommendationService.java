@@ -12,7 +12,15 @@ public class RecommendationService {
     private final RecommendationAlgorithms algorithms;
 
     public List<RecommendedSpec> findByPurposeCode(String purposeCode) {
+        return algorithmOf(purposeCode).recommend();
+    }
+
+    public List<RecommendedSpec> recommendByAnswers(String purposeCode, RecommendationRequest request) {
+        return algorithmOf(purposeCode).recommend(request.toAnswers());
+    }
+
+    private RecommendationAlgorithm algorithmOf(String purposeCode) {
         UsagePurposeCode purpose = UsagePurposeCode.from(purposeCode);
-        return algorithms.findByPurpose(purpose).recommend();
+        return algorithms.findByPurpose(purpose);
     }
 }
