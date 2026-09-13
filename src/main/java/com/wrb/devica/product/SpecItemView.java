@@ -9,6 +9,7 @@ public enum SpecItemView {
 
     OS("운영체제", value -> Os.valueOf(value).getDisplayName()),
     CPU("CPU", UnaryOperator.identity()),
+    CPU_TIER("CPU", value -> CpuTier.valueOf(value).getDisplayName()),
     MEMORY("메모리", value -> value + "GB"),
     STORAGE("저장 공간", value -> value + "GB"),
     CPU_CORE("코어 수", value -> value + "코어"),

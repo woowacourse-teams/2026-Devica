@@ -56,18 +56,22 @@ public class Laptop extends Product {
         this.screenSizeInch = screenSizeInch;
     }
 
-    public LaptopSpec spec() {
-        return new LaptopSpec(os, cpu.getName(), memoryGb, storageGb);
-    }
-
-    // 노트북이 가진 모든 사양. 추천에 쓰는 사양 뒤에 나머지 사양을 이어 붙인다
+    // 노트북이 가진 모든 사양. 목록에 나가는 사양 뒤에 나머지 사양을 이어 붙인다
     public List<SpecValue> allSpecValues() {
         return Stream.concat(
-            spec().values().stream(),
+            summarySpecValues(os, cpu.getName(), memoryGb, storageGb).stream(),
             Stream.of(
                 new SpecValue("CPU_CORE", String.valueOf(cpu.getCoreCount())),
                 new SpecValue("SCREEN_SIZE", screenSizeInch.toPlainString()),
                 new SpecValue("WEIGHT", String.valueOf(weightG)))
         ).toList();
+    }
+
+    public static List<SpecValue> summarySpecValues(Os os, String cpuName, int memoryGb, int storageGb) {
+        return List.of(
+            new SpecValue("OS", os.name()),
+            new SpecValue("CPU", cpuName),
+            new SpecValue("MEMORY", String.valueOf(memoryGb)),
+            new SpecValue("STORAGE", String.valueOf(storageGb)));
     }
 }

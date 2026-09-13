@@ -2,6 +2,7 @@ package com.wrb.devica.recommendation;
 
 import com.wrb.devica.common.BusinessException;
 import com.wrb.devica.common.BusinessErrorCode;
+import com.wrb.devica.product.CpuTier;
 import com.wrb.devica.product.LaptopSpec;
 import com.wrb.devica.product.Os;
 import com.wrb.devica.purpose.UsagePurposeCode;
@@ -17,17 +18,17 @@ public enum DefaultLaptopRecommendation {
 
     BACKEND_DEVELOPMENT(UsagePurposeCode.BACKEND_DEVELOPMENT, List.of(
         new RecommendedSpec(
-            new LaptopSpec(Os.MAC, "M 칩", 24, 512),
+            new LaptopSpec(Os.MAC, CpuTier.BASIC, 24, 512),
             Map.of(
                 "OS", "Mac 권장안입니다.",
-                "CPU", "Mac 백엔드 개발 기본 CPU 입니다.",
+                "CPU_TIER", "Mac 백엔드 개발 기본 CPU 입니다.",
                 "MEMORY", "Mac 백엔드 개발 기본 권장 메모리입니다.",
                 "STORAGE", "백엔드 개발 기본 저장 공간입니다.")),
         new RecommendedSpec(
-            new LaptopSpec(Os.WINDOWS, "Core Ultra 7 258V / Ryzen AI 7 445급", 24, 512),
+            new LaptopSpec(Os.WINDOWS, CpuTier.P_HS, 24, 512),
             Map.of(
                 "OS", "Windows 권장안입니다.",
-                "CPU", "Windows 백엔드 개발 기본 CPU 입니다.",
+                "CPU_TIER", "Windows 백엔드 개발 기본 CPU 입니다.",
                 "MEMORY", "Windows 백엔드 개발 기본 권장 메모리입니다.",
                 "STORAGE", "백엔드 개발 기본 저장 공간입니다."))));
 

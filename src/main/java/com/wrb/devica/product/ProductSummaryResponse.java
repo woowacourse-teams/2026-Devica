@@ -12,8 +12,9 @@ public record ProductSummaryResponse(
 ) {
 
     @QueryProjection
-    public ProductSummaryResponse(Long id, String brand, String name,
-                                  Long minPrice, Spec spec) {
-        this(id, brand, name, minPrice, SpecItemResponse.from(spec.values()));
+    public ProductSummaryResponse(Long id, String brand, String name, Long minPrice,
+                                  Os os, String cpuName, int memoryGb, int storageGb) {
+        this(id, brand, name, minPrice,
+            SpecItemResponse.from(Laptop.summarySpecValues(os, cpuName, memoryGb, storageGb)));
     }
 }

@@ -4,7 +4,6 @@ import static com.wrb.devica.product.QCpu.cpu;
 import static com.wrb.devica.product.QLaptop.laptop;
 import static com.wrb.devica.product.QProductOffer.productOffer;
 
-import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
@@ -32,7 +31,10 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
                 laptop.brand,
                 laptop.name,
                 productOffer.price.min(),
-                Projections.constructor(LaptopSpec.class, laptop.os, cpu.name, laptop.memoryGb, laptop.storageGb)
+                laptop.os,
+                cpu.name,
+                laptop.memoryGb,
+                laptop.storageGb
             ))
             .from(laptop)
             .join(laptop.cpu, cpu)
