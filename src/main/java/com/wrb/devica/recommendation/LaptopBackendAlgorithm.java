@@ -19,6 +19,7 @@ import com.wrb.devica.product.LaptopSpec;
 import com.wrb.devica.product.Os;
 import com.wrb.devica.purpose.UsagePurposeCode;
 import com.wrb.devica.question.OptionCode;
+import com.wrb.devica.question.QuestionCode;
 import com.wrb.devica.question.option.AiCodingTool;
 import com.wrb.devica.question.option.BuildWait;
 import com.wrb.devica.question.option.CurrentStorage;
@@ -110,7 +111,7 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
             return BASELINE_MEMORY_GB;
         }
         if (fullUp) {
-            int increment = os == Os.MAC ? 24 : 16;
+            int increment = memoryIncrementOf(os);
             reasons.add("개발 도구와 작업 부하를 고려해 메모리를 " + increment + "GB 높였습니다.");
             addLongUseNote(answers, reasons, "오래 사용할 계획이 상향 판단을 보강했습니다.");
             return BASELINE_MEMORY_GB + increment;
@@ -149,7 +150,7 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
             reasons.add("저장 공간 하향 조건이 두 개 이상 확인되어 256GB로 조정했습니다.");
             return 256;
         }
-        if (!hasAtLeast512Ssd(answers) && answers.single(STORAGE_SHORTAGE) != null) {
+        if (!hasAtLeast512Ssd(answers) && answers.isAnswered(STORAGE_SHORTAGE)) {
             reasons.add("현재 SSD가 미입력이거나 512GB 상당 미만이라 용량 경험은 수치에 반영하지 않았습니다.");
         }
         addLongUseNote(answers, reasons, "오래 사용할 계획은 단독 상향 대신 참고 근거로만 반영했습니다.");
@@ -168,9 +169,7 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
         }
         if (answers.has(OVERHEATING, Overheating.OFTEN)) {
             tier = upgradeByExperience(os, tier, answers);
-            reasons.add(os == Os.MAC
-                ? "지속 부하와 발열 경험을 반영해 Pro 이상 등급을 검토했습니다."
-                : "지속 부하와 발열 경험을 반영해 H·HX 계열을 검토했습니다.");
+            reasons.add(overheatingReasonOf(os));
         }
         if (os == Os.MAC && tier == CpuTier.MAX) {
             reasons.add("예산 범위를 고려해 Mac 권장 CPU는 M Pro 칩으로 제한했습니다.");
@@ -189,8 +188,11 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
 
     // 현재 CPU 질문은 OS 별로 나뉘어 있고 선택지 이름이 등급 이름과 같다 (CpuTierTest 가 지킨다)
     private CpuTier currentCpuTier(Os os, Answers answers) {
-        OptionCode answer = answers.single(os == Os.MAC ? CURRENT_MAC_CPU : CURRENT_WINDOWS_CPU);
-        return answer == null ? null : CpuTier.valueOf(answer.name());
+        OptionCode answer = answers.answerTo(currentCpuQuestionOf(os));
+        if (answer == null) {
+            return null;
+        }
+        return CpuTier.valueOf(answer.name());
     }
 
     private CpuTier alignCpuToMemory(Os os, CpuTier cpuTier, int memoryGb, List<String> reasons) {
@@ -214,7 +216,7 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
             || answers.hasAnyOf(IDE, Ide.JETBRAINS, Ide.MULTIPLE)
             || answers.has(AI_CODING_TOOL, AiCodingTool.AI_EDITOR)
             || answers.hasAnyOf(DEV_ENVIRONMENT_SETUP,
-                DevEnvironmentSetup.LOCAL_MANY, DevEnvironmentSetup.DOCKER_MANY)
+            DevEnvironmentSetup.LOCAL_MANY, DevEnvironmentSetup.DOCKER_MANY)
             || answers.has(SLOWDOWN, Slowdown.OFTEN);
     }
 
@@ -226,10 +228,10 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
     // 현재 SSD 가 작다는 걸 아는 경우의 용량 부족 경험은 디스크 크기 탓이라 상향 근거로 쓰지 않는다.
     // 미입력은 작다는 근거가 없으므로 사용자의 자기 보고를 그대로 인정한다.
     private boolean usesMuchStorage(Answers answers) {
-        boolean smallSsdKnown = answers.single(CURRENT_STORAGE) != null && !hasAtLeast512Ssd(answers);
+        boolean smallSsdKnown = answers.isAnswered(CURRENT_STORAGE) && !hasAtLeast512Ssd(answers);
         return answers.has(PROGRAMMING_LANGUAGE, ProgrammingLanguage.NODE_TYPESCRIPT)
             || answers.hasAnyOf(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.LOCAL_MANY,
-                DevEnvironmentSetup.DOCKER_MANY, DevEnvironmentSetup.DOCKER_FEW)
+            DevEnvironmentSetup.DOCKER_MANY, DevEnvironmentSetup.DOCKER_FEW)
             || (!smallSsdKnown && answers.has(STORAGE_SHORTAGE, StorageShortage.OFTEN));
     }
 
@@ -240,8 +242,7 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
     }
 
     private boolean hasAtLeast512Ssd(Answers answers) {
-        OptionCode currentStorage = answers.single(CURRENT_STORAGE);
-        return currentStorage == CurrentStorage.UNDER_1TB || currentStorage == CurrentStorage.TB_1_OR_MORE;
+        return answers.hasAnyOf(CURRENT_STORAGE, CurrentStorage.UNDER_1TB, CurrentStorage.TB_1_OR_MORE);
     }
 
     private boolean usesJavaFamily(Answers answers) {
@@ -255,6 +256,31 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
     }
 
     private int count(boolean condition) {
-        return condition ? 1 : 0;
+        if (condition) {
+            return 1;
+        }
+        return 0;
+    }
+
+    // Mac 은 등급마다 살 수 있는 메모리 폭이 커서 한 번에 더 올린다
+    private int memoryIncrementOf(Os os) {
+        if (os == Os.MAC) {
+            return 24;
+        }
+        return 16;
+    }
+
+    private String overheatingReasonOf(Os os) {
+        if (os == Os.MAC) {
+            return "지속 부하와 발열 경험을 반영해 Pro 이상 등급을 검토했습니다.";
+        }
+        return "지속 부하와 발열 경험을 반영해 H·HX 계열을 검토했습니다.";
+    }
+
+    private QuestionCode currentCpuQuestionOf(Os os) {
+        if (os == Os.MAC) {
+            return CURRENT_MAC_CPU;
+        }
+        return CURRENT_WINDOWS_CPU;
     }
 }

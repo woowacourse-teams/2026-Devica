@@ -43,6 +43,9 @@ public enum CpuTier {
     }
 
     public CpuTier higherOf(CpuTier other) {
-        return minScore >= other.minScore ? this : other;
+        if (minScore >= other.minScore) {
+            return this;
+        }
+        return other;
     }
 }

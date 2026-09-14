@@ -33,8 +33,15 @@ public record Answers(Map<QuestionCode, List<OptionCode>> selected) {
         return new Answers(Map.of());
     }
 
-    public OptionCode single(QuestionCode question) {
-        List<OptionCode> options = selected.getOrDefault(question, List.of());
+    public boolean isAnswered(QuestionCode question) {
+        return !optionsOf(question).isEmpty();
+    }
+
+    /**
+     * 단일 선택 질문의 답. 건너뛰었으면 null 이다. 여러 개를 고를 수 있는 질문에는 쓰지 않는다.
+     */
+    public OptionCode answerTo(QuestionCode question) {
+        List<OptionCode> options = optionsOf(question);
         if (options.isEmpty()) {
             return null;
         }
@@ -42,10 +49,14 @@ public record Answers(Map<QuestionCode, List<OptionCode>> selected) {
     }
 
     public boolean has(QuestionCode question, OptionCode option) {
-        return selected.getOrDefault(question, List.of()).contains(option);
+        return optionsOf(question).contains(option);
     }
 
     public boolean hasAnyOf(QuestionCode question, OptionCode... options) {
         return Arrays.stream(options).anyMatch(option -> has(question, option));
+    }
+
+    private List<OptionCode> optionsOf(QuestionCode question) {
+        return selected.getOrDefault(question, List.of());
     }
 }

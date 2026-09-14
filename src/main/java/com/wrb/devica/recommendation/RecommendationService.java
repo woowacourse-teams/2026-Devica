@@ -20,12 +20,11 @@ public class RecommendationService {
         return algorithmOf(purposeCode).recommend(Answers.from(answers));
     }
 
-    // 담당 알고리즘이 없는 목적은 사용자 오류가 아니라 서버 설정 오류다
     private RecommendationAlgorithm algorithmOf(String purposeCode) {
         UsagePurposeCode purpose = UsagePurposeCode.from(purposeCode);
         RecommendationAlgorithm algorithm = algorithms.get(purpose);
         if (algorithm == null) {
-            throw new IllegalStateException("담당 추천 알고리즘이 없는 사용 목적입니다: " + purpose);
+            throw new IllegalStateException("추천 알고리즘이 없는 사용 목적입니다: " + purpose);
         }
         return algorithm;
     }
