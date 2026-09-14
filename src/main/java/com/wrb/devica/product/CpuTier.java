@@ -11,6 +11,10 @@ import lombok.Getter;
  * 벤치마크 점수는 상대값이라 등급을 먼저 정의하고 점수대를 그 등급의 정의로 둔다.
  * 등급 사이의 순서도 minScore 가 정한다. 선언 위치는 순서와 무관하다.
  * <p>
+ * 표시명에 세대를 넣지 않는다. 특정 모델명을 적으면 다음 세대가 나올 때마다 낡는다.
+ * 지금 쓰는 CPU 를 고르는 질문 선택지는 반대로 구체 모델을 예시로 든다 — 그쪽은 사용자가
+ * 자기 칩을 알아보는 용도이고 DB 라 배포 없이 갱신된다.
+ * <p>
  * 점수대는 잠정값이다 — 시드된 Apple M4(21000), Intel Core Ultra 7 255H(24000) 두 행에만 맞춰 두었다.
  */
 @Getter
@@ -20,10 +24,10 @@ public enum CpuTier {
     PRO(Os.MAC, "M Pro 칩", 30000),
     MAX(Os.MAC, "M Max 칩", 45000),
 
-    U(Os.WINDOWS, "Core Ultra 5 235U / Ryzen AI 5 340급", 15000),
-    P_HS(Os.WINDOWS, "Core Ultra 7 258V / Ryzen AI 7 445급", 20000),
-    H(Os.WINDOWS, "Core Ultra 7 255H / Ryzen 7 H 260급", 24000),
-    HX(Os.WINDOWS, "Core Ultra 9 275HX / Ryzen 9 8940HX급", 35000);
+    U(Os.WINDOWS, "저전력 Core Ultra 5 / Ryzen 5", 15000),
+    P_HS(Os.WINDOWS, "고효율 Core Ultra 7 / Ryzen 7", 20000),
+    H(Os.WINDOWS, "고성능 Core Ultra 7 / Ryzen 7", 24000),
+    HX(Os.WINDOWS, "최고성능 Core Ultra 9 / Ryzen 9", 35000);
 
     private final Os os;
     private final String displayName;
