@@ -23,4 +23,9 @@ public record LaptopSearchCondition(
     public boolean isPriceRangeValid() {
         return minPrice == null || maxPrice == null || minPrice <= maxPrice;
     }
+
+    @AssertTrue(message = "CPU 등급이 OS 와 맞지 않습니다.")
+    public boolean isCpuTierOfOs() {
+        return os == null || cpuTier == null || cpuTier.getOs() == os;
+    }
 }
