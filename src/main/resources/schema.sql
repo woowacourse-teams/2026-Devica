@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS usage_purpose
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 
-<<<<<<< HEAD
 CREATE TABLE IF NOT EXISTS cpu
 (
     id           BIGINT       NOT NULL AUTO_INCREMENT,
