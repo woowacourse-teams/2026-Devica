@@ -3,6 +3,7 @@ package com.wrb.devica.recommendation;
 import com.wrb.devica.question.OptionCode;
 import com.wrb.devica.question.QuestionCode;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
@@ -13,6 +14,19 @@ public record Answers(Map<QuestionCode, List<OptionCode>> selected) {
 
     public Answers {
         selected = Map.copyOf(selected);
+    }
+
+    /**
+     * 요청이 보낸 코드 문자열을 해석한다. 선택지는 질문마다 타입이 달라 질문이 해석하고,
+     * 고를 수 없는 조합이면 예외를 던진다.
+     */
+    public static Answers from(Map<String, List<String>> answers) {
+        Map<QuestionCode, List<OptionCode>> selected = new EnumMap<>(QuestionCode.class);
+        answers.forEach((code, optionCodes) -> {
+            QuestionCode question = QuestionCode.from(code);
+            selected.put(question, question.select(optionCodes));
+        });
+        return new Answers(selected);
     }
 
     public static Answers empty() {

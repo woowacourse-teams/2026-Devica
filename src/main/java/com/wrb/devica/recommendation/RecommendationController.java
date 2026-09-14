@@ -1,14 +1,13 @@
 package com.wrb.devica.recommendation;
 
-import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -18,20 +17,16 @@ public class RecommendationController {
 
     private final RecommendationService recommendationService;
 
+    /**
+     * 답변을 파라미터로 받아 조정한 권장 사양. 답변이 없으면 조정 전 기본 권장 사양이다.
+     * 답변 유무는 같은 자원의 다른 상태일 뿐이라 경로도 메서드도 나누지 않는다.
+     */
     @GetMapping
-    public ResponseEntity<RecommendationResponse> findByPurpose(@PathVariable String purposeCode) {
-        List<RecommendedSpec> recommendedSpecs = recommendationService.findByPurposeCode(purposeCode);
-        return ResponseEntity.ok().body(RecommendationResponse.from(recommendedSpecs));
-    }
-
-    // 답변이 없는 상태의 추천인 GET 과 같은 자원이라 경로를 나누지 않는다
-    @PostMapping
-    public ResponseEntity<RecommendationResponse> recommendByAnswers(
+    public ResponseEntity<RecommendationResponse> recommend(
         @PathVariable String purposeCode,
-        @Valid @RequestBody RecommendationRequest request
+        @RequestParam MultiValueMap<String, String> answers
     ) {
-        List<RecommendedSpec> recommendedSpecs =
-            recommendationService.recommendByAnswers(purposeCode, request);
+        List<RecommendedSpec> recommendedSpecs = recommendationService.recommend(purposeCode, answers);
         return ResponseEntity.ok().body(RecommendationResponse.from(recommendedSpecs));
     }
 }

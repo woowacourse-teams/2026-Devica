@@ -16,12 +16,8 @@ public class RecommendationService {
         algorithms.forEach(algorithm -> this.algorithms.put(algorithm.purpose(), algorithm));
     }
 
-    public List<RecommendedSpec> findByPurposeCode(String purposeCode) {
-        return algorithmOf(purposeCode).recommend(Answers.empty());
-    }
-
-    public List<RecommendedSpec> recommendByAnswers(String purposeCode, RecommendationRequest request) {
-        return algorithmOf(purposeCode).recommend(request.toAnswers());
+    public List<RecommendedSpec> recommend(String purposeCode, Map<String, List<String>> answers) {
+        return algorithmOf(purposeCode).recommend(Answers.from(answers));
     }
 
     // 담당 알고리즘이 없는 목적은 사용자 오류가 아니라 서버 설정 오류다

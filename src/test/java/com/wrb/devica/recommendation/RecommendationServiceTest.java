@@ -8,6 +8,7 @@ import com.wrb.devica.common.BusinessException;
 import com.wrb.devica.product.SpecValue;
 import com.wrb.devica.purpose.UsagePurposeCode;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -24,7 +25,7 @@ class RecommendationServiceTest {
     @EnumSource(UsagePurposeCode.class)
     void 모든_사용_목적은_항목마다_근거를_갖춘_권장_사양을_반환한다(UsagePurposeCode purpose) {
         // when
-        List<RecommendedSpec> recommendedSpecs = recommendationService.findByPurposeCode(purpose.name());
+        List<RecommendedSpec> recommendedSpecs = recommendationService.recommend(purpose.name(), Map.of());
 
         // then
         assertThat(recommendedSpecs).isNotEmpty().allSatisfy(recommended -> {
@@ -39,7 +40,7 @@ class RecommendationServiceTest {
     @Test
     void 존재하지_않는_사용_목적_코드면_예외가_발생한다() {
         // when & then
-        assertThatThrownBy(() -> recommendationService.findByPurposeCode("NOT_EXIST"))
+        assertThatThrownBy(() -> recommendationService.recommend("NOT_EXIST", Map.of()))
             .isInstanceOf(BusinessException.class)
             .extracting(thrown -> ((BusinessException) thrown).getErrorCode())
             .isEqualTo(BusinessErrorCode.USAGE_PURPOSE_NOT_FOUND);
