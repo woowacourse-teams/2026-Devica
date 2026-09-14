@@ -82,14 +82,14 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
     private RecommendedSpec recommendFor(Os os, Answers answers) {
         Map<String, List<String>> reasons = new HashMap<>();
         reasons.put("OS", startWith(os.getDisplayName() + " 권장안입니다."));
-        reasons.put("CPU_TIER", startWith(os.getDisplayName() + " 백엔드 개발 기본 CPU 입니다."));
+        reasons.put("REQUIRED_CPU", startWith(os.getDisplayName() + " 백엔드 개발 기본 CPU 입니다."));
         reasons.put("MEMORY", startWith(os.getDisplayName() + " 기본 권장 메모리에서 시작했습니다."));
         reasons.put("STORAGE", startWith("백엔드 개발 기본 저장 공간에서 시작했습니다."));
 
         int memoryGb = calculateMemory(os, answers, reasons.get("MEMORY"));
         int storageGb = calculateStorage(os, answers, reasons.get("STORAGE"));
         CpuTier cpuTier = alignCpuToMemory(
-            os, calculateCpu(os, answers, reasons.get("CPU_TIER")), memoryGb, reasons.get("CPU_TIER"));
+            os, calculateCpu(os, answers, reasons.get("REQUIRED_CPU")), memoryGb, reasons.get("REQUIRED_CPU"));
 
         return new RecommendedSpec(new LaptopSpec(os, cpuTier, memoryGb, storageGb), reasons);
     }
@@ -101,15 +101,9 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
     }
 
     private int calculateMemory(Os os, Answers answers, List<String> reasons) {
-        boolean fullUp = usesJavaFamily(answers)
-            || answers.hasAnyOf(IDE, Ide.JETBRAINS, Ide.MULTIPLE)
-            || answers.has(AI_CODING_TOOL, AiCodingTool.AI_EDITOR)
-            || answers.hasAnyOf(DEV_ENVIRONMENT_SETUP,
-                DevEnvironmentSetup.LOCAL_MANY, DevEnvironmentSetup.DOCKER_MANY)
-            || answers.has(SLOWDOWN, Slowdown.OFTEN);
+        boolean fullUp = hasHeavyWorkload(answers);
         boolean halfUp = !fullUp && answers.has(SLOWDOWN, Slowdown.SOMETIMES);
-        boolean down = answers.has(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.REMOTE)
-            && answers.has(USAGE_PERIOD, UsagePeriod.TWO_YEARS);
+        boolean down = worksRemotelyForShortTerm(answers);
 
         if ((fullUp || halfUp) && down) {
             reasons.add(KEPT_BY_CONFLICT);
@@ -135,21 +129,8 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
     }
 
     private int calculateStorage(Os os, Answers answers, List<String> reasons) {
-        OptionCode currentStorage = answers.single(CURRENT_STORAGE);
-        boolean atLeast512 = currentStorage == CurrentStorage.UNDER_1TB
-            || currentStorage == CurrentStorage.TB_1_OR_MORE;
-        // 현재 SSD 가 작다는 걸 아는 경우의 용량 부족 경험은 디스크 크기 탓이라 상향 근거로 쓰지 않는다.
-        // 미입력은 작다는 근거가 없으므로 사용자의 자기 보고를 그대로 인정한다.
-        boolean smallSsdKnown = currentStorage != null && !atLeast512;
-
-        boolean up = answers.has(PROGRAMMING_LANGUAGE, ProgrammingLanguage.NODE_TYPESCRIPT)
-            || answers.hasAnyOf(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.LOCAL_MANY,
-                DevEnvironmentSetup.DOCKER_MANY, DevEnvironmentSetup.DOCKER_FEW)
-            || (!smallSsdKnown && answers.has(STORAGE_SHORTAGE, StorageShortage.OFTEN));
-        int downCount = count(answers.has(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.REMOTE))
-            + count(atLeast512 && answers.has(STORAGE_SHORTAGE, StorageShortage.NEVER))
-            + count(answers.has(USAGE_PERIOD, UsagePeriod.TWO_YEARS));
-        boolean down = downCount >= 2;
+        boolean up = usesMuchStorage(answers);
+        boolean down = countStorageDownSignals(answers) >= 2;
 
         if (up && down) {
             reasons.add(KEPT_BY_CONFLICT);
@@ -168,7 +149,7 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
             reasons.add("저장 공간 하향 조건이 두 개 이상 확인되어 256GB로 조정했습니다.");
             return 256;
         }
-        if (!atLeast512 && answers.single(STORAGE_SHORTAGE) != null) {
+        if (!hasAtLeast512Ssd(answers) && answers.single(STORAGE_SHORTAGE) != null) {
             reasons.add("현재 SSD가 미입력이거나 512GB 상당 미만이라 용량 경험은 수치에 반영하지 않았습니다.");
         }
         addLongUseNote(answers, reasons, "오래 사용할 계획은 단독 상향 대신 참고 근거로만 반영했습니다.");
@@ -226,6 +207,41 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
         CpuTier aligned = supporting.getFirst();
         reasons.add(memoryGb + "GB RAM 지원 조합에 맞춰 " + aligned.getDisplayName() + "으로 조정했습니다.");
         return aligned;
+    }
+
+    private boolean hasHeavyWorkload(Answers answers) {
+        return usesJavaFamily(answers)
+            || answers.hasAnyOf(IDE, Ide.JETBRAINS, Ide.MULTIPLE)
+            || answers.has(AI_CODING_TOOL, AiCodingTool.AI_EDITOR)
+            || answers.hasAnyOf(DEV_ENVIRONMENT_SETUP,
+                DevEnvironmentSetup.LOCAL_MANY, DevEnvironmentSetup.DOCKER_MANY)
+            || answers.has(SLOWDOWN, Slowdown.OFTEN);
+    }
+
+    private boolean worksRemotelyForShortTerm(Answers answers) {
+        return answers.has(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.REMOTE)
+            && answers.has(USAGE_PERIOD, UsagePeriod.TWO_YEARS);
+    }
+
+    // 현재 SSD 가 작다는 걸 아는 경우의 용량 부족 경험은 디스크 크기 탓이라 상향 근거로 쓰지 않는다.
+    // 미입력은 작다는 근거가 없으므로 사용자의 자기 보고를 그대로 인정한다.
+    private boolean usesMuchStorage(Answers answers) {
+        boolean smallSsdKnown = answers.single(CURRENT_STORAGE) != null && !hasAtLeast512Ssd(answers);
+        return answers.has(PROGRAMMING_LANGUAGE, ProgrammingLanguage.NODE_TYPESCRIPT)
+            || answers.hasAnyOf(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.LOCAL_MANY,
+                DevEnvironmentSetup.DOCKER_MANY, DevEnvironmentSetup.DOCKER_FEW)
+            || (!smallSsdKnown && answers.has(STORAGE_SHORTAGE, StorageShortage.OFTEN));
+    }
+
+    private int countStorageDownSignals(Answers answers) {
+        return count(answers.has(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.REMOTE))
+            + count(hasAtLeast512Ssd(answers) && answers.has(STORAGE_SHORTAGE, StorageShortage.NEVER))
+            + count(answers.has(USAGE_PERIOD, UsagePeriod.TWO_YEARS));
+    }
+
+    private boolean hasAtLeast512Ssd(Answers answers) {
+        OptionCode currentStorage = answers.single(CURRENT_STORAGE);
+        return currentStorage == CurrentStorage.UNDER_1TB || currentStorage == CurrentStorage.TB_1_OR_MORE;
     }
 
     private boolean usesJavaFamily(Answers answers) {
