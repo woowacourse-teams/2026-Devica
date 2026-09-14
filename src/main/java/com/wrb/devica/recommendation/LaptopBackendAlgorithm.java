@@ -38,9 +38,13 @@ import java.util.Map;
 import org.springframework.stereotype.Component;
 
 /**
- * 백엔드 개발 노트북 추천. 기준 사양에서 시작해 답변에 따라 항목별로 올리거나 내린다.
+ * 백엔드 개발 노트북 추천. 항목마다 신호를 모아 그 합으로 단계를 올리거나 내린다.
  * <p>
- * 상향 조건과 하향 조건이 함께 걸리면 기준값을 유지한다 — 어느 쪽이 더 센지 판단할 근거가 없다.
+ * 조건 하나로는 올라가지 않는다. 하나만 걸려도 최대로 올리면 질문에 답할수록 결과가 달라지지 않아
+ * 설문이 무의미해지고, 실제로 필요한 것보다 높은 사양이 나온다.
+ * <p>
+ * 가중치와 경계는 실사용량 추정에 근거한 잠정값이다 — 학습 단계는 16GB, 도커를 여러 개 띄우면 32GB,
+ * 서비스를 상시 여러 개 올리면 48GB 로 본다. 사용자 반응을 보고 조정한다.
  */
 @Component
 public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
@@ -48,15 +52,11 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
     private static final Map<Os, CpuTier> BASELINE_CPU = Map.of(
         Os.MAC, CpuTier.BASIC,
         Os.WINDOWS, CpuTier.P_HS);
-    private static final int BASELINE_MEMORY_GB = 24;
-    private static final int BASELINE_STORAGE_GB = 512;
 
-    // Mac 은 CPU 등급마다 살 수 있는 메모리 조합이 정해져 있다
+    // Mac 은 CPU 등급마다 살 수 있는 메모리가 정해져 있다
     private static final Map<CpuTier, List<Integer>> MAC_MEMORY_BY_CPU = Map.of(
         CpuTier.BASIC, List.of(16, 24, 32),
         CpuTier.PRO, List.of(24, 48));
-
-    private static final String KEPT_BY_CONFLICT = "상향 조건과 하향 조건이 함께 있어 기준값을 유지했습니다.";
 
     @Override
     public UsagePurposeCode purpose() {
@@ -83,198 +83,208 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
     private RecommendedSpec recommendFor(Os os, Answers answers) {
         Map<String, List<String>> reasons = new HashMap<>();
         reasons.put("OS", startWith(os.getDisplayName() + " 권장안입니다."));
-        reasons.put("REQUIRED_CPU", startWith(os.getDisplayName() + " 백엔드 개발 기본 CPU 입니다."));
-        reasons.put("MEMORY", startWith(os.getDisplayName() + " 기본 권장 메모리에서 시작했습니다."));
-        reasons.put("STORAGE", startWith("백엔드 개발 기본 저장 공간에서 시작했습니다."));
 
-        int memoryGb = calculateMemory(os, answers, reasons.get("MEMORY"));
-        int storageGb = calculateStorage(os, answers, reasons.get("STORAGE"));
-        CpuTier cpuTier = alignCpuToMemory(
-            os, calculateCpu(os, answers, reasons.get("REQUIRED_CPU")), memoryGb, reasons.get("REQUIRED_CPU"));
+        int memoryGb = calculateMemory(answers, startWith(reasons, "MEMORY"));
+        int storageGb = calculateStorage(answers, startWith(reasons, "STORAGE"));
+        CpuTier cpuTier = calculateCpu(os, answers, startWith(reasons, "REQUIRED_CPU"));
 
-        return new RecommendedSpec(new LaptopSpec(os, cpuTier, memoryGb, storageGb), reasons);
+        return new RecommendedSpec(buyableSpec(os, cpuTier, memoryGb, storageGb, reasons), reasons);
     }
 
-    private List<String> startWith(String baselineReason) {
-        List<String> reasons = new ArrayList<>();
-        reasons.add(baselineReason);
-        return reasons;
+    private int calculateMemory(Answers answers, List<String> reasons) {
+        int signals = weigh(reasons,
+            signal(usesJavaFamily(answers), 1,
+                "Java·Kotlin·C# 계열은 빌드와 실행에 메모리를 더 씁니다."),
+            signal(answers.has(IDE, Ide.JETBRAINS), 1,
+                "JetBrains IDE 는 인덱싱과 코드 분석에 메모리를 많이 씁니다."),
+            signal(answers.has(IDE, Ide.MULTIPLE), 2,
+                "여러 IDE 를 함께 띄우면 그만큼 더 듭니다."),
+            signal(answers.has(AI_CODING_TOOL, AiCodingTool.AI_EDITOR), 1,
+                "AI 전용 에디터는 모델 연동으로 메모리를 더 씁니다."),
+            signal(runsManyEnvironments(answers), 2,
+                "개발 환경을 여러 개 띄우는 방식이라 여유가 필요합니다."),
+            signal(runsFewEnvironments(answers), 1,
+                "개발 환경을 띄워 두면 그만큼 메모리를 차지합니다."),
+            signal(answers.has(SLOWDOWN, Slowdown.OFTEN), 2,
+                "자주 느려진 경험은 메모리가 부족하다는 가장 직접적인 신호입니다."),
+            signal(answers.has(SLOWDOWN, Slowdown.SOMETIMES), 1,
+                "가끔 느려진 경험을 반영했습니다."),
+            signal(usesLong(answers), 1,
+                "오래 쓸 계획이라 여유를 두었습니다."),
+            signal(worksRemotely(answers), -2,
+                "원격 서버에서 개발하면 로컬 메모리 부담이 적습니다."),
+            signal(usesShort(answers), -1,
+                "짧게 쓸 계획이라 과한 용량을 피했습니다."));
+
+        int memoryGb = memoryFor(signals);
+        reasons.add("권장 메모리는 " + memoryGb + "GB 입니다.");
+        return memoryGb;
     }
 
-    private int calculateMemory(Os os, Answers answers, List<String> reasons) {
-        boolean fullUp = hasHeavyWorkload(answers);
-        boolean halfUp = !fullUp && answers.has(SLOWDOWN, Slowdown.SOMETIMES);
-        boolean down = worksRemotelyForShortTerm(answers);
-
-        if ((fullUp || halfUp) && down) {
-            reasons.add(KEPT_BY_CONFLICT);
-            return BASELINE_MEMORY_GB;
+    private int memoryFor(int signals) {
+        if (signals <= 1) {
+            return 16;
         }
-        if (fullUp) {
-            int increment = memoryIncrementOf(os);
-            reasons.add("개발 도구와 작업 부하를 고려해 메모리를 " + increment + "GB 높였습니다.");
-            addLongUseNote(answers, reasons, "오래 사용할 계획이 상향 판단을 보강했습니다.");
-            return BASELINE_MEMORY_GB + increment;
+        if (signals <= 3) {
+            return 24;
         }
-        if (halfUp) {
-            reasons.add("가끔 발생한 메모리 부족 경험을 반영해 8GB 높였습니다.");
-            addLongUseNote(answers, reasons, "오래 사용할 계획이 상향 판단을 보강했습니다.");
-            return BASELINE_MEMORY_GB + 8;
+        if (signals <= 6) {
+            return 32;
         }
-        if (down) {
-            reasons.add("원격 개발과 짧은 사용 계획이 함께 확인되어 8GB 낮췄습니다.");
-            return BASELINE_MEMORY_GB - 8;
-        }
-        addLongUseNote(answers, reasons, "오래 사용할 계획은 단독 상향 대신 참고 근거로만 반영했습니다.");
-        return BASELINE_MEMORY_GB;
+        return 48;
     }
 
-    private int calculateStorage(Os os, Answers answers, List<String> reasons) {
-        boolean up = usesMuchStorage(answers);
-        boolean down = countStorageDownSignals(answers) >= 2;
+    private int calculateStorage(Answers answers, List<String> reasons) {
+        // 지금 쓰는 SSD 가 작다는 걸 아는 경우의 용량 부족은 디스크 크기 탓이라 상향 근거로 쓰지 않는다.
+        // 미입력은 작다는 근거가 없으므로 사용자의 자기 보고를 그대로 인정한다.
+        boolean shortageCountsUp = !answers.isAnswered(CURRENT_STORAGE) || hasAtLeast512Ssd(answers);
 
-        if (up && down) {
-            reasons.add(KEPT_BY_CONFLICT);
-            return BASELINE_STORAGE_GB;
+        int signals = weigh(reasons,
+            signal(answers.has(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.DOCKER_MANY), 3,
+                "컨테이너 이미지가 쌓이면 저장 공간을 크게 씁니다."),
+            signal(runsFewEnvironments(answers)
+                    || answers.has(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.LOCAL_MANY), 1,
+                "개발 환경과 이미지가 자리를 차지합니다."),
+            signal(answers.has(PROGRAMMING_LANGUAGE, ProgrammingLanguage.NODE_TYPESCRIPT), 1,
+                "Node·TypeScript 프로젝트는 의존성이 많아 자리를 차지합니다."),
+            signal(shortageCountsUp && answers.has(STORAGE_SHORTAGE, StorageShortage.OFTEN), 2,
+                "용량이 자주 부족했던 경험을 반영했습니다."),
+            signal(shortageCountsUp && answers.has(STORAGE_SHORTAGE, StorageShortage.ONCE_OR_TWICE), 1,
+                "용량이 부족했던 경험을 반영했습니다."),
+            signal(usesLong(answers), 1,
+                "오래 쓸 계획이라 여유를 두었습니다."),
+            signal(hasSpareSsd(answers), -1,
+                "지금 1TB 를 쓰면서 용량이 부족한 적이 없었습니다."),
+            signal(worksRemotely(answers), -2,
+                "원격 서버에서 개발하면 로컬 저장 공간 부담이 적습니다."),
+            signal(usesShort(answers), -1,
+                "짧게 쓸 계획이라 과한 용량을 피했습니다."));
+
+        if (!shortageCountsUp && answers.isAnswered(STORAGE_SHORTAGE)) {
+            reasons.add("지금 쓰는 SSD 가 작아 용량 부족은 디스크 크기 탓으로 보고 수치에 반영하지 않았습니다.");
         }
-        if (up) {
-            reasons.add("프로젝트와 개발 환경의 저장 공간 사용량을 고려해 1TB를 권장합니다.");
-            addLongUseNote(answers, reasons, "오래 사용할 계획이 상향 판단을 보강했습니다.");
-            return 1024;
-        }
-        if (down) {
-            if (os == Os.MAC) {
-                reasons.add("Mac 권장 사양 범위에 맞춰 512GB를 유지했습니다.");
-                return BASELINE_STORAGE_GB;
-            }
-            reasons.add("저장 공간 하향 조건이 두 개 이상 확인되어 256GB로 조정했습니다.");
+
+        int storageGb = storageFor(signals);
+        reasons.add("권장 저장 공간은 " + storageGb + "GB 입니다.");
+        return storageGb;
+    }
+
+    private int storageFor(int signals) {
+        if (signals <= -2) {
             return 256;
         }
-        if (!hasAtLeast512Ssd(answers) && answers.isAnswered(STORAGE_SHORTAGE)) {
-            reasons.add("현재 SSD가 미입력이거나 512GB 상당 미만이라 용량 경험은 수치에 반영하지 않았습니다.");
+        if (signals <= 2) {
+            return 512;
         }
-        addLongUseNote(answers, reasons, "오래 사용할 계획은 단독 상향 대신 참고 근거로만 반영했습니다.");
-        return BASELINE_STORAGE_GB;
+        return 1024;
     }
 
     private CpuTier calculateCpu(Os os, Answers answers, List<String> reasons) {
-        CpuTier tier = BASELINE_CPU.get(os);
-        if (usesJavaFamily(answers)) {
-            tier = tier.stepUp();
-            reasons.add("Java·Kotlin·C# 계열의 빌드 부하를 고려해 한 단계 높였습니다.");
-        }
-        if (answers.has(BUILD_WAIT, BuildWait.OFTEN)) {
-            tier = upgradeByExperience(os, tier, answers);
-            reasons.add("빌드·테스트 대기 경험을 반영했습니다.");
-        }
-        if (answers.has(OVERHEATING, Overheating.OFTEN)) {
-            tier = upgradeByExperience(os, tier, answers);
-            reasons.add(overheatingReasonOf(os));
-        }
+        int signals = weigh(reasons,
+            signal(usesJavaFamily(answers), 1,
+                "Java·Kotlin·C# 계열은 빌드에 CPU 를 많이 씁니다."),
+            signal(answers.has(BUILD_WAIT, BuildWait.OFTEN), 2,
+                "빌드·테스트 대기가 답답했던 경험을 반영했습니다."),
+            signal(answers.has(OVERHEATING, Overheating.OFTEN), 2,
+                "지속 부하에서 발열로 성능이 떨어진 경험을 반영했습니다."),
+            signal(answers.has(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.DOCKER_MANY), 1,
+                "여러 컨테이너를 동시에 띄우면 코어가 더 필요합니다."),
+            signal(answers.has(IDE, Ide.MULTIPLE), 1,
+                "여러 IDE 를 함께 쓰면 백그라운드 작업이 겹칩니다."),
+            signal(usesLong(answers), 1,
+                "오래 쓸 계획이라 여유를 두었습니다."),
+            signal(worksRemotely(answers), -2,
+                "원격 서버에서 빌드하면 로컬 CPU 부담이 적습니다."),
+            signal(usesShort(answers), -1,
+                "짧게 쓸 계획이라 과한 사양을 피했습니다."));
+
+        CpuTier tier = raise(BASELINE_CPU.get(os), cpuStepsFor(signals));
+        tier = atLeastAboveCurrent(os, tier, answers, reasons);
+
         if (os == Os.MAC && tier == CpuTier.MAX) {
-            reasons.add("예산 범위를 고려해 Mac 권장 CPU는 M Pro 칩으로 제한했습니다.");
-            return CpuTier.PRO;
+            reasons.add("예산을 고려해 Mac 권장 CPU 는 M Pro 칩으로 제한했습니다.");
+            tier = CpuTier.PRO;
         }
+        reasons.add("권장 CPU 는 " + tier.getDisplayName() + " 입니다.");
         return tier;
     }
 
-    private CpuTier upgradeByExperience(Os os, CpuTier recommended, Answers answers) {
-        CpuTier current = currentCpuTier(os, answers);
-        if (current == null) {
-            return recommended.stepUp();
+    private int cpuStepsFor(int signals) {
+        if (signals <= 2) {
+            return 0;
         }
-        return current.stepUp().higherOf(recommended);
+        if (signals <= 4) {
+            return 1;
+        }
+        return 2;
     }
 
-    // 현재 CPU 질문은 OS 별로 나뉘어 있고 선택지 이름이 등급 이름과 같다 (CpuTierTest 가 지킨다)
+    /**
+     * 쓰던 노트북과 같은 OS 를 권할 때, 빌드 대기나 발열을 겪었다면 그 CPU 한 단계 위를 밑돌지 않게 한다.
+     */
+    private CpuTier atLeastAboveCurrent(Os os, CpuTier tier, Answers answers, List<String> reasons) {
+        if (!answers.has(BUILD_WAIT, BuildWait.OFTEN) && !answers.has(OVERHEATING, Overheating.OFTEN)) {
+            return tier;
+        }
+        CpuTier current = currentCpuTier(os, answers);
+        if (current == null) {
+            return tier;
+        }
+        CpuTier raised = current.stepUp().higherOf(tier);
+        if (raised != tier) {
+            reasons.add("지금 쓰는 " + current.getDisplayName() + " 에서 불편을 겪어 그보다 위를 권합니다.");
+        }
+        return raised;
+    }
+
+    /**
+     * Mac 은 CPU 등급마다 살 수 있는 메모리가 정해져 있다. 살 수 없는 조합이면 올려서 맞춘다.
+     */
+    private LaptopSpec buyableSpec(Os os, CpuTier cpuTier, int memoryGb, int storageGb,
+                                   Map<String, List<String>> reasons) {
+        if (os != Os.MAC) {
+            return new LaptopSpec(os, cpuTier, memoryGb, storageGb);
+        }
+        CpuTier tier = cpuTier;
+        if (memoryGb > largestMemoryOf(tier)) {
+            tier = tier.stepUp();
+            reasons.get("REQUIRED_CPU")
+                .add(memoryGb + "GB 를 쓰려면 " + tier.getDisplayName() + " 이상이어야 합니다.");
+        }
+        int adjusted = smallestMemoryAtLeast(tier, memoryGb);
+        if (adjusted != memoryGb) {
+            reasons.get("MEMORY")
+                .add(tier.getDisplayName() + " 에서 고를 수 있는 가장 가까운 용량은 " + adjusted + "GB 입니다.");
+        }
+        return new LaptopSpec(os, tier, adjusted, storageGb);
+    }
+
+    private int largestMemoryOf(CpuTier tier) {
+        return MAC_MEMORY_BY_CPU.get(tier).getLast();
+    }
+
+    private int smallestMemoryAtLeast(CpuTier tier, int memoryGb) {
+        return MAC_MEMORY_BY_CPU.get(tier).stream()
+            .filter(option -> option >= memoryGb)
+            .findFirst()
+            .orElseGet(() -> largestMemoryOf(tier));
+    }
+
+    private CpuTier raise(CpuTier tier, int steps) {
+        CpuTier raised = tier;
+        for (int step = 0; step < steps; step++) {
+            raised = raised.stepUp();
+        }
+        return raised;
+    }
+
     private CpuTier currentCpuTier(Os os, Answers answers) {
         OptionCode answer = answers.answerTo(currentCpuQuestionOf(os));
         if (answer == null) {
             return null;
         }
+        // 현재 CPU 선택지와 등급은 이름이 같다 (CpuTierTest 가 지킨다)
         return CpuTier.valueOf(answer.name());
-    }
-
-    private CpuTier alignCpuToMemory(Os os, CpuTier cpuTier, int memoryGb, List<String> reasons) {
-        if (os != Os.MAC) {
-            return cpuTier;
-        }
-        List<CpuTier> supporting = MAC_MEMORY_BY_CPU.entrySet().stream()
-            .filter(entry -> entry.getValue().contains(memoryGb))
-            .map(Map.Entry::getKey)
-            .toList();
-        if (supporting.size() != 1 || supporting.getFirst() == cpuTier) {
-            return cpuTier;
-        }
-        CpuTier aligned = supporting.getFirst();
-        reasons.add(memoryGb + "GB RAM 지원 조합에 맞춰 " + aligned.getDisplayName() + "으로 조정했습니다.");
-        return aligned;
-    }
-
-    private boolean hasHeavyWorkload(Answers answers) {
-        return usesJavaFamily(answers)
-            || answers.hasAnyOf(IDE, Ide.JETBRAINS, Ide.MULTIPLE)
-            || answers.has(AI_CODING_TOOL, AiCodingTool.AI_EDITOR)
-            || answers.hasAnyOf(DEV_ENVIRONMENT_SETUP,
-            DevEnvironmentSetup.LOCAL_MANY, DevEnvironmentSetup.DOCKER_MANY)
-            || answers.has(SLOWDOWN, Slowdown.OFTEN);
-    }
-
-    private boolean worksRemotelyForShortTerm(Answers answers) {
-        return answers.has(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.REMOTE)
-            && answers.has(USAGE_PERIOD, UsagePeriod.TWO_YEARS);
-    }
-
-    // 현재 SSD 가 작다는 걸 아는 경우의 용량 부족 경험은 디스크 크기 탓이라 상향 근거로 쓰지 않는다.
-    // 미입력은 작다는 근거가 없으므로 사용자의 자기 보고를 그대로 인정한다.
-    private boolean usesMuchStorage(Answers answers) {
-        boolean smallSsdKnown = answers.isAnswered(CURRENT_STORAGE) && !hasAtLeast512Ssd(answers);
-        return answers.has(PROGRAMMING_LANGUAGE, ProgrammingLanguage.NODE_TYPESCRIPT)
-            || answers.hasAnyOf(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.LOCAL_MANY,
-            DevEnvironmentSetup.DOCKER_MANY, DevEnvironmentSetup.DOCKER_FEW)
-            || (!smallSsdKnown && answers.has(STORAGE_SHORTAGE, StorageShortage.OFTEN));
-    }
-
-    private int countStorageDownSignals(Answers answers) {
-        return count(answers.has(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.REMOTE))
-            + count(hasAtLeast512Ssd(answers) && answers.has(STORAGE_SHORTAGE, StorageShortage.NEVER))
-            + count(answers.has(USAGE_PERIOD, UsagePeriod.TWO_YEARS));
-    }
-
-    private boolean hasAtLeast512Ssd(Answers answers) {
-        return answers.hasAnyOf(CURRENT_STORAGE, CurrentStorage.UNDER_1TB, CurrentStorage.TB_1_OR_MORE);
-    }
-
-    private boolean usesJavaFamily(Answers answers) {
-        return answers.has(PROGRAMMING_LANGUAGE, ProgrammingLanguage.JAVA_FAMILY);
-    }
-
-    private void addLongUseNote(Answers answers, List<String> reasons, String note) {
-        if (answers.has(USAGE_PERIOD, UsagePeriod.FIVE_PLUS_YEARS)) {
-            reasons.add(note);
-        }
-    }
-
-    private int count(boolean condition) {
-        if (condition) {
-            return 1;
-        }
-        return 0;
-    }
-
-    // Mac 은 등급마다 살 수 있는 메모리 폭이 커서 한 번에 더 올린다
-    private int memoryIncrementOf(Os os) {
-        if (os == Os.MAC) {
-            return 24;
-        }
-        return 16;
-    }
-
-    private String overheatingReasonOf(Os os) {
-        if (os == Os.MAC) {
-            return "지속 부하와 발열 경험을 반영해 Pro 이상 등급을 검토했습니다.";
-        }
-        return "지속 부하와 발열 경험을 반영해 H·HX 계열을 검토했습니다.";
     }
 
     private QuestionCode currentCpuQuestionOf(Os os) {
@@ -282,5 +292,73 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
             return CURRENT_MAC_CPU;
         }
         return CURRENT_WINDOWS_CPU;
+    }
+
+    private boolean usesJavaFamily(Answers answers) {
+        return answers.has(PROGRAMMING_LANGUAGE, ProgrammingLanguage.JAVA_FAMILY);
+    }
+
+    private boolean runsManyEnvironments(Answers answers) {
+        return answers.hasAnyOf(DEV_ENVIRONMENT_SETUP,
+            DevEnvironmentSetup.LOCAL_MANY, DevEnvironmentSetup.DOCKER_MANY);
+    }
+
+    private boolean runsFewEnvironments(Answers answers) {
+        return answers.hasAnyOf(DEV_ENVIRONMENT_SETUP,
+            DevEnvironmentSetup.LOCAL_FEW, DevEnvironmentSetup.DOCKER_FEW);
+    }
+
+    private boolean worksRemotely(Answers answers) {
+        return answers.has(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.REMOTE);
+    }
+
+    private boolean usesLong(Answers answers) {
+        return answers.has(USAGE_PERIOD, UsagePeriod.FIVE_PLUS_YEARS);
+    }
+
+    private boolean usesShort(Answers answers) {
+        return answers.has(USAGE_PERIOD, UsagePeriod.TWO_YEARS);
+    }
+
+    private boolean hasAtLeast512Ssd(Answers answers) {
+        return answers.hasAnyOf(CURRENT_STORAGE, CurrentStorage.UNDER_1TB, CurrentStorage.TB_1_OR_MORE);
+    }
+
+    private boolean hasSpareSsd(Answers answers) {
+        return answers.has(CURRENT_STORAGE, CurrentStorage.TB_1_OR_MORE)
+            && answers.has(STORAGE_SHORTAGE, StorageShortage.NEVER);
+    }
+
+    private List<String> startWith(Map<String, List<String>> reasons, String itemCode) {
+        List<String> itemReasons = new ArrayList<>();
+        reasons.put(itemCode, itemReasons);
+        return itemReasons;
+    }
+
+    private List<String> startWith(String reason) {
+        List<String> reasons = new ArrayList<>();
+        reasons.add(reason);
+        return reasons;
+    }
+
+    private int weigh(List<String> reasons, Signal... signals) {
+        int total = 0;
+        for (Signal each : signals) {
+            if (each.matched()) {
+                total += each.weight();
+                reasons.add(each.reason());
+            }
+        }
+        return total;
+    }
+
+    private Signal signal(boolean matched, int weight, String reason) {
+        return new Signal(matched, weight, reason);
+    }
+
+    /**
+     * 사양을 올리거나 내리는 근거 하나. 걸린 신호의 가중치를 더해 단계를 정한다.
+     */
+    private record Signal(boolean matched, int weight, String reason) {
     }
 }

@@ -21,7 +21,7 @@ class RecommendationE2ETest extends E2ETest {
             .body("specs.size()", is(2))
             .body("specs[0].items.find { it.code == 'OS' }.displayValue", is("Mac"))
             .body("specs[0].items.find { it.code == 'REQUIRED_CPU' }.displayValue", is("M 칩"))
-            .body("specs[0].items.find { it.code == 'MEMORY' }.displayValue", is("24GB"))
+            .body("specs[0].items.find { it.code == 'MEMORY' }.displayValue", is("16GB"))
             .body("specs[1].items.find { it.code == 'OS' }.displayValue", is("Windows"));
     }
 
@@ -30,18 +30,19 @@ class RecommendationE2ETest extends E2ETest {
     void 답변을_보내면_조정한_사양과_근거를_받는다() {
         given().log().all()
             .queryParam("PREFERRED_OS", "WINDOWS")
-            .queryParam("PROGRAMMING_LANGUAGE", "JAVA_FAMILY", "NODE_TYPESCRIPT")
+            .queryParam("PROGRAMMING_LANGUAGE", "JAVA_FAMILY")
             .queryParam("IDE", "JETBRAINS")
-            .queryParam("USAGE_PERIOD", "FIVE_PLUS_YEARS")
+            .queryParam("DEV_ENVIRONMENT_SETUP", "DOCKER_MANY")
+            .queryParam("BUILD_WAIT", "OFTEN")
             .when().get(PATH)
             .then().log().all()
             .statusCode(200)
             .body("specs.size()", is(1))
             .body("specs[0].items.find { it.code == 'OS' }.value", is("WINDOWS"))
             .body("specs[0].items.find { it.code == 'REQUIRED_CPU' }.value", is("H"))
-            .body("specs[0].items.find { it.code == 'MEMORY' }.displayValue", is("40GB"))
+            .body("specs[0].items.find { it.code == 'MEMORY' }.displayValue", is("32GB"))
             .body("specs[0].items.find { it.code == 'STORAGE' }.displayValue", is("1024GB"))
             .body("specs[0].items.find { it.code == 'MEMORY' }.reasons",
-                hasItem("오래 사용할 계획이 상향 판단을 보강했습니다."));
+                hasItem("권장 메모리는 32GB 입니다."));
     }
 }

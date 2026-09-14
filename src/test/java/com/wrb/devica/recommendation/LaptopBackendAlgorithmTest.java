@@ -52,8 +52,8 @@ class LaptopBackendAlgorithmTest {
         // then
         assertThat(recommended).extracting(LaptopBackendAlgorithmTest::spec)
             .containsExactly(
-                new LaptopSpec(Os.MAC, CpuTier.BASIC, 24, 512),
-                new LaptopSpec(Os.WINDOWS, CpuTier.P_HS, 24, 512));
+                new LaptopSpec(Os.MAC, CpuTier.BASIC, 16, 512),
+                new LaptopSpec(Os.WINDOWS, CpuTier.P_HS, 16, 512));
     }
 
     @Test
@@ -68,19 +68,117 @@ class LaptopBackendAlgorithmTest {
     }
 
     @Test
-    void Java_계열_언어는_CPU_를_한_단계_올린다() {
+    void 신호가_하나뿐이면_기본안에서_올리지_않는다() {
         // when
         LaptopSpec windows = windowsSpec(answers()
             .with(PROGRAMMING_LANGUAGE, ProgrammingLanguage.JAVA_FAMILY));
 
         // then
-        assertThat(windows.cpuTier()).isEqualTo(CpuTier.H);
+        assertThat(windows).isEqualTo(new LaptopSpec(Os.WINDOWS, CpuTier.P_HS, 16, 512));
     }
 
     @Test
-    void 빌드_대기와_발열_경험은_CPU_를_각각_한_단계씩_올린다() {
+    void 메모리_신호가_쌓일수록_단계적으로_올린다() {
+        // when
+        LaptopSpec twoSignals = windowsSpec(answers()
+            .with(PROGRAMMING_LANGUAGE, ProgrammingLanguage.JAVA_FAMILY)
+            .with(IDE, Ide.JETBRAINS));
+        LaptopSpec sevenSignals = windowsSpec(answers()
+            .with(PROGRAMMING_LANGUAGE, ProgrammingLanguage.JAVA_FAMILY)
+            .with(IDE, Ide.MULTIPLE)
+            .with(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.DOCKER_MANY)
+            .with(SLOWDOWN, Slowdown.OFTEN));
+
+        // then
+        assertThat(twoSignals.memoryGb()).isEqualTo(24);
+        assertThat(sevenSignals.memoryGb()).isEqualTo(48);
+    }
+
+    @Test
+    void 자주_느려진_경험을_가끔보다_무겁게_본다() {
+        // when
+        LaptopSpec sometimes = windowsSpec(answers().with(SLOWDOWN, Slowdown.SOMETIMES));
+        LaptopSpec often = windowsSpec(answers().with(SLOWDOWN, Slowdown.OFTEN));
+
+        // then
+        assertThat(sometimes.memoryGb()).isEqualTo(16);
+        assertThat(often.memoryGb()).isEqualTo(24);
+    }
+
+    @Test
+    void 원격_개발과_짧은_사용_계획은_사양을_낮춘다() {
         // when
         LaptopSpec windows = windowsSpec(answers()
+            .with(PROGRAMMING_LANGUAGE, ProgrammingLanguage.JAVA_FAMILY)
+            .with(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.REMOTE)
+            .with(USAGE_PERIOD, UsagePeriod.TWO_YEARS));
+
+        // then
+        assertThat(windows).isEqualTo(new LaptopSpec(Os.WINDOWS, CpuTier.P_HS, 16, 256));
+    }
+
+    @Test
+    void 도커를_여러_개_띄우면_저장_공간을_1TB_로_올린다() {
+        // when
+        LaptopSpec windows = windowsSpec(answers()
+            .with(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.DOCKER_MANY));
+
+        // then
+        assertThat(windows.storageGb()).isEqualTo(1024);
+    }
+
+    @Test
+    void 도커를_한두_개_띄우는_것만으로는_저장_공간을_올리지_않는다() {
+        // when
+        LaptopSpec windows = windowsSpec(answers()
+            .with(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.DOCKER_FEW));
+
+        // then
+        assertThat(windows.storageGb()).isEqualTo(512);
+    }
+
+    @Test
+    void 현재_SSD_가_작으면_용량_부족_경험을_상향_근거로_쓰지_않는다() {
+        // when
+        LaptopSpec windows = windowsSpec(answers()
+            .with(CURRENT_STORAGE, CurrentStorage.GB_256_OR_LESS)
+            .with(STORAGE_SHORTAGE, StorageShortage.OFTEN));
+
+        // then
+        assertThat(windows.storageGb()).isEqualTo(512);
+    }
+
+    @Test
+    void 넉넉한_SSD_를_쓰면서_부족을_겪지_않았으면_저장_공간을_낮춘다() {
+        // when
+        LaptopSpec windows = windowsSpec(answers()
+            .with(CURRENT_STORAGE, CurrentStorage.TB_1_OR_MORE)
+            .with(STORAGE_SHORTAGE, StorageShortage.NEVER)
+            .with(USAGE_PERIOD, UsagePeriod.TWO_YEARS));
+
+        // then
+        assertThat(windows.storageGb()).isEqualTo(256);
+    }
+
+    @Test
+    void CPU_는_신호가_셋_이상_모여야_한_단계_오른다() {
+        // when
+        LaptopSpec oneSignal = windowsSpec(answers()
+            .with(PROGRAMMING_LANGUAGE, ProgrammingLanguage.JAVA_FAMILY));
+        LaptopSpec threeSignals = windowsSpec(answers()
+            .with(PROGRAMMING_LANGUAGE, ProgrammingLanguage.JAVA_FAMILY)
+            .with(BUILD_WAIT, BuildWait.OFTEN));
+
+        // then
+        assertThat(oneSignal.cpuTier()).isEqualTo(CpuTier.P_HS);
+        assertThat(threeSignals.cpuTier()).isEqualTo(CpuTier.H);
+    }
+
+    @Test
+    void CPU_신호가_다섯_이상이면_두_단계_오른다() {
+        // when
+        LaptopSpec windows = windowsSpec(answers()
+            .with(PROGRAMMING_LANGUAGE, ProgrammingLanguage.JAVA_FAMILY)
             .with(BUILD_WAIT, BuildWait.OFTEN)
             .with(OVERHEATING, Overheating.OFTEN));
 
@@ -101,8 +199,8 @@ class LaptopBackendAlgorithmTest {
     }
 
     @Test
-    void 쓰던_노트북의_CPU_가_권장안보다_높으면_그_위로_올린다() {
-        // given - 기본 등급은 P_HS 이지만 이미 H 를 쓰면서 발열을 겪었다
+    void 쓰던_CPU_에서_불편을_겪었으면_그_위를_권한다() {
+        // when
         LaptopSpec experienced = windowsSpec(answers()
             .with(CURRENT_OS, CurrentOs.WINDOWS)
             .with(CURRENT_WINDOWS_CPU, CurrentWindowsCpu.H)
@@ -111,132 +209,67 @@ class LaptopBackendAlgorithmTest {
 
         // then
         assertThat(experienced.cpuTier()).isEqualTo(CpuTier.HX);
-        assertThat(unknown.cpuTier()).isEqualTo(CpuTier.H);
+        assertThat(unknown.cpuTier()).isEqualTo(CpuTier.P_HS);
     }
 
     @Test
     void 쓰던_노트북의_OS_가_다르면_그_CPU_를_보지_않는다() {
-        // given - Mac 을 쓰던 사람에게 Windows 권장안을 낼 때
+        // when
         LaptopSpec windows = windowsSpec(answers()
             .with(CURRENT_OS, CurrentOs.MACOS)
             .with(CURRENT_MAC_CPU, CurrentMacCpu.MAX)
             .with(OVERHEATING, Overheating.OFTEN));
 
         // then
-        assertThat(windows.cpuTier()).isEqualTo(CpuTier.H);
+        assertThat(windows.cpuTier()).isEqualTo(CpuTier.P_HS);
     }
 
     @Test
-    void 개발_도구_부하가_크면_메모리를_올린다() {
-        // when
-        LaptopSpec windows = windowsSpec(answers().with(IDE, Ide.JETBRAINS));
-        LaptopSpec mac = macSpec(answers().with(IDE, Ide.JETBRAINS));
+    void Mac_은_메모리가_등급_상한을_넘으면_CPU_를_올린다() {
+        // when - 48GB 는 M 칩 조합에 없다
+        LaptopSpec mac = macSpec(answers()
+            .with(IDE, Ide.MULTIPLE)
+            .with(AI_CODING_TOOL, AiCodingTool.AI_EDITOR)
+            .with(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.LOCAL_MANY)
+            .with(SLOWDOWN, Slowdown.OFTEN));
 
         // then
-        assertThat(windows.memoryGb()).isEqualTo(40);
+        assertThat(mac.cpuTier()).isEqualTo(CpuTier.PRO);
         assertThat(mac.memoryGb()).isEqualTo(48);
     }
 
     @Test
-    void 가끔_느려진_경험은_메모리를_8GB_만_올린다() {
-        // when
-        LaptopSpec windows = windowsSpec(answers().with(SLOWDOWN, Slowdown.SOMETIMES));
+    void Mac_은_등급_최소_구성보다_적은_메모리를_올린다() {
+        // when - M Pro 칩은 24GB 부터 시작한다
+        LaptopSpec mac = macSpec(answers()
+            .with(BUILD_WAIT, BuildWait.OFTEN)
+            .with(OVERHEATING, Overheating.OFTEN));
 
         // then
-        assertThat(windows.memoryGb()).isEqualTo(32);
+        assertThat(mac.cpuTier()).isEqualTo(CpuTier.PRO);
+        assertThat(mac.memoryGb()).isEqualTo(24);
     }
 
     @Test
-    void 원격_개발과_짧은_사용_계획은_메모리를_낮춘다() {
-        // when
-        LaptopSpec windows = windowsSpec(answers()
-            .with(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.REMOTE)
-            .with(USAGE_PERIOD, UsagePeriod.TWO_YEARS));
-
-        // then
-        assertThat(windows.memoryGb()).isEqualTo(16);
-    }
-
-    @Test
-    void 상향과_하향_조건이_함께_있으면_기준값을_유지한다() {
-        // when
-        LaptopSpec windows = windowsSpec(answers()
-            .with(AI_CODING_TOOL, AiCodingTool.AI_EDITOR)
-            .with(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.REMOTE)
-            .with(USAGE_PERIOD, UsagePeriod.TWO_YEARS));
-
-        // then
-        assertThat(windows.memoryGb()).isEqualTo(24);
-    }
-
-    @Test
-    void 도커를_쓰면_저장_공간을_1TB_로_올린다() {
-        // when
-        LaptopSpec windows = windowsSpec(answers()
-            .with(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.DOCKER_FEW));
-
-        // then
-        assertThat(windows.storageGb()).isEqualTo(1024);
-    }
-
-    @Test
-    void 하향_조건이_둘_이상이면_저장_공간을_낮춘다() {
-        // when
-        LaptopSpec windows = windowsSpec(answers()
-            .with(CURRENT_STORAGE, CurrentStorage.TB_1_OR_MORE)
-            .with(STORAGE_SHORTAGE, StorageShortage.NEVER)
-            .with(USAGE_PERIOD, UsagePeriod.TWO_YEARS));
-
-        // then
-        assertThat(windows.storageGb()).isEqualTo(256);
-    }
-
-    @Test
-    void 현재_SSD_가_작으면_용량_부족_경험을_상향_근거로_쓰지_않는다() {
-        // when
-        LaptopSpec windows = windowsSpec(answers()
-            .with(CURRENT_STORAGE, CurrentStorage.GB_256_OR_LESS)
-            .with(STORAGE_SHORTAGE, StorageShortage.OFTEN));
-
-        // then
-        assertThat(windows.storageGb()).isEqualTo(512);
-    }
-
-    @Test
-    void Mac_은_계산된_메모리를_지원하는_CPU_등급으로_맞춘다() {
-        // when - 48GB 는 M Pro 칩 조합에만 있다
-        RecommendedSpec mac = macRecommendation(answers().with(IDE, Ide.JETBRAINS));
-
-        // then
-        assertThat(spec(mac).cpuTier()).isEqualTo(CpuTier.PRO);
-        assertThat(mac.itemReasons().get("REQUIRED_CPU"))
-            .anyMatch(reason -> reason.contains("48GB RAM 지원 조합"));
-    }
-
-    @Test
-    void 조정한_항목마다_기준값_근거_뒤에_조정_근거를_덧붙인다() {
+    void 걸린_신호마다_근거를_남기고_마지막에_결과를_적는다() {
         // when
         RecommendedSpec windows = windowsRecommendation(answers()
-            .with(IDE, Ide.JETBRAINS)
-            .with(USAGE_PERIOD, UsagePeriod.FIVE_PLUS_YEARS));
+            .with(PROGRAMMING_LANGUAGE, ProgrammingLanguage.JAVA_FAMILY)
+            .with(IDE, Ide.JETBRAINS));
 
         // then
         assertThat(windows.itemReasons().get("MEMORY")).containsExactly(
-            "Windows 기본 권장 메모리에서 시작했습니다.",
-            "개발 도구와 작업 부하를 고려해 메모리를 16GB 높였습니다.",
-            "오래 사용할 계획이 상향 판단을 보강했습니다.");
+            "Java·Kotlin·C# 계열은 빌드와 실행에 메모리를 더 씁니다.",
+            "JetBrains IDE 는 인덱싱과 코드 분석에 메모리를 많이 씁니다.",
+            "권장 메모리는 24GB 입니다.");
     }
 
     private LaptopSpec macSpec(AnswersBuilder builder) {
-        return spec(macRecommendation(builder));
+        return spec(algorithm.recommend(builder.with(PREFERRED_OS, PreferredOs.MACOS).build()).getFirst());
     }
 
     private LaptopSpec windowsSpec(AnswersBuilder builder) {
         return spec(windowsRecommendation(builder));
-    }
-
-    private RecommendedSpec macRecommendation(AnswersBuilder builder) {
-        return algorithm.recommend(builder.with(PREFERRED_OS, PreferredOs.MACOS).build()).getFirst();
     }
 
     private RecommendedSpec windowsRecommendation(AnswersBuilder builder) {
