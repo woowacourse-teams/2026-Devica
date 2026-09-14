@@ -43,15 +43,21 @@ import org.springframework.stereotype.Component;
  * 조건 하나로는 올라가지 않는다. 하나만 걸려도 최대로 올리면 질문에 답할수록 결과가 달라지지 않아
  * 설문이 무의미해지고, 실제로 필요한 것보다 높은 사양이 나온다.
  * <p>
+ * 답변이 없는 경우를 따로 분기하지 않는다. 신호가 하나도 안 걸린 결과가 곧 기본 권장 사양이다.
+ * 분기를 두면 답변 전 화면과 답변 후 계산이 따로 놀 수 있다.
+ * <p>
  * 가중치와 경계는 실사용량 추정에 근거한 잠정값이다 — 학습 단계는 16GB, 도커를 여러 개 띄우면 32GB,
  * 서비스를 상시 여러 개 올리면 48GB 로 본다. 사용자 반응을 보고 조정한다.
  */
 @Component
 public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
 
+    // 답변이 없을 때 나가는 기본 권장 사양. 신호가 하나도 안 걸리면 이 값이 그대로 결과가 된다
     private static final Map<Os, CpuTier> BASELINE_CPU = Map.of(
         Os.MAC, CpuTier.BASIC,
         Os.WINDOWS, CpuTier.P_HS);
+    private static final int BASELINE_MEMORY_GB = 16;
+    private static final int BASELINE_STORAGE_GB = 512;
 
     // Mac 은 CPU 등급마다 살 수 있는 메모리가 정해져 있다
     private static final Map<CpuTier, List<Integer>> MAC_MEMORY_BY_CPU = Map.of(
@@ -123,7 +129,7 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
 
     private int memoryFor(int signals) {
         if (signals <= 1) {
-            return 16;
+            return BASELINE_MEMORY_GB;
         }
         if (signals <= 3) {
             return 24;
@@ -174,7 +180,7 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
             return 256;
         }
         if (signals <= 2) {
-            return 512;
+            return BASELINE_STORAGE_GB;
         }
         return 1024;
     }
