@@ -43,6 +43,7 @@ public class Question {
     @Column(length = 512)
     private String description;
 
-    @OneToMany(mappedBy = "question")
+    @OneToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "question_id", nullable = false)
     private List<QuestionOption> options;
 }
