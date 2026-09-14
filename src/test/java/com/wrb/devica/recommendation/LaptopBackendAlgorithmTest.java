@@ -209,7 +209,7 @@ class LaptopBackendAlgorithmTest {
 
         // then
         assertThat(spec(mac).cpuTier()).isEqualTo(CpuTier.PRO);
-        assertThat(mac.itemReasons().get("CPU_TIER"))
+        assertThat(mac.itemReasons().get("REQUIRED_CPU"))
             .anyMatch(reason -> reason.contains("48GB RAM 지원 조합"));
     }
 

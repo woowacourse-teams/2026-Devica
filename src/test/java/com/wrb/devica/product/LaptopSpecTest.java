@@ -24,7 +24,7 @@ class LaptopSpecTest {
             .extracting(SpecValue::code, SpecValue::value)
             .containsExactly(
                 tuple("OS", "MAC"),
-                tuple("CPU_TIER", "BASIC"),
+                tuple("REQUIRED_CPU", "BASIC"),
                 tuple("MEMORY", "24"),
                 tuple("STORAGE", "512"));
     }

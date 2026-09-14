@@ -20,7 +20,7 @@ public record LaptopSpec(Os os, CpuTier cpuTier, int memoryGb, int storageGb) im
     public List<SpecValue> values() {
         return List.of(
             new SpecValue("OS", os.name()),
-            new SpecValue("CPU_TIER", cpuTier.name()),
+            new SpecValue("REQUIRED_CPU", cpuTier.name()),
             new SpecValue("MEMORY", String.valueOf(memoryGb)),
             new SpecValue("STORAGE", String.valueOf(storageGb)));
     }
