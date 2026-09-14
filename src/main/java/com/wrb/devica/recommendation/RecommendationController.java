@@ -24,9 +24,7 @@ public class RecommendationController {
         return ResponseEntity.ok().body(RecommendationResponse.from(recommendedSpecs));
     }
 
-    /**
-     * 답변으로 조정한 권장 사양. 답변이 없는 상태의 추천인 GET 과 같은 자원이라 경로를 나누지 않는다.
-     */
+    // 답변이 없는 상태의 추천인 GET 과 같은 자원이라 경로를 나누지 않는다
     @PostMapping
     public ResponseEntity<RecommendationResponse> recommendByAnswers(
         @PathVariable String purposeCode,

@@ -1,17 +1,17 @@
 package com.wrb.devica.product;
 
 import java.util.Arrays;
-import java.util.List;
+import java.util.Comparator;
 import lombok.Getter;
 
 /**
- * 권장 사양이 요구하는 CPU 등급. OS 안에서 선언 순서가 곧 등급 순서다.
+ * 권장 사양이 요구하는 CPU 등급. 한 등급이 제조사를 가리지 않고 같은 점수대를 묶는다 —
+ * Intel 과 AMD 를 줄 세울 수 없어도 벤치마크 점수로는 같은 급인지 말할 수 있다.
  * <p>
- * 벤치마크 점수는 절대 기준이 아니라 상대값이라, 등급을 먼저 정의하고 점수대를 그 등급의 정의로 둔다.
- * cpu.score 가 칩의 측정값이라면 minScore 는 우리 시스템의 분류 기준이고, 제품 검색의 하한이 된다.
+ * 벤치마크 점수는 상대값이라 등급을 먼저 정의하고 점수대를 그 등급의 정의로 둔다.
+ * 등급 사이의 순서도 minScore 가 정한다. 선언 위치는 순서와 무관하다.
  * <p>
  * 점수대는 잠정값이다 — 시드된 Apple M4(21000), Intel Core Ultra 7 255H(24000) 두 행에만 맞춰 두었다.
- * 등급 값이 OS 별로 겹치지 않아 한 enum 에 담는다.
  */
 @Getter
 public enum CpuTier {
@@ -35,22 +35,14 @@ public enum CpuTier {
         this.minScore = minScore;
     }
 
-    public static List<CpuTier> ladderOf(Os os) {
-        return Arrays.stream(values())
-            .filter(tier -> tier.os == os)
-            .toList();
-    }
-
     public CpuTier stepUp() {
-        List<CpuTier> ladder = ladderOf(os);
-        int next = ladder.indexOf(this) + 1;
-        return next < ladder.size() ? ladder.get(next) : this;
+        return Arrays.stream(values())
+            .filter(tier -> tier.os == os && tier.minScore > minScore)
+            .min(Comparator.comparingInt(CpuTier::getMinScore))
+            .orElse(this);
     }
 
     public CpuTier higherOf(CpuTier other) {
-        if (other.os != os) {
-            throw new IllegalArgumentException("OS 가 다른 등급끼리는 비교할 수 없습니다: " + this + ", " + other);
-        }
-        return compareTo(other) >= 0 ? this : other;
+        return minScore >= other.minScore ? this : other;
     }
 }

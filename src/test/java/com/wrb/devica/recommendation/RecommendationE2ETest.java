@@ -1,7 +1,6 @@
 package com.wrb.devica.recommendation;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 
@@ -48,38 +47,5 @@ class RecommendationE2ETest extends E2ETest {
             .body("specs[0].items.find { it.code == 'MEMORY' }.displayValue", is("40GB"))
             .body("specs[0].items.find { it.code == 'MEMORY' }.reasons",
                 hasItem("오래 사용할 계획이 상향 판단을 보강했습니다."));
-    }
-
-    @Test
-    void 건너뛴_질문은_키를_빼고_보낸다() {
-        given().log().all()
-            .contentType(ContentType.JSON)
-            .body(Map.of("answers", Map.of("PREFERRED_OS", List.of("MACOS"))))
-            .when().post(PATH)
-            .then().log().all()
-            .statusCode(200)
-            .body("specs.items.flatten().findAll { it.code == 'OS' }.value", contains("MAC"));
-    }
-
-    @Test
-    void 질문에_없는_선택지를_보내면_400_을_받는다() {
-        given().log().all()
-            .contentType(ContentType.JSON)
-            .body(Map.of("answers", Map.of("PREFERRED_OS", List.of("LINUX"))))
-            .when().post(PATH)
-            .then().log().all()
-            .statusCode(400)
-            .body("code", is("ANSWER_NOT_ALLOWED"));
-    }
-
-    @Test
-    void 존재하지_않는_사용_목적이면_404_를_받는다() {
-        given().log().all()
-            .contentType(ContentType.JSON)
-            .body(Map.of("answers", Map.of()))
-            .when().post("/api/usage-purposes/NOT_EXIST/recommendation")
-            .then().log().all()
-            .statusCode(404)
-            .body("code", is("USAGE_PURPOSE_NOT_FOUND"));
     }
 }

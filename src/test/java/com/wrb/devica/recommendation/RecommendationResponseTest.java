@@ -36,33 +36,18 @@ class RecommendationResponseTest {
     }
 
     @Test
-    void 사양_항목의_원본_값에_표시_형태를_입힌다() {
+    void 사양_항목마다_표시_형태와_근거를_붙인다() {
         // when
         RecommendationResponse response = RecommendationResponse.from(RECOMMENDED_SPECS);
 
         // then
         assertThat(response.specs().getFirst().items())
             .extracting(ItemResponse::code, ItemResponse::displayName, ItemResponse::value,
-                ItemResponse::displayValue)
+                ItemResponse::displayValue, ItemResponse::reasons)
             .containsExactly(
-                tuple("OS", "운영체제", "MAC", "Mac"),
-                tuple("CPU_TIER", "CPU", "BASIC", "M 칩"),
-                tuple("MEMORY", "메모리", "24", "24GB"),
-                tuple("STORAGE", "저장 공간", "512", "512GB"));
-    }
-
-    @Test
-    void 권장_사양의_각_항목마다_선택_근거를_줄_단위로_붙인다() {
-        // when
-        RecommendationResponse response = RecommendationResponse.from(RECOMMENDED_SPECS);
-
-        // then
-        assertThat(response.specs().getFirst().items())
-            .extracting(ItemResponse::code, ItemResponse::reasons)
-            .containsExactly(
-                tuple("OS", List.of("os 근거")),
-                tuple("CPU_TIER", List.of("cpu 근거", "cpu 보강 근거")),
-                tuple("MEMORY", List.of("memory 근거")),
-                tuple("STORAGE", List.of("storage 근거")));
+                tuple("OS", "운영체제", "MAC", "Mac", List.of("os 근거")),
+                tuple("CPU_TIER", "CPU", "BASIC", "M 칩", List.of("cpu 근거", "cpu 보강 근거")),
+                tuple("MEMORY", "메모리", "24", "24GB", List.of("memory 근거")),
+                tuple("STORAGE", "저장 공간", "512", "512GB", List.of("storage 근거")));
     }
 }

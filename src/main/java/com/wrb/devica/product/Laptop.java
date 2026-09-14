@@ -56,7 +56,6 @@ public class Laptop extends Product {
         this.screenSizeInch = screenSizeInch;
     }
 
-    // 노트북이 가진 모든 사양. 목록에 나가는 사양 뒤에 나머지 사양을 이어 붙인다
     public List<SpecValue> allSpecValues() {
         return Stream.concat(
             summarySpecValues(os, cpu.getName(), memoryGb, storageGb).stream(),

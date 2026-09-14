@@ -47,7 +47,7 @@ class LaptopBackendAlgorithmTest {
     @Test
     void 답변이_없으면_Mac_과_Windows_기본안을_함께_낸다() {
         // when
-        List<RecommendedSpec> recommended = algorithm.recommend();
+        List<RecommendedSpec> recommended = algorithm.recommend(Answers.empty());
 
         // then
         assertThat(recommended).extracting(LaptopBackendAlgorithmTest::spec)

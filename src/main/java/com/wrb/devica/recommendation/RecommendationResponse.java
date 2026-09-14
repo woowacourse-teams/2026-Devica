@@ -1,6 +1,6 @@
 package com.wrb.devica.recommendation;
 
-import com.wrb.devica.product.SpecItemView;
+import com.wrb.devica.product.SpecItemResponse;
 import com.wrb.devica.product.SpecValue;
 import java.util.List;
 
@@ -31,13 +31,8 @@ public record RecommendationResponse(List<SpecResponse> specs) {
         List<String> reasons) {
 
         private static ItemResponse of(SpecValue specValue, List<String> reasons) {
-            SpecItemView view = SpecItemView.valueOf(specValue.code());
-            return new ItemResponse(
-                specValue.code(),
-                view.displayName(),
-                specValue.value(),
-                view.displayValue(specValue.value()),
-                reasons);
+            SpecItemResponse item = SpecItemResponse.from(specValue);
+            return new ItemResponse(item.code(), item.displayName(), item.value(), item.displayValue(), reasons);
         }
     }
 }
