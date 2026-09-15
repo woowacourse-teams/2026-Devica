@@ -23,6 +23,12 @@ public class FaqController {
         return ResponseEntity.ok().body(faqs);
     }
 
+    @GetMapping("/faqs/{slug}")
+    public ResponseEntity<FaqDetailResponse> findFaqBySlug(@PathVariable String slug) {
+        FaqDetailResponse faqDetailResponse = FaqDetailResponse.from(faqService.findPublishedFaqBySlug(slug));
+        return ResponseEntity.ok().body(faqDetailResponse);
+    }
+
     @GetMapping("/product-categories/{categoryCode}/usage-purposes/{purposeCode}/faqs")
     public ResponseEntity<List<FaqSummaryResponse>> findFaqsByUsagePurpose(
         @PathVariable String categoryCode,

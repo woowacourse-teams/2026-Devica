@@ -1,6 +1,8 @@
 package com.wrb.devica.faq;
 
 import com.wrb.devica.category.ProductCategoryCode;
+import com.wrb.devica.common.BusinessErrorCode;
+import com.wrb.devica.common.BusinessException;
 import com.wrb.devica.purpose.UsagePurposeCode;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,11 @@ public class FaqService {
 
     public List<Faq> findPublishedHomeFaqs() {
         return faqRepository.findAllByUsagePurposeIsNullAndPublishedTrueOrderByDisplayOrderAsc();
+    }
+
+    public Faq findPublishedFaqBySlug(String slug) {
+        return faqRepository.findBySlugAndPublishedTrue(slug)
+            .orElseThrow(() -> new BusinessException(BusinessErrorCode.FAQ_NOT_FOUND));
     }
 
     public List<Faq> findPublishedFaqsBy(String categoryCode, String purposeCode) {
