@@ -52,6 +52,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
 
+    // 근거 맵의 키. LaptopSpec 이 내보내는 사양 항목 코드와 같아야 화면이 근거를 항목에 붙일 수 있다
+    private static final String OS_ITEM = "OS";
+    private static final String CPU_ITEM = "REQUIRED_CPU";
+    private static final String MEMORY_ITEM = "MEMORY";
+    private static final String STORAGE_ITEM = "STORAGE";
+
     // 답변이 없을 때 나가는 기본 권장 사양. 신호가 하나도 안 걸리면 이 값이 그대로 결과가 된다
     private static final Map<Os, CpuTier> BASELINE_CPU = Map.of(
         Os.MAC, CpuTier.BASIC,
@@ -88,14 +94,14 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
 
     private RecommendedSpec recommendFor(Os os, Answers answers) {
         Map<String, List<String>> reasons = new HashMap<>();
-        reasons.put("OS", startWith(os.getDisplayName() + " 권장안입니다."));
+        reasons.put(OS_ITEM, startWith(os.getDisplayName() + " 권장안입니다."));
 
-        int memoryGb = calculateMemory(answers, startWith(reasons, "MEMORY"));
-        int storageGb = calculateStorage(answers, startWith(reasons, "STORAGE"));
-        CpuTier cpuTier = calculateCpu(os, answers, startWith(reasons, "REQUIRED_CPU"));
+        int memoryGb = calculateMemory(answers, startWith(reasons, MEMORY_ITEM));
+        int storageGb = calculateStorage(answers, startWith(reasons, STORAGE_ITEM));
+        CpuTier cpuTier = calculateCpu(os, answers, startWith(reasons, CPU_ITEM));
 
         LaptopSpec spec = buyableSpec(os, cpuTier, memoryGb, storageGb, reasons);
-        addResultReasons(os, spec, answers, reasons);
+        addResultReasons(spec, answers, reasons);
         return new RecommendedSpec(spec, reasons);
     }
 
@@ -103,16 +109,15 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
      * 결과 문장은 살 수 있는 조합으로 맞춘 뒤에 적는다. 앞서 적으면 buyableSpec 이 바꾼 값과 어긋난다.
      * 쓰던 CPU 와의 비교도 여기서 한다 — 올린 등급이 Mac 제한에 걸려 되내려올 수 있다.
      */
-    private void addResultReasons(Os os, LaptopSpec spec, Answers answers,
-                                  Map<String, List<String>> reasons) {
-        CpuTier current = currentCpuTier(os, answers);
+    private void addResultReasons(LaptopSpec spec, Answers answers, Map<String, List<String>> reasons) {
+        List<String> cpuReasons = reasons.get(CPU_ITEM);
+        CpuTier current = currentCpuTier(spec.os(), answers);
         if (current != null && feltDiscomfort(answers) && spec.cpuTier().isHigherThan(current)) {
-            reasons.get("REQUIRED_CPU")
-                .add("지금 쓰는 " + current.getDisplayName() + " 에서 불편을 겪어 그보다 위를 권합니다.");
+            cpuReasons.add("지금 쓰는 " + current.getDisplayName() + " 에서 불편을 겪어 그보다 위를 권합니다.");
         }
-        reasons.get("REQUIRED_CPU").add("권장 CPU 는 " + spec.cpuTier().getDisplayName() + " 입니다.");
-        reasons.get("MEMORY").add("권장 메모리는 " + spec.memoryGb() + "GB 입니다.");
-        reasons.get("STORAGE").add("권장 저장 공간은 " + spec.storageGb() + "GB 입니다.");
+        cpuReasons.add("권장 CPU 는 " + spec.cpuTier().getDisplayName() + " 입니다.");
+        reasons.get(MEMORY_ITEM).add("권장 메모리는 " + spec.memoryGb() + "GB 입니다.");
+        reasons.get(STORAGE_ITEM).add("권장 저장 공간은 " + spec.storageGb() + "GB 입니다.");
     }
 
     private int calculateMemory(Answers answers, List<String> reasons) {
@@ -267,12 +272,12 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
         CpuTier tier = cpuTier;
         if (memoryGb > largestMemoryOf(tier)) {
             tier = tier.stepUp();
-            reasons.get("REQUIRED_CPU")
+            reasons.get(CPU_ITEM)
                 .add(memoryGb + "GB 를 쓰려면 " + tier.getDisplayName() + " 이상이어야 합니다.");
         }
         int adjusted = smallestMemoryAtLeast(tier, memoryGb);
         if (adjusted != memoryGb) {
-            reasons.get("MEMORY")
+            reasons.get(MEMORY_ITEM)
                 .add(tier.getDisplayName() + " 에서 고를 수 있는 가장 가까운 용량은 " + adjusted + "GB 입니다.");
         }
         return new LaptopSpec(os, tier, adjusted, storageGb);
