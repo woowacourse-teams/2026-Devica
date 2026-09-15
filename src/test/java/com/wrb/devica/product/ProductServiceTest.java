@@ -4,7 +4,6 @@ import static com.wrb.devica.fixture.CpuFixture.cpu;
 import static com.wrb.devica.fixture.LaptopFixture.laptop;
 import static com.wrb.devica.fixture.LaptopSearchConditionFixture.condition;
 import static com.wrb.devica.fixture.ProductOfferFixture.offer;
-import static com.wrb.devica.fixture.ProductOfferFixture.onSaleOffer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -18,6 +17,7 @@ import com.wrb.devica.common.JpaSliceTest;
 import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import org.hibernate.Hibernate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +28,6 @@ import org.springframework.data.domain.Slice;
 @Import(ProductService.class)
 class ProductServiceTest {
 
-    private static final long DEFAULT_PRICE = 1_000_000L;
     private static final String PURPOSE = "BACKEND_DEVELOPMENT";
 
     @Autowired
@@ -118,84 +117,44 @@ class ProductServiceTest {
     }
 
     @Test
-    void 상세를_조회하면_판매처를_가격_오름차순으로_담는다() {
-        // given
-        Laptop laptop = laptopOf(laptop().name("gram Pro 16").memoryGb(32).storageGb(1024));
-
-        productOfferRepository.save(offer().product(laptop).price(2_990_000L).status(OfferStatus.ON_SALE).build());
-        productOfferRepository.save(offer().product(laptop).price(2_850_000L).status(OfferStatus.ON_SALE).build());
-        productOfferRepository.save(offer().product(laptop).price(2_500_000L).status(OfferStatus.SOLD_OUT).build());
-
-        entityManager.flush();
-        entityManager.clear();
-
-        // when
-        ProductDetailResponse found = productService.findProductById(PURPOSE, laptop.getId());
-
-        // then
-        assertThat(found.offers()).extracting(OfferResponse::price)
-            .containsExactly(2_850_000L, 2_990_000L);
-    }
-
-    @Test
     void 없는_id로_상세를_조회하면_예외가_발생한다() {
         //given
         entityManager.flush();
         entityManager.clear();
 
         // when & then
-        assertThatThrownBy(() -> productService.findProductById(PURPOSE, -1L))
+        assertThatThrownBy(() -> productService.findProductById(-1L))
             .isInstanceOf(BusinessException.class)
             .extracting(exception -> ((BusinessException) exception).getErrorCode())
             .isEqualTo(BusinessErrorCode.LAPTOP_NOT_FOUND);
     }
 
     @Test
-    void 판매_중인_판매처가_없어도_상세를_조회한다() {
+    void 상세를_조회하면_CPU_까지_채워서_반환한다() {
         // given
-        Laptop laptop = laptopOf(laptop().name("판매처없음"));
-
-        // when
-        ProductDetailResponse found = findLaptopById(laptop.getId());
-
-        // then
-        assertThat(found.offers()).isEmpty();
-    }
-
-    private ProductDetailResponse findLaptopById(Long id) {
+        Laptop laptop = laptopOf(laptop().name("노트북"));
         entityManager.flush();
         entityManager.clear();
-        return productService.findProductById(PURPOSE, id);
+
+        // when
+        Laptop found = (Laptop) productService.findProductById(laptop.getId());
+
+        // then
+        assertThat(Hibernate.isInitialized(found.getCpu())).isTrue();
     }
 
     private Slice<ProductSummaryResponse> findLaptops() {
         entityManager.flush();
         entityManager.clear();
         return productService.findProducts(PURPOSE,
-            condition().build(), new LaptopPageCondition(0, 10));
+            condition().build(), new PageCondition(0, 10, null));
     }
 
     private Cpu saveCpu() {
         return cpuRepository.save(cpu().build());
     }
 
-    private Laptop onSaleLaptop(LaptopBuilder builder) {
-        return onSaleLaptop(builder, DEFAULT_PRICE);
-    }
-
-    private Laptop onSaleLaptop(LaptopBuilder builder, long price) {
-        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
-        productOfferRepository.save(onSaleOffer(laptop, price));
-        return laptop;
-    }
-
     private Laptop laptopOf(LaptopBuilder builder) {
         return laptopRepository.save(builder.category(category).cpu(cpu).build());
-    }
-
-    private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, long price) {
-        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
-        productOfferRepository.save(onSaleOffer(laptop, price));
-        return laptop;
     }
 }
