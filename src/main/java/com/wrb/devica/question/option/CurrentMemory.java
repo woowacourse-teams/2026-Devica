@@ -8,5 +8,6 @@ public enum CurrentMemory implements OptionCode {
     GB_16,          // 16GB
     GB_24,          // 24GB
     GB_32,          // 32GB
+    GB_48,          // 48GB
     GB_64_OR_MORE   // 64GB 이상
 }
