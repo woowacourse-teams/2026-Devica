@@ -71,7 +71,7 @@ class QuestionResponseTest {
     }
 
     private Question findByCode(QuestionCode code) {
-        return questionRepository.findAllWithOptionsByPurpose(UsagePurposeCode.BACKEND_DEVELOPMENT).stream()
+        return questionRepository.findAllByUsagePurpose_Code(UsagePurposeCode.BACKEND_DEVELOPMENT).stream()
             .filter(question -> question.getCode() == code)
             .findFirst()
             .orElseThrow();

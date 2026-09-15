@@ -21,7 +21,7 @@ class QuestionSeedTest {
     @Test
     void 시드된_질문과_enum이_일대일로_대응한다() {
         // when
-        List<Question> seeded = questionRepository.findAllWithOptionsByPurpose(UsagePurposeCode.BACKEND_DEVELOPMENT);
+        List<Question> seeded = questionRepository.findAllByUsagePurpose_Code(UsagePurposeCode.BACKEND_DEVELOPMENT);
 
         // then
         assertThat(seeded).extracting(Question::getCode).containsExactlyInAnyOrder(QuestionCode.values());
@@ -30,7 +30,7 @@ class QuestionSeedTest {
     @Test
     void 질문마다_시드된_선택지와_enum_선택지가_일대일로_대응한다() {
         // when
-        List<Question> seeded = questionRepository.findAllWithOptionsByPurpose(UsagePurposeCode.BACKEND_DEVELOPMENT);
+        List<Question> seeded = questionRepository.findAllByUsagePurpose_Code(UsagePurposeCode.BACKEND_DEVELOPMENT);
 
         // then
         assertThat(seeded).allSatisfy(question -> {

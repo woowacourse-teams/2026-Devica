@@ -12,11 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class QuestionService {
 
     private final QuestionRepository questionRepository;
-    
+
     @Transactional(readOnly = true)
     public List<Question> findByPurposeCode(String purposeCode) {
         UsagePurposeCode purpose = UsagePurposeCode.from(purposeCode);
-        return questionRepository.findAllWithOptionsByPurpose(purpose).stream()
+        return questionRepository.findAllByUsagePurpose_Code(purpose).stream()
             .sorted(Comparator.comparing(Question::getCode))
             .toList();
     }
