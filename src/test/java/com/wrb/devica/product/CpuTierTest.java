@@ -6,6 +6,7 @@ import com.wrb.devica.question.OptionCode;
 import com.wrb.devica.question.option.CurrentMacCpu;
 import com.wrb.devica.question.option.CurrentWindowsCpu;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -32,6 +33,19 @@ class CpuTierTest {
 
         // when & then
         assertThat(highest.stepUp()).isEqualTo(highest);
+    }
+
+    @ParameterizedTest
+    @EnumSource(Os.class)
+    void 같은_OS_안에서_점수가_겹치는_등급은_없다(Os os) {
+        // given
+        List<Integer> scores = Arrays.stream(CpuTier.values())
+            .filter(tier -> tier.getOs() == os)
+            .map(CpuTier::getMinScore)
+            .toList();
+
+        // then
+        assertThat(scores).doesNotHaveDuplicates();
     }
 
     @Test
