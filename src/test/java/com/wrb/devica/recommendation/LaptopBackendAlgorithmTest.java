@@ -219,9 +219,14 @@ class LaptopBackendAlgorithmTest {
             .with(CURRENT_OS, CurrentOs.MACOS)
             .with(CURRENT_MAC_CPU, CurrentMacCpu.MAX)
             .with(OVERHEATING, Overheating.OFTEN));
+        LaptopSpec mac = macSpec(answers()
+            .with(CURRENT_OS, CurrentOs.WINDOWS)
+            .with(CURRENT_MAC_CPU, CurrentMacCpu.PRO)
+            .with(OVERHEATING, Overheating.OFTEN));
 
         // then
         assertThat(windows.cpuTier()).isEqualTo(CpuTier.P_HS);
+        assertThat(mac.cpuTier()).isEqualTo(CpuTier.BASIC);
     }
 
     @Test
@@ -242,6 +247,7 @@ class LaptopBackendAlgorithmTest {
     void Mac_은_등급_최소_구성보다_적은_메모리를_올린다() {
         // when - M Pro 칩은 24GB 부터 시작한다
         LaptopSpec mac = macSpec(answers()
+            .with(PROGRAMMING_LANGUAGE, ProgrammingLanguage.JAVA_FAMILY)
             .with(BUILD_WAIT, BuildWait.OFTEN)
             .with(OVERHEATING, Overheating.OFTEN));
 
@@ -270,10 +276,12 @@ class LaptopBackendAlgorithmTest {
         RecommendedSpec fromPro = macRecommendation(answers()
             .with(CURRENT_OS, CurrentOs.MACOS)
             .with(CURRENT_MAC_CPU, CurrentMacCpu.PRO)
+            .with(PROGRAMMING_LANGUAGE, ProgrammingLanguage.JAVA_FAMILY)
             .with(BUILD_WAIT, BuildWait.OFTEN));
         RecommendedSpec fromMax = macRecommendation(answers()
             .with(CURRENT_OS, CurrentOs.MACOS)
             .with(CURRENT_MAC_CPU, CurrentMacCpu.MAX)
+            .with(PROGRAMMING_LANGUAGE, ProgrammingLanguage.JAVA_FAMILY)
             .with(BUILD_WAIT, BuildWait.OFTEN));
 
         // then
@@ -294,6 +302,7 @@ class LaptopBackendAlgorithmTest {
             .with(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.LOCAL_MANY)
             .with(SLOWDOWN, Slowdown.OFTEN));
         RecommendedSpec raisedMemory = macRecommendation(answers()
+            .with(PROGRAMMING_LANGUAGE, ProgrammingLanguage.JAVA_FAMILY)
             .with(BUILD_WAIT, BuildWait.OFTEN)
             .with(OVERHEATING, Overheating.OFTEN));
 
