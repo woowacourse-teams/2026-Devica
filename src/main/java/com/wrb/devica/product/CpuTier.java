@@ -17,6 +17,8 @@ import lombok.Getter;
  * 자기 칩을 알아보는 용도이고 DB 라 배포 없이 갱신된다.
  * <p>
  * 점수대는 잠정값이다 — 시드된 Apple M4(21000), Intel Core Ultra 7 255H(24000) 두 행에만 맞춰 두었다.
+ * 표시명은 낡지 않지만 minScore 는 세대마다 다시 맞춰야 한다. 다음 세대 기본 칩이 PRO 의 점수를 넘으면
+ * M Pro 조건에 기본 칩이 섞인다.
  */
 @Getter
 public enum CpuTier {
@@ -45,6 +47,10 @@ public enum CpuTier {
             .filter(tier -> tier.os == os && tier.minScore > minScore)
             .min(Comparator.comparingInt(CpuTier::getMinScore))
             .orElse(this);
+    }
+
+    public boolean isHigherThan(CpuTier other) {
+        return minScore > other.minScore;
     }
 
     public CpuTier higherOf(CpuTier other) {
