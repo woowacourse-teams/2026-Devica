@@ -48,7 +48,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             .from(laptop)
             .join(laptop.cpu, cpu)
             .leftJoin(productOffer).on(
-                productOffer.product.id.eq(laptop.id),
+                productOffer.productId.eq(laptop.id),
                 productOffer.status.eq(OfferStatus.ON_SALE)
             )
             .where(
