@@ -45,7 +45,7 @@ class CpuTierTest {
             .toList();
 
         // then
-        assertThat(scores).doesNotHaveDuplicates();
+        assertThat(scores).isNotEmpty().doesNotHaveDuplicates();
     }
 
     @Test
@@ -53,6 +53,14 @@ class CpuTierTest {
         // when & then
         assertThat(CpuTier.H.higherOf(CpuTier.P_HS)).isEqualTo(CpuTier.H);
         assertThat(CpuTier.U.higherOf(CpuTier.HX)).isEqualTo(CpuTier.HX);
+    }
+
+    @Test
+    void 점수가_더_높아야_높은_등급이다() {
+        // when & then
+        assertThat(CpuTier.H.isHigherThan(CpuTier.P_HS)).isTrue();
+        assertThat(CpuTier.P_HS.isHigherThan(CpuTier.H)).isFalse();
+        assertThat(CpuTier.H.isHigherThan(CpuTier.H)).isFalse();
     }
 
     // 사용자가 답변으로 고르는 현재 CPU 를 알고리즘이 이름으로 등급에 잇는다
