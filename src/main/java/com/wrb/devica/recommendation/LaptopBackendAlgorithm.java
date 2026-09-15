@@ -94,7 +94,25 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
         int storageGb = calculateStorage(answers, startWith(reasons, "STORAGE"));
         CpuTier cpuTier = calculateCpu(os, answers, startWith(reasons, "REQUIRED_CPU"));
 
-        return new RecommendedSpec(buyableSpec(os, cpuTier, memoryGb, storageGb, reasons), reasons);
+        LaptopSpec spec = buyableSpec(os, cpuTier, memoryGb, storageGb, reasons);
+        addResultReasons(os, spec, answers, reasons);
+        return new RecommendedSpec(spec, reasons);
+    }
+
+    /**
+     * 결과 문장은 살 수 있는 조합으로 맞춘 뒤에 적는다. 앞서 적으면 buyableSpec 이 바꾼 값과 어긋난다.
+     * 쓰던 CPU 와의 비교도 여기서 한다 — 올린 등급이 Mac 제한에 걸려 되내려올 수 있다.
+     */
+    private void addResultReasons(Os os, LaptopSpec spec, Answers answers,
+                                  Map<String, List<String>> reasons) {
+        CpuTier current = currentCpuTier(os, answers);
+        if (current != null && feltDiscomfort(answers) && spec.cpuTier().isHigherThan(current)) {
+            reasons.get("REQUIRED_CPU")
+                .add("지금 쓰는 " + current.getDisplayName() + " 에서 불편을 겪어 그보다 위를 권합니다.");
+        }
+        reasons.get("REQUIRED_CPU").add("권장 CPU 는 " + spec.cpuTier().getDisplayName() + " 입니다.");
+        reasons.get("MEMORY").add("권장 메모리는 " + spec.memoryGb() + "GB 입니다.");
+        reasons.get("STORAGE").add("권장 저장 공간은 " + spec.storageGb() + "GB 입니다.");
     }
 
     private int calculateMemory(Answers answers, List<String> reasons) {
@@ -122,9 +140,7 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
             signal(usesShort(answers), -1,
                 "짧게 쓸 계획이라 과한 용량을 피했습니다."));
 
-        int memoryGb = memoryFor(signals);
-        reasons.add("권장 메모리는 " + memoryGb + "GB 입니다.");
-        return memoryGb;
+        return memoryFor(signals);
     }
 
     private int memoryFor(int signals) {
@@ -170,9 +186,7 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
             reasons.add("지금 쓰는 SSD 가 작아 용량 부족은 디스크 크기 탓으로 보고 수치에 반영하지 않았습니다.");
         }
 
-        int storageGb = storageFor(signals);
-        reasons.add("권장 저장 공간은 " + storageGb + "GB 입니다.");
-        return storageGb;
+        return storageFor(signals);
     }
 
     private int storageFor(int signals) {
@@ -205,13 +219,12 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
                 "짧게 쓸 계획이라 과한 사양을 피했습니다."));
 
         CpuTier tier = raise(BASELINE_CPU.get(os), cpuStepsFor(signals));
-        tier = atLeastAboveCurrent(os, tier, answers, reasons);
+        tier = atLeastAboveCurrent(os, tier, answers);
 
         if (os == Os.MAC && tier == CpuTier.MAX) {
             reasons.add("예산을 고려해 Mac 권장 CPU 는 M Pro 칩으로 제한했습니다.");
             tier = CpuTier.PRO;
         }
-        reasons.add("권장 CPU 는 " + tier.getDisplayName() + " 입니다.");
         return tier;
     }
 
@@ -228,19 +241,19 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
     /**
      * 쓰던 노트북과 같은 OS 를 권할 때, 빌드 대기나 발열을 겪었다면 그 CPU 한 단계 위를 밑돌지 않게 한다.
      */
-    private CpuTier atLeastAboveCurrent(Os os, CpuTier tier, Answers answers, List<String> reasons) {
-        if (!answers.has(BUILD_WAIT, BuildWait.OFTEN) && !answers.has(OVERHEATING, Overheating.OFTEN)) {
+    private CpuTier atLeastAboveCurrent(Os os, CpuTier tier, Answers answers) {
+        if (!feltDiscomfort(answers)) {
             return tier;
         }
         CpuTier current = currentCpuTier(os, answers);
         if (current == null) {
             return tier;
         }
-        CpuTier raised = current.stepUp().higherOf(tier);
-        if (raised != tier) {
-            reasons.add("지금 쓰는 " + current.getDisplayName() + " 에서 불편을 겪어 그보다 위를 권합니다.");
-        }
-        return raised;
+        return current.stepUp().higherOf(tier);
+    }
+
+    private boolean feltDiscomfort(Answers answers) {
+        return answers.has(BUILD_WAIT, BuildWait.OFTEN) || answers.has(OVERHEATING, Overheating.OFTEN);
     }
 
     /**

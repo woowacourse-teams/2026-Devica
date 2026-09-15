@@ -264,8 +264,52 @@ class LaptopBackendAlgorithmTest {
             "권장 메모리는 24GB 입니다.");
     }
 
+    @Test
+    void 쓰던_CPU_보다_높아지지_않으면_그_위를_권한다고_적지_않는다() {
+        // when - Mac 은 M Pro 칩을 넘지 않아 올린 등급이 되내려온다
+        RecommendedSpec fromPro = macRecommendation(answers()
+            .with(CURRENT_OS, CurrentOs.MACOS)
+            .with(CURRENT_MAC_CPU, CurrentMacCpu.PRO)
+            .with(BUILD_WAIT, BuildWait.OFTEN));
+        RecommendedSpec fromMax = macRecommendation(answers()
+            .with(CURRENT_OS, CurrentOs.MACOS)
+            .with(CURRENT_MAC_CPU, CurrentMacCpu.MAX)
+            .with(BUILD_WAIT, BuildWait.OFTEN));
+
+        // then
+        assertThat(spec(fromPro).cpuTier()).isEqualTo(CpuTier.PRO);
+        assertThat(spec(fromMax).cpuTier()).isEqualTo(CpuTier.PRO);
+        assertThat(fromPro.itemReasons().get("REQUIRED_CPU"))
+            .noneMatch(reason -> reason.contains("그보다 위를 권합니다"));
+        assertThat(fromMax.itemReasons().get("REQUIRED_CPU"))
+            .noneMatch(reason -> reason.contains("그보다 위를 권합니다"));
+    }
+
+    @Test
+    void 결과는_살_수_있는_조합으로_맞춘_값으로_적는다() {
+        // when - 48GB 때문에 CPU 가 오르고, M Pro 최소 구성 때문에 메모리가 오른다
+        RecommendedSpec raisedCpu = macRecommendation(answers()
+            .with(IDE, Ide.MULTIPLE)
+            .with(AI_CODING_TOOL, AiCodingTool.AI_EDITOR)
+            .with(DEV_ENVIRONMENT_SETUP, DevEnvironmentSetup.LOCAL_MANY)
+            .with(SLOWDOWN, Slowdown.OFTEN));
+        RecommendedSpec raisedMemory = macRecommendation(answers()
+            .with(BUILD_WAIT, BuildWait.OFTEN)
+            .with(OVERHEATING, Overheating.OFTEN));
+
+        // then
+        assertThat(raisedCpu.itemReasons().get("REQUIRED_CPU")).last()
+            .isEqualTo("권장 CPU 는 M Pro 칩 입니다.");
+        assertThat(raisedMemory.itemReasons().get("MEMORY")).last()
+            .isEqualTo("권장 메모리는 24GB 입니다.");
+    }
+
+    private RecommendedSpec macRecommendation(AnswersBuilder builder) {
+        return algorithm.recommend(builder.with(PREFERRED_OS, PreferredOs.MACOS).build()).getFirst();
+    }
+
     private LaptopSpec macSpec(AnswersBuilder builder) {
-        return spec(algorithm.recommend(builder.with(PREFERRED_OS, PreferredOs.MACOS).build()).getFirst());
+        return spec(macRecommendation(builder));
     }
 
     private LaptopSpec windowsSpec(AnswersBuilder builder) {
