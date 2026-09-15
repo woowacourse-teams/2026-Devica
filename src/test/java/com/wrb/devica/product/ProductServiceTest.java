@@ -128,7 +128,7 @@ class ProductServiceTest {
         entityManager.clear();
 
         // when
-        ProductDetailResponse found = productService.findProductById(PURPOSE, laptop.getId());
+        ProductDetailResponse found = productService.findProductById(laptop.getId());
 
         // then
         assertThat(found.offers()).extracting(OfferResponse::price)
@@ -142,7 +142,7 @@ class ProductServiceTest {
         entityManager.clear();
 
         // when & then
-        assertThatThrownBy(() -> productService.findProductById(PURPOSE, -1L))
+        assertThatThrownBy(() -> productService.findProductById(-1L))
             .isInstanceOf(BusinessException.class)
             .extracting(exception -> ((BusinessException) exception).getErrorCode())
             .isEqualTo(BusinessErrorCode.LAPTOP_NOT_FOUND);
@@ -163,7 +163,7 @@ class ProductServiceTest {
     private ProductDetailResponse findLaptopById(Long id) {
         entityManager.flush();
         entityManager.clear();
-        return productService.findProductById(PURPOSE, id);
+        return productService.findProductById(id);
     }
 
     private Slice<ProductSummaryResponse> findLaptops() {

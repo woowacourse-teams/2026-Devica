@@ -29,9 +29,7 @@ public class ProductService {
         );
     }
 
-    public ProductDetailResponse findProductById(String purposeCode, Long productId) {
-        validatePurposeExists(purposeCode);
-
+    public ProductDetailResponse findProductById(Long productId) {
         Laptop laptop = laptopRepository.findById(productId)
             .orElseThrow(() -> new BusinessException(BusinessErrorCode.LAPTOP_NOT_FOUND));
 

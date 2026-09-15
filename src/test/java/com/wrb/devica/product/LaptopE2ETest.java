@@ -258,7 +258,7 @@ class LaptopE2ETest extends E2ETest {
 
         // when & then
         given()
-            .when().get(PATH + "/" + laptop.getId())
+            .when().get("/api/products/" + laptop.getId())
             .then().statusCode(200)
             .body("name", is("gram Pro 16"))
             .body("specs.code", contains("OS", "CPU", "MEMORY", "STORAGE", "CPU_CORE", "SCREEN_SIZE", "WEIGHT"))
