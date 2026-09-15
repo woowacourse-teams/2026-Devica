@@ -14,7 +14,7 @@ public record SpecItemResponse(
             .toList();
     }
 
-    private static SpecItemResponse from(SpecValue specValue) {
+    public static SpecItemResponse from(SpecValue specValue) {
         SpecItemView view = SpecItemView.valueOf(specValue.code());
 
         return new SpecItemResponse(

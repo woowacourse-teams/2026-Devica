@@ -98,7 +98,7 @@ class LaptopE2ETest extends E2ETest {
             .queryParam("keyword", "프로")
             .queryParam("brand", "LG")
             .queryParam("os", "WINDOWS")
-            .queryParam("cpuScore", 10000)
+            .queryParam("cpuTier", CpuTier.H)
             .queryParam("memoryGb", 16)
             .queryParam("storageGb", 512)
             .queryParam("minPrice", 1_000_000L)
@@ -222,8 +222,9 @@ class LaptopE2ETest extends E2ETest {
         productOfferRepository.save(onSaleOffer(product, price));
     }
 
+    // 사양 조건 테스트가 등급 하한을 넘겨야 하므로 기본 CPU 를 H 등급 이상으로 둔다
     private Cpu saveCpu() {
-        return cpuRepository.save(cpu().build());
+        return cpuRepository.save(cpu().score(CpuTier.H.getMinScore()).build());
     }
 
     private Laptop onSaleLaptop(LaptopBuilder builder) {
