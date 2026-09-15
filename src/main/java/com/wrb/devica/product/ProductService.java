@@ -36,7 +36,7 @@ public class ProductService {
         List<ProductOffer> offers = productOfferRepository
             .findAllByProductIdAndStatusOrderByPriceAsc(productId, OfferStatus.ON_SALE);
 
-        return ProductDetailResponse.of(laptop, laptop.allSpecValues(), offers);
+        return ProductDetailResponse.of(laptop, offers);
     }
 
     private void validatePurposeExists(String purposeCode) {

@@ -13,6 +13,7 @@ import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import java.time.LocalDate;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -54,4 +55,6 @@ public abstract class Product extends BaseTimeEntity {
         this.description = description;
         this.releasedAt = releasedAt;
     }
+
+    public abstract List<SpecValue> allSpecValues();
 }
