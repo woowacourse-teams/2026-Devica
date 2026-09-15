@@ -1,5 +1,6 @@
 package com.wrb.devica.product;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductOfferService productOfferService;
 
     @GetMapping("/api/usage-purposes/{purposeCode}/products")
     public ResponseEntity<ProductListResponse> findProducts(
@@ -29,7 +31,8 @@ public class ProductController {
 
     @GetMapping("/api/products/{id}")
     public ResponseEntity<ProductDetailResponse> findProductById(@PathVariable Long id) {
-        ProductDetailResponse productDetailResponse = productService.findProductById(id);
-        return ResponseEntity.ok(productDetailResponse);
+        Product product = productService.findProductById(id);
+        List<ProductOffer> offers = productOfferService.findOnSaleOffers(id);
+        return ResponseEntity.ok(ProductDetailResponse.of(product, offers));
     }
 }

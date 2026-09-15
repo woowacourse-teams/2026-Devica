@@ -266,6 +266,20 @@ class LaptopE2ETest extends E2ETest {
             .body("offers[0].purchaseUrl", is("https://example.com/" + laptop.getCode()));
     }
 
+    // UC-11: 판매처가 없어도 제품 정보는 볼 수 있다
+    @Test
+    void 판매_중인_판매처가_없어도_상세를_받는다() {
+        // given
+        Laptop laptop = laptopOf(laptop().name("판매처없음"));
+
+        // when & then
+        given()
+            .when().get("/api/products/" + laptop.getId())
+            .then().statusCode(200)
+            .body("name", is("판매처없음"))
+            .body("offers.size()", is(0));
+    }
+
     private void addOnSaleOffer(Product product, long price) {
         productOfferRepository.save(onSaleOffer(product, price));
     }

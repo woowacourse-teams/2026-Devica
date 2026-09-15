@@ -17,6 +17,7 @@ import com.wrb.devica.common.JpaSliceTest;
 import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import org.hibernate.Hibernate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -116,26 +117,6 @@ class ProductServiceTest {
     }
 
     @Test
-    void 상세를_조회하면_판매처를_가격_오름차순으로_담는다() {
-        // given
-        Laptop laptop = laptopOf(laptop().name("gram Pro 16").memoryGb(32).storageGb(1024));
-
-        productOfferRepository.save(offer().product(laptop).price(2_990_000L).status(OfferStatus.ON_SALE).build());
-        productOfferRepository.save(offer().product(laptop).price(2_850_000L).status(OfferStatus.ON_SALE).build());
-        productOfferRepository.save(offer().product(laptop).price(2_500_000L).status(OfferStatus.SOLD_OUT).build());
-
-        entityManager.flush();
-        entityManager.clear();
-
-        // when
-        ProductDetailResponse found = productService.findProductById(laptop.getId());
-
-        // then
-        assertThat(found.offers()).extracting(OfferResponse::price)
-            .containsExactly(2_850_000L, 2_990_000L);
-    }
-
-    @Test
     void 없는_id로_상세를_조회하면_예외가_발생한다() {
         //given
         entityManager.flush();
@@ -149,21 +130,17 @@ class ProductServiceTest {
     }
 
     @Test
-    void 판매_중인_판매처가_없어도_상세를_조회한다() {
+    void 상세를_조회하면_CPU_까지_채워서_반환한다() {
         // given
-        Laptop laptop = laptopOf(laptop().name("판매처없음"));
-
-        // when
-        ProductDetailResponse found = findLaptopById(laptop.getId());
-
-        // then
-        assertThat(found.offers()).isEmpty();
-    }
-
-    private ProductDetailResponse findLaptopById(Long id) {
+        Laptop laptop = laptopOf(laptop().name("노트북"));
         entityManager.flush();
         entityManager.clear();
-        return productService.findProductById(id);
+
+        // when
+        Laptop found = (Laptop) productService.findProductById(laptop.getId());
+
+        // then
+        assertThat(Hibernate.isInitialized(found.getCpu())).isTrue();
     }
 
     private Slice<ProductSummaryResponse> findLaptops() {
