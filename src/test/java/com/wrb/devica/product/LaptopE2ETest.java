@@ -173,7 +173,6 @@ class LaptopE2ETest extends E2ETest {
     @Test
     void 정렬_기준을_고르면_조건을_유지한_채_그_순서대로_받는다() {
         // given
-        // 가성비: 쌈 0.8 ÷ 100만, 비쌈 2.0 ÷ 300만, 중간 0.8 ÷ 200만
         onSaleLaptop(laptop().brand("LG").name("비쌈").memoryGb(32).storageGb(1024), saveCpu(40_000), 3_000_000L);
         onSaleLaptop(laptop().brand("LG").name("쌈"), 1_000_000L);
         onSaleLaptop(laptop().brand("LG").name("중간"), 2_000_000L);
@@ -185,7 +184,7 @@ class LaptopE2ETest extends E2ETest {
             .queryParam("sort", "RECOMMENDED")
             .when().get(PATH)
             .then().statusCode(200)
-            .body("content.name", contains("쌈", "비쌈", "중간"));
+            .body("content.name", contains("비쌈", "쌈", "중간"));
 
         given()
             .queryParam("brand", "LG")
@@ -206,15 +205,15 @@ class LaptopE2ETest extends E2ETest {
     @Test
     void 정렬_기준을_고르지_않으면_추천순으로_받는다() {
         // given
-        // 가성비: 비쌈 2.0 ÷ 300만, 쌈 0.8 ÷ 100만. id 순이면 비쌈이 앞선다
-        onSaleLaptop(laptop().name("비쌈").memoryGb(32).storageGb(1024), saveCpu(40_000), 3_000_000L);
-        onSaleLaptop(laptop().name("쌈"), 1_000_000L);
+        // 사양: 사양높음이 위. id 순이면 사양낮음이 앞선다
+        onSaleLaptop(laptop().name("사양낮음"), 1_000_000L);
+        onSaleLaptop(laptop().name("사양높음").memoryGb(32).storageGb(1024), saveCpu(40_000), 3_000_000L);
 
         // when & then
         given()
             .when().get(PATH)
             .then().statusCode(200)
-            .body("content.name", contains("쌈", "비쌈"));
+            .body("content.name", contains("사양높음", "사양낮음"));
     }
 
     // UC-07: 판매 중인 구매처가 없는 제품도 목록에 넣고 가격은 비워둔다

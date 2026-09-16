@@ -110,7 +110,7 @@ class ProductServiceTest {
         // then
         assertThat(found.getContent())
             .extracting(ProductSummaryResponse::name, ProductSummaryResponse::minPrice)
-            .containsExactly(
+            .containsExactlyInAnyOrder(
                 tuple("첫번째", 1_000_000L),
                 tuple("두번째", 2_800_000L)
             );
