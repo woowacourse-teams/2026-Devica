@@ -5,6 +5,6 @@ import org.springframework.data.domain.Slice;
 
 public interface LaptopRepositoryCustom {
 
-    Slice<ProductSummaryResponse> findSummariesWithMinPriceByCondition(LaptopSearchCondition condition, SortType sort,
-                                                                       Pageable pageable);
+    Slice<ProductSummaryResponse> findSummariesWithMinPriceForBE(LaptopSearchCondition condition, SortType sort,
+                                                                 Pageable pageable);
 }

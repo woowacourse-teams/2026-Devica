@@ -20,7 +20,7 @@ public class ProductService {
                                                                PageCondition pageCondition) {
         validatePurposeExists(purposeCode);
 
-        return laptopRepository.findSummariesWithMinPriceByCondition(
+        return laptopRepository.findSummariesWithMinPriceForBE(
             condition,
             pageCondition.sort(),
             PageRequest.of(pageCondition.page(), pageCondition.size())
