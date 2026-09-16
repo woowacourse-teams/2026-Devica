@@ -16,8 +16,8 @@ public class ProductService {
 
     private final LaptopRepository laptopRepository;
 
-    public Slice<ProductSummaryResponse> findProducts(String purposeCode, LaptopSearchCondition condition,
-                                                      PageCondition pageCondition) {
+    public Slice<ProductSummaryResponse> findProductsByPurpose(String purposeCode, LaptopSearchCondition condition,
+                                                               PageCondition pageCondition) {
         validatePurposeExists(purposeCode);
 
         return laptopRepository.findSummariesWithMinPriceByCondition(

@@ -18,12 +18,12 @@ public class ProductController {
     private final ProductOfferService productOfferService;
 
     @GetMapping("/api/usage-purposes/{purposeCode}/products")
-    public ResponseEntity<ProductListResponse> findProducts(
+    public ResponseEntity<ProductListResponse> findProductsByPurpose(
         @PathVariable String purposeCode,
         @Validated @ModelAttribute LaptopSearchCondition condition,
         @Validated @ModelAttribute PageCondition pageCondition
     ) {
-        Slice<ProductSummaryResponse> productSlice = productService.findProducts(purposeCode,
+        Slice<ProductSummaryResponse> productSlice = productService.findProductsByPurpose(purposeCode,
             condition, pageCondition);
         ProductListResponse productListResponse = ProductListResponse.from(productSlice);
         return ResponseEntity.ok().body(productListResponse);

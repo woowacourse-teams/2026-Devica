@@ -146,7 +146,7 @@ class ProductServiceTest {
     private Slice<ProductSummaryResponse> findLaptops() {
         entityManager.flush();
         entityManager.clear();
-        return productService.findProducts(PURPOSE,
+        return productService.findProductsByPurpose(PURPOSE,
             condition().build(), new PageCondition(0, 10, null));
     }
 
