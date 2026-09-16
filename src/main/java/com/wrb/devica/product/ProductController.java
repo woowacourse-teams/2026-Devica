@@ -1,5 +1,6 @@
 package com.wrb.devica.product;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.ResponseEntity;
@@ -7,34 +8,31 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/usage-purposes/{purposeCode}/products")
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductOfferService productOfferService;
 
-    @GetMapping
-    public ResponseEntity<ProductListResponse> findProducts(
+    @GetMapping("/api/usage-purposes/{purposeCode}/products")
+    public ResponseEntity<ProductListResponse> findProductsByPurpose(
         @PathVariable String purposeCode,
         @Validated @ModelAttribute LaptopSearchCondition condition,
-        @Validated @ModelAttribute LaptopPageCondition pageCondition
+        @Validated @ModelAttribute PageCondition pageCondition
     ) {
-        Slice<ProductSummaryResponse> productSlice = productService.findProducts(purposeCode,
+        Slice<ProductSummaryResponse> productSlice = productService.findProductsByPurpose(purposeCode,
             condition, pageCondition);
         ProductListResponse productListResponse = ProductListResponse.from(productSlice);
         return ResponseEntity.ok().body(productListResponse);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ProductDetailResponse> findProductById(
-        @PathVariable String purposeCode,
-        @PathVariable Long id
-    ) {
-        ProductDetailResponse productDetailResponse = productService.findProductById(purposeCode, id);
-        return ResponseEntity.ok(productDetailResponse);
+    @GetMapping("/api/products/{id}")
+    public ResponseEntity<ProductDetailResponse> findProductById(@PathVariable Long id) {
+        Product product = productService.findProductById(id);
+        List<ProductOffer> offers = productOfferService.findOnSaleOffers(id);
+        return ResponseEntity.ok(ProductDetailResponse.of(product, offers));
     }
 }
