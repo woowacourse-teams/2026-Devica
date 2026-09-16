@@ -15,7 +15,7 @@
 | [0007](0007-컨테이너-적용-범위.md) | 개발 중에는 DB만 컨테이너로 실행한다 | Accepted |
 | [0008](0008-테스트-데이터베이스.md) | 테스트 DB로 운영과 동일한 MySQL 컨테이너를 사용한다 | Accepted |
 | [0009](0009-테스트-프레임워크.md) | 테스트에 JUnit 5와 AssertJ를 사용한다 | Accepted |
-| [0010](0010-프론트엔드-구현-방식.md) | 프론트엔드를 Thymeleaf로 구현한다 | Accepted |
+| [0010](0010-프론트엔드-구현-방식.md) | 프론트엔드를 Thymeleaf로 구현한다 | Superseded by 0025 |
 | [0011](0011-보일러플레이트.md) | 보일러플레이트 제거에 Lombok을 사용한다 | Accepted |
 | [0012](0012-코드-스타일.md) | 코드 스타일로 우테코 IntelliJ 스타일과 `.editorconfig`를 사용한다 | Accepted |
 | [0013](0013-CI-도구.md) | CI 도구로 GitHub Actions를 사용한다 | Accepted |
@@ -29,6 +29,7 @@
 | [0021](0021-페이징-파라미터-수신-방식.md) | 페이징 파라미터를 Pageable 대신 page·size 로 직접 받는다 | Accepted |
 | [0022](0022-동적-쿼리-작성-방식.md) | 동적 쿼리를 QueryDSL 로 작성한다 | Accepted |
 | [0023](0023-목록-최저가-산출-위치.md) | 목록의 최저가를 조회 쿼리 안에서 구한다 | Accepted |
+| [0025](0025-프론트엔드-구현-방식-변경.md) | 프론트엔드를 React로 구현한다 | Accepted |
 
 ## 작성 방법
 
