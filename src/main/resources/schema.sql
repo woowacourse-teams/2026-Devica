@@ -19,6 +19,25 @@ CREATE TABLE IF NOT EXISTS usage_purpose
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 
+CREATE TABLE IF NOT EXISTS faq
+(
+    id               BIGINT       NOT NULL AUTO_INCREMENT,
+    usage_purpose_id BIGINT       NULL,
+    slug             VARCHAR(255) NOT NULL,
+    question         VARCHAR(255) NOT NULL,
+    answer           TEXT         NOT NULL,
+    published        BOOLEAN      NOT NULL,
+    display_order    INT          NOT NULL,
+    created_at       DATETIME     NOT NULL,
+    updated_at       DATETIME     NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_faq_slug (slug),
+    KEY idx_faq_home_published_display_order (usage_purpose_id, published, display_order),
+    CONSTRAINT fk_faq_usage_purpose
+        FOREIGN KEY (usage_purpose_id) REFERENCES usage_purpose (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
 CREATE TABLE IF NOT EXISTS cpu
 (
     id           BIGINT       NOT NULL AUTO_INCREMENT,
