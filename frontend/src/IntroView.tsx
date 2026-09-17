@@ -12,7 +12,12 @@ const STEPS = [
   { index: '3', title: '맞는 제품 보기', meta: '20개 중에서' },
 ];
 
-export function IntroView() {
+type Props = {
+  onStart: () => void;
+  canStart: boolean;
+};
+
+export function IntroView({ onStart, canStart }: Props) {
   const [specs, setSpecs] = useState<Spec[]>([]);
   const [failed, setFailed] = useState(false);
 
@@ -53,7 +58,13 @@ export function IntroView() {
         ))}
       </div>
 
-      <button className="button button--primary button--wide" id="start-button" type="button" disabled={failed}>
+      <button
+        className="button button--primary button--wide"
+        id="start-button"
+        type="button"
+        disabled={failed || !canStart}
+        onClick={onStart}
+      >
         질문 시작하고 내 사양 찾기
       </button>
       <button className="button button--primary button--wide" id="baseline-product-button" type="button" disabled={failed}>
