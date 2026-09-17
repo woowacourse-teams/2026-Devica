@@ -5,12 +5,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,9 +22,8 @@ public class ProductOffer extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @Column(name = "product_id", nullable = false)
+    private Long productId;
 
     @Column(nullable = false, length = 64)
     private String name;
@@ -46,9 +42,9 @@ public class ProductOffer extends BaseTimeEntity {
     private OfferStatus status;
 
     @Builder
-    private ProductOffer(Product product, String name, long price, String externalItemId,
+    private ProductOffer(Long productId, String name, long price, String externalItemId,
                          String purchaseUrl, OfferStatus status) {
-        this.product = product;
+        this.productId = productId;
         this.name = name;
         this.price = price;
         this.externalItemId = externalItemId;

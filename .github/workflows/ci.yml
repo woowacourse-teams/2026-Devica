@@ -49,3 +49,30 @@ jobs:
 
       - name: 빌드 및 테스트
         run: ./gradlew build
+
+  # 백엔드 검증과 분리한다. test 는 MySQL 컨테이너 기동을 기다리므로, 같은 잡에 넣으면
+  # 프론트엔드 빌드가 그만큼 늦어지고 한쪽이 깨졌을 때 다른 쪽 결과를 볼 수 없다.
+  frontend:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node 22 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          # uses 로 실행하는 단계에는 defaults.run 이 적용되지 않아 경로를 따로 적는다.
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: 빌드
+        run: npm run build

@@ -9,3 +9,6 @@ out
 docs
 .github
 .env
+
+# 백엔드 이미지에는 필요 없다. 빼지 않으면 node_modules 가 빌드 컨텍스트로 통째로 들어간다.
+frontend
