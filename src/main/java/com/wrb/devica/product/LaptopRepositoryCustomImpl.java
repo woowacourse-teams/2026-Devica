@@ -26,7 +26,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
     }
 
     @Override
-    public Slice<ProductSummaryResponse> findSummariesWithMinPriceForBE(LaptopSearchCondition condition, SortType sort, Pageable pageable) {
+    public Slice<ProductSummaryResponse> findSummariesWithMinPrice(LaptopSearchCondition condition, SortType sort, Pageable pageable) {
         int pageSize = pageable.getPageSize();
 
         List<ProductSummaryResponse> found = queryFactory

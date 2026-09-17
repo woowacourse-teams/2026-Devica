@@ -20,7 +20,7 @@ public class ProductService {
                                                                 PageCondition pageCondition) {
         validateCategoryExists(categoryCode);
 
-        return laptopRepository.findSummariesWithMinPriceForBE(
+        return laptopRepository.findSummariesWithMinPrice(
             condition,
             pageCondition.sort(),
             PageRequest.of(pageCondition.page(), pageCondition.size())

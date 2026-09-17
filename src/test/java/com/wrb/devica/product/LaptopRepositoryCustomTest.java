@@ -428,6 +428,6 @@ class LaptopRepositoryCustomTest {
                                                      int page, int size) {
         entityManager.flush();
         entityManager.clear();
-        return laptopRepository.findSummariesWithMinPriceForBE(condition, sort, PageRequest.of(page, size));
+        return laptopRepository.findSummariesWithMinPrice(condition, sort, PageRequest.of(page, size));
     }
 }
