@@ -367,13 +367,18 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
 
     private int weigh(List<String> reasons, Signal... signals) {
         int total = 0;
-        for (Signal each : signals) {
-            if (each.matched()) {
-                total += each.weight();
-                reasons.add(each.reason());
-            }
+        for (Signal signal : signals) {
+            total += scoreOf(signal, reasons);
         }
         return total;
+    }
+
+    private static int scoreOf(Signal signal, List<String> reasons) {
+        if (!signal.matched()) {
+            return 0;
+        }
+        reasons.add(signal.reason());
+        return signal.weight();
     }
 
     private Signal signal(boolean matched, int weight, String reason) {
