@@ -1,9 +1,15 @@
 import { IntroView } from './IntroView';
+import { SiteFooter } from './SiteFooter';
+import { SiteHeader } from './SiteHeader';
 
 export function App() {
   return (
-    <main className="probe" id="main-content">
-      <IntroView/>
-    </main>
+    <>
+      <SiteHeader/>
+      <main className="probe" id="main-content">
+        <IntroView/>
+      </main>
+      <SiteFooter/>
+    </>
   );
 }

@@ -6,20 +6,30 @@
     box-sizing: border-box;
 }
 
-body {
-    margin: 0;
-    padding: var(--margin-mobile);
-    background: var(--surface);
+html {
     color: var(--on-surface);
-    font-family: Pretendard, Inter, sans-serif;
-    font-size: var(--body-md-font-size);
-    line-height: var(--body-md-line-height);
+    background: var(--surface);
 }
 
-@media (min-width: 768px) {
-    body {
-        padding: var(--margin-desktop);
-    }
+/* 좌우 여백은 .probe 와 .site-*__inner 가 각자 갖는다. body 는 비워 둔다. */
+body {
+    min-width: 320px;
+    margin: 0;
+    font-family: Pretendard, Inter, sans-serif;
+    font-size: var(--body-lg-font-size);
+    line-height: var(--body-lg-line-height);
+}
+
+a {
+    color: inherit;
+}
+
+/* 본문이 짧아도 푸터가 화면 아래에 오게 한다. 원본은 헤더 높이를 상수로 빼 두었는데,
+   웹폰트를 따로 싣지 않아 그 값이 환경마다 달라진다. */
+#root {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 h1,
