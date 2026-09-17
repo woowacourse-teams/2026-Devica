@@ -1,3 +1,5 @@
+/* 전역 리셋과 문서 타이포. 화면이 늘어도 여기는 거의 바뀌지 않는다. */
+
 *,
 *::before,
 *::after {
@@ -20,132 +22,28 @@ body {
     }
 }
 
-.panel {
-    max-width: 720px;
-    margin: 0 auto;
-    border: 1px solid var(--on-surface);
-    background: var(--surface-container-lowest);
+h1,
+h2,
+h3,
+p {
+    margin-top: 0;
 }
 
-.panel__head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--gutter);
-    padding: var(--density-med);
-    border-bottom: 1px solid var(--on-surface);
+h1 {
+    margin-bottom: 0;
+    font-size: calc(var(--display-font-size) * 0.8);
+    line-height: var(--display-line-height);
+    letter-spacing: var(--display-letter-spacing);
 }
 
-.panel__title {
-    margin: 0;
-    font-size: var(--headline-sm-font-size);
-    font-weight: var(--headline-sm-font-weight);
-    line-height: var(--headline-sm-line-height);
+h2 {
+    margin-bottom: 0;
+    font-size: var(--headline-lg-font-size);
+    line-height: var(--headline-lg-line-height);
 }
 
-.panel__build,
-.check__label {
-    font-family: var(--font-label);
-    font-size: var(--label-md-font-size);
-    font-weight: var(--label-md-font-weight);
-    letter-spacing: var(--label-md-letter-spacing);
-}
-
-.panel__build {
-    color: var(--on-surface-variant);
-}
-
-.panel__note {
-    margin: 0;
-    padding: var(--density-med);
-    color: var(--on-surface-variant);
-    border-bottom: 1px solid var(--outline-variant);
-}
-
-.check {
-    padding: var(--density-med);
-    border-bottom: 1px solid var(--outline-variant);
-}
-
-/* 실패한 점검만 눈에 띄어야 한다. 디자인 시스템에서 색을 쓰는 유일한 경우다. */
-.check--fail {
-    border-left: 3px solid var(--error);
-}
-
-.check__head {
-    display: flex;
-    align-items: baseline;
-    gap: var(--density-high);
-}
-
-.check__label {
-    flex: 1;
-}
-
-.check__badge {
-    padding: 2px var(--density-high);
-    border: 1px solid var(--on-surface);
-    font-size: var(--body-sm-font-size);
-}
-
-.check--ok .check__badge {
-    background: var(--primary);
-    color: var(--on-primary);
-}
-
-.check--pending .check__badge {
-    border-color: var(--outline-variant);
-    color: var(--outline);
-}
-
-.check__elapsed {
-    min-width: 56px;
-    font-family: var(--font-label);
-    font-size: var(--body-sm-font-size);
-    color: var(--on-surface-variant);
-    text-align: right;
-}
-
-.check__request,
-.check__summary,
-.check__diagnosis {
-    margin: var(--density-high) 0 0;
-    overflow-wrap: anywhere;
-}
-
-.check__request {
-    font-size: var(--body-sm-font-size);
-    color: var(--on-surface-variant);
-}
-
-.check__diagnosis {
-    color: var(--on-surface-variant);
-}
-
-.panel__foot {
-    display: flex;
-    justify-content: flex-end;
-    padding: var(--density-med);
-}
-
-.button {
-    padding: var(--density-high) var(--gutter);
-    border: 1px solid var(--on-surface);
-    border-radius: 0;
-    background: var(--primary);
-    color: var(--on-primary);
-    font: inherit;
-    cursor: pointer;
-}
-
-.button:hover:not(:disabled) {
-    background: var(--surface-container-lowest);
-    color: var(--on-surface);
-}
-
-.button:disabled {
-    border-color: var(--outline-variant);
-    background: var(--surface-container);
-    color: var(--outline);
-    cursor: default;
+@media (min-width: 768px) {
+    h1 {
+        font-size: var(--display-font-size);
+    }
 }

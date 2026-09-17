@@ -1,0 +1,75 @@
+/* 여러 화면이 함께 쓰는 부품. 원본이 셀렉터를 나열해 묶어 둔 것을 클래스 하나로 바꿨다.
+   화면이 늘어도 이 파일을 건드리지 않게 하는 것이 목적이다. */
+
+/* 원본의 .hero, .question-view, .result-view ... 나열을 대체한다. */
+.view-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gutter);
+}
+
+/* 원본의 .status-panel, .intro-steps, .baseline-card, .spec-card ... 나열을 대체한다. */
+.bordered-panel {
+    border: 1px solid var(--on-surface);
+    background: var(--surface-container-lowest);
+}
+
+.probe {
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 64px var(--margin-mobile) 96px;
+}
+
+.eyebrow {
+    margin: 0;
+    font-size: var(--label-md-font-size);
+    font-weight: var(--label-md-font-weight);
+    line-height: var(--label-md-line-height);
+    letter-spacing: var(--label-md-letter-spacing);
+}
+
+.section-description {
+    color: var(--on-surface-variant);
+}
+
+.button {
+    min-height: 52px;
+    border: 1px solid var(--primary);
+    padding: var(--density-med) var(--gutter);
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out;
+}
+
+.button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.button--primary {
+    color: var(--on-primary);
+    background: var(--primary);
+}
+
+.button--primary:hover:not(:disabled) {
+    color: var(--primary);
+    background: var(--on-primary);
+}
+
+.button:disabled {
+    border-color: var(--outline-variant);
+    color: var(--outline);
+    background: var(--surface-container);
+    cursor: not-allowed;
+}
+
+.button--wide {
+    width: 100%;
+
+@media (min-width: 768px) {
+    .probe {
+        padding-right: var(--margin-desktop);
+        padding-left: var(--margin-desktop);
+    }
+}
