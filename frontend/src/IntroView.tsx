@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BaselineCard } from './BaselineCard';
-import { fetchBaselineSpecs, type Spec } from './recommendation';
+import { fetchRecommendation, type Spec } from './recommendation';
 import './IntroView.css';
 
 // V1 은 백엔드 개발 목적 하나만 다룬다.
@@ -22,7 +22,7 @@ export function IntroView({ onStart, canStart }: Props) {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    fetchBaselineSpecs(PURPOSE_CODE)
+    fetchRecommendation(PURPOSE_CODE)
       .then(setSpecs)
       .catch(() => setFailed(true));
   }, []);

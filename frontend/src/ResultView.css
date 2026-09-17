@@ -1,0 +1,61 @@
+/* result-view 전용. 카드 테두리는 shared.css 의 bordered-panel 이 맡는다. */
+
+.spec-list {
+    display: grid;
+    gap: var(--density-med);
+    margin: var(--gutter) 0;
+}
+
+.result-os-control {
+    display: grid;
+    gap: var(--density-high);
+    margin-top: var(--gutter);
+    font-weight: 600;
+}
+
+.spec-card {
+    padding: var(--gutter);
+}
+
+.spec-card:only-child {
+    grid-column: 1 / -1;
+}
+
+.spec-card > h3 {
+    margin-bottom: var(--gutter);
+}
+
+.spec-card .spec-row + .spec-row {
+    margin-top: var(--density-med);
+}
+
+.spec-row {
+    padding: var(--gutter);
+}
+
+.spec-row__value {
+    display: block;
+    margin-top: var(--density-high);
+    font-size: var(--headline-sm-font-size);
+    font-weight: 600;
+}
+
+.spec-row__reason {
+    margin: var(--density-high) 0 0;
+    color: var(--on-surface-variant);
+    font-size: var(--body-md-font-size);
+
+/* 원본은 이 라벨 타이포를 .eyebrow 와 한 블록에 묶어 두었다. 화면이 달라 따로 적는다. */
+.spec-row__label {
+    margin: 0;
+    font-size: var(--label-md-font-size);
+    font-weight: var(--label-md-font-weight);
+    line-height: var(--label-md-line-height);
+    letter-spacing: var(--label-md-letter-spacing);
+}
+
+@media (min-width: 768px) {
+    .spec-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

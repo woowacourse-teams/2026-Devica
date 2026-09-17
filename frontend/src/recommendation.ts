@@ -18,8 +18,10 @@ type RecommendationResponse = {
   specs: Spec[];
 };
 
-export async function fetchBaselineSpecs(purposeCode: string): Promise<Spec[]> {
-  const response = await fetch(`${BASE_URL}/api/usage-purposes/${purposeCode}/recommendation`, {
+/** 답을 주지 않으면 조정 전 기본 권장 사양이 온다. 경로가 같아 화면마다 나누지 않는다. */
+export async function fetchRecommendation(purposeCode: string, query = ''): Promise<Spec[]> {
+  const suffix = query === '' ? '' : `?${query}`;
+  const response = await fetch(`${BASE_URL}/api/usage-purposes/${purposeCode}/recommendation${suffix}`, {
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
@@ -28,4 +30,8 @@ export async function fetchBaselineSpecs(purposeCode: string): Promise<Spec[]> {
 
   const body: RecommendationResponse = await response.json();
   return body.specs;
+}
+
+export function osValueOf(spec: Spec): string {
+  return spec.items.find((item) => item.code === 'OS')?.value ?? '';
 }
