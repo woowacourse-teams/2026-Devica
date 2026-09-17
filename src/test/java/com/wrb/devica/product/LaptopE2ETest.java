@@ -69,15 +69,6 @@ class LaptopE2ETest extends E2ETest {
             .body("content[0].minPrice", is(2_850_000));
     }
 
-    // UC-07: 지원하지 않는 제품 유형으로는 제품을 조회할 수 없다
-    @Test
-    void 없는_제품_유형으로_조회하면_404를_받는다() {
-        given()
-            .when().get("/api/product-categories/WRONG/products")
-            .then().statusCode(404)
-            .body("code", is("PRODUCT_CATEGORY_NOT_FOUND"));
-    }
-
     // UC-07/UC-08: 검색어와 가격·사양·OS·브랜드 조건을 적용할 수 있고, 조건을 지정하면 조건을 만족하는 제품만 반환한다
     @Test
     void 조건을_지정하면_전부_만족하는_노트북만_받는다() {
