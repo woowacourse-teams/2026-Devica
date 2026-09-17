@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { IntroView } from './IntroView';
 import { QuestionView } from './QuestionView';
 import { ResultView, type ResultOs } from './ResultView';
+import { SearchLoadingView } from './SearchLoadingView';
 import { SiteFooter } from './SiteFooter';
 import { SiteHeader } from './SiteHeader';
 import {
@@ -17,7 +18,7 @@ import { fetchRecommendation, osValueOf, type Spec } from './recommendation';
 // V1 은 백엔드 개발 목적 하나만 다룬다.
 const PURPOSE_CODE = 'BACKEND_DEVELOPMENT';
 
-type View = 'INTRO' | 'QUESTION' | 'RESULT';
+type View = 'INTRO' | 'QUESTION' | 'RESULT' | 'SEARCH_LOADING';
 
 export function App() {
   const [view, setView] = useState<View>('INTRO');
@@ -75,6 +76,7 @@ export function App() {
       <main className="probe" id="main-content">
         {view === 'INTRO' && <IntroView onStart={start} canStart={screens.length > 0}/>}
         {view === 'RESULT' && <ResultView specs={specs} os={resultOs} onChangeOs={setResultOs}/>}
+        {view === 'SEARCH_LOADING' && <SearchLoadingView specs={specs} onDone={() => setView('RESULT')} /* 제품 목록 화면이 생기면 그쪽으로 넘긴다 *//>}
         {view === 'QUESTION' && (
           <QuestionView
             screens={screens}
