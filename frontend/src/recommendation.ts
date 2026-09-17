@@ -6,7 +6,8 @@ export type SpecItem = {
   displayName: string;
   value: string;
   displayValue: string;
-  reason: string;
+  // 한 항목에 조정 조건이 여럿 걸리면 근거도 여럿이다.
+  reasons: string[];
 };
 
 export type Spec = {

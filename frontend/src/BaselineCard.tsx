@@ -2,8 +2,9 @@ import { Fragment } from 'react';
 import type { Spec } from './recommendation';
 
 // 원본은 PROCESSOR · MEMORY · STORAGE 만 보여주고 OS 는 카드 제목으로 쓴다.
+// 권장 사양의 CPU 는 제품이 탑재한 CPU 와 코드가 다르다. 등급을 요구하는 쪽이 REQUIRED_CPU 다.
 const ROWS = [
-  { code: 'CPU', label: 'PROCESSOR' },
+  { code: 'REQUIRED_CPU', label: 'PROCESSOR' },
   { code: 'MEMORY', label: 'MEMORY' },
   { code: 'STORAGE', label: 'STORAGE' },
 ];
