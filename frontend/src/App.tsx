@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { IntroView } from './IntroView';
 import { QuestionView } from './QuestionView';
+import { ProductListView } from './ProductListView';
 import { ResultView, type ResultOs } from './ResultView';
 import { SearchLoadingView } from './SearchLoadingView';
 import { SiteFooter } from './SiteFooter';
@@ -18,7 +19,7 @@ import { fetchRecommendation, osValueOf, type Spec } from './recommendation';
 // V1 은 백엔드 개발 목적 하나만 다룬다.
 const PURPOSE_CODE = 'BACKEND_DEVELOPMENT';
 
-type View = 'INTRO' | 'QUESTION' | 'RESULT' | 'SEARCH_LOADING';
+type View = 'INTRO' | 'QUESTION' | 'RESULT' | 'SEARCH_LOADING' | 'PRODUCT_LIST';
 
 export function App() {
   const [view, setView] = useState<View>('INTRO');
@@ -37,6 +38,8 @@ export function App() {
   }, []);
 
   const screens = resolveScreens(questions, answers);
+  // 검색 로딩과 제품 목록은 결과 화면이 보여주고 있던 OS 만 대상으로 삼는다.
+  const visibleSpecs = resultOs === 'BOTH' ? specs : specs.filter((spec) => osValueOf(spec) === resultOs);
 
   const answer = (code: string, values: string[]) => {
     // 답이 바뀌면 딸린 질문이 사라질 수 있다. 사라진 질문의 답은 함께 지운다.
@@ -93,8 +96,20 @@ export function App() {
         {view === 'INTRO' && (
           <IntroView onStart={start} canStart={screens.length > 0} questionsFailed={questionsFailed}/>
         )}
-        {view === 'RESULT' && <ResultView specs={specs} os={resultOs} onChangeOs={setResultOs}/>}
-        {view === 'SEARCH_LOADING' && <SearchLoadingView specs={specs} onDone={() => setView('RESULT')} /* 제품 목록 화면이 생기면 그쪽으로 넘긴다 *//>}
+        {view === 'RESULT' && (
+          <ResultView
+            specs={specs}
+            os={resultOs}
+            onChangeOs={setResultOs}
+            onSearch={() => setView('SEARCH_LOADING')}
+          />
+        )}
+        {view === 'SEARCH_LOADING' && (
+          <SearchLoadingView specs={visibleSpecs} onDone={() => setView('PRODUCT_LIST')}/>
+        )}
+        {view === 'PRODUCT_LIST' && (
+          <ProductListView purposeCode={PURPOSE_CODE} specs={visibleSpecs} onBack={() => setView('RESULT')}/>
+        )}
         {view === 'QUESTION' && (
           <QuestionView
             screens={screens}
