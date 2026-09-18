@@ -77,6 +77,27 @@
     font-weight: 600;
 }
 
+/* 화면을 되돌아가는 링크형 버튼. 제품 목록과 제품 상세가 함께 쓴다. */
+.text-button {
+    width: fit-content;
+    border: 0;
+    padding: var(--density-high) 0;
+    color: var(--on-surface);
+    background: transparent;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.text-button:hover,
+.text-button:focus-visible {
+    text-decoration: underline;
+}
+
+.view-back-button {
+    margin-bottom: var(--gutter);
+}
+
 @media (min-width: 768px) {
     .probe {
         padding-right: var(--margin-desktop);
