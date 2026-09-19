@@ -17,13 +17,13 @@ public class ProductController {
     private final ProductService productService;
     private final ProductOfferService productOfferService;
 
-    @GetMapping("/api/usage-purposes/{purposeCode}/products")
-    public ResponseEntity<ProductListResponse> findProductsByPurpose(
-        @PathVariable String purposeCode,
+    @GetMapping("/api/product-categories/{categoryCode}/products")
+    public ResponseEntity<ProductListResponse> findProductsByCategory(
+        @PathVariable String categoryCode,
         @Validated @ModelAttribute LaptopSearchCondition condition,
         @Validated @ModelAttribute PageCondition pageCondition
     ) {
-        Slice<ProductSummaryResponse> productSlice = productService.findProductsByPurpose(purposeCode,
+        Slice<ProductSummaryResponse> productSlice = productService.findProductsByCategory(categoryCode,
             condition, pageCondition);
         ProductListResponse productListResponse = ProductListResponse.from(productSlice);
         return ResponseEntity.ok().body(productListResponse);
