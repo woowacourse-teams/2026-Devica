@@ -6,6 +6,6 @@ public record FaqSummaryResponse(
 ) {
 
     public static FaqSummaryResponse from(Faq faq) {
-        return new FaqSummaryResponse(faq.getSlug(), faq.getQuestion());
+        return new FaqSummaryResponse(faq.getSlug(), faq.getTitle());
     }
 }

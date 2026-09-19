@@ -20,7 +20,7 @@ class FaqE2ETest extends E2ETest {
     void 홈페이지_FAQ_목록에서_공개_FAQ를_선택하면_상세를_조회한다() {
         // given
         Faq faq = faqRepository.save(
-            Faq.home("how-to-use", "Devica는 어떻게 이용하나요?", "답변", true, 1)
+            Faq.service("how-to-use", "Devica는 어떻게 이용하나요?", "답변", true, 1)
         );
 
         // when
@@ -36,6 +36,6 @@ class FaqE2ETest extends E2ETest {
             .when()
             .get(DETAIL_PATH)
             .then().statusCode(200)
-            .body("answer", is(faq.getAnswer()));
+            .body("answer", is(faq.getContent()));
     }
 }

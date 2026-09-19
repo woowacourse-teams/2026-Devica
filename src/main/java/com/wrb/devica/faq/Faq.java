@@ -10,14 +10,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "faq")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Faq extends BaseTimeEntity {
 
@@ -33,10 +31,10 @@ public class Faq extends BaseTimeEntity {
     private String slug;
 
     @Column(nullable = false, length = 255)
-    private String question;
+    private String title;
 
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String answer;
+    private String content;
 
     @Column(nullable = false)
     private boolean published;
@@ -44,18 +42,18 @@ public class Faq extends BaseTimeEntity {
     @Column(nullable = false)
     private int displayOrder;
 
-    private Faq(UsagePurpose usagePurpose, String slug, String question, String answer,
+    private Faq(UsagePurpose usagePurpose, String slug, String title, String content,
                 boolean published, int displayOrder) {
         this.usagePurpose = usagePurpose;
         this.slug = slug;
-        this.question = question;
-        this.answer = answer;
+        this.title = title;
+        this.content = content;
         this.published = published;
         this.displayOrder = displayOrder;
     }
 
-    public static Faq home(String slug, String question, String answer, boolean published,
-                           int displayOrder) {
+    public static Faq service(String slug, String question, String answer, boolean published,
+                              int displayOrder) {
         return new Faq(null, slug, question, answer, published, displayOrder);
     }
 

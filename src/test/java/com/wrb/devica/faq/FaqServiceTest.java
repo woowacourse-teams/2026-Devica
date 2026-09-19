@@ -39,15 +39,15 @@ class FaqServiceTest {
     @Test
     void 공개된_홈페이지_FAQ를_노출_순서대로_반환한다() {
         // given
-        faqRepository.save(Faq.home("second", "두 번째 질문", "답변", true, 2));
-        faqRepository.save(Faq.home("first", "첫 번째 질문", "답변", true, 1));
-        faqRepository.save(Faq.home("private", "비공개 질문", "답변", false, 0));
+        faqRepository.save(Faq.service("second", "두 번째 질문", "답변", true, 2));
+        faqRepository.save(Faq.service("first", "첫 번째 질문", "답변", true, 1));
+        faqRepository.save(Faq.service("private", "비공개 질문", "답변", false, 0));
         faqRepository.save(Faq.forUsagePurpose(
             saveBackendDevelopmentPurpose(), "purpose", "목적별 질문", "답변", true, 0
         ));
 
         // when
-        List<Faq> found = faqService.findPublishedHomeFaqs();
+        List<Faq> found = faqService.findPublishedServiceFaqs();
 
         // then
         assertThat(found).extracting(Faq::getSlug)
@@ -58,7 +58,7 @@ class FaqServiceTest {
     void 공개_FAQ를_slug로_조회한다() {
         // given
         String slug = "how-to-use";
-        faqRepository.save(Faq.home(slug, "첫 번째 질문", "답변", true, 1));
+        faqRepository.save(Faq.service(slug, "첫 번째 질문", "답변", true, 1));
 
         // when
         Faq found = faqService.findPublishedFaqBySlug(slug);
@@ -71,8 +71,8 @@ class FaqServiceTest {
     void 존재하지_않는_slug로_조회하면_FAQ_NOT_FOUND가_발생한다() {
         // given
         String privateSlug = "private";
-        faqRepository.save(Faq.home("how-to-use", "첫 번째 질문", "답변", true, 1));
-        faqRepository.save(Faq.home(privateSlug, "비공개 질문", "답변", false, 0));
+        faqRepository.save(Faq.service("how-to-use", "첫 번째 질문", "답변", true, 1));
+        faqRepository.save(Faq.service(privateSlug, "비공개 질문", "답변", false, 0));
 
         // when & then
         assertThatThrownBy(() -> faqService.findPublishedFaqBySlug("UNKNOWN"))
@@ -85,8 +85,8 @@ class FaqServiceTest {
     void 비공개_FAQ를_slug로_조회하면_FAQ_NOT_FOUND가_발생한다() {
         // given
         String privateSlug = "private";
-        faqRepository.save(Faq.home("how-to-use", "첫 번째 질문", "답변", true, 1));
-        faqRepository.save(Faq.home(privateSlug, "비공개 질문", "답변", false, 0));
+        faqRepository.save(Faq.service("how-to-use", "첫 번째 질문", "답변", true, 1));
+        faqRepository.save(Faq.service(privateSlug, "비공개 질문", "답변", false, 0));
 
         // when & then
         assertThatThrownBy(() -> faqService.findPublishedFaqBySlug(privateSlug))
@@ -108,7 +108,7 @@ class FaqServiceTest {
         faqRepository.save(Faq.forUsagePurpose(
             usagePurpose, "private", "비공개 질문", "답변", false, 0
         ));
-        faqRepository.save(Faq.home("home", "홈 질문", "답변", true, 0));
+        faqRepository.save(Faq.service("home", "홈 질문", "답변", true, 0));
 
         // when
         List<Faq> found = faqService.findPublishedFaqsBy(LAPTOP, BACKEND_DEVELOPMENT);

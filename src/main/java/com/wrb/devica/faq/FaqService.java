@@ -16,7 +16,7 @@ public class FaqService {
 
     private final FaqRepository faqRepository;
 
-    public List<Faq> findPublishedHomeFaqs() {
+    public List<Faq> findPublishedServiceFaqs() {
         return faqRepository.findAllByUsagePurposeIsNullAndPublishedTrueOrderByDisplayOrderAsc();
     }
 
