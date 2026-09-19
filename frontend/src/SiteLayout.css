@@ -1,0 +1,84 @@
+/* 사이트 공통 헤더·푸터. 원본 base.css 의 .site-* 규칙을 옮겼다. */
+
+.site-header {
+    border-bottom: 1px solid var(--on-surface);
+    background: var(--surface-container-lowest);
+}
+
+.site-header__inner,
+.site-footer__inner {
+    display: flex;
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: var(--gutter) var(--margin-mobile);
+}
+
+.site-header__inner {
+    align-items: center;
+    justify-content: space-between;
+}
+
+.site-logo {
+    font-size: var(--headline-md-font-size);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.site-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--unit);
+}
+
+.site-nav__item {
+    border: 1px solid transparent;
+    padding: var(--density-high) var(--density-med);
+    color: var(--on-surface);
+    background: transparent;
+    font-size: var(--body-md-font-size);
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.site-nav__item:hover,
+.site-nav__item:focus-visible {
+    border-color: var(--primary);
+    color: var(--on-primary);
+    background: var(--primary);
+}
+
+.site-footer {
+    border-top: 1px solid var(--on-surface);
+    background: var(--surface-container-high);
+}
+
+.site-footer__inner {
+    flex-direction: column;
+    gap: var(--unit);
+}
+
+.site-footer__inner p {
+    margin: 0;
+    color: var(--on-surface-variant);
+    font-size: var(--body-md-font-size);
+    line-height: var(--body-md-line-height);
+}
+
+@media (min-width: 768px) {
+    .site-header__inner,
+    .site-footer__inner {
+        padding-right: var(--margin-desktop);
+        padding-left: var(--margin-desktop);
+    }
+
+    .site-nav {
+        gap: var(--density-high);
+    }
+
+    .site-nav__item {
+        font-size: var(--body-lg-font-size);
+    }
+}
