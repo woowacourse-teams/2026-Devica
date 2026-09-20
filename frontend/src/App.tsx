@@ -23,6 +23,7 @@ type View = 'INTRO' | 'QUESTION' | 'RESULT' | 'SEARCH_LOADING';
 export function App() {
   const [view, setView] = useState<View>('INTRO');
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [questionsFailed, setQuestionsFailed] = useState(false);
   const [answers, setAnswers] = useState<Answers>({});
   const [index, setIndex] = useState(0);
   const [specs, setSpecs] = useState<Spec[]>([]);
@@ -32,7 +33,7 @@ export function App() {
   const [resultFailed, setResultFailed] = useState(false);
 
   useEffect(() => {
-    fetchQuestions(PURPOSE_CODE).then(setQuestions).catch(() => setQuestions([]));
+    fetchQuestions(PURPOSE_CODE).then(setQuestions).catch(() => setQuestionsFailed(true));
   }, []);
 
   const screens = resolveScreens(questions, answers);
@@ -89,7 +90,9 @@ export function App() {
     <>
       <SiteHeader/>
       <main className="probe" id="main-content">
-        {view === 'INTRO' && <IntroView onStart={start} canStart={screens.length > 0}/>}
+        {view === 'INTRO' && (
+          <IntroView onStart={start} canStart={screens.length > 0} questionsFailed={questionsFailed}/>
+        )}
         {view === 'RESULT' && <ResultView specs={specs} os={resultOs} onChangeOs={setResultOs}/>}
         {view === 'SEARCH_LOADING' && <SearchLoadingView specs={specs} onDone={() => setView('RESULT')} /* 제품 목록 화면이 생기면 그쪽으로 넘긴다 *//>}
         {view === 'QUESTION' && (

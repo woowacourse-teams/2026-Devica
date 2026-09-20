@@ -15,11 +15,14 @@ const STEPS = [
 type Props = {
   onStart: () => void;
   canStart: boolean;
+  questionsFailed: boolean;
 };
 
-export function IntroView({ onStart, canStart }: Props) {
+export function IntroView({ onStart, canStart, questionsFailed }: Props) {
   const [specs, setSpecs] = useState<Spec[]>([]);
   const [failed, setFailed] = useState(false);
+  // 기본 권장 사양과 질문 중 하나라도 못 받으면 시작할 수 없다.
+  const unavailable = failed || questionsFailed;
 
   useEffect(() => {
     fetchRecommendation(PURPOSE_CODE)
@@ -58,16 +61,22 @@ export function IntroView({ onStart, canStart }: Props) {
         ))}
       </div>
 
+      {unavailable && (
+        <p className="notice" role="alert">
+          지금은 사양 정보를 불러오지 못했습니다. 잠시 뒤에 새로고침해 주세요.
+        </p>
+      )}
+
       <button
         className="button button--primary button--wide"
         id="start-button"
         type="button"
-        disabled={failed || !canStart}
+        disabled={unavailable || !canStart}
         onClick={onStart}
       >
         질문 시작하고 내 사양 찾기
       </button>
-      <button className="button button--primary button--wide" id="baseline-product-button" type="button" disabled={failed}>
+      <button className="button button--primary button--wide" id="baseline-product-button" type="button" disabled={unavailable}>
         기본 권장 사양으로 제품 보기
       </button>
     </section>
