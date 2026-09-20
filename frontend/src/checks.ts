@@ -78,13 +78,13 @@ export const CHECKS: Check[] = [
     label: 'CATEGORIES',
     path: '/api/product-categories',
     evaluate: (body) =>
-      evaluateCodeNames(body, '데이터베이스는 연결됐지만 제품 종류가 비어 있습니다. 초기 데이터(data.sql)가 반영됐는지 확인하세요.'),
+      evaluateCodeNames(body, '데이터베이스는 연결됐지만 제품 종류가 비어 있습니다. Flyway 기준 데이터 마이그레이션이 반영됐는지 확인하세요.'),
   },
   {
     label: 'USAGE PURPOSES',
     path: '/api/product-categories/LAPTOP/usage-purposes',
     evaluate: (body) =>
-      evaluateCodeNames(body, '노트북에 연결된 사용 목적이 없습니다. 초기 데이터(data.sql)가 반영됐는지 확인하세요.'),
+      evaluateCodeNames(body, '노트북에 연결된 사용 목적이 없습니다. Flyway 기준 데이터 마이그레이션이 반영됐는지 확인하세요.'),
   },
 ];
 

@@ -5,8 +5,17 @@ spring:
   profiles:
     default: local
 
+  flyway:
+    enabled: true
+
   jpa:
     open-in-view: false
+    hibernate:
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
+
+  sql:
+    init:
+      mode: never

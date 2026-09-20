@@ -3,8 +3,8 @@ package com.wrb.devica.question;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.wrb.devica.common.BusinessException;
 import com.wrb.devica.common.BusinessErrorCode;
+import com.wrb.devica.common.BusinessException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +13,7 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
-@Sql("/data.sql")
+@Sql("/db/migration/V2__insert_reference_data.sql")
 @Transactional
 class QuestionServiceTest {
 

@@ -11,7 +11,7 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
-@Sql("/data.sql")
+@Sql("/db/migration/V2__insert_reference_data.sql")
 @Transactional
 class QuestionSeedTest {
 
