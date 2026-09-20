@@ -98,6 +98,28 @@
     margin-bottom: var(--gutter);
 }
 
+/* 제품 카드와 제품 상세가 함께 쓰는 사양 칸. */
+.product-spec-item {
+    min-width: 0;
+    border: 1px solid var(--outline-variant);
+    padding: var(--density-high);
+    overflow-wrap: anywhere;
+}
+
+.product-spec-item dt {
+    color: var(--on-surface-variant);
+    font-family: var(--font-label);
+    font-size: var(--label-sm-font-size);
+    letter-spacing: var(--label-sm-letter-spacing);
+    /* PROCESSOR·STORAGE 는 한 낱말이다. 좁은 칸에서 "STORAG / E" 로 끊기면 라벨로 안 읽힌다. */
+    white-space: nowrap;
+}
+
+.product-spec-item dd {
+    margin: var(--unit) 0 0;
+    font-size: var(--body-md-font-size);
+}
+
 @media (min-width: 768px) {
     .probe {
         padding-right: var(--margin-desktop);
