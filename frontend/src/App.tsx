@@ -129,7 +129,16 @@ export function App() {
       <SiteHeader onProductList={() => showAllProducts(view)}/>
       <main className="probe" id="main-content">
         {view === 'INTRO' && (
-          <IntroView onStart={start} canStart={screens.length > 0} questionsFailed={questionsFailed}/>
+          <IntroView
+            onStart={start}
+            canStart={screens.length > 0}
+            questionsFailed={questionsFailed}
+            onBaseline={() => {
+              setAnswers({});
+              setIndex(0);
+              void showResult({});
+            }}
+          />
         )}
         {view === 'RESULT' && (
           <ResultView

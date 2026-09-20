@@ -16,9 +16,10 @@ type Props = {
   onStart: () => void;
   canStart: boolean;
   questionsFailed: boolean;
+  onBaseline: () => void;
 };
 
-export function IntroView({ onStart, canStart, questionsFailed }: Props) {
+export function IntroView({ onStart, canStart, questionsFailed, onBaseline }: Props) {
   const [specs, setSpecs] = useState<Spec[]>([]);
   const [failed, setFailed] = useState(false);
   // 기본 권장 사양과 질문 중 하나라도 못 받으면 시작할 수 없다.
@@ -76,7 +77,14 @@ export function IntroView({ onStart, canStart, questionsFailed }: Props) {
       >
         질문 시작하고 내 사양 찾기
       </button>
-      <button className="button button--primary button--wide" id="baseline-product-button" type="button" disabled={unavailable}>
+      {/* 답을 비워 보내면 조정 전 기본 권장 사양이 온다. 원본도 답을 무시하고 기본으로 되돌린다. */}
+      <button
+        className="button button--primary button--wide"
+        id="baseline-product-button"
+        type="button"
+        disabled={unavailable}
+        onClick={onBaseline}
+      >
         기본 권장 사양으로 제품 보기
       </button>
     </section>
