@@ -108,10 +108,9 @@
     white-space: nowrap;
 }
 
-/* 좁은 화면에서는 이름·가격이 한 줄을 다 쓰고 버튼이 그 아래를 채운다. */
+/* 좁은 화면에서는 이름·가격이 한 줄을 다 쓰고 버튼이 그 아래를 채운다. 높이는 .button 이 정한다. */
 .product-offer__buy {
     grid-column: 1 / -1;
-    min-height: 48px;
     text-align: center;
     text-decoration: none;
 }

@@ -31,6 +31,22 @@ const CARD_SPECS: { code: string; label: string }[] = [
 
 const OS_GROUP_LABELS: Record<string, string> = { MAC: '맥', WINDOWS: '윈도우' };
 
+export type ListMode = 'MATCHED' | 'ALL';
+
+// eyebrow 와 제목이 같은 말이 되지 않게 나눈다. 제목이 목록의 정체를, eyebrow 가 상위 분류를 맡는다.
+const HEADINGS: Record<ListMode, { eyebrow: string; title: string; description: string }> = {
+  MATCHED: {
+    eyebrow: '조건에 맞는 제품',
+    title: '추천 노트북',
+    description: '확정한 사양을 모두 충족하는 제품만 보여드려요.',
+  },
+  ALL: {
+    eyebrow: '제품 목록',
+    title: '전체 제품',
+    description: '지금 비교할 수 있는 노트북 전체입니다.',
+  },
+};
+
 export type ProductListState = {
   sort: SortType;
   condition: SearchCondition;
@@ -51,16 +67,29 @@ export function initialListState(specs: Spec[]): ProductListState {
 
 type Props = {
   purposeCode: string;
-  // 결과 화면이 보여주고 있던 OS 의 권장안이다.
+  mode: ListMode;
+  // 결과 화면이 보여주고 있던 OS 의 권장안이다. 전체 목록에서는 비어 있다.
   specs: Spec[];
+  backLabel: string;
   // 상세를 다녀와도 정렬과 검색 조건이 풀리지 않게 부모가 들고 있는다.
   state: ProductListState;
   onChangeState: (state: ProductListState) => void;
   onBack: () => void;
   onDetail: (productId: number) => void;
+  onShowAll: () => void;
 };
 
-export function ProductListView({ purposeCode, specs, state, onChangeState, onBack, onDetail }: Props) {
+export function ProductListView({
+  purposeCode,
+  mode,
+  specs,
+  backLabel,
+  state,
+  onChangeState,
+  onBack,
+  onDetail,
+  onShowAll,
+}: Props) {
   const { sort, condition, filterOpen } = state;
   const recommendable = specs.length === 1;
   // 필터 선택지와 "N개 중 M개" 는 조건을 걸기 전 목록을 알아야 만들 수 있다.
@@ -82,6 +111,7 @@ export function ProductListView({ purposeCode, specs, state, onChangeState, onBa
       .catch(() => setMatched([]));
   }, [purposeCode, specKey, sort, condition]);
 
+  const heading = HEADINGS[mode];
   const options = buildFilterOptions(base, specs);
   const hasCondition = Object.values(condition).some((value) => value !== null);
   const count = matched.length === base.length ? `${base.length}개` : `${base.length}개 중 ${matched.length}개`;
@@ -93,15 +123,13 @@ export function ProductListView({ purposeCode, specs, state, onChangeState, onBa
   return (
     <section className="view-panel product-list-view" id="product-list-view" aria-labelledby="product-list-title">
       <button className="text-button view-back-button" id="product-list-back-button" type="button" onClick={onBack}>
-        ← 권장 사양으로
+        {backLabel}
       </button>
       <div className="product-list-heading">
         <div>
-          <p className="eyebrow" id="product-list-eyebrow">조건에 맞는 제품</p>
-          <h2 id="product-list-title">추천 노트북</h2>
-          <p className="section-description" id="product-list-description">
-            확정한 사양을 모두 충족하는 제품만 보여드려요.
-          </p>
+          <p className="eyebrow" id="product-list-eyebrow">{heading.eyebrow}</p>
+          <h2 id="product-list-title">{heading.title}</h2>
+          <p className="section-description" id="product-list-description">{heading.description}</p>
         </div>
         <div className="product-list-controls">
           <button
@@ -127,10 +155,10 @@ export function ProductListView({ purposeCode, specs, state, onChangeState, onBa
         </div>
       </div>
 
-      {filterOpen && (
-        <div className="product-filter-panel" id="product-filter-panel">
+      {/* 접어도 DOM 에 남긴다. 사라지면 aria-controls 가 없는 id 를 가리킨다. */}
+      <div className="product-filter-panel" id="product-filter-panel" hidden={!filterOpen}>
           <Filter
-            field="maxPrice"
+            field="price"
             label="가격"
             value={condition.maxPrice === null ? '' : String(condition.maxPrice)}
             choices={options.maxPrice.map((price) => ({ value: String(price), label: `${formatPrice(price)} 이하` }))}
@@ -145,14 +173,14 @@ export function ProductListView({ purposeCode, specs, state, onChangeState, onBa
             }}
           />
           <Filter
-            field="memoryGb"
+            field="memory"
             label="RAM"
             value={condition.memoryGb === null ? '' : String(condition.memoryGb)}
             choices={options.memoryGb.map((memory) => ({ value: String(memory), label: `${memory}GB 이상` }))}
             onChange={(raw) => change('memoryGb', raw === '' ? null : Number(raw))}
           />
           <Filter
-            field="storageGb"
+            field="storage"
             label="저장장치"
             value={condition.storageGb === null ? '' : String(condition.storageGb)}
             choices={options.storageGb.map((storage) => ({
@@ -161,14 +189,19 @@ export function ProductListView({ purposeCode, specs, state, onChangeState, onBa
             }))}
             onChange={(raw) => change('storageGb', raw === '' ? null : Number(raw))}
           />
-        </div>
-      )}
+      </div>
 
       <p className="product-list-caption" id="product-list-caption">{count}</p>
 
       <div className="product-list" id="product-list" aria-live="polite">
         {matched.length === 0 ? (
-          <EmptyResult condition={condition} hasCondition={hasCondition} onReset={() => onChangeState({ ...state, condition: EMPTY_CONDITION })}/>
+          <EmptyResult
+            condition={condition}
+            hasCondition={hasCondition}
+            showsAll={mode === 'ALL'}
+            onReset={() => onChangeState({ ...state, condition: EMPTY_CONDITION })}
+            onShowAll={onShowAll}
+          />
         ) : (
           matched.map((product) => <ProductCard product={product} onDetail={onDetail} key={product.id}/>)
         )}
@@ -217,10 +250,12 @@ function ProductCard({ product, onDetail }: { product: Product; onDetail: (produ
 type EmptyResultProps = {
   condition: SearchCondition;
   hasCondition: boolean;
+  showsAll: boolean;
   onReset: () => void;
+  onShowAll: () => void;
 };
 
-function EmptyResult({ condition, hasCondition, onReset }: EmptyResultProps) {
+function EmptyResult({ condition, hasCondition, showsAll, onReset, onShowAll }: EmptyResultProps) {
   if (hasCondition) {
     return (
       <div className="empty-result">
@@ -230,11 +265,13 @@ function EmptyResult({ condition, hasCondition, onReset }: EmptyResultProps) {
       </div>
     );
   }
+  // 조건 없이 0건이면 사양이 높은 것이다. 목록을 넓혀 볼 길을 준다.
   return (
     <div className="empty-result">
       <p>조건에 맞는 제품이 없습니다. 사양을 직접 조정해 다시 확인해 주세요.</p>
-      {/* 전체 제품 목록은 아직 갈 곳이 없어 눌리지 않는다. */}
-      <button className="button button--secondary" type="button" disabled>전체 제품 보기</button>
+      {!showsAll && (
+        <button className="button button--secondary" type="button" onClick={onShowAll}>전체 제품 보기</button>
+      )}
     </div>
   );
 }
@@ -302,7 +339,9 @@ function CpuFilter({ groups, value, onChange }: CpuFilterProps) {
 function buildFilterOptions(products: Product[], specs: Spec[]) {
   return {
     maxPrice: PRICE_STEPS.filter((step) => products.some((product) => product.minPrice !== null && product.minPrice <= step)),
-    cpu: specs.map(osValueOf).map((os) => ({ os, tiers: CPU_TIERS[os] ?? [] })),
+    // 권장안이 없는 전체 목록에서는 고를 OS 가 정해져 있지 않아 등급표를 모두 연다.
+    cpu: (specs.length === 0 ? Object.keys(CPU_TIERS) : specs.map(osValueOf))
+      .map((os) => ({ os, tiers: CPU_TIERS[os] ?? [] })),
     memoryGb: uniqueAscending(products, 'MEMORY'),
     storageGb: uniqueAscending(products, 'STORAGE'),
   };

@@ -145,6 +145,11 @@
     margin-top: var(--gutter);
 }
 
+/* display 를 지정한 요소는 hidden 속성만으로 접히지 않는다. */
+.product-filter-panel[hidden] {
+    display: none;
+}
+
 .product-filter {
     display: flex;
     flex-direction: column;

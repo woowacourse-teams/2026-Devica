@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { IntroView } from './IntroView';
 import { QuestionView } from './QuestionView';
 import { ProductDetailView } from './ProductDetailView';
-import { ProductListView, initialListState, type ProductListState } from './ProductListView';
+import { ProductListView, initialListState, type ListMode, type ProductListState } from './ProductListView';
 import { ResultView, type ResultOs } from './ResultView';
 import { SearchLoadingView } from './SearchLoadingView';
 import { SiteFooter } from './SiteFooter';
@@ -22,6 +22,21 @@ const PURPOSE_CODE = 'BACKEND_DEVELOPMENT';
 
 type View = 'INTRO' | 'QUESTION' | 'RESULT' | 'SEARCH_LOADING' | 'PRODUCT_LIST' | 'PRODUCT_DETAIL';
 
+// 전체 목록은 이 세 화면에서 열 수 있고, 닫으면 열었던 화면으로 돌아간다.
+const RETURNABLE = ['INTRO', 'QUESTION', 'RESULT'] as const;
+
+type ReturnView = (typeof RETURNABLE)[number];
+
+const BACK_LABELS: Record<ReturnView, string> = {
+  INTRO: '← 처음으로',
+  QUESTION: '← 질문으로',
+  RESULT: '← 권장 사양으로',
+};
+
+function isReturnable(view: View): view is ReturnView {
+  return RETURNABLE.some((returnable) => returnable === view);
+}
+
 export function App() {
   const [view, setView] = useState<View>('INTRO');
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -35,6 +50,8 @@ export function App() {
   const [resultFailed, setResultFailed] = useState(false);
   // 목록의 정렬·검색 조건은 여기 둔다. 상세를 다녀와도 조작이 풀리지 않아야 한다.
   const [listState, setListState] = useState<ProductListState>(() => initialListState([]));
+  const [listMode, setListMode] = useState<ListMode>('MATCHED');
+  const [returnView, setReturnView] = useState<ReturnView>('RESULT');
   const [productId, setProductId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -86,6 +103,20 @@ export function App() {
     }
   };
 
+  const showAllProducts = (from: View) => {
+    setListMode('ALL');
+    setReturnView(isReturnable(from) ? from : 'RESULT');
+    setListState(initialListState([]));
+    setView('PRODUCT_LIST');
+  };
+
+  // 다른 페이지의 헤더에서는 링크로 넘어오므로, 여기서 제품 목록 화면을 바로 연다.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('view') === 'products') {
+      showAllProducts('INTRO');
+    }
+  }, []);
+
   const start = () => {
     setAnswers({});
     setIndex(0);
@@ -95,7 +126,7 @@ export function App() {
 
   return (
     <>
-      <SiteHeader/>
+      <SiteHeader onProductList={() => showAllProducts(view)}/>
       <main className="probe" id="main-content">
         {view === 'INTRO' && (
           <IntroView onStart={start} canStart={screens.length > 0} questionsFailed={questionsFailed}/>
@@ -106,6 +137,7 @@ export function App() {
             os={resultOs}
             onChangeOs={setResultOs}
             onSearch={() => {
+              setListMode('MATCHED');
               setListState(initialListState(visibleSpecs));
               setView('SEARCH_LOADING');
             }}
@@ -117,14 +149,17 @@ export function App() {
         {view === 'PRODUCT_LIST' && (
           <ProductListView
             purposeCode={PURPOSE_CODE}
-            specs={visibleSpecs}
+            mode={listMode}
+            specs={listMode === 'ALL' ? [] : visibleSpecs}
+            backLabel={listMode === 'ALL' ? BACK_LABELS[returnView] : BACK_LABELS.RESULT}
             state={listState}
             onChangeState={setListState}
-            onBack={() => setView('RESULT')}
+            onBack={() => setView(listMode === 'ALL' ? returnView : 'RESULT')}
             onDetail={(id) => {
               setProductId(id);
               setView('PRODUCT_DETAIL');
             }}
+            onShowAll={() => showAllProducts(view)}
           />
         )}
         {view === 'PRODUCT_DETAIL' && productId !== null && (

@@ -99,6 +99,7 @@ type ProductListResponse = {
 /**
  * 권장안이 둘이면 OS 마다 따로 받아 합친다 — 목록 API 가 OS 를 하나만 받는다.
  * 제품은 OS 를 하나만 가지므로 합쳐도 겹치지 않는다.
+ * 권장안을 주지 않으면 사양 조건 없이 전체를 받는다.
  */
 export async function fetchProductsFor(
   purposeCode: string,
@@ -106,6 +107,10 @@ export async function fetchProductsFor(
   sort: SortType,
   condition: SearchCondition,
 ): Promise<Product[]> {
+  if (specs.length === 0) {
+    return fetchProducts(purposeCode, null, sort, condition);
+  }
+
   // CPU 조건은 OS 를 함께 고른다. 고른 OS 의 권장안만 대상이 된다.
   const targets = condition.cpu === null
     ? specs
@@ -122,7 +127,7 @@ export async function fetchProductsFor(
 
 async function fetchProducts(
   purposeCode: string,
-  spec: Spec,
+  spec: Spec | null,
   sort: SortType,
   condition: SearchCondition,
 ): Promise<Product[]> {
@@ -148,9 +153,9 @@ export async function fetchProduct(id: number): Promise<ProductDetail> {
   return response.json();
 }
 
-function toQuery(spec: Spec, sort: SortType, condition: SearchCondition): URLSearchParams {
+function toQuery(spec: Spec | null, sort: SortType, condition: SearchCondition): URLSearchParams {
   const query = new URLSearchParams();
-  spec.items.forEach((item) => {
+  spec?.items.forEach((item) => {
     const name = CONDITION_OF[item.code];
     if (name !== undefined && item.value !== '') {
       query.set(name, item.value);
@@ -160,6 +165,8 @@ function toQuery(spec: Spec, sort: SortType, condition: SearchCondition): URLSea
   // 검색 조건은 권장 사양 위에 겹쳐 걸린다. 서버의 사양 조건이 모두 "이상"이라
   // 높은 쪽만 남기면 권장 사양과 검색 조건을 함께 만족한다.
   if (condition.cpu !== null) {
+    // 등급은 OS 마다 따로 매겨져 서버가 둘을 짝으로 받는다. 권장안이 없을 때도 OS 를 실어야 한다.
+    query.set('os', condition.cpu.os);
     query.set('cpuTier', higherTier(condition.cpu.os, query.get('cpuTier'), condition.cpu.tier));
   }
   if (condition.memoryGb !== null) {
