@@ -42,15 +42,20 @@ export type CpuChoice = {
 };
 
 export type SearchCondition = {
+  // 서버가 브랜드와 제품명을 함께 훑는다.
+  keyword: string | null;
   maxPrice: number | null;
   cpu: CpuChoice | null;
+  brand: string | null;
   memoryGb: number | null;
   storageGb: number | null;
 };
 
 export const EMPTY_CONDITION: SearchCondition = {
+  keyword: null,
   maxPrice: null,
   cpu: null,
+  brand: null,
   memoryGb: null,
   storageGb: null,
 };
@@ -177,6 +182,12 @@ function toQuery(spec: Spec | null, sort: SortType, condition: SearchCondition):
   }
   if (condition.maxPrice !== null) {
     query.set('maxPrice', String(condition.maxPrice));
+  }
+  if (condition.keyword !== null) {
+    query.set('keyword', condition.keyword);
+  }
+  if (condition.brand !== null) {
+    query.set('brand', condition.brand);
   }
 
   query.set('sort', sort);

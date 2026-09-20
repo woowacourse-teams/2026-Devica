@@ -13,6 +13,9 @@ import {
 } from './products';
 import './ProductListView.css';
 
+// 글자마다 조회하지 않도록 입력이 멈추길 기다린다.
+const KEYWORD_DELAY_MS = 300;
+
 // 원본은 제품 가격 분포와 무관하게 눈에 익은 눈금을 쓴다. 후보가 없는 눈금은 감춘다.
 const PRICE_STEPS = [1500000, 2000000, 2500000, 3000000, 4000000, 5000000];
 
@@ -73,7 +76,7 @@ type Props = {
   backLabel: string;
   // 상세를 다녀와도 정렬과 검색 조건이 풀리지 않게 부모가 들고 있는다.
   state: ProductListState;
-  onChangeState: (state: ProductListState) => void;
+  onChangeState: (update: (previous: ProductListState) => ProductListState) => void;
   onBack: () => void;
   onDetail: (productId: number) => void;
   onShowAll: () => void;
@@ -96,6 +99,22 @@ export function ProductListView({
   const [base, setBase] = useState<Product[]>([]);
   const [matched, setMatched] = useState<Product[]>([]);
 
+  const [typed, setTyped] = useState(condition.keyword ?? '');
+
+  // 검색 조건을 지우면 입력칸도 함께 비운다.
+  useEffect(() => {
+    setTyped(condition.keyword ?? '');
+  }, [condition.keyword]);
+
+  useEffect(() => {
+    const next = typed.trim() === '' ? null : typed.trim();
+    if (next === condition.keyword) {
+      return;
+    }
+    const timer = setTimeout(() => change('keyword', next), KEYWORD_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [typed]);
+
   // specs 는 부모가 매번 새로 만드는 배열이라 참조로는 비교할 수 없다. OS 조합으로 본다.
   const specKey = specs.map(osValueOf).join(',');
 
@@ -117,7 +136,7 @@ export function ProductListView({
   const count = matched.length === base.length ? `${base.length}개` : `${base.length}개 중 ${matched.length}개`;
 
   const change = (field: keyof SearchCondition, value: SearchCondition[keyof SearchCondition]) => {
-    onChangeState({ ...state, condition: { ...condition, [field]: value } });
+    onChangeState((previous) => ({ ...previous, condition: { ...previous.condition, [field]: value } }));
   };
 
   return (
@@ -138,13 +157,13 @@ export function ProductListView({
             type="button"
             aria-expanded={filterOpen}
             aria-controls="product-filter-panel"
-            onClick={() => onChangeState({ ...state, filterOpen: !filterOpen })}
+            onClick={() => onChangeState((previous) => ({ ...previous, filterOpen: !previous.filterOpen }))}
           >
             검색 조건
           </button>
           <label className="product-list-control product-list-sort" htmlFor="product-sort">
             <span className="product-list-control__label">정렬</span>
-            <select id="product-sort" value={sort} onChange={(event) => onChangeState({ ...state, sort: event.target.value as SortType })}>
+            <select id="product-sort" value={sort} onChange={(event) => onChangeState((previous) => ({ ...previous, sort: event.target.value as SortType }))}>
               {SORT_LABELS.map(({ value, label }) => (
                 <option value={value} key={value} hidden={value === 'RECOMMENDED' && !recommendable}>
                   {label}
@@ -157,6 +176,16 @@ export function ProductListView({
 
       {/* 접어도 DOM 에 남긴다. 사라지면 aria-controls 가 없는 id 를 가리킨다. */}
       <div className="product-filter-panel" id="product-filter-panel" hidden={!filterOpen}>
+          <label className="product-filter product-filter--wide" htmlFor="product-filter-keyword">
+            <span className="product-filter__label">검색어</span>
+            <input
+              id="product-filter-keyword"
+              type="search"
+              value={typed}
+              placeholder="브랜드 · 제품명"
+              onChange={(event) => setTyped(event.target.value)}
+            />
+          </label>
           <Filter
             field="price"
             label="가격"
@@ -171,6 +200,13 @@ export function ProductListView({
               const [os, tier] = raw.split(':');
               change('cpu', raw === '' ? null : { os, tier });
             }}
+          />
+          <Filter
+            field="brand"
+            label="브랜드"
+            value={condition.brand ?? ''}
+            choices={options.brand.map((brand) => ({ value: brand, label: brand }))}
+            onChange={(raw) => change('brand', raw === '' ? null : raw)}
           />
           <Filter
             field="memory"
@@ -199,7 +235,7 @@ export function ProductListView({
             condition={condition}
             hasCondition={hasCondition}
             showsAll={mode === 'ALL'}
-            onReset={() => onChangeState({ ...state, condition: EMPTY_CONDITION })}
+            onReset={() => onChangeState((previous) => ({ ...previous, condition: EMPTY_CONDITION }))}
             onShowAll={onShowAll}
           />
         ) : (
@@ -342,6 +378,7 @@ function buildFilterOptions(products: Product[], specs: Spec[]) {
     // 권장안이 없는 전체 목록에서는 고를 OS 가 정해져 있지 않아 등급표를 모두 연다.
     cpu: (specs.length === 0 ? Object.keys(CPU_TIERS) : specs.map(osValueOf))
       .map((os) => ({ os, tiers: CPU_TIERS[os] ?? [] })),
+    brand: [...new Set(products.map((product) => product.brand))].sort((one, other) => one.localeCompare(other)),
     memoryGb: uniqueAscending(products, 'MEMORY'),
     storageGb: uniqueAscending(products, 'STORAGE'),
   };
@@ -354,9 +391,11 @@ function uniqueAscending(products: Product[], code: string): number[] {
   return [...new Set(values)].sort((one, other) => one - other);
 }
 
-function describeCondition({ maxPrice, cpu, memoryGb, storageGb }: SearchCondition): string {
+function describeCondition({ keyword, maxPrice, cpu, brand, memoryGb, storageGb }: SearchCondition): string {
   return [
+    keyword !== null ? `검색어 "${keyword}"` : '',
     maxPrice !== null ? `${formatPrice(maxPrice)} 이하` : '',
+    brand !== null ? `브랜드 ${brand}` : '',
     cpu !== null ? cpuFilterLabel(cpu.os, cpu.tier) : '',
     memoryGb !== null ? `RAM ${memoryGb}GB 이상` : '',
     storageGb !== null ? `저장장치 ${formatStorage(storageGb)} 이상` : '',

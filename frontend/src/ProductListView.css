@@ -166,7 +166,8 @@
 }
 
 .product-list-control select,
-.product-filter select {
+.product-filter select,
+.product-filter input {
     width: 100%;
     min-width: 0;
     border: 0;
@@ -251,5 +252,10 @@
 
     .product-filter-panel {
         grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    /* 검색어는 값이 길어 두 칸을 쓴다. 뒤따르는 select 들은 한 칸씩 차례로 채운다. */
+    .product-filter--wide {
+        grid-column: span 2;
     }
 }
