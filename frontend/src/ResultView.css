@@ -44,6 +44,7 @@
     margin: var(--density-high) 0 0;
     color: var(--on-surface-variant);
     font-size: var(--body-md-font-size);
+}
 
 /* 원본은 이 라벨 타이포를 .eyebrow 와 한 블록에 묶어 두었다. 화면이 달라 따로 적는다. */
 .spec-row__label {
