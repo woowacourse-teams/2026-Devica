@@ -27,6 +27,9 @@ export function App() {
   const [index, setIndex] = useState(0);
   const [specs, setSpecs] = useState<Spec[]>([]);
   const [resultOs, setResultOs] = useState<ResultOs>('BOTH');
+  // 권장 사양을 기다리는 동안 답을 바꾸면 먼저 보낸 응답이 바뀐 답을 덮는다. 기다리는 동안은 질문 화면을 잠근다.
+  const [waiting, setWaiting] = useState(false);
+  const [resultFailed, setResultFailed] = useState(false);
 
   useEffect(() => {
     fetchQuestions(PURPOSE_CODE).then(setQuestions).catch(() => setQuestions([]));
@@ -40,6 +43,8 @@ export function App() {
   };
 
   const goPrevious = () => {
+    // 마지막 화면을 떠나면 권장 사양 실패 안내도 함께 거둔다.
+    setResultFailed(false);
     if (index === 0) {
       setView('INTRO');
       return;
@@ -57,16 +62,26 @@ export function App() {
 
   // 사양 계산은 서버가 한다. 답을 그대로 실어 보낸다.
   const showResult = async (given: Answers) => {
-    const received = await fetchRecommendation(PURPOSE_CODE, toSearchParams(given)).catch(() => []);
-    setSpecs(received);
-    // 권장안이 한쪽 OS 만 나오면 그 OS 를 보여준다.
-    setResultOs(received.length === 1 ? (osValueOf(received[0]) as ResultOs) : 'BOTH');
-    setView('RESULT');
+    setWaiting(true);
+    setResultFailed(false);
+    try {
+      const received = await fetchRecommendation(PURPOSE_CODE, toSearchParams(given));
+      setSpecs(received);
+      // 권장안이 한쪽 OS 만 나오면 그 OS 를 보여준다.
+      setResultOs(received.length === 1 ? (osValueOf(received[0]) as ResultOs) : 'BOTH');
+      setView('RESULT');
+    } catch {
+      // 빈 권장안과 서버·네트워크 오류는 다르다. 답은 그대로 두고 질문 화면에 머무른다.
+      setResultFailed(true);
+    } finally {
+      setWaiting(false);
+    }
   };
 
   const start = () => {
     setAnswers({});
     setIndex(0);
+    setResultFailed(false);
     setView('QUESTION');
   };
 
@@ -85,6 +100,8 @@ export function App() {
             onAnswer={answer}
             onPrevious={goPrevious}
             onNext={goNext}
+            waiting={waiting}
+            failed={resultFailed}
           />
         )}
       </main>

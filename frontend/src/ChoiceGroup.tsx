@@ -15,9 +15,10 @@ type Props = {
   // OS 전환처럼 하나의 스위치로 읽혀야 할 때 쓴다.
   segmented?: boolean;
   label?: string;
+  disabled?: boolean;
 };
 
-export function ChoiceGroup({ choices, value, onChange, segmented = false, label }: Props) {
+export function ChoiceGroup({ choices, value, onChange, segmented = false, label, disabled = false }: Props) {
   const groupRef = useRef<HTMLDivElement>(null);
 
   const select = (choice: Choice, index: number) => {
@@ -41,7 +42,7 @@ export function ChoiceGroup({ choices, value, onChange, segmented = false, label
           className="chip"
           type="button"
           key={choice.value}
-          disabled={choice.disabled ?? false}
+          disabled={disabled || (choice.disabled ?? false)}
           aria-pressed={value === choice.value}
           onClick={() => select(choice, index)}
         >

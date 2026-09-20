@@ -69,6 +69,14 @@
     width: 100%;
 }
 
+/* 불러오기 실패 안내. 첫 화면과 질문 화면이 함께 쓴다. */
+.notice {
+    margin: var(--gutter) 0 0;
+    color: var(--on-surface);
+    font-size: var(--body-md-font-size);
+    font-weight: 600;
+}
+
 @media (min-width: 768px) {
     .probe {
         padding-right: var(--margin-desktop);
