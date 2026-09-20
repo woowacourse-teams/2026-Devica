@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { IntroView } from './IntroView';
 import { QuestionView } from './QuestionView';
-import { ProductListView } from './ProductListView';
+import { ProductDetailView } from './ProductDetailView';
+import { ProductListView, initialListState, type ProductListState } from './ProductListView';
 import { ResultView, type ResultOs } from './ResultView';
 import { SearchLoadingView } from './SearchLoadingView';
 import { SiteFooter } from './SiteFooter';
@@ -19,7 +20,7 @@ import { fetchRecommendation, osValueOf, type Spec } from './recommendation';
 // V1 은 백엔드 개발 목적 하나만 다룬다.
 const PURPOSE_CODE = 'BACKEND_DEVELOPMENT';
 
-type View = 'INTRO' | 'QUESTION' | 'RESULT' | 'SEARCH_LOADING' | 'PRODUCT_LIST';
+type View = 'INTRO' | 'QUESTION' | 'RESULT' | 'SEARCH_LOADING' | 'PRODUCT_LIST' | 'PRODUCT_DETAIL';
 
 export function App() {
   const [view, setView] = useState<View>('INTRO');
@@ -32,6 +33,9 @@ export function App() {
   // 권장 사양을 기다리는 동안 답을 바꾸면 먼저 보낸 응답이 바뀐 답을 덮는다. 기다리는 동안은 질문 화면을 잠근다.
   const [waiting, setWaiting] = useState(false);
   const [resultFailed, setResultFailed] = useState(false);
+  // 목록의 정렬·검색 조건은 여기 둔다. 상세를 다녀와도 조작이 풀리지 않아야 한다.
+  const [listState, setListState] = useState<ProductListState>(() => initialListState([]));
+  const [productId, setProductId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchQuestions(PURPOSE_CODE).then(setQuestions).catch(() => setQuestionsFailed(true));
@@ -101,14 +105,30 @@ export function App() {
             specs={specs}
             os={resultOs}
             onChangeOs={setResultOs}
-            onSearch={() => setView('SEARCH_LOADING')}
+            onSearch={() => {
+              setListState(initialListState(visibleSpecs));
+              setView('SEARCH_LOADING');
+            }}
           />
         )}
         {view === 'SEARCH_LOADING' && (
           <SearchLoadingView specs={visibleSpecs} onDone={() => setView('PRODUCT_LIST')}/>
         )}
         {view === 'PRODUCT_LIST' && (
-          <ProductListView purposeCode={PURPOSE_CODE} specs={visibleSpecs} onBack={() => setView('RESULT')}/>
+          <ProductListView
+            purposeCode={PURPOSE_CODE}
+            specs={visibleSpecs}
+            state={listState}
+            onChangeState={setListState}
+            onBack={() => setView('RESULT')}
+            onDetail={(id) => {
+              setProductId(id);
+              setView('PRODUCT_DETAIL');
+            }}
+          />
+        )}
+        {view === 'PRODUCT_DETAIL' && productId !== null && (
+          <ProductDetailView productId={productId} onBack={() => setView('PRODUCT_LIST')}/>
         )}
         {view === 'QUESTION' && (
           <QuestionView

@@ -5,6 +5,7 @@ import {
   EMPTY_CONDITION,
   cpuFilterLabel,
   fetchProductsFor,
+  formatPrice,
   type Product,
   type ProductSpecItem,
   type SearchCondition,
@@ -30,20 +31,38 @@ const CARD_SPECS: { code: string; label: string }[] = [
 
 const OS_GROUP_LABELS: Record<string, string> = { MAC: '맥', WINDOWS: '윈도우' };
 
+export type ProductListState = {
+  sort: SortType;
+  condition: SearchCondition;
+  filterOpen: boolean;
+};
+
+/**
+ * 권장안이 둘이면 두 목록을 합쳐야 해서 서버 추천순을 이어갈 수 없다.
+ * 원본도 견줄 기준이 없으면 추천순을 감추고 가격순으로 연다.
+ */
+export function initialListState(specs: Spec[]): ProductListState {
+  return {
+    sort: specs.length === 1 ? 'RECOMMENDED' : 'PRICE_ASC',
+    condition: EMPTY_CONDITION,
+    filterOpen: false,
+  };
+}
+
 type Props = {
   purposeCode: string;
   // 결과 화면이 보여주고 있던 OS 의 권장안이다.
   specs: Spec[];
+  // 상세를 다녀와도 정렬과 검색 조건이 풀리지 않게 부모가 들고 있는다.
+  state: ProductListState;
+  onChangeState: (state: ProductListState) => void;
   onBack: () => void;
+  onDetail: (productId: number) => void;
 };
 
-export function ProductListView({ purposeCode, specs, onBack }: Props) {
-  // 권장안이 둘이면 두 목록을 합쳐야 해서 서버 추천순을 이어갈 수 없다.
-  // 원본도 견줄 기준이 없으면 추천순을 감추고 가격순으로 연다.
+export function ProductListView({ purposeCode, specs, state, onChangeState, onBack, onDetail }: Props) {
+  const { sort, condition, filterOpen } = state;
   const recommendable = specs.length === 1;
-  const [sort, setSort] = useState<SortType>(recommendable ? 'RECOMMENDED' : 'PRICE_ASC');
-  const [condition, setCondition] = useState<SearchCondition>(EMPTY_CONDITION);
-  const [filterOpen, setFilterOpen] = useState(false);
   // 필터 선택지와 "N개 중 M개" 는 조건을 걸기 전 목록을 알아야 만들 수 있다.
   const [base, setBase] = useState<Product[]>([]);
   const [matched, setMatched] = useState<Product[]>([]);
@@ -68,7 +87,7 @@ export function ProductListView({ purposeCode, specs, onBack }: Props) {
   const count = matched.length === base.length ? `${base.length}개` : `${base.length}개 중 ${matched.length}개`;
 
   const change = (field: keyof SearchCondition, value: SearchCondition[keyof SearchCondition]) => {
-    setCondition((previous) => ({ ...previous, [field]: value }));
+    onChangeState({ ...state, condition: { ...condition, [field]: value } });
   };
 
   return (
@@ -91,13 +110,13 @@ export function ProductListView({ purposeCode, specs, onBack }: Props) {
             type="button"
             aria-expanded={filterOpen}
             aria-controls="product-filter-panel"
-            onClick={() => setFilterOpen(!filterOpen)}
+            onClick={() => onChangeState({ ...state, filterOpen: !filterOpen })}
           >
             검색 조건
           </button>
           <label className="product-list-control product-list-sort" htmlFor="product-sort">
             <span className="product-list-control__label">정렬</span>
-            <select id="product-sort" value={sort} onChange={(event) => setSort(event.target.value as SortType)}>
+            <select id="product-sort" value={sort} onChange={(event) => onChangeState({ ...state, sort: event.target.value as SortType })}>
               {SORT_LABELS.map(({ value, label }) => (
                 <option value={value} key={value} hidden={value === 'RECOMMENDED' && !recommendable}>
                   {label}
@@ -149,16 +168,16 @@ export function ProductListView({ purposeCode, specs, onBack }: Props) {
 
       <div className="product-list" id="product-list" aria-live="polite">
         {matched.length === 0 ? (
-          <EmptyResult condition={condition} hasCondition={hasCondition} onReset={() => setCondition(EMPTY_CONDITION)}/>
+          <EmptyResult condition={condition} hasCondition={hasCondition} onReset={() => onChangeState({ ...state, condition: EMPTY_CONDITION })}/>
         ) : (
-          matched.map((product) => <ProductCard product={product} key={product.id}/>)
+          matched.map((product) => <ProductCard product={product} onDetail={onDetail} key={product.id}/>)
         )}
       </div>
     </section>
   );
 }
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product, onDetail }: { product: Product; onDetail: (productId: number) => void }) {
   return (
     <article className="bordered-panel product-card">
       {/* 제품 이미지 필드가 아직 응답에 없다. 틀만 두고 사진이 생기면 안을 채운다. */}
@@ -183,8 +202,11 @@ function ProductCard({ product }: { product: Product }) {
         </dl>
       </div>
       <div className="product-card__action">
-        {/* 제품 상세 화면이 아직 없어 눌리지 않는다. */}
-        <button className="button button--primary button--wide product-card__detail" type="button" disabled>
+        <button
+          className="button button--primary button--wide product-card__detail"
+          type="button"
+          onClick={() => onDetail(product.id)}
+        >
           상세 보기
         </button>
       </div>
@@ -312,9 +334,4 @@ function specValue(product: Product, code: string): string {
 
 function formatStorage(value: number): string {
   return value >= 1024 ? `${value / 1024}TB` : `${value}GB`;
-}
-
-// 판매 중인 판매처가 없으면 최저가가 비어 온다. 원본에는 없던 상태다.
-function formatPrice(value: number | null): string {
-  return value === null ? '가격 정보 없음' : `${value.toLocaleString('ko-KR')}원`;
 }

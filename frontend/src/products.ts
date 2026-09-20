@@ -71,6 +71,24 @@ export type Product = {
   specs: ProductSpecItem[];
 };
 
+export type Offer = {
+  name: string;
+  price: number;
+  purchaseUrl: string;
+};
+
+export type ProductDetail = {
+  id: number;
+  brand: string;
+  name: string;
+  code: string;
+  // 설명이 없는 제품이 있다.
+  description: string | null;
+  specs: ProductSpecItem[];
+  // 판매 중인 판매처가 없으면 비어 온다.
+  offers: Offer[];
+};
+
 type ProductListResponse = {
   content: Product[];
   page: number;
@@ -118,6 +136,16 @@ async function fetchProducts(
 
   const body: ProductListResponse = await response.json();
   return body.content;
+}
+
+export async function fetchProduct(id: number): Promise<ProductDetail> {
+  const response = await fetch(`${BASE_URL}/api/products/${id}`, {
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) {
+    throw new Error(`제품 정보를 불러오지 못했습니다 (${response.status})`);
+  }
+  return response.json();
 }
 
 function toQuery(spec: Spec, sort: SortType, condition: SearchCondition): URLSearchParams {
@@ -187,4 +215,9 @@ function unpricedLast(one: Product, other: Product): number {
     return 0;
   }
   return one.minPrice === null ? 1 : -1;
+}
+
+// 판매 중인 판매처가 없으면 최저가가 비어 온다. 원본에는 없던 상태다.
+export function formatPrice(value: number | null): string {
+  return value === null ? '가격 정보 없음' : `${value.toLocaleString('ko-KR')}원`;
 }
