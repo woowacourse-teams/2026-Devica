@@ -94,7 +94,8 @@ export function App() {
       setSpecs(received);
       // 권장안이 한쪽 OS 만 나오면 그 OS 를 보여준다.
       setResultOs(received.length === 1 ? (osValueOf(received[0]) as ResultOs) : 'BOTH');
-      setView('RESULT');
+      // 기다리는 동안 헤더로 제품 목록에 갔다면 그 화면을 덮지 않는다.
+      setView((current) => (current === 'INTRO' || current === 'QUESTION' ? 'RESULT' : current));
     } catch {
       // 빈 권장안과 서버·네트워크 오류는 다르다. 답은 그대로 두고 질문 화면에 머무른다.
       setResultFailed(true);
