@@ -36,16 +36,13 @@ const CPU_TIER_LABELS: Record<string, Record<string, string>> = {
 
 export type SortType = 'RECOMMENDED' | 'PRICE_ASC' | 'PRICE_DESC';
 
-export type CpuChoice = {
-  os: string;
-  tier: string;
-};
-
 export type SearchCondition = {
   // 서버가 브랜드와 제품명을 함께 훑는다.
   keyword: string | null;
   maxPrice: number | null;
-  cpu: CpuChoice | null;
+  // OS 와 CPU 등급은 따로 걸고 따로 지운다. 등급만 고르면 OS 는 등급에서 따라온다.
+  os: string | null;
+  cpuTier: string | null;
   brand: string | null;
   memoryGb: number | null;
   storageGb: number | null;
@@ -54,11 +51,18 @@ export type SearchCondition = {
 export const EMPTY_CONDITION: SearchCondition = {
   keyword: null,
   maxPrice: null,
-  cpu: null,
+  os: null,
+  cpuTier: null,
   brand: null,
   memoryGb: null,
   storageGb: null,
 };
+
+// 등급 코드는 OS 마다 겹치지 않아 등급 하나로 OS 를 되짚을 수 있다.
+export function osOfTier(tier: string): string | null {
+  const found = Object.entries(CPU_TIERS).find(([, tiers]) => tiers.includes(tier));
+  return found === undefined ? null : found[0];
+}
 
 export type ProductSpecItem = {
   code: string;
@@ -116,10 +120,9 @@ export async function fetchProductsFor(
     return fetchProducts(purposeCode, null, sort, condition);
   }
 
-  // CPU 조건은 OS 를 함께 고른다. 고른 OS 의 권장안만 대상이 된다.
-  const targets = condition.cpu === null
-    ? specs
-    : specs.filter((spec) => osValueOf(spec) === condition.cpu?.os);
+  // OS 를 골랐으면 그 OS 의 권장안만 대상이 된다. 등급만 골라도 OS 가 정해진다.
+  const chosenOs = condition.os ?? (condition.cpuTier === null ? null : osOfTier(condition.cpuTier));
+  const targets = chosenOs === null ? specs : specs.filter((spec) => osValueOf(spec) === chosenOs);
 
   const lists = await Promise.all(targets.map((spec) => fetchProducts(purposeCode, spec, sort, condition)));
   if (targets.length <= 1) {
@@ -169,10 +172,12 @@ function toQuery(spec: Spec | null, sort: SortType, condition: SearchCondition):
 
   // 검색 조건은 권장 사양 위에 겹쳐 걸린다. 서버의 사양 조건이 모두 "이상"이라
   // 높은 쪽만 남기면 권장 사양과 검색 조건을 함께 만족한다.
-  if (condition.cpu !== null) {
-    // 등급은 OS 마다 따로 매겨져 서버가 둘을 짝으로 받는다. 권장안이 없을 때도 OS 를 실어야 한다.
-    query.set('os', condition.cpu.os);
-    query.set('cpuTier', higherTier(condition.cpu.os, query.get('cpuTier'), condition.cpu.tier));
+  if (condition.os !== null) {
+    query.set('os', condition.os);
+  }
+  if (condition.cpuTier !== null) {
+    // 등급은 OS 마다 따로 매겨진다. 권장 등급과 견주려면 어느 OS 의 등급인지 알아야 한다.
+    query.set('cpuTier', higherTier(query.get('os') ?? osOfTier(condition.cpuTier), query.get('cpuTier'), condition.cpuTier));
   }
   if (condition.memoryGb !== null) {
     query.set('memoryGb', String(atLeast(query.get('memoryGb'), condition.memoryGb)));
@@ -195,8 +200,8 @@ function toQuery(spec: Spec | null, sort: SortType, condition: SearchCondition):
   return query;
 }
 
-function higherTier(os: string, recommended: string | null, chosen: string): string {
-  if (recommended === null) {
+function higherTier(os: string | null, recommended: string | null, chosen: string): string {
+  if (recommended === null || os === null) {
     return chosen;
   }
   const tiers = CPU_TIERS[os] ?? [];

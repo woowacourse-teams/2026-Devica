@@ -6,6 +6,7 @@ import {
   cpuFilterLabel,
   fetchProductsFor,
   formatPrice,
+  osOfTier,
   type Product,
   type ProductSpecItem,
   type SearchCondition,
@@ -146,12 +147,21 @@ export function ProductListView({
   }, [purposeCode, specKey, sort, condition]);
 
   const heading = HEADINGS[mode];
-  const options = buildFilterOptions(base ?? [], specs);
+  const options = buildFilterOptions(base ?? [], specs, condition.os);
   const hasCondition = Object.values(condition).some((value) => value !== null);
   const loading = base === null || matched === null;
 
   const change = (field: keyof SearchCondition, value: SearchCondition[keyof SearchCondition]) => {
     onChangeState((previous) => ({ ...previous, condition: { ...previous.condition, [field]: value } }));
+  };
+
+  // 등급은 OS 마다 따로 매겨진다. OS 를 바꾸면 그 OS 의 등급이 아닌 조건은 함께 지운다.
+  const changeOs = (os: string | null) => {
+    onChangeState((previous) => {
+      const tier = previous.condition.cpuTier;
+      const kept = tier !== null && (os === null || osOfTier(tier) === os) ? tier : null;
+      return { ...previous, condition: { ...previous.condition, os, cpuTier: kept } };
+    });
   };
 
   return (
@@ -208,13 +218,17 @@ export function ProductListView({
             choices={options.maxPrice.map((price) => ({ value: String(price), label: `${formatPrice(price)} 이하` }))}
             onChange={(raw) => change('maxPrice', raw === '' ? null : Number(raw))}
           />
+          <Filter
+            field="os"
+            label="OS"
+            value={condition.os ?? ''}
+            choices={options.os.map((os) => ({ value: os, label: OS_GROUP_LABELS[os] ?? os }))}
+            onChange={(raw) => changeOs(raw === '' ? null : raw)}
+          />
           <CpuFilter
             groups={options.cpu}
-            value={condition.cpu === null ? '' : `${condition.cpu.os}:${condition.cpu.tier}`}
-            onChange={(raw) => {
-              const [os, tier] = raw.split(':');
-              change('cpu', raw === '' ? null : { os, tier });
-            }}
+            value={condition.cpuTier ?? ''}
+            onChange={(raw) => change('cpuTier', raw === '' ? null : raw)}
           />
           <Filter
             field="brand"
@@ -382,7 +396,7 @@ function CpuFilter({ groups, value, onChange }: CpuFilterProps) {
         {usable && groups.map(({ os, tiers }) => (
           <optgroup label={OS_GROUP_LABELS[os] ?? os} key={os}>
             {tiers.map((tier) => (
-              <option value={`${os}:${tier}`} key={tier}>{cpuFilterLabel(os, tier)}</option>
+              <option value={tier} key={tier}>{cpuFilterLabel(os, tier)}</option>
             ))}
           </optgroup>
         ))}
@@ -395,12 +409,13 @@ function CpuFilter({ groups, value, onChange }: CpuFilterProps) {
  * 선택지를 목록에 실제로 있는 값으로만 만든다. 그래야 조건 하나만 걸어서 0건이 되는 일이 없다.
  * CPU 만은 그럴 수 없다 — 목록 응답이 CPU 모델명만 주고 등급을 주지 않아 가진 등급을 셀 수 없다.
  */
-function buildFilterOptions(products: Product[], specs: Spec[]) {
+function buildFilterOptions(products: Product[], specs: Spec[], os: string | null) {
   return {
     maxPrice: PRICE_STEPS.filter((step) => products.some((product) => product.minPrice !== null && product.minPrice <= step)),
-    // 권장안이 없는 전체 목록에서는 고를 OS 가 정해져 있지 않아 등급표를 모두 연다.
-    cpu: (specs.length === 0 ? Object.keys(CPU_TIERS) : specs.map(osValueOf))
-      .map((os) => ({ os, tiers: CPU_TIERS[os] ?? [] })),
+    os: [...new Set(products.map((product) => specItem(product, 'OS')?.value ?? ''))].filter((value) => value !== '').sort(),
+    // 고른 OS 의 등급만 연다. 고르지 않았고 권장안도 없으면 등급표를 모두 연다.
+    cpu: (os !== null ? [os] : specs.length === 0 ? Object.keys(CPU_TIERS) : specs.map(osValueOf))
+      .map((value) => ({ os: value, tiers: CPU_TIERS[value] ?? [] })),
     brand: [...new Set(products.map((product) => product.brand))].sort((one, other) => one.localeCompare(other)),
     memoryGb: uniqueAscending(products, 'MEMORY'),
     storageGb: uniqueAscending(products, 'STORAGE'),
@@ -414,12 +429,13 @@ function uniqueAscending(products: Product[], code: string): number[] {
   return [...new Set(values)].sort((one, other) => one - other);
 }
 
-function describeCondition({ keyword, maxPrice, cpu, brand, memoryGb, storageGb }: SearchCondition): string {
+function describeCondition({ keyword, maxPrice, os, cpuTier, brand, memoryGb, storageGb }: SearchCondition): string {
   return [
     keyword !== null ? `검색어 "${keyword}"` : '',
     maxPrice !== null ? `${formatPrice(maxPrice)} 이하` : '',
+    os !== null ? (OS_GROUP_LABELS[os] ?? os) : '',
     brand !== null ? `브랜드 ${brand}` : '',
-    cpu !== null ? cpuFilterLabel(cpu.os, cpu.tier) : '',
+    cpuTier !== null ? cpuFilterLabel(osOfTier(cpuTier) ?? '', cpuTier) : '',
     memoryGb !== null ? `RAM ${memoryGb}GB 이상` : '',
     storageGb !== null ? `저장장치 ${formatStorage(storageGb)} 이상` : '',
   ].filter((text) => text !== '').join(' · ');
