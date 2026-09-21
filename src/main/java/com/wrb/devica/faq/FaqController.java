@@ -15,7 +15,7 @@ public class FaqController {
 
     private final FaqService faqService;
 
-    @GetMapping("/home/faqs")
+    @GetMapping("/faqs")
     public ResponseEntity<List<FaqSummaryResponse>> findServiceFaqs() {
         List<FaqSummaryResponse> faqs = faqService.findPublishedServiceFaqs().stream()
             .map(FaqSummaryResponse::from)
