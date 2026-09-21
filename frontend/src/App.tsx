@@ -19,6 +19,9 @@ import { fetchRecommendation, osValueOf, type Spec } from './recommendation';
 // V1 은 백엔드 개발 목적 하나만 다룬다.
 const PURPOSE_CODE = 'BACKEND_DEVELOPMENT';
 
+// 목록 조회는 사용 목적이 아니라 제품 유형을 기준으로 한다. V1 은 노트북 하나만 다룬다.
+const CATEGORY_CODE = 'LAPTOP';
+
 type View = 'INTRO' | 'QUESTION' | 'RESULT' | 'PRODUCT_LIST' | 'PRODUCT_DETAIL';
 
 // 전체 목록은 이 세 화면에서 열 수 있고, 닫으면 열었던 화면으로 돌아간다.
@@ -165,7 +168,7 @@ export function App() {
         )}
         {view === 'PRODUCT_LIST' && (
           <ProductListView
-            purposeCode={PURPOSE_CODE}
+            categoryCode={CATEGORY_CODE}
             mode={listMode}
             specs={listMode === 'ALL' ? [] : visibleSpecs}
             backLabel={listMode === 'ALL' ? BACK_LABELS[returnView] : BACK_LABELS.RESULT}

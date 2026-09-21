@@ -111,20 +111,20 @@ type ProductListResponse = {
  * 권장안을 주지 않으면 사양 조건 없이 전체를 받는다.
  */
 export async function fetchProductsFor(
-  purposeCode: string,
+  categoryCode: string,
   specs: Spec[],
   sort: SortType,
   condition: SearchCondition,
 ): Promise<Product[]> {
   if (specs.length === 0) {
-    return fetchProducts(purposeCode, null, sort, condition);
+    return fetchProducts(categoryCode, null, sort, condition);
   }
 
   // OS 를 골랐으면 그 OS 의 권장안만 대상이 된다. 등급만 골라도 OS 가 정해진다.
   const chosenOs = condition.os ?? (condition.cpuTier === null ? null : osOfTier(condition.cpuTier));
   const targets = chosenOs === null ? specs : specs.filter((spec) => osValueOf(spec) === chosenOs);
 
-  const lists = await Promise.all(targets.map((spec) => fetchProducts(purposeCode, spec, sort, condition)));
+  const lists = await Promise.all(targets.map((spec) => fetchProducts(categoryCode, spec, sort, condition)));
   if (targets.length <= 1) {
     return lists.flat();
   }
@@ -134,13 +134,13 @@ export async function fetchProductsFor(
 }
 
 async function fetchProducts(
-  purposeCode: string,
+  categoryCode: string,
   spec: Spec | null,
   sort: SortType,
   condition: SearchCondition,
 ): Promise<Product[]> {
   const query = toQuery(spec, sort, condition);
-  const response = await fetch(`${BASE_URL}/api/usage-purposes/${purposeCode}/products?${query}`, {
+  const response = await fetch(`${BASE_URL}/api/product-categories/${categoryCode}/products?${query}`, {
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
