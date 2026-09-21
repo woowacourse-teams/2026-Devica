@@ -1,0 +1,64 @@
+/* 칩과 칩 묶음. question-view(현재 사양)·result-view(OS 토글, 사양 수정)·feedback-view 가 공유한다. */
+
+.choice-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--density-high);
+}
+
+/* 인접한 칩의 테두리를 겹쳐 하나의 스위치로 읽히게 한다. */
+.choice-group--segmented {
+    gap: 0;
+}
+
+.choice-group--segmented .chip + .chip {
+    margin-left: -1px;
+}
+
+.chip {
+    min-height: 44px;
+    margin: var(--density-high) var(--unit) 0 0;
+    border: 1px solid var(--on-surface);
+    border-radius: 0;
+    padding: var(--density-high) var(--density-med);
+    color: var(--on-surface);
+    background: var(--surface-container-lowest);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 120ms ease-out;
+}
+
+/* 선택된 칩은 아래 aria-pressed 규칙으로 이미 검정 반전이라 미선택 상태만 다룬다. */
+.chip:hover:not(:disabled):not([aria-pressed="true"]) {
+    background: var(--inverse-primary);
+}
+
+.chip:focus-visible:not([aria-pressed="true"]) {
+    background: var(--inverse-primary);
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.chip[aria-pressed="true"] {
+    position: relative;
+    color: var(--on-primary);
+    background: var(--primary);
+}
+
+.chip:disabled {
+    border-color: var(--outline-variant);
+    color: var(--outline);
+    background: var(--surface-container);
+    cursor: not-allowed;
+}
+
+/* 칩 사이 간격은 .choice-group 의 gap 이 맡는다. */
+.choice-group .chip {
+    margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chip {
+        transition: none;
+    }
+}

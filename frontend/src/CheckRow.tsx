@@ -1,4 +1,5 @@
 import type { Check, CheckResult } from './checks';
+import './ConnectionCheck.css';
 
 type State = 'pending' | 'ok' | 'fail';
 

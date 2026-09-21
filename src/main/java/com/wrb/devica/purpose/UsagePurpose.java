@@ -34,4 +34,13 @@ public class UsagePurpose {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UsagePurposeCode code;
+
+    private UsagePurpose(ProductCategory productCategory, UsagePurposeCode code) {
+        this.productCategory = productCategory;
+        this.code = code;
+    }
+
+    public static UsagePurpose of(ProductCategory productCategory, UsagePurposeCode code) {
+        return new UsagePurpose(productCategory, code);
+    }
 }
