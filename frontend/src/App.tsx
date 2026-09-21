@@ -4,7 +4,6 @@ import { QuestionView } from './QuestionView';
 import { ProductDetailView } from './ProductDetailView';
 import { ProductListView, initialListState, type ListMode, type ProductListState } from './ProductListView';
 import { ResultView, type ResultOs } from './ResultView';
-import { SearchLoadingView } from './SearchLoadingView';
 import { SiteFooter } from './SiteFooter';
 import { SiteHeader } from './SiteHeader';
 import {
@@ -20,7 +19,7 @@ import { fetchRecommendation, osValueOf, type Spec } from './recommendation';
 // V1 은 백엔드 개발 목적 하나만 다룬다.
 const PURPOSE_CODE = 'BACKEND_DEVELOPMENT';
 
-type View = 'INTRO' | 'QUESTION' | 'RESULT' | 'SEARCH_LOADING' | 'PRODUCT_LIST' | 'PRODUCT_DETAIL';
+type View = 'INTRO' | 'QUESTION' | 'RESULT' | 'PRODUCT_LIST' | 'PRODUCT_DETAIL';
 
 // 전체 목록은 이 세 화면에서 열 수 있고, 닫으면 열었던 화면으로 돌아간다.
 const RETURNABLE = ['INTRO', 'QUESTION', 'RESULT'] as const;
@@ -52,6 +51,8 @@ export function App() {
   const [listState, setListState] = useState<ProductListState>(() => initialListState([]));
   const [listMode, setListMode] = useState<ListMode>('MATCHED');
   const [returnView, setReturnView] = useState<ReturnView>('RESULT');
+  // 사양 대조 화면은 목록이 제품을 받아올 때까지 띄운다. 상세를 다녀올 때는 다시 띄우지 않는다.
+  const [searching, setSearching] = useState(false);
   const [productId, setProductId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -157,12 +158,10 @@ export function App() {
             onSearch={() => {
               setListMode('MATCHED');
               setListState(initialListState(visibleSpecs));
-              setView('SEARCH_LOADING');
+              setSearching(true);
+              setView('PRODUCT_LIST');
             }}
           />
-        )}
-        {view === 'SEARCH_LOADING' && (
-          <SearchLoadingView specs={visibleSpecs} onDone={() => setView('PRODUCT_LIST')}/>
         )}
         {view === 'PRODUCT_LIST' && (
           <ProductListView
@@ -172,6 +171,8 @@ export function App() {
             backLabel={listMode === 'ALL' ? BACK_LABELS[returnView] : BACK_LABELS.RESULT}
             state={listState}
             onChangeState={setListState}
+            searching={searching}
+            onSearched={() => setSearching(false)}
             onBack={() => setView(listMode === 'ALL' ? returnView : 'RESULT')}
             onDetail={(id) => {
               setProductId(id);

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { osValueOf, type Spec } from './recommendation';
+import { SearchLoadingView } from './SearchLoadingView';
 import {
   CPU_TIERS,
   EMPTY_CONDITION,
@@ -16,6 +17,9 @@ import './ProductListView.css';
 
 // 글자마다 조회하지 않도록 입력이 멈추길 기다린다.
 const KEYWORD_DELAY_MS = 300;
+
+// 대조는 곧 끝나지만, 답이 실제로 쓰였다는 걸 보여주려고 대조 화면을 이만큼은 띄운다.
+const SEARCH_HOLD_MS = 1800;
 
 // 원본은 제품 가격 분포와 무관하게 눈에 익은 눈금을 쓴다. 후보가 없는 눈금은 감춘다.
 const PRICE_STEPS = [1500000, 2000000, 2500000, 3000000, 4000000, 5000000];
@@ -78,6 +82,9 @@ type Props = {
   // 상세를 다녀와도 정렬과 검색 조건이 풀리지 않게 부모가 들고 있는다.
   state: ProductListState;
   onChangeState: (update: (previous: ProductListState) => ProductListState) => void;
+  // 권장 사양에서 검색으로 들어왔다. 제품을 받을 때까지 사양 대조 화면이 자리를 지킨다.
+  searching: boolean;
+  onSearched: () => void;
   onBack: () => void;
   onDetail: (productId: number) => void;
   onShowAll: () => void;
@@ -90,6 +97,8 @@ export function ProductListView({
   backLabel,
   state,
   onChangeState,
+  searching,
+  onSearched,
   onBack,
   onDetail,
   onShowAll,
@@ -146,6 +155,25 @@ export function ProductListView({
     };
   }, [purposeCode, specKey, sort, condition]);
 
+  const [holding, setHolding] = useState(searching);
+
+  useEffect(() => {
+    if (!searching) {
+      return;
+    }
+    const timer = setTimeout(() => setHolding(false), SEARCH_HOLD_MS);
+    return () => clearTimeout(timer);
+  }, [searching]);
+
+  // 대조 화면은 최소 시간과 첫 응답 중 늦은 쪽까지 머문다. 실패하면 목록이 안내를 맡는다.
+  const matching = searching && !failed && (holding || matched === null);
+
+  useEffect(() => {
+    if (searching && !matching) {
+      onSearched();
+    }
+  }, [searching, matching]);
+
   const heading = HEADINGS[mode];
   const options = buildFilterOptions(base ?? [], specs, condition.os);
   const hasCondition = Object.values(condition).some((value) => value !== null);
@@ -163,6 +191,10 @@ export function ProductListView({
       return { ...previous, condition: { ...previous.condition, os, cpuTier: kept } };
     });
   };
+
+  if (matching) {
+    return <SearchLoadingView specs={specs}/>;
+  }
 
   return (
     <section className="view-panel product-list-view" id="product-list-view" aria-labelledby="product-list-title">
