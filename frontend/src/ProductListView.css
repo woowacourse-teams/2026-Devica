@@ -194,6 +194,11 @@
     font-size: var(--body-sm-font-size);
 }
 
+.product-list-status {
+    margin: 0;
+    color: var(--on-surface-variant);
+}
+
 .empty-result {
     display: grid;
     justify-items: start;

@@ -96,8 +96,10 @@ export function ProductListView({
   const { sort, condition, filterOpen } = state;
   const recommendable = specs.length === 1;
   // 필터 선택지와 "N개 중 M개" 는 조건을 걸기 전 목록을 알아야 만들 수 있다.
-  const [base, setBase] = useState<Product[]>([]);
-  const [matched, setMatched] = useState<Product[]>([]);
+  // 아직 받지 못한 상태(null)와 0건을 구분한다. 응답 전에 "제품이 없습니다" 를 보이면 안 된다.
+  const [base, setBase] = useState<Product[] | null>(null);
+  const [matched, setMatched] = useState<Product[] | null>(null);
+  const [failed, setFailed] = useState(false);
 
   const [typed, setTyped] = useState(condition.keyword ?? '');
 
@@ -118,22 +120,32 @@ export function ProductListView({
   // specs 는 부모가 매번 새로 만드는 배열이라 참조로는 비교할 수 없다. OS 조합으로 본다.
   const specKey = specs.map(osValueOf).join(',');
 
+  // 조건을 빠르게 바꾸면 요청이 겹친다. 늦게 온 옛 응답이 새 조건의 목록을 덮지 않게 막는다.
   useEffect(() => {
+    let stale = false;
     fetchProductsFor(purposeCode, specs, 'PRICE_ASC', EMPTY_CONDITION)
-      .then(setBase)
-      .catch(() => setBase([]));
+      .then((products) => !stale && setBase(products))
+      .catch(() => !stale && setFailed(true));
+    return () => {
+      stale = true;
+    };
   }, [purposeCode, specKey]);
 
   useEffect(() => {
+    let stale = false;
+    setFailed(false);
     fetchProductsFor(purposeCode, specs, sort, condition)
-      .then(setMatched)
-      .catch(() => setMatched([]));
+      .then((products) => !stale && setMatched(products))
+      .catch(() => !stale && setFailed(true));
+    return () => {
+      stale = true;
+    };
   }, [purposeCode, specKey, sort, condition]);
 
   const heading = HEADINGS[mode];
-  const options = buildFilterOptions(base, specs);
+  const options = buildFilterOptions(base ?? [], specs);
   const hasCondition = Object.values(condition).some((value) => value !== null);
-  const count = matched.length === base.length ? `${base.length}개` : `${base.length}개 중 ${matched.length}개`;
+  const loading = base === null || matched === null;
 
   const change = (field: keyof SearchCondition, value: SearchCondition[keyof SearchCondition]) => {
     onChangeState((previous) => ({ ...previous, condition: { ...previous.condition, [field]: value } }));
@@ -227,10 +239,18 @@ export function ProductListView({
           />
       </div>
 
-      <p className="product-list-caption" id="product-list-caption">{count}</p>
+      {!failed && base !== null && matched !== null && (
+        <p className="product-list-caption" id="product-list-caption">
+          {matched.length === base.length ? `${base.length}개` : `${base.length}개 중 ${matched.length}개`}
+        </p>
+      )}
 
-      <div className="product-list" id="product-list" aria-live="polite">
-        {matched.length === 0 ? (
+      <div className="product-list" id="product-list" aria-live="polite" aria-busy={loading}>
+        {failed ? (
+          <p className="notice" role="alert">제품 목록을 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.</p>
+        ) : matched === null ? (
+          <p className="product-list-status">제품을 불러오는 중입니다…</p>
+        ) : matched.length === 0 ? (
           <EmptyResult
             condition={condition}
             hasCondition={hasCondition}

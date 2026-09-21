@@ -5,6 +5,11 @@
     gap: 40px;
 }
 
+.product-detail__status {
+    margin: 0;
+    color: var(--on-surface-variant);
+}
+
 .product-detail__image-frame {
     display: grid;
     min-height: 240px;

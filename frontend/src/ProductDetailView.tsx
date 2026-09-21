@@ -17,11 +17,19 @@ type Props = {
 
 export function ProductDetailView({ productId, onBack }: Props) {
   const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    let stale = false;
+    setProduct(null);
+    setFailed(false);
     fetchProduct(productId)
-      .then(setProduct)
-      .catch(() => setProduct(null));
+      .then((received) => !stale && setProduct(received))
+      .catch(() => !stale && setFailed(true));
+    // 다른 제품으로 넘어가면 이전 응답은 버린다. 늦게 오면 지금 보는 제품을 덮는다.
+    return () => {
+      stale = true;
+    };
   }, [productId]);
 
   const back = (
@@ -30,11 +38,16 @@ export function ProductDetailView({ productId, onBack }: Props) {
     </button>
   );
 
-  // 원본은 제품을 이미 손에 들고 있어 이 상태가 없었다. 최소한 빠져나갈 길은 남긴다.
+  // 원본은 제품을 이미 손에 들고 있어 이 상태가 없었다. 기다리는 중과 실패를 나누고 빠져나갈 길도 남긴다.
   if (product === null) {
     return (
       <section className="view-panel product-detail-view" id="product-detail-view">
         {back}
+        {failed ? (
+          <p className="notice" role="alert">제품 정보를 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.</p>
+        ) : (
+          <p className="product-detail__status" aria-live="polite">제품 정보를 불러오는 중입니다…</p>
+        )}
       </section>
     );
   }
