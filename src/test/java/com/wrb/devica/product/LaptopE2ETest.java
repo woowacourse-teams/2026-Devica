@@ -19,7 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 class LaptopE2ETest extends E2ETest {
 
-    private static final String PATH = "/api/usage-purposes/BACKEND_DEVELOPMENT/products";
+    private static final String PATH = "/api/product-categories/LAPTOP/products";
 
     @Autowired
     private ProductCategoryRepository productCategoryRepository;
@@ -69,15 +69,6 @@ class LaptopE2ETest extends E2ETest {
             .body("content[0].minPrice", is(2_850_000));
     }
 
-    // UC-07: 지원하지 않는 사용 목적으로는 제품을 조회할 수 없다
-    @Test
-    void 없는_사용_목적으로_조회하면_404를_받는다() {
-        given()
-            .when().get("/api/usage-purposes/WRONG/products")
-            .then().statusCode(404)
-            .body("code", is("USAGE_PURPOSE_NOT_FOUND"));
-    }
-
     // UC-07/UC-08: 검색어와 가격·사양·OS·브랜드 조건을 적용할 수 있고, 조건을 지정하면 조건을 만족하는 제품만 반환한다
     @Test
     void 조건을_지정하면_전부_만족하는_노트북만_받는다() {
@@ -98,7 +89,7 @@ class LaptopE2ETest extends E2ETest {
             .queryParam("keyword", "프로")
             .queryParam("brand", "LG")
             .queryParam("os", "WINDOWS")
-            .queryParam("cpuScore", 10000)
+            .queryParam("cpuTier", CpuTier.H)
             .queryParam("memoryGb", 16)
             .queryParam("storageGb", 512)
             .queryParam("minPrice", 1_000_000L)
@@ -283,8 +274,9 @@ class LaptopE2ETest extends E2ETest {
         productOfferRepository.save(onSaleOffer(product, price));
     }
 
+    // 사양 조건 테스트가 등급 하한을 넘겨야 하므로 기본 CPU 를 H 등급 이상으로 둔다
     private Cpu saveCpu() {
-        return cpuRepository.save(cpu().build());
+        return cpuRepository.save(cpu().score(CpuTier.H.getMinScore()).build());
     }
 
     private Laptop onSaleLaptop(LaptopBuilder builder) {

@@ -1,5 +1,6 @@
 package com.wrb.devica.fixture;
 
+import com.wrb.devica.product.CpuTier;
 import com.wrb.devica.product.LaptopSearchCondition;
 import com.wrb.devica.product.Os;
 import lombok.AccessLevel;
@@ -14,9 +15,9 @@ public final class LaptopSearchConditionFixture {
     }
 
     @Builder
-    private static LaptopSearchCondition conditionBuilder(Os os, Integer cpuScore, Integer memoryGb,
+    private static LaptopSearchCondition conditionBuilder(Os os, CpuTier cpuTier, Integer memoryGb,
                                                           Integer storageGb, String keyword, String brand,
                                                           Long minPrice, Long maxPrice) {
-        return new LaptopSearchCondition(os, cpuScore, memoryGb, storageGb, keyword, brand, minPrice, maxPrice);
+        return new LaptopSearchCondition(os, cpuTier, memoryGb, storageGb, keyword, brand, minPrice, maxPrice);
     }
 }

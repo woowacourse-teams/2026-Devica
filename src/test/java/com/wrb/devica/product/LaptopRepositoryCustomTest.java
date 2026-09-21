@@ -81,14 +81,15 @@ class LaptopRepositoryCustomTest {
     }
 
     @Test
-    void cpu_점수를_지정할_때_조회하면_그_이상만_반환한다() {
+    void cpu_등급을_지정할_때_조회하면_그_등급의_최소_점수_이상만_반환한다() {
         // given
-        onSaleLaptop(laptop().name("낮음"), saveCpu(9999), DEFAULT_PRICE);
-        onSaleLaptop(laptop().name("중간"), saveCpu(10000), DEFAULT_PRICE);
-        onSaleLaptop(laptop().name("높음"), saveCpu(10001), DEFAULT_PRICE);
+        int minScore = CpuTier.P_HS.getMinScore();
+        onSaleLaptop(laptop().name("낮음"), saveCpu(minScore - 1), DEFAULT_PRICE);
+        onSaleLaptop(laptop().name("중간"), saveCpu(minScore), DEFAULT_PRICE);
+        onSaleLaptop(laptop().name("높음"), saveCpu(minScore + 1), DEFAULT_PRICE);
 
         // when
-        Slice<ProductSummaryResponse> found = findLaptops(condition().cpuScore(10000).build());
+        Slice<ProductSummaryResponse> found = findLaptops(condition().cpuTier(CpuTier.P_HS).build());
 
         // then
         assertThat(found.getContent()).extracting(ProductSummaryResponse::name).containsExactly("중간", "높음");
@@ -200,15 +201,16 @@ class LaptopRepositoryCustomTest {
     @Test
     void 조건을_여러_개_지정할_때_조회하면_모두_만족하는_것만_반환한다() {
         // given
-        onSaleLaptop(laptop().brand("LG").name("그램 16").os(Os.MAC), saveCpu(20000), DEFAULT_PRICE);
+        int enough = CpuTier.BASIC.getMinScore();
+        onSaleLaptop(laptop().brand("LG").name("그램 16").os(Os.MAC), saveCpu(enough), DEFAULT_PRICE);
         onSaleLaptop(laptop().brand("LG").name("그램 저사양").os(Os.MAC), saveCpu(5000), DEFAULT_PRICE);
-        onSaleLaptop(laptop().brand("LG").name("울트라 PC").os(Os.MAC), saveCpu(20000), DEFAULT_PRICE);
-        onSaleLaptop(laptop().brand("Apple").name("그램과 비슷한 것").os(Os.MAC), saveCpu(20000), DEFAULT_PRICE);
-        onSaleLaptop(laptop().brand("LG").name("그램 윈도우"), saveCpu(20000), DEFAULT_PRICE);
+        onSaleLaptop(laptop().brand("LG").name("울트라 PC").os(Os.MAC), saveCpu(enough), DEFAULT_PRICE);
+        onSaleLaptop(laptop().brand("Apple").name("그램과 비슷한 것").os(Os.MAC), saveCpu(enough), DEFAULT_PRICE);
+        onSaleLaptop(laptop().brand("LG").name("그램 윈도우"), saveCpu(enough), DEFAULT_PRICE);
 
         // when
-        Slice<ProductSummaryResponse> found = findLaptops(
-            condition().os(Os.MAC).cpuScore(10000).memoryGb(16).storageGb(512).keyword("그램").brand("LG").build());
+        Slice<ProductSummaryResponse> found = findLaptops(condition().os(Os.MAC).cpuTier(CpuTier.BASIC)
+            .memoryGb(16).storageGb(512).keyword("그램").brand("LG").build());
 
         // then
         assertThat(found.getContent()).extracting(ProductSummaryResponse::name).containsExactly("그램 16");
@@ -428,6 +430,6 @@ class LaptopRepositoryCustomTest {
                                                      int page, int size) {
         entityManager.flush();
         entityManager.clear();
-        return laptopRepository.findSummariesWithMinPriceForBE(condition, sort, PageRequest.of(page, size));
+        return laptopRepository.findSummariesWithMinPrice(condition, sort, PageRequest.of(page, size));
     }
 }

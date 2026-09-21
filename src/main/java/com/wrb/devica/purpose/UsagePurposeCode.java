@@ -27,11 +27,6 @@ public enum UsagePurposeCode {
                 .orElseThrow(() -> new BusinessException(BusinessErrorCode.USAGE_PURPOSE_NOT_FOUND));
     }
 
-    public static boolean notExists(String code) {
-        return Arrays.stream(values())
-                .noneMatch(purpose -> purpose.name().equals(code));
-    }
-
     public static List<UsagePurposeCode> findByCategory(ProductCategoryCode category) {
         return Arrays.stream(values())
                 .filter(purpose -> purpose.category == category)

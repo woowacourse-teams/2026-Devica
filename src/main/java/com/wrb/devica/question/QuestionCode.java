@@ -1,5 +1,7 @@
 package com.wrb.devica.question;
 
+import com.wrb.devica.common.BusinessErrorCode;
+import com.wrb.devica.common.BusinessException;
 import com.wrb.devica.question.option.AiCodingTool;
 import com.wrb.devica.question.option.BuildWait;
 import com.wrb.devica.question.option.CurrentMacCpu;
@@ -15,6 +17,7 @@ import com.wrb.devica.question.option.ProgrammingLanguage;
 import com.wrb.devica.question.option.Slowdown;
 import com.wrb.devica.question.option.StorageShortage;
 import com.wrb.devica.question.option.UsagePeriod;
+import java.util.Arrays;
 import java.util.List;
 import lombok.Getter;
 
@@ -130,5 +133,34 @@ public enum QuestionCode {
         this.inputType = inputType;
         this.exclusiveOption = exclusiveOption;
         this.dependency = dependency;
+    }
+
+    public static QuestionCode from(String code) {
+        return Arrays.stream(values())
+            .filter(question -> question.name().equals(code))
+            .findFirst()
+            .orElseThrow(() -> new BusinessException(BusinessErrorCode.QUESTION_NOT_FOUND));
+    }
+
+    // 고를 수 없는 조합이면 예외를 던진다
+    public List<OptionCode> select(List<String> optionCodes) {
+        if (optionCodes == null || optionCodes.isEmpty()) {
+            return List.of();
+        }
+        if (inputType == QuestionInputType.SINGLE && optionCodes.size() > 1) {
+            throw new BusinessException(BusinessErrorCode.ANSWER_NOT_ALLOWED);
+        }
+        List<OptionCode> selected = optionCodes.stream().map(this::optionOf).toList();
+        if (selected.size() > 1 && selected.contains(exclusiveOption)) {
+            throw new BusinessException(BusinessErrorCode.ANSWER_NOT_ALLOWED);
+        }
+        return selected;
+    }
+
+    private OptionCode optionOf(String code) {
+        return options.stream()
+            .filter(option -> option.name().equals(code))
+            .findFirst()
+            .orElseThrow(() -> new BusinessException(BusinessErrorCode.ANSWER_NOT_ALLOWED));
     }
 }
