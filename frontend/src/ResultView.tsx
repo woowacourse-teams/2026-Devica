@@ -18,9 +18,10 @@ type Props = {
   specs: Spec[];
   os: ResultOs;
   onChangeOs: (os: ResultOs) => void;
+  onSearch: () => void;
 };
 
-export function ResultView({ specs, os, onChangeOs }: Props) {
+export function ResultView({ specs, os, onChangeOs, onSearch }: Props) {
   const visible = os === 'BOTH' ? specs : specs.filter((spec) => osValueOf(spec) === os);
 
   // 원본은 두 OS 권장안을 늘 들고 있어 토글이 언제나 동작한다. 서버는 답에 맞는 OS 만 주므로
@@ -57,11 +58,11 @@ export function ResultView({ specs, os, onChangeOs }: Props) {
         ))}
       </div>
 
-      {/* 사양 직접 수정과 제품 검색은 아직 갈 곳이 없어 눌리지 않는다. */}
+      {/* 사양 직접 수정은 아직 갈 곳이 없어 눌리지 않는다. */}
       <button className="button button--secondary button--wide" id="edit-spec-button" type="button" disabled>
         사양 직접 수정
       </button>
-      <button className="button button--primary button--wide" id="product-button" type="button" disabled>
+      <button className="button button--primary button--wide" id="product-button" type="button" onClick={onSearch}>
         확정한 사양으로 제품 검색
       </button>
     </section>

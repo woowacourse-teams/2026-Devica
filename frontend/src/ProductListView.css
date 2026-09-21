@@ -1,0 +1,266 @@
+/* product-list-view 전용. 카드 테두리는 shared.css 의 bordered-panel 이 맡는다. */
+
+/* 제품 카드는 2컬럼으로 나누지 않고 한 줄씩 쌓는다. 넓어지면 카드 안이 가로로 펼쳐진다. */
+.product-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--unit);
+    margin: var(--gutter) 0;
+}
+
+.product-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* 카드 이미지는 정사각형 원본을 가로형 틀에 담는다. 틀이 높이를 정하고 사진은 그 안에 맞춘다. */
+.product-card__image-frame {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    border-bottom: 1px solid var(--on-surface);
+    background: var(--surface-container-low);
+}
+
+.product-card__body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--density-med);
+    min-width: 0;
+    padding: var(--gutter);
+}
+
+.product-card__heading-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--gutter);
+}
+
+.product-card__maker {
+    display: block;
+    margin-bottom: var(--unit);
+    color: var(--on-surface-variant);
+}
+
+.product-card h3 {
+    margin: 0;
+    font-size: var(--headline-sm-font-size);
+}
+
+.product-card__heading-row .product-card__price {
+    flex: 0 0 auto;
+    margin: 0;
+    text-align: right;
+}
+
+.product-card__price {
+    display: block;
+    margin: var(--density-med) 0;
+    font-size: var(--headline-sm-font-size);
+}
+
+.product-card__action {
+    display: flex;
+    align-items: stretch;
+    border-top: 1px solid var(--on-surface);
+    padding: var(--gutter);
+}
+
+.product-card__detail {
+    align-self: stretch;
+    padding-right: var(--density-high);
+    padding-left: var(--density-high);
+    white-space: nowrap;
+}
+
+/* 좁은 화면에서 사양 3행을 세로로 쌓으면 카드가 한 화면을 넘긴다. 긴 CPU 이름만 전폭을 준다. */
+.product-card__specs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--density-high);
+    margin: 0;
+}
+
+.product-card__specs .product-spec-item:first-child {
+    grid-column: 1 / -1;
+}
+
+.product-list-heading {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gutter);
+    padding-bottom: var(--gutter);
+    border-bottom: 1px solid var(--on-surface);
+}
+
+.product-list-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--density-high);
+}
+
+.product-list-control {
+    display: flex;
+    align-items: center;
+    gap: var(--density-high);
+    min-height: 40px;
+    border: 1px solid var(--on-surface);
+    padding: var(--density-high) var(--density-med);
+    color: var(--on-surface);
+    background: var(--surface-container-lowest);
+    font: inherit;
+    font-size: var(--body-sm-font-size);
+}
+
+.product-filter-toggle {
+    cursor: pointer;
+}
+
+.product-filter-toggle[aria-expanded="true"] {
+    color: var(--on-primary);
+    background: var(--primary);
+}
+
+.product-list-control__label,
+.product-filter__label {
+    color: var(--on-surface-variant);
+    font-family: var(--font-label);
+    font-size: var(--label-sm-font-size);
+    letter-spacing: var(--label-sm-letter-spacing);
+}
+
+.product-list-control__label {
+    white-space: nowrap;
+}
+
+.product-filter-panel {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--density-high);
+    margin-top: var(--gutter);
+}
+
+/* display 를 지정한 요소는 hidden 속성만으로 접히지 않는다. */
+.product-filter-panel[hidden] {
+    display: none;
+}
+
+.product-filter {
+    display: flex;
+    flex-direction: column;
+    gap: var(--unit);
+    min-width: 0;
+    border: 1px solid var(--on-surface);
+    padding: var(--density-high) var(--density-med);
+    background: var(--surface-container-lowest);
+}
+
+.product-filter:has(select:disabled) {
+    border-color: var(--outline-variant);
+    background: var(--surface-container);
+}
+
+.product-list-control select,
+.product-filter select,
+.product-filter input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    padding: 0;
+    color: var(--on-surface);
+    background: transparent;
+    font: inherit;
+    font-size: var(--body-md-font-size);
+    cursor: pointer;
+}
+
+.product-list-control select {
+    font-size: var(--body-sm-font-size);
+}
+
+.product-filter select:disabled {
+    color: var(--outline);
+    cursor: not-allowed;
+}
+
+.product-list-caption {
+    margin: var(--density-med) 0 0;
+    color: var(--on-surface-variant);
+    font-size: var(--body-sm-font-size);
+}
+
+.product-list-status {
+    margin: 0;
+    color: var(--on-surface-variant);
+}
+
+.empty-result {
+    display: grid;
+    justify-items: start;
+    gap: var(--density-med);
+    border: 1px solid var(--on-surface);
+    padding: var(--gutter);
+}
+
+.empty-result p {
+    margin: 0;
+}
+
+.empty-result__condition {
+    color: var(--on-surface-variant);
+    font-size: var(--body-sm-font-size);
+}
+
+@media (min-width: 768px) {
+    .product-card {
+        flex-direction: row;
+        /* 고정 높이로 두면 CPU 이름이 긴 제품에서 사양이 잘린다. 하한만 잡는다. */
+        min-height: 192px;
+    }
+
+    /* 카드가 눕는 구간에서는 높이를 카드가 정하므로 비율을 풀고 폭만 고정한다. */
+    .product-card__image-frame {
+        flex: 0 0 auto;
+        aspect-ratio: auto;
+        width: 256px;
+        border-right: 1px solid var(--on-surface);
+        border-bottom: 0;
+    }
+
+    /* 용량 칸은 "32GB"·"1TB" 라 제 폭만 쓰고, 남는 자리는 이름이 긴 CPU 가 가져간다. */
+    .product-card__specs {
+        grid-template-columns: minmax(0, 1fr) auto auto;
+    }
+
+    .product-card__specs .product-spec-item:first-child {
+        grid-column: auto;
+    }
+
+    .product-card__action {
+        flex: 0 0 auto;
+        align-items: center;
+        width: 128px;
+        border-top: 0;
+        border-left: 1px solid var(--on-surface);
+    }
+
+    .product-list-heading {
+        flex-direction: row;
+        align-items: flex-end;
+        justify-content: space-between;
+    }
+
+    .product-filter-panel {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    /* 검색어는 값이 길어 두 칸을 쓴다. 뒤따르는 select 들은 한 칸씩 차례로 채운다. */
+    .product-filter--wide {
+        grid-column: span 2;
+    }
+}
