@@ -1,8 +1,8 @@
 package com.wrb.devica.product;
 
+import com.wrb.devica.category.ProductCategoryCode;
 import com.wrb.devica.common.BusinessErrorCode;
 import com.wrb.devica.common.BusinessException;
-import com.wrb.devica.purpose.UsagePurposeCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -16,11 +16,11 @@ public class ProductService {
 
     private final LaptopRepository laptopRepository;
 
-    public Slice<ProductSummaryResponse> findProductsByPurpose(String purposeCode, LaptopSearchCondition condition,
-                                                               PageCondition pageCondition) {
-        validatePurposeExists(purposeCode);
+    public Slice<ProductSummaryResponse> findProductsByCategory(String categoryCode, LaptopSearchCondition condition,
+                                                                PageCondition pageCondition) {
+        validateCategoryExists(categoryCode);
 
-        return laptopRepository.findSummariesWithMinPriceForBE(
+        return laptopRepository.findSummariesWithMinPrice(
             condition,
             pageCondition.sort(),
             PageRequest.of(pageCondition.page(), pageCondition.size())
@@ -32,9 +32,7 @@ public class ProductService {
             .orElseThrow(() -> new BusinessException(BusinessErrorCode.LAPTOP_NOT_FOUND));
     }
 
-    private void validatePurposeExists(String purposeCode) {
-        if (UsagePurposeCode.notExists(purposeCode)) {
-            throw new BusinessException(BusinessErrorCode.USAGE_PURPOSE_NOT_FOUND);
-        }
+    private void validateCategoryExists(String categoryCode) {
+        ProductCategoryCode.from(categoryCode);
     }
 }

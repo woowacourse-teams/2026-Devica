@@ -28,7 +28,7 @@ import org.springframework.data.domain.Slice;
 @Import(ProductService.class)
 class ProductServiceTest {
 
-    private static final String PURPOSE = "BACKEND_DEVELOPMENT";
+    private static final String CATEGORY = "LAPTOP";
 
     @Autowired
     private ProductCategoryRepository productCategoryRepository;
@@ -146,7 +146,7 @@ class ProductServiceTest {
     private Slice<ProductSummaryResponse> findLaptops() {
         entityManager.flush();
         entityManager.clear();
-        return productService.findProductsByPurpose(PURPOSE,
+        return productService.findProductsByCategory(CATEGORY,
             condition().build(), new PageCondition(0, 10, null));
     }
 
