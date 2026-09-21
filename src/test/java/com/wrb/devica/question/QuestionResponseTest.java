@@ -2,6 +2,7 @@ package com.wrb.devica.question;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.wrb.devica.common.FlywayTestConfiguration;
 import com.wrb.devica.purpose.UsagePurposeCode;
 import com.wrb.devica.question.QuestionResponse.DependencyResponse;
 import com.wrb.devica.question.QuestionResponse.OptionResponse;
@@ -13,11 +14,13 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.jdbc.Sql;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
-@Sql("/data.sql")
+@ActiveProfiles("flyway-test")
+@Import(FlywayTestConfiguration.class)
 @Transactional
 class QuestionResponseTest {
 

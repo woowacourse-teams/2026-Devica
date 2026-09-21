@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS product_category
+CREATE TABLE product_category
 (
     id   BIGINT       NOT NULL AUTO_INCREMENT,
     code VARCHAR(255) NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS product_category
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 
-CREATE TABLE IF NOT EXISTS usage_purpose
+CREATE TABLE usage_purpose
 (
     id                  BIGINT       NOT NULL AUTO_INCREMENT,
     product_category_id BIGINT       NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS usage_purpose
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 
-CREATE TABLE IF NOT EXISTS faq
+CREATE TABLE faq
 (
     id               BIGINT       NOT NULL AUTO_INCREMENT,
     usage_purpose_id BIGINT       NULL,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS faq
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 
-CREATE TABLE IF NOT EXISTS cpu
+CREATE TABLE cpu
 (
     id           BIGINT       NOT NULL AUTO_INCREMENT,
     manufacturer VARCHAR(32)  NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS cpu
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 
-CREATE TABLE IF NOT EXISTS product
+CREATE TABLE product
 (
     id                  BIGINT       NOT NULL AUTO_INCREMENT,
     product_category_id BIGINT       NOT NULL,
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS product
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 
-CREATE TABLE IF NOT EXISTS laptop
+CREATE TABLE laptop
 (
     id               BIGINT        NOT NULL,
     cpu_id           BIGINT        NOT NULL,
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS laptop
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 
-CREATE TABLE IF NOT EXISTS product_offer
+CREATE TABLE product_offer
 (
     id               BIGINT      NOT NULL AUTO_INCREMENT,
     product_id       BIGINT      NOT NULL,
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS product_offer
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 
-CREATE TABLE IF NOT EXISTS question
+CREATE TABLE question
 (
     id               BIGINT       NOT NULL AUTO_INCREMENT,
     usage_purpose_id BIGINT       NOT NULL,
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS question
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4;
 
-CREATE TABLE IF NOT EXISTS question_option
+CREATE TABLE question_option
 (
     id          BIGINT       NOT NULL AUTO_INCREMENT,
     question_id BIGINT       NOT NULL,
