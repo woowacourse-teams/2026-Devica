@@ -103,9 +103,12 @@ export function ProductListView({
 
   const [typed, setTyped] = useState(condition.keyword ?? '');
 
-  // 검색 조건을 지우면 입력칸도 함께 비운다.
+  // "검색 조건 지우기" 로 조건이 비면 입력칸도 함께 비운다.
+  // 입력 중에는 되돌리지 않는다. trim 된 값을 다시 넣으면 치던 공백이 사라진다.
   useEffect(() => {
-    setTyped(condition.keyword ?? '');
+    if (condition.keyword === null) {
+      setTyped('');
+    }
   }, [condition.keyword]);
 
   useEffect(() => {
