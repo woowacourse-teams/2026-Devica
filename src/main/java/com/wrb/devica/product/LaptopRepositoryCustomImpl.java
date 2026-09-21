@@ -4,10 +4,12 @@ import static com.wrb.devica.product.QCpu.cpu;
 import static com.wrb.devica.product.QLaptop.laptop;
 import static com.wrb.devica.product.QProductOffer.productOffer;
 
-import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import jakarta.persistence.EntityManager;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -23,7 +25,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
     }
 
     @Override
-    public Slice<ProductSummaryResponse> findSummariesWithMinPriceByCondition(LaptopSearchCondition condition, Pageable pageable) {
+    public Slice<ProductSummaryResponse> findSummariesWithMinPriceForBE(LaptopSearchCondition condition, SortType sort, Pageable pageable) {
         int pageSize = pageable.getPageSize();
 
         List<ProductSummaryResponse> found = queryFactory
@@ -32,17 +34,20 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
                 laptop.brand,
                 laptop.name,
                 productOffer.price.min(),
-                Projections.constructor(LaptopSpec.class, laptop.os, cpu.name, laptop.memoryGb, laptop.storageGb)
+                laptop.os,
+                cpu.name,
+                laptop.memoryGb,
+                laptop.storageGb
             ))
             .from(laptop)
             .join(laptop.cpu, cpu)
             .leftJoin(productOffer).on(
-                productOffer.product.id.eq(laptop.id),
+                productOffer.productId.eq(laptop.id),
                 productOffer.status.eq(OfferStatus.ON_SALE)
             )
             .where(
                 osEq(condition.os()),
-                cpuScoreGoe(condition.cpuScore()),
+                cpuTierAtLeast(condition.cpuTier()),
                 memoryGbGoe(condition.memoryGb()),
                 storageGbGoe(condition.storageGb()),
                 keywordContains(condition.keyword()),
@@ -53,7 +58,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
                 minPriceGoe(condition.minPrice()),
                 minPriceLoe(condition.maxPrice())
             )
-            .orderBy(laptop.id.asc())
+            .orderBy(orderBy(sort))
             .offset(pageable.getOffset())
             .limit(pageSize + 1L)
             .fetch();
@@ -65,6 +70,29 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
         }
 
         return new SliceImpl<>(found, pageable, hasNext);
+    }
+
+    private OrderSpecifier<?>[] orderBy(SortType sort) {
+        List<OrderSpecifier<?>> orders = new ArrayList<>(sortOrders(sort));
+        orders.add(laptop.id.asc());
+        return orders.toArray(OrderSpecifier[]::new);
+    }
+
+    private List<OrderSpecifier<?>> sortOrders(SortType sort) {
+        if (sort == null) {
+            return List.of();
+        }
+
+        NumberExpression<Long> minPrice = productOffer.price.min();
+        return switch (sort) {
+            case RECOMMENDED -> recommendedOrders();
+            case PRICE_ASC -> List.of(minPrice.asc().nullsLast());
+            case PRICE_DESC -> List.of(minPrice.desc().nullsLast());
+        };
+    }
+
+    private List<OrderSpecifier<?>> recommendedOrders() {
+        return List.of(cpu.score.desc(), laptop.memoryGb.desc(), laptop.storageGb.desc());
     }
 
     private BooleanExpression minPriceGoe(Long minPrice) {
@@ -103,11 +131,12 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
         return laptop.os.eq(os);
     }
 
-    private BooleanExpression cpuScoreGoe(Integer cpuScore) {
-        if (cpuScore == null) {
+    // 등급은 우리가 정의한 분류라 실제 비교는 그 등급의 최소 점수로 한다
+    private BooleanExpression cpuTierAtLeast(CpuTier cpuTier) {
+        if (cpuTier == null) {
             return null;
         }
-        return cpu.score.goe(cpuScore);
+        return cpu.score.goe(cpuTier.getMinScore());
     }
 
     private BooleanExpression memoryGbGoe(Integer memoryGb) {

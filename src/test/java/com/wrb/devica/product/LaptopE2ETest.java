@@ -98,7 +98,7 @@ class LaptopE2ETest extends E2ETest {
             .queryParam("keyword", "프로")
             .queryParam("brand", "LG")
             .queryParam("os", "WINDOWS")
-            .queryParam("cpuScore", 10000)
+            .queryParam("cpuTier", CpuTier.H)
             .queryParam("memoryGb", 16)
             .queryParam("storageGb", 512)
             .queryParam("minPrice", 1_000_000L)
@@ -169,6 +169,53 @@ class LaptopE2ETest extends E2ETest {
             .body("hasNext", is(false));
     }
 
+    // UC-09: 추천순·가격 낮은 순·가격 높은 순으로 정렬한다. 검색 조건을 유지한 채 정렬된 목록을 표시한다.
+    @Test
+    void 정렬_기준을_고르면_조건을_유지한_채_그_순서대로_받는다() {
+        // given
+        onSaleLaptop(laptop().brand("LG").name("비쌈").memoryGb(32).storageGb(1024), saveCpu(40_000), 3_000_000L);
+        onSaleLaptop(laptop().brand("LG").name("쌈"), 1_000_000L);
+        onSaleLaptop(laptop().brand("LG").name("중간"), 2_000_000L);
+        onSaleLaptop(laptop().brand("Apple").name("브랜드 불일치"), 500_000L);
+
+        // when & then
+        given()
+            .queryParam("brand", "LG")
+            .queryParam("sort", "RECOMMENDED")
+            .when().get(PATH)
+            .then().statusCode(200)
+            .body("content.name", contains("비쌈", "쌈", "중간"));
+
+        given()
+            .queryParam("brand", "LG")
+            .queryParam("sort", "PRICE_ASC")
+            .when().get(PATH)
+            .then().statusCode(200)
+            .body("content.name", contains("쌈", "중간", "비쌈"));
+
+        given()
+            .queryParam("brand", "LG")
+            .queryParam("sort", "PRICE_DESC")
+            .when().get(PATH)
+            .then().statusCode(200)
+            .body("content.name", contains("비쌈", "중간", "쌈"));
+    }
+
+    // UC-09: 정렬 기준을 고르지 않으면 추천순으로 정렬한다
+    @Test
+    void 정렬_기준을_고르지_않으면_추천순으로_받는다() {
+        // given
+        // 사양: 사양높음이 위. id 순이면 사양낮음이 앞선다
+        onSaleLaptop(laptop().name("사양낮음"), 1_000_000L);
+        onSaleLaptop(laptop().name("사양높음").memoryGb(32).storageGb(1024), saveCpu(40_000), 3_000_000L);
+
+        // when & then
+        given()
+            .when().get(PATH)
+            .then().statusCode(200)
+            .body("content.name", contains("사양높음", "사양낮음"));
+    }
+
     // UC-07: 판매 중인 구매처가 없는 제품도 목록에 넣고 가격은 비워둔다
     @Test
     void 살_수_없는_노트북도_목록에_나오고_최저가는_비어_있다() {
@@ -210,7 +257,7 @@ class LaptopE2ETest extends E2ETest {
 
         // when & then
         given()
-            .when().get(PATH + "/" + laptop.getId())
+            .when().get("/api/products/" + laptop.getId())
             .then().statusCode(200)
             .body("name", is("gram Pro 16"))
             .body("specs.code", contains("OS", "CPU", "MEMORY", "STORAGE", "CPU_CORE", "SCREEN_SIZE", "WEIGHT"))
@@ -218,23 +265,36 @@ class LaptopE2ETest extends E2ETest {
             .body("offers[0].purchaseUrl", is("https://example.com/" + laptop.getCode()));
     }
 
+    // UC-11: 판매처가 없어도 제품 정보는 볼 수 있다
+    @Test
+    void 판매_중인_판매처가_없어도_상세를_받는다() {
+        // given
+        Laptop laptop = laptopOf(laptop().name("판매처없음"));
+
+        // when & then
+        given()
+            .when().get("/api/products/" + laptop.getId())
+            .then().statusCode(200)
+            .body("name", is("판매처없음"))
+            .body("offers.size()", is(0));
+    }
+
     private void addOnSaleOffer(Product product, long price) {
         productOfferRepository.save(onSaleOffer(product, price));
     }
 
+    // 사양 조건 테스트가 등급 하한을 넘겨야 하므로 기본 CPU 를 H 등급 이상으로 둔다
     private Cpu saveCpu() {
-        return cpuRepository.save(cpu().build());
+        return cpuRepository.save(cpu().score(CpuTier.H.getMinScore()).build());
     }
 
     private Laptop onSaleLaptop(LaptopBuilder builder) {
-        long defalutPrice =  1_000_000L;
-        return onSaleLaptop(builder, defalutPrice);
+        long defaultPrice = 1_000_000L;
+        return onSaleLaptop(builder, defaultPrice);
     }
 
     private Laptop onSaleLaptop(LaptopBuilder builder, long price) {
-        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
-        productOfferRepository.save(onSaleOffer(laptop, price));
-        return laptop;
+        return onSaleLaptop(builder, cpu, price);
     }
 
     private Laptop laptopOf(LaptopBuilder builder) {

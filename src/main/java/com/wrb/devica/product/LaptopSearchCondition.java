@@ -6,8 +6,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 
 public record LaptopSearchCondition(
         Os os,
-        @Positive(message = "cpu 점수는 1 이상이어야 합니다.")
-        Integer cpuScore,
+        CpuTier cpuTier,
         @Positive(message = "메모리 용량은 1GB 이상이어야 합니다.")
         Integer memoryGb,
         @Positive(message = "스토리지 용량은 1GB 이상이어야 합니다.")
@@ -23,5 +22,10 @@ public record LaptopSearchCondition(
     @AssertTrue(message = "최소 가격은 최대 가격보다 클 수 없습니다.")
     public boolean isPriceRangeValid() {
         return minPrice == null || maxPrice == null || minPrice <= maxPrice;
+    }
+
+    @AssertTrue(message = "CPU 등급이 OS 와 맞지 않습니다.")
+    public boolean isCpuTierOfOs() {
+        return os == null || cpuTier == null || cpuTier.getOs() == os;
     }
 }
