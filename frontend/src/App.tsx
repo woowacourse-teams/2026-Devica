@@ -105,7 +105,13 @@ export function App() {
 
   const showAllProducts = (from: View) => {
     setListMode('ALL');
-    setReturnView(isReturnable(from) ? from : 'RESULT');
+    // 목록·상세에서 열면 그 화면은 돌아갈 곳이 될 수 없다. 이미 전체 목록이었다면 복귀 지점을 그대로 잇는다.
+    setReturnView((previous) => {
+      if (isReturnable(from)) {
+        return from;
+      }
+      return listMode === 'ALL' ? previous : 'RESULT';
+    });
     setListState(initialListState([]));
     setView('PRODUCT_LIST');
   };
