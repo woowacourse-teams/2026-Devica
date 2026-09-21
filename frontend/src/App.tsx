@@ -133,6 +133,8 @@ export function App() {
             onStart={start}
             canStart={screens.length > 0}
             questionsFailed={questionsFailed}
+            waiting={waiting}
+            resultFailed={resultFailed}
             onBaseline={() => {
               setAnswers({});
               setIndex(0);
