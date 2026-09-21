@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 class FaqE2ETest extends E2ETest {
 
-    private static final String HOME_PATH = "/api/home/faqs";
+    private static final String SERVICE_PATH = "/api/faqs";
     private static final String DETAIL_PATH = "/api/faqs/{slug}";
 
     @Autowired
@@ -25,7 +25,7 @@ class FaqE2ETest extends E2ETest {
 
         // when
         String slug = given()
-            .when().get(HOME_PATH)
+            .when().get(SERVICE_PATH)
             .then().statusCode(200)
             .body("slug", contains(faq.getSlug()))
             .extract().path("slug[0]");
