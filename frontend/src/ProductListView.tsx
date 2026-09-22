@@ -74,7 +74,7 @@ export function initialListState(specs: Spec[]): ProductListState {
 }
 
 type Props = {
-  purposeCode: string;
+  categoryCode: string;
   mode: ListMode;
   // 결과 화면이 보여주고 있던 OS 의 권장안이다. 전체 목록에서는 비어 있다.
   specs: Spec[];
@@ -91,7 +91,7 @@ type Props = {
 };
 
 export function ProductListView({
-  purposeCode,
+  categoryCode,
   mode,
   specs,
   backLabel,
@@ -136,24 +136,24 @@ export function ProductListView({
   // 조건을 빠르게 바꾸면 요청이 겹친다. 늦게 온 옛 응답이 새 조건의 목록을 덮지 않게 막는다.
   useEffect(() => {
     let stale = false;
-    fetchProductsFor(purposeCode, specs, 'PRICE_ASC', EMPTY_CONDITION)
+    fetchProductsFor(categoryCode, specs, 'PRICE_ASC', EMPTY_CONDITION)
       .then((products) => !stale && setBase(products))
       .catch(() => !stale && setFailed(true));
     return () => {
       stale = true;
     };
-  }, [purposeCode, specKey]);
+  }, [categoryCode, specKey]);
 
   useEffect(() => {
     let stale = false;
     setFailed(false);
-    fetchProductsFor(purposeCode, specs, sort, condition)
+    fetchProductsFor(categoryCode, specs, sort, condition)
       .then((products) => !stale && setMatched(products))
       .catch(() => !stale && setFailed(true));
     return () => {
       stale = true;
     };
-  }, [purposeCode, specKey, sort, condition]);
+  }, [categoryCode, specKey, sort, condition]);
 
   const [holding, setHolding] = useState(searching);
 
