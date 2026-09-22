@@ -56,6 +56,14 @@ public class Laptop extends Product {
         this.screenSizeInch = screenSizeInch;
     }
 
+    public static List<SpecValue> summarySpecValues(Os os, String cpuName, int memoryGb, int storageGb) {
+        return List.of(
+            new SpecValue("OS", os.name()),
+            new SpecValue("CPU", cpuName),
+            new SpecValue("MEMORY", String.valueOf(memoryGb)),
+            new SpecValue("STORAGE", String.valueOf(storageGb)));
+    }
+
     public List<SpecValue> allSpecValues() {
         return Stream.concat(
             summarySpecValues(os, cpu.getName(), memoryGb, storageGb).stream(),
@@ -64,13 +72,5 @@ public class Laptop extends Product {
                 new SpecValue("SCREEN_SIZE", screenSizeInch.toPlainString()),
                 new SpecValue("WEIGHT", String.valueOf(weightG)))
         ).toList();
-    }
-
-    public static List<SpecValue> summarySpecValues(Os os, String cpuName, int memoryGb, int storageGb) {
-        return List.of(
-            new SpecValue("OS", os.name()),
-            new SpecValue("CPU", cpuName),
-            new SpecValue("MEMORY", String.valueOf(memoryGb)),
-            new SpecValue("STORAGE", String.valueOf(storageGb)));
     }
 }

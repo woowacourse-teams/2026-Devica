@@ -17,7 +17,7 @@ public class ProductCategoryController {
     @GetMapping
     public ResponseEntity<List<ProductCategoryResponse>> findAll() {
         List<ProductCategoryResponse> productCategories = productCategoryService.findAll().stream()
-                .map(ProductCategoryResponse::from).toList();
+            .map(ProductCategoryResponse::from).toList();
         return ResponseEntity.ok().body(productCategories);
     }
 }

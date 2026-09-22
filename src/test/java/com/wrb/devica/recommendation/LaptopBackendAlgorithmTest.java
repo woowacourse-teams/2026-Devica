@@ -44,6 +44,14 @@ class LaptopBackendAlgorithmTest {
 
     private final LaptopBackendAlgorithm algorithm = new LaptopBackendAlgorithm();
 
+    private static LaptopSpec spec(RecommendedSpec recommended) {
+        return (LaptopSpec) recommended.spec();
+    }
+
+    private static AnswersBuilder answers() {
+        return new AnswersBuilder();
+    }
+
     @Test
     void 답변이_없으면_Mac_과_Windows_기본안을_함께_낸다() {
         // when
@@ -327,14 +335,6 @@ class LaptopBackendAlgorithmTest {
 
     private RecommendedSpec windowsRecommendation(AnswersBuilder builder) {
         return algorithm.recommend(builder.with(PREFERRED_OS, PreferredOs.WINDOWS).build()).getFirst();
-    }
-
-    private static LaptopSpec spec(RecommendedSpec recommended) {
-        return (LaptopSpec) recommended.spec();
-    }
-
-    private static AnswersBuilder answers() {
-        return new AnswersBuilder();
     }
 
     private static class AnswersBuilder {

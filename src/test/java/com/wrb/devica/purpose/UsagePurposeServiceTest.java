@@ -1,11 +1,11 @@
 package com.wrb.devica.purpose;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.wrb.devica.common.BusinessException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class UsagePurposeServiceTest {
 
@@ -24,6 +24,6 @@ class UsagePurposeServiceTest {
     void 존재하지_않는_제품_종류_코드면_예외가_발생한다() {
         // when & then
         assertThatThrownBy(() -> usagePurposeService.findByCategoryCode("DESKTOP"))
-                .isInstanceOf(BusinessException.class);
+            .isInstanceOf(BusinessException.class);
     }
 }

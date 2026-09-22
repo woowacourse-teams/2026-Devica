@@ -76,7 +76,8 @@ class LaptopE2ETest extends E2ETest {
 
         // 조건을 하나씩만 어긋나게 둔다
         onSaleLaptop(laptop().brand("LG").name("os 프로").os(Os.MAC), 2_500_000L);
-        addOnSaleOffer(laptopRepository.save(laptop().category(category).cpu(cpu).brand("LG").name("cpu 프로").cpu(cpuRepository.save(cpu().score(5000).build())).build()), 2_500_000L);
+        addOnSaleOffer(laptopRepository.save(laptop().category(category).cpu(cpu).brand("LG").name("cpu 프로")
+            .cpu(cpuRepository.save(cpu().score(5000).build())).build()), 2_500_000L);
         onSaleLaptop(laptop().brand("LG").name("메모리 프로").memoryGb(8), 2_500_000L);
         onSaleLaptop(laptop().brand("LG").name("저장장치 프로").storageGb(256), 2_500_000L);
         onSaleLaptop(laptop().brand("LG").name("싼 프로"), 900_000L);

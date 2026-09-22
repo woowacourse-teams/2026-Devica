@@ -3,10 +3,10 @@ package com.wrb.devica.product;
 import java.util.List;
 
 public record SpecItemResponse(
-        String code,
-        String displayName,
-        String value,
-        String displayValue
+    String code,
+    String displayName,
+    String value,
+    String displayValue
 ) {
     public static List<SpecItemResponse> from(List<SpecValue> specValues) {
         return specValues.stream()

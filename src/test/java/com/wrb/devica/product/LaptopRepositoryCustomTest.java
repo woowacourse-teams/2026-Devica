@@ -268,7 +268,8 @@ class LaptopRepositoryCustomTest {
         laptopOf(laptop().name("오퍼없음"));
         Laptop soldOut = laptopOf(laptop().name("품절"));
         productOfferRepository.save(offer().product(soldOut).price(1_000_000L).status(OfferStatus.SOLD_OUT).build());
-        productOfferRepository.save(offer().product(soldOut).price(1_000_000L).status(OfferStatus.DISCONTINUED).build());
+        productOfferRepository.save(
+            offer().product(soldOut).price(1_000_000L).status(OfferStatus.DISCONTINUED).build());
 
         // when
         Slice<ProductSummaryResponse> found = findLaptops(0, 10);
@@ -329,8 +330,10 @@ class LaptopRepositoryCustomTest {
     void 가격순은_판매_중인_오퍼의_최저가를_기준으로_한다() {
         // given
         Laptop soldOutCheaper = laptopOf(laptop().name("품절이더쌈"));
-        productOfferRepository.save(offer().product(soldOutCheaper).price(3_000_000L).status(OfferStatus.ON_SALE).build());
-        productOfferRepository.save(offer().product(soldOutCheaper).price(500_000L).status(OfferStatus.SOLD_OUT).build());
+        productOfferRepository.save(
+            offer().product(soldOutCheaper).price(3_000_000L).status(OfferStatus.ON_SALE).build());
+        productOfferRepository.save(
+            offer().product(soldOutCheaper).price(500_000L).status(OfferStatus.SOLD_OUT).build());
         onSaleLaptop(laptop().name("판매중"), 2_000_000L);
 
         // when
@@ -427,7 +430,7 @@ class LaptopRepositoryCustomTest {
     }
 
     private Slice<ProductSummaryResponse> findLaptops(LaptopSearchCondition condition, SortType sort,
-                                                     int page, int size) {
+                                                      int page, int size) {
         entityManager.flush();
         entityManager.clear();
         return laptopRepository.findSummariesWithMinPrice(condition, sort, PageRequest.of(page, size));

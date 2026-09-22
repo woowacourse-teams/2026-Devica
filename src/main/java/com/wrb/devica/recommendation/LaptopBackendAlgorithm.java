@@ -70,6 +70,14 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
         CpuTier.BASIC, List.of(16, 24, 32),
         CpuTier.PRO, List.of(24, 48));
 
+    private static int scoreOf(Signal signal, List<String> reasons) {
+        if (!signal.matched()) {
+            return 0;
+        }
+        reasons.add(signal.reason());
+        return signal.weight();
+    }
+
     @Override
     public UsagePurposeCode purpose() {
         return UsagePurposeCode.BACKEND_DEVELOPMENT;
@@ -371,14 +379,6 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
             total += scoreOf(signal, reasons);
         }
         return total;
-    }
-
-    private static int scoreOf(Signal signal, List<String> reasons) {
-        if (!signal.matched()) {
-            return 0;
-        }
-        reasons.add(signal.reason());
-        return signal.weight();
     }
 
     private Signal signal(boolean matched, int weight, String reason) {

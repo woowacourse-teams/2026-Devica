@@ -22,14 +22,14 @@ public enum UsagePurposeCode {
 
     public static UsagePurposeCode from(String code) {
         return Arrays.stream(values())
-                .filter(purpose -> purpose.name().equals(code))
-                .findFirst()
-                .orElseThrow(() -> new BusinessException(BusinessErrorCode.USAGE_PURPOSE_NOT_FOUND));
+            .filter(purpose -> purpose.name().equals(code))
+            .findFirst()
+            .orElseThrow(() -> new BusinessException(BusinessErrorCode.USAGE_PURPOSE_NOT_FOUND));
     }
 
     public static List<UsagePurposeCode> findByCategory(ProductCategoryCode category) {
         return Arrays.stream(values())
-                .filter(purpose -> purpose.category == category)
-                .toList();
+            .filter(purpose -> purpose.category == category)
+            .toList();
     }
 }

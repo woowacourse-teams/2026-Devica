@@ -4,11 +4,11 @@ import com.querydsl.core.annotations.QueryProjection;
 import java.util.List;
 
 public record ProductSummaryResponse(
-        Long id,
-        String brand,
-        String name,
-        Long minPrice,
-        List<SpecItemResponse> specs
+    Long id,
+    String brand,
+    String name,
+    Long minPrice,
+    List<SpecItemResponse> specs
 ) {
 
     @QueryProjection
