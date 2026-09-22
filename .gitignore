@@ -9,6 +9,9 @@ build/
 out/
 .vscode/
 
+# IntelliJ 로 빌드할 때 나오는 애너테이션 프로세서 출력 (QueryDSL Q클래스). Gradle 은 build/ 에 만든다
+src/main/generated/
+
 # OS
 .DS_Store
 Thumbs.db

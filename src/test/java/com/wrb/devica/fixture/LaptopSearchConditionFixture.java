@@ -1,8 +1,8 @@
 package com.wrb.devica.fixture;
 
-import com.wrb.devica.product.CpuTier;
-import com.wrb.devica.product.LaptopSearchCondition;
-import com.wrb.devica.product.Os;
+import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.Os;
+import com.wrb.devica.product.dto.LaptopSearchCondition;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.NoArgsConstructor;

@@ -32,7 +32,7 @@ CREATE TABLE faq
     updated_at       DATETIME     NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uk_faq_slug (slug),
-    KEY idx_faq_home_published_display_order (usage_purpose_id, published, display_order),
+    KEY              idx_faq_home_published_display_order (usage_purpose_id, published, display_order),
     CONSTRAINT fk_faq_usage_purpose
         FOREIGN KEY (usage_purpose_id) REFERENCES usage_purpose (id)
 ) ENGINE = InnoDB
@@ -98,7 +98,7 @@ CREATE TABLE product_offer
     created_at       DATETIME    NOT NULL,
     updated_at       DATETIME    NOT NULL,
     PRIMARY KEY (id),
-    KEY idx_product_offer_product_status_price (product_id, status, price),
+    KEY              idx_product_offer_product_status_price (product_id, status, price),
     CONSTRAINT fk_product_offer_product
         FOREIGN KEY (product_id) REFERENCES product (id)
 ) ENGINE = InnoDB
