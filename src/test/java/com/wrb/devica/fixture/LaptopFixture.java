@@ -4,10 +4,10 @@ import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 import static java.util.Objects.requireNonNullElseGet;
 
-import com.wrb.devica.category.ProductCategory;
-import com.wrb.devica.product.Cpu;
-import com.wrb.devica.product.Laptop;
-import com.wrb.devica.product.Os;
+import com.wrb.devica.category.domain.ProductCategory;
+import com.wrb.devica.product.domain.Cpu;
+import com.wrb.devica.product.domain.Laptop;
+import com.wrb.devica.product.domain.Os;
 import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.Builder;
