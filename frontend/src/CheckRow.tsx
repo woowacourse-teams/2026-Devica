@@ -16,9 +16,8 @@ type Props = {
 
 export function CheckRow({ check, result }: Props) {
   const state: State = result === null ? 'pending' : result.ok ? 'ok' : 'fail';
-  const request = result === null || result.status === null
-    ? `GET ${check.path}`
-    : `GET ${check.path} · ${result.status}`;
+  const request =
+    result === null || result.status === null ? `GET ${check.path}` : `GET ${check.path} · ${result.status}`;
 
   return (
     <section className={`check check--${state}`}>

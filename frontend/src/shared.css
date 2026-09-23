@@ -40,7 +40,10 @@
     padding: var(--density-med) var(--gutter);
     cursor: pointer;
     font-weight: 600;
-    transition: background-color 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out;
+    transition:
+        background-color 120ms ease-out,
+        border-color 120ms ease-out,
+        color 120ms ease-out;
 }
 
 .button:focus-visible {
