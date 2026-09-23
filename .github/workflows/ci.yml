@@ -76,3 +76,21 @@ jobs:
 
       - name: 빌드
         run: npm run build
+
+  # pre-push 와 같은 검사다. --no-verify 로 훅을 건너뛴 push 를 PR 단계에서 막는다.
+  # git 만 쓰므로 Node 설치 없이 frontend 잡과 따로 돌린다.
+  review-record:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+        with:
+          # merge-base 를 구하려면 develop 이력이 필요하다.
+          fetch-depth: 0
+          # PR 에서는 기본값인 가상 병합 커밋 대신 브랜치 끝 커밋을 본다.
+          # 병합 커밋은 최신 develop 이 섞여, 코드가 같아도 로컬 pre-push 와 해시가 달라질 수 있다.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: 리뷰 기록 검사
+        run: scripts/review-check.sh HEAD
