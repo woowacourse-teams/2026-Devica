@@ -41,11 +41,12 @@ export function ResultView({ specs, os, onChangeOs, onSearch }: Props) {
       <p className="section-description">권장 사양을 확인하고 필요에 따라 직접 수정할 수 있습니다.</p>
 
       {choices.length > 1 && (
-        <div className="result-os-control" role="group" aria-label="표시할 OS">
+        <div className="result-os-control">
           <span>표시할 OS</span>
           <span id="result-os-control">
             <ChoiceGroup
               segmented
+              label="표시할 OS"
               choices={choices}
               value={os}
               // 표시할 OS 는 비울 수 없다. 고른 것을 다시 눌러도 그대로 둔다.
