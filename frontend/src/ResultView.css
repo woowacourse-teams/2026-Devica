@@ -25,12 +25,12 @@
     margin-bottom: var(--gutter);
 }
 
-.spec-card .spec-row + .spec-row {
-    margin-top: var(--density-med);
-}
-
 .spec-row {
     padding: var(--gutter);
+}
+
+.spec-card .spec-row + .spec-row {
+    margin-top: var(--density-med);
 }
 
 .spec-row__value {

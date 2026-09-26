@@ -52,16 +52,16 @@
     font-size: var(--headline-sm-font-size);
 }
 
-.product-card__heading-row .product-card__price {
-    flex: 0 0 auto;
-    margin: 0;
-    text-align: right;
-}
-
 .product-card__price {
     display: block;
     margin: var(--density-med) 0;
     font-size: var(--headline-sm-font-size);
+}
+
+.product-card__heading-row .product-card__price {
+    flex: 0 0 auto;
+    margin: 0;
+    text-align: right;
 }
 
 .product-card__action {

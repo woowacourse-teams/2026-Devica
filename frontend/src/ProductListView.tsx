@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
-import { osValueOf, type Spec } from './recommendation';
-import { SearchLoadingView } from './SearchLoadingView';
 import {
   CPU_TIERS,
-  EMPTY_CONDITION,
   cpuFilterLabel,
+  EMPTY_CONDITION,
   fetchProductsFor,
   formatPrice,
   osOfTier,
@@ -13,6 +11,8 @@ import {
   type SearchCondition,
   type SortType,
 } from './products';
+import { osValueOf, type Spec } from './recommendation';
+import { SearchLoadingView } from './SearchLoadingView';
 import './ProductListView.css';
 
 // 글자마다 조회하지 않도록 입력이 멈추길 기다린다.
@@ -121,19 +121,25 @@ export function ProductListView({
     }
   }, [condition.keyword]);
 
+  // 조건이 바뀌어 다시 돌아도, 입력과 조건이 같으면 곧바로 끝나 타이머를 새로 걸지 않는다.
+  // change 는 렌더마다 새로 만들어져 의존성에 넣으면 렌더마다 타이머가 다시 걸린다. 늘 같은 onChangeState 를 직접 쓴다.
   useEffect(() => {
     const next = typed.trim() === '' ? null : typed.trim();
     if (next === condition.keyword) {
       return;
     }
-    const timer = setTimeout(() => change('keyword', next), KEYWORD_DELAY_MS);
+    const timer = setTimeout(
+      () => onChangeState((previous) => ({ ...previous, condition: { ...previous.condition, keyword: next } })),
+      KEYWORD_DELAY_MS,
+    );
     return () => clearTimeout(timer);
-  }, [typed]);
+  }, [typed, condition.keyword, onChangeState]);
 
   // specs 는 부모가 매번 새로 만드는 배열이라 참조로는 비교할 수 없다. OS 조합으로 본다.
   const specKey = specs.map(osValueOf).join(',');
 
   // 조건을 빠르게 바꾸면 요청이 겹친다. 늦게 온 옛 응답이 새 조건의 목록을 덮지 않게 막는다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: specs 는 렌더마다 새 배열이라 넣으면 매번 다시 조회한다. 내용이 같은지는 specKey 로 본다.
   useEffect(() => {
     let stale = false;
     fetchProductsFor(categoryCode, specs, 'PRICE_ASC', EMPTY_CONDITION)
@@ -144,6 +150,7 @@ export function ProductListView({
     };
   }, [categoryCode, specKey]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: specs 는 렌더마다 새 배열이라 넣으면 매번 다시 조회한다. 내용이 같은지는 specKey 로 본다.
   useEffect(() => {
     let stale = false;
     setFailed(false);
@@ -172,7 +179,7 @@ export function ProductListView({
     if (searching && !matching) {
       onSearched();
     }
-  }, [searching, matching]);
+  }, [searching, matching, onSearched]);
 
   const heading = HEADINGS[mode];
   const options = buildFilterOptions(base ?? [], specs, condition.os);

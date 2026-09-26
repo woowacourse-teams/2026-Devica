@@ -1,18 +1,14 @@
 /* 칩과 칩 묶음. question-view(현재 사양)·result-view(OS 토글, 사양 수정)·feedback-view 가 공유한다. */
 
+/* fieldset 이라 브라우저 기본 테두리·여백을 지운다. */
 .choice-group {
     display: flex;
     flex-wrap: wrap;
     gap: var(--density-high);
-}
-
-/* 인접한 칩의 테두리를 겹쳐 하나의 스위치로 읽히게 한다. */
-.choice-group--segmented {
-    gap: 0;
-}
-
-.choice-group--segmented .chip + .chip {
-    margin-left: -1px;
+    min-width: 0;
+    margin: 0;
+    border: 0;
+    padding: 0;
 }
 
 .chip {
@@ -55,6 +51,15 @@
 /* 칩 사이 간격은 .choice-group 의 gap 이 맡는다. */
 .choice-group .chip {
     margin: 0;
+}
+
+/* 인접한 칩의 테두리를 겹쳐 하나의 스위치로 읽히게 한다. */
+.choice-group--segmented {
+    gap: 0;
+}
+
+.choice-group--segmented .chip + .chip {
+    margin-left: -1px;
 }
 
 @media (prefers-reduced-motion: reduce) {
