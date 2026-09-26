@@ -13,10 +13,11 @@ type Props = {
   // 제품 유형을 아직 고르지 않았으면 제품 선택, 골랐으면 그 유형의 사용 목적 선택을 보여준다.
   categoryCode: string | null;
   onSelect: (code: string) => void;
-  onBack?: () => void;
+  // 뒤로 가기는 들어온 경로마다 돌아갈 곳이 달라 문구와 함께 받는다.
+  back?: { label: string; onClick: () => void };
 };
 
-export function SelectionView({ categoryCode, onSelect, onBack }: Props) {
+export function SelectionView({ categoryCode, onSelect, back }: Props) {
   const choosingCategory = categoryCode === null;
   // 아직 받지 못한 상태(null)와 실패를 빈 목록과 구분한다.
   const [cards, setCards] = useState<SelectionCard[] | null>(null);
@@ -57,9 +58,9 @@ export function SelectionView({ categoryCode, onSelect, onBack }: Props) {
 
   return (
     <section className="view-panel selection" aria-labelledby="selection-title">
-      {onBack && (
-        <button className="text-button view-back-button" type="button" onClick={onBack}>
-          ← 제품 다시 고르기
+      {back && (
+        <button className="text-button view-back-button" type="button" onClick={back.onClick}>
+          {back.label}
         </button>
       )}
       <h1 className="selection__title" id="selection-title">

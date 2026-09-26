@@ -1,0 +1,52 @@
+/* 전체 목록 위의 제품 유형 탭. 목록 위의 가벼운 전환 장치로 읽히도록 글자와 밑줄로만 표시한다. */
+.category-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gutter);
+    margin-bottom: var(--gutter);
+    border-bottom: 1px solid var(--outline-variant);
+}
+
+.category-tabs__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--density-high);
+    /* 선택 밑줄이 탭 줄의 밑선과 겹치도록 1px 내린다. */
+    margin-bottom: -1px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    padding: var(--density-med) 0;
+    color: var(--on-surface-variant);
+    background: transparent;
+    font: inherit;
+    font-size: var(--body-lg-font-size);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.category-tabs__tab:hover:not(:disabled),
+.category-tabs__tab[aria-pressed="true"] {
+    color: var(--on-surface);
+}
+
+.category-tabs__tab[aria-pressed="true"] {
+    border-bottom-color: var(--primary);
+}
+
+.category-tabs__tab:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.category-tabs__tab:disabled {
+    color: var(--outline);
+    cursor: not-allowed;
+}
+
+.category-tabs__badge {
+    padding: 2px var(--unit);
+    color: var(--on-surface-variant);
+    background: var(--surface-container-high);
+    font-size: var(--label-sm-font-size);
+    font-weight: var(--label-md-font-weight);
+}
