@@ -59,7 +59,9 @@ export function App() {
   const [productId, setProductId] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchQuestions(PURPOSE_CODE).then(setQuestions).catch(() => setQuestionsFailed(true));
+    fetchQuestions(PURPOSE_CODE)
+      .then(setQuestions)
+      .catch(() => setQuestionsFailed(true));
   }, []);
 
   const screens = resolveScreens(questions, answers);
@@ -137,7 +139,7 @@ export function App() {
 
   return (
     <>
-      <SiteHeader onProductList={() => showAllProducts(view)}/>
+      <SiteHeader onProductList={() => showAllProducts(view)} />
       <main className="probe" id="main-content">
         {view === 'INTRO' && (
           <IntroView
@@ -185,7 +187,7 @@ export function App() {
           />
         )}
         {view === 'PRODUCT_DETAIL' && productId !== null && (
-          <ProductDetailView productId={productId} onBack={() => setView('PRODUCT_LIST')}/>
+          <ProductDetailView productId={productId} onBack={() => setView('PRODUCT_LIST')} />
         )}
         {view === 'QUESTION' && (
           <QuestionView
@@ -200,7 +202,7 @@ export function App() {
           />
         )}
       </main>
-      <SiteFooter/>
+      <SiteFooter />
     </>
   );
 }

@@ -49,7 +49,10 @@ function evaluateCodeNames(body: unknown, emptyReason: string): Evaluation {
     return { ok: false, summary: '0건', reason: emptyReason };
   }
 
-  const preview = body.slice(0, 3).map((item) => `${item.code}(${item.name})`).join(', ');
+  const preview = body
+    .slice(0, 3)
+    .map((item) => `${item.code}(${item.name})`)
+    .join(', ');
   return { ok: true, summary: `${body.length}건 · ${preview}${body.length > 3 ? ' 외' : ''}` };
 }
 
@@ -70,7 +73,11 @@ export const CHECKS: Check[] = [
       const status = (body as { status?: unknown } | null)?.status;
       return status === 'UP'
         ? { ok: true, summary: '{"status":"UP"}' }
-        : { ok: false, summary: describeBody(body), reason: '백엔드는 응답하지만 구성 요소 하나가 준비되지 않았습니다. 대개 데이터베이스 연결입니다.' };
+        : {
+            ok: false,
+            summary: describeBody(body),
+            reason: '백엔드는 응답하지만 구성 요소 하나가 준비되지 않았습니다. 대개 데이터베이스 연결입니다.',
+          };
     },
   },
   {
@@ -78,13 +85,19 @@ export const CHECKS: Check[] = [
     label: 'CATEGORIES',
     path: '/api/product-categories',
     evaluate: (body) =>
-      evaluateCodeNames(body, '데이터베이스는 연결됐지만 제품 종류가 비어 있습니다. Flyway 기준 데이터 마이그레이션이 반영됐는지 확인하세요.'),
+      evaluateCodeNames(
+        body,
+        '데이터베이스는 연결됐지만 제품 종류가 비어 있습니다. Flyway 기준 데이터 마이그레이션이 반영됐는지 확인하세요.',
+      ),
   },
   {
     label: 'USAGE PURPOSES',
     path: '/api/product-categories/LAPTOP/usage-purposes',
     evaluate: (body) =>
-      evaluateCodeNames(body, '노트북에 연결된 사용 목적이 없습니다. Flyway 기준 데이터 마이그레이션이 반영됐는지 확인하세요.'),
+      evaluateCodeNames(
+        body,
+        '노트북에 연결된 사용 목적이 없습니다. Flyway 기준 데이터 마이그레이션이 반영됐는지 확인하세요.',
+      ),
   },
 ];
 
@@ -96,7 +109,13 @@ export async function runCheck(check: Check): Promise<CheckResult> {
     const elapsedMs = Math.round(performance.now() - startedAt);
 
     if (!response.ok) {
-      return { status: response.status, elapsedMs, ok: false, summary: describeBody(body), diagnosis: diagnose(response.status) };
+      return {
+        status: response.status,
+        elapsedMs,
+        ok: false,
+        summary: describeBody(body),
+        diagnosis: diagnose(response.status),
+      };
     }
 
     const evaluation = check.evaluate(body);

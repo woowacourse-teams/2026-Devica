@@ -8,17 +8,25 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "biome check .",
+    "prepare": "cd .. && husky"
   },
   "dependencies": {
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.14",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "husky": "9.1.7",
+    "lint-staged": "17.5.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,css}": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
   }
 }

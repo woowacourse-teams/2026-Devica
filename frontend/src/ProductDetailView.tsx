@@ -44,9 +44,13 @@ export function ProductDetailView({ productId, onBack }: Props) {
       <section className="view-panel product-detail-view" id="product-detail-view">
         {back}
         {failed ? (
-          <p className="notice" role="alert">제품 정보를 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.</p>
+          <p className="notice" role="alert">
+            제품 정보를 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.
+          </p>
         ) : (
-          <p className="product-detail__status" aria-live="polite">제품 정보를 불러오는 중입니다…</p>
+          <p className="product-detail__status" aria-live="polite">
+            제품 정보를 불러오는 중입니다…
+          </p>
         )}
       </section>
     );
@@ -62,10 +66,12 @@ export function ProductDetailView({ productId, onBack }: Props) {
       {back}
       <article className="product-detail">
         {/* 제품 이미지 필드가 아직 응답에 없다. 틀만 두고 사진이 생기면 안을 채운다. */}
-        <div className="product-detail__image-frame"/>
+        <div className="product-detail__image-frame" />
 
         <section className="product-detail__summary">
-          <p className="eyebrow">{product.brand} · {product.code}</p>
+          <p className="eyebrow">
+            {product.brand} · {product.code}
+          </p>
           <h2 id="product-detail-title">{product.name}</h2>
           {/* 설명이 없는 제품이 있다. 빈 문단을 두면 왼쪽 세로선만 남는다. */}
           {description !== '' && <p className="product-detail__description">{description}</p>}

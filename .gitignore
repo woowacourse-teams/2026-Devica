@@ -19,6 +19,7 @@ Thumbs.db
 # 운영 환경 비밀값 (절대 커밋 금지)
 *.env
 
-# Claude Code (개인 설정, 커밋하지 않는다)
-CLAUDE.md
-.claude/
+# Claude Code 개인 설정은 커밋하지 않는다. 팀이 공유하는 Skill 만 커밋한다.
+CLAUDE.local.md
+.claude/*
+!.claude/skills/
