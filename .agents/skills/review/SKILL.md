@@ -48,11 +48,17 @@ git ls-files --others --exclude-standard -- frontend           # 새로 추가�
 
 ## 4. 린트·포맷·타입 검사
 
+린트는 이번 변경 파일에만 돌린다. `frontend/` 전체에 돌리면 이번 작업과 상관없는 파일의 기존 에러까지 걸린다.
+
 ```bash
-cd frontend && npm run lint:fix && npx tsc --noEmit
+BASE=$(git merge-base origin/develop HEAD)
+{ git diff --name-only --diff-filter=d "$BASE" -- frontend; git ls-files --others --exclude-standard -- frontend; } \
+  | sed 's|^frontend/||' \
+  | (cd frontend && xargs -r npx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true)
+(cd frontend && npx tsc --noEmit)
 ```
 
-- 남은 에러는 맥락을 보고 직접 고친 뒤 다시 실행한다.
+- 남은 에러는 맥락을 보고 직접 고친 뒤 다시 실행한다. 변경 파일에 있던 기존 에러도 여기에 포함된다. 그 파일을 커밋하면 pre-commit도 같은 에러로 막는다.
 - 이 단계를 기록 전에 해야 한다. 그래야 커밋할 때 pre-commit이 코드를 더 고치지 않아 해시가 유지된다.
 
 ## 5. 리뷰 기록
