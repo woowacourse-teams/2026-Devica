@@ -1,0 +1,78 @@
+/* 제품 선택과 사용 목적 선택이 함께 쓴다. */
+
+.selection__title {
+    margin: 0;
+    font-size: var(--headline-lg-font-size);
+    font-weight: var(--headline-lg-font-weight);
+    line-height: var(--headline-lg-line-height);
+    letter-spacing: var(--headline-lg-letter-spacing);
+}
+
+.selection__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--density-high);
+    margin: 0;
+    border-top: 1px solid var(--outline);
+    padding: var(--gutter) 0 0;
+    list-style: none;
+}
+
+.selection__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--density-high);
+    width: 100%;
+    border: 1px solid var(--outline);
+    padding: var(--gutter);
+    color: var(--on-surface);
+    background: var(--surface-container-lowest);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.selection__card:hover:not(:disabled),
+.selection__card[aria-pressed="true"] {
+    border-color: var(--primary);
+    box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.selection__card:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.selection__card:disabled {
+    border-color: var(--outline-variant);
+    color: var(--outline);
+    background: var(--surface);
+    cursor: not-allowed;
+}
+
+.selection__name {
+    display: flex;
+    align-items: center;
+    gap: var(--density-high);
+    font-size: var(--headline-md-font-size);
+    font-weight: var(--headline-md-font-weight);
+    line-height: var(--headline-md-line-height);
+}
+
+.selection__badge {
+    padding: var(--unit) var(--density-high);
+    color: var(--on-surface-variant);
+    background: var(--surface-container-high);
+    font-size: var(--label-md-font-size);
+    font-weight: var(--label-md-font-weight);
+}
+
+.selection__description {
+    color: var(--on-surface-variant);
+    font-size: var(--body-md-font-size);
+    line-height: var(--body-md-line-height);
+}
+
+.selection__card:disabled .selection__description {
+    color: var(--outline);
+}
