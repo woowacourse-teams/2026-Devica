@@ -3,9 +3,6 @@ import { BaselineCard } from './BaselineCard';
 import { fetchRecommendation, type Spec } from './recommendation';
 import './IntroView.css';
 
-// V1 은 백엔드 개발 목적 하나만 다룬다.
-const PURPOSE_CODE = 'BACKEND_DEVELOPMENT';
-
 const STEPS = [
   { index: '1', title: '질문에 답하기', meta: '9~10개 · 약 2분' },
   { index: '2', title: '권장 사양 확인', meta: '직접 수정 가능' },
@@ -13,6 +10,8 @@ const STEPS = [
 ];
 
 type Props = {
+  purposeCode: string;
+  onBack: () => void;
   onStart: () => void;
   canStart: boolean;
   questionsFailed: boolean;
@@ -22,20 +21,45 @@ type Props = {
   onBaseline: () => void;
 };
 
-export function IntroView({ onStart, canStart, questionsFailed, waiting, resultFailed, onBaseline }: Props) {
+export function IntroView({
+  purposeCode,
+  onBack,
+  onStart,
+  canStart,
+  questionsFailed,
+  waiting,
+  resultFailed,
+  onBaseline,
+}: Props) {
   const [specs, setSpecs] = useState<Spec[]>([]);
   const [failed, setFailed] = useState(false);
   // 기본 권장 사양과 질문 중 하나라도 못 받으면 시작할 수 없다.
   const unavailable = failed || questionsFailed;
 
   useEffect(() => {
-    fetchRecommendation(PURPOSE_CODE)
-      .then(setSpecs)
-      .catch(() => setFailed(true));
-  }, []);
+    let stale = false;
+    fetchRecommendation(purposeCode)
+      .then((received) => {
+        if (!stale) {
+          setSpecs(received);
+        }
+      })
+      .catch(() => {
+        if (!stale) {
+          setFailed(true);
+        }
+      });
+    return () => {
+      stale = true;
+    };
+  }, [purposeCode]);
 
   return (
     <section className="view-panel hero" id="intro-view" aria-labelledby="hero-title">
+      {/* 기본 권장 사양을 기다리는 동안 목적을 바꾸면 늦게 온 응답이 새 목적의 화면을 덮는다. 다른 버튼과 함께 잠근다. */}
+      <button className="text-button view-back-button" type="button" disabled={waiting} onClick={onBack}>
+        ← 사용 목적 다시 고르기
+      </button>
       <p className="eyebrow">백엔드 개발용 노트북 사양 찾기</p>
       <h1 id="hero-title">
         내 개발 환경에 맞는
@@ -63,11 +87,11 @@ export function IntroView({ onStart, canStart, questionsFailed, waiting, resultF
         아래는 백엔드 개발용 기본 권장 사양입니다. 질문에 답하면 사용 목적에 맞게 조정됩니다.
       </p>
 
-      <div className="baseline-list" id="initial-spec-list" aria-label="OS별 기본 권장 사양">
+      <section className="baseline-list" id="initial-spec-list" aria-label="OS별 기본 권장 사양">
         {specs.map((spec) => (
           <BaselineCard key={spec.items.find((item) => item.code === 'OS')?.value ?? ''} spec={spec} />
         ))}
-      </div>
+      </section>
 
       {unavailable && (
         <p className="notice" role="alert">
