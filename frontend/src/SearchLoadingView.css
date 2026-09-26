@@ -10,6 +10,20 @@
     text-align: center;
 }
 
+/* 와이어프레임의 격자무늬. 글자를 가리지 않도록 아주 옅게 깐다.
+   bordered-panel 의 background 축약이 나중에 불러와져 덮으므로 두 클래스를 함께 써서 이긴다. */
+.bordered-panel.search-loading {
+    background-image:
+        linear-gradient(var(--surface-container) 1px, transparent 1px),
+        linear-gradient(90deg, var(--surface-container) 1px, transparent 1px);
+    background-size: 32px 32px;
+}
+
+.search-loading .eyebrow {
+    color: var(--on-surface-variant);
+    letter-spacing: 0.1em;
+}
+
 /* 시스템에서 유일하게 둥근 요소다. 회전으로 읽히려면 원이어야 한다. */
 .spinner {
     width: 48px;
@@ -36,11 +50,22 @@
 }
 
 .search-loading__spec {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--density-high);
     margin: 0;
+    border: 1px solid var(--outline-variant);
     padding: var(--density-med);
     color: var(--on-surface-variant);
     background: var(--surface-container-low);
     font-size: var(--body-md-font-size);
+}
+
+.search-loading__icon {
+    flex: 0 0 auto;
+    width: 1em;
+    height: 1em;
 }
 
 /* 회전이 꺼져도 제목 문구가 진행 중임을 알린다. */
