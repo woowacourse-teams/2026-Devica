@@ -15,6 +15,7 @@ type Props = {
   onStart: () => void;
   canStart: boolean;
   questionsFailed: boolean;
+  questionsLoading: boolean;
   // 기본 권장 사양을 기다리는 동안은 비워 두지 않고 버튼을 잠그며, 실패하면 알린다.
   waiting: boolean;
   resultFailed: boolean;
@@ -27,17 +28,21 @@ export function IntroView({
   onStart,
   canStart,
   questionsFailed,
+  questionsLoading,
   waiting,
   resultFailed,
   onBaseline,
 }: Props) {
-  const [specs, setSpecs] = useState<Spec[]>([]);
+  // 아직 받지 못한 상태(null)를 빈 목록과 구분한다.
+  const [specs, setSpecs] = useState<Spec[] | null>(null);
   const [failed, setFailed] = useState(false);
   // 기본 권장 사양과 질문 중 하나라도 못 받으면 시작할 수 없다.
   const unavailable = failed || questionsFailed;
 
   useEffect(() => {
     let stale = false;
+    setSpecs(null);
+    setFailed(false);
     fetchRecommendation(purposeCode)
       .then((received) => {
         if (!stale) {
@@ -88,7 +93,8 @@ export function IntroView({
       </p>
 
       <section className="baseline-list" id="initial-spec-list" aria-label="OS별 기본 권장 사양">
-        {specs.map((spec) => (
+        {specs === null && !failed && <p className="section-description">기본 권장 사양을 불러오는 중입니다…</p>}
+        {specs?.map((spec) => (
           <BaselineCard key={spec.items.find((item) => item.code === 'OS')?.value ?? ''} spec={spec} />
         ))}
       </section>
@@ -111,7 +117,7 @@ export function IntroView({
         disabled={unavailable || !canStart || waiting}
         onClick={onStart}
       >
-        질문 시작하고 내 사양 찾기
+        {questionsLoading ? '질문을 불러오는 중…' : '질문 시작하고 내 사양 찾기'}
       </button>
       {/* 답을 비워 보내면 조정 전 기본 권장 사양이 온다. 원본도 답을 무시하고 기본으로 되돌린다. */}
       <button

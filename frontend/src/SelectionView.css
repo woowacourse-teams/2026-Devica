@@ -8,9 +8,10 @@
     letter-spacing: var(--headline-lg-letter-spacing);
 }
 
+/* 좁은 화면은 한 열, 넓은 화면은 두 열이다. 항목이 4개라 2×2 로 빈칸 없이 채워진다. */
 .selection__list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
     gap: var(--density-high);
     margin: 0;
     border-top: 1px solid var(--outline);
@@ -18,11 +19,13 @@
     list-style: none;
 }
 
+/* 같은 줄의 카드는 설명 길이가 달라도 높이를 맞춘다. */
 .selection__card {
     display: flex;
     flex-direction: column;
     gap: var(--density-high);
     width: 100%;
+    height: 100%;
     border: 1px solid var(--outline);
     padding: var(--gutter);
     color: var(--on-surface);
@@ -75,4 +78,10 @@
 
 .selection__card:disabled .selection__description {
     color: var(--outline);
+}
+
+@media (min-width: 768px) {
+    .selection__list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }

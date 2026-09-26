@@ -49,7 +49,8 @@ export function App() {
   const [view, setView] = useState<View>(() => (openedFromLink() ? 'PRODUCT_LIST' : 'CATEGORY'));
   const [categoryCode, setCategoryCode] = useState<string | null>(null);
   const [purposeCode, setPurposeCode] = useState<string | null>(null);
-  const [questions, setQuestions] = useState<Question[]>([]);
+  // 아직 받지 못한 상태(null)를 질문이 없는 경우와 구분한다.
+  const [questions, setQuestions] = useState<Question[] | null>(null);
   const [questionsFailed, setQuestionsFailed] = useState(false);
   const [answers, setAnswers] = useState<Answers>({});
   const [index, setIndex] = useState(0);
@@ -72,7 +73,7 @@ export function App() {
       return;
     }
     let stale = false;
-    setQuestions([]);
+    setQuestions(null);
     setQuestionsFailed(false);
     fetchQuestions(purposeCode)
       .then((received) => {
@@ -90,13 +91,13 @@ export function App() {
     };
   }, [purposeCode]);
 
-  const screens = resolveScreens(questions, answers);
+  const screens = resolveScreens(questions ?? [], answers);
   // 검색 로딩과 제품 목록은 결과 화면이 보여주고 있던 OS 만 대상으로 삼는다.
   const visibleSpecs = resultOs === 'BOTH' ? specs : specs.filter((spec) => osValueOf(spec) === resultOs);
 
   const answer = (code: string, values: string[]) => {
     // 답이 바뀌면 딸린 질문이 사라질 수 있다. 사라진 질문의 답은 함께 지운다.
-    setAnswers((previous) => pruneHiddenAnswers(questions, { ...previous, [code]: values }));
+    setAnswers((previous) => pruneHiddenAnswers(questions ?? [], { ...previous, [code]: values }));
   };
 
   const goPrevious = () => {
@@ -189,6 +190,7 @@ export function App() {
             onStart={start}
             canStart={screens.length > 0}
             questionsFailed={questionsFailed}
+            questionsLoading={questions === null && !questionsFailed}
             waiting={waiting}
             resultFailed={resultFailed}
             onBaseline={() => {

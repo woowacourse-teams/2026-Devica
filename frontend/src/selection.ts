@@ -25,16 +25,20 @@ export const CATEGORY_DISPLAY: Display[] = [
   { code: 'KEYBOARD', name: '키보드', description: '타이핑이 많은 작업을 위한 입력 기기' },
 ];
 
+// 준비 중 목적은 와이어프레임의 게이밍·사무·영상 편집·학습용 대신 서비스 대상인 개발 직군으로 둔다 (#109).
 export const PURPOSE_DISPLAY: Display[] = [
   {
     code: 'BACKEND_DEVELOPMENT',
     name: '백엔드 개발',
     description: '무거운 IDE 실행, 다수의 컨테이너 구동, 원활한 컴파일 작업.',
   },
-  { code: 'GAMING', name: '게이밍', description: '고성능 그래픽 작업 및 최신 게임 구동 환경.' },
-  { code: 'OFFICE', name: '사무/문서 작업', description: '웹 서핑, 문서 작성, 가벼운 멀티태스킹.' },
-  { code: 'VIDEO_EDITING', name: '영상 편집', description: '4K 영상 렌더링, 모션 그래픽, 전문 편집 작업.' },
-  { code: 'STUDY', name: '학습용', description: '온라인 강의 시청, 과제 수행, 코딩 입문.' },
+  {
+    code: 'FRONTEND_DEVELOPMENT',
+    name: '프론트엔드 개발',
+    description: '개발 서버와 브라우저 여러 개, 빌드 도구를 함께 띄우는 작업.',
+  },
+  { code: 'MOBILE_DEVELOPMENT', name: '모바일 개발', description: '에뮬레이터·시뮬레이터 구동, 네이티브 앱 빌드.' },
+  { code: 'DESIGN', name: '디자인', description: '대형 디자인 파일 편집, 정확한 색 표현이 필요한 작업.' },
 ];
 
 /**
