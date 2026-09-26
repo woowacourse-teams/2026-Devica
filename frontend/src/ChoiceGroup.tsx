@@ -19,7 +19,7 @@ type Props = {
 };
 
 export function ChoiceGroup({ choices, value, onChange, segmented = false, label, disabled = false }: Props) {
-  const groupRef = useRef<HTMLDivElement>(null);
+  const groupRef = useRef<HTMLFieldSetElement>(null);
 
   const select = (choice: Choice, index: number) => {
     const selected = value === choice.value;
@@ -31,10 +31,9 @@ export function ChoiceGroup({ choices, value, onChange, segmented = false, label
   };
 
   return (
-    <div
+    <fieldset
       className={segmented ? 'choice-group choice-group--segmented' : 'choice-group'}
       ref={groupRef}
-      role="group"
       aria-label={label}
     >
       {choices.map((choice, index) => (
@@ -49,6 +48,6 @@ export function ChoiceGroup({ choices, value, onChange, segmented = false, label
           {choice.label}
         </button>
       ))}
-    </div>
+    </fieldset>
   );
 }
