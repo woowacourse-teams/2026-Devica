@@ -11,8 +11,15 @@ description: 프론트엔드(frontend/) 변경을 팀 리뷰 규칙으로 리뷰
 
 ## 1. 리뷰 대상 확인
 
+먼저 **기준 브랜치**를 정한다. 이 브랜치의 PR 이 머지될 브랜치다.
+
+- PR 이 있으면 `gh pr view --json baseRefName -q .baseRefName` 로 읽고 앞에 `origin/` 을 붙인다.
+- PR 이 없으면 보통 `origin/develop` 이다. 아직 머지되지 않은 다른 브랜치 위에서 작업했다면 그 브랜치(`origin/<부모 브랜치>`)다. 어느 쪽인지 확실하지 않으면 사용자에게 묻는다.
+
+아래에서 `<기준 브랜치>`는 이 값이다. 다른 PR 위에 쌓은 브랜치를 `origin/develop` 기준으로 리뷰하면 부모 PR 의 변경까지 리뷰·린트 대상에 섞인다.
+
 ```bash
-BASE=$(git merge-base origin/develop HEAD)
+BASE=$(git merge-base <기준 브랜치> HEAD)
 git diff "$BASE" -- frontend                                  # 커밋·수정된 변경
 git ls-files --others --exclude-standard -- frontend           # 새로 추가된 파일
 ```
@@ -22,12 +29,12 @@ git ls-files --others --exclude-standard -- frontend           # 새로 추가�
 
 ## 2. 규칙별 병렬 리뷰
 
-`docs/review-rules/` 안의 규칙 파일(`README.md` 제외)마다 리뷰어 서브 에이전트를 하나씩 띄워 **동시에** 실행한다. 리뷰어는 기본 서브 에이전트를 쓴다. 각 리뷰어에게 아래 지시를 그대로 전달한다. `<규칙 파일>`은 해당 파일 경로로 바꾼다.
+`docs/review-rules/` 안의 규칙 파일(`README.md` 제외)마다 리뷰어 서브 에이전트를 하나씩 띄워 **동시에** 실행한다. 리뷰어는 기본 서브 에이전트를 쓴다. 각 리뷰어에게 아래 지시를 그대로 전달한다. `<규칙 파일>`과 `<기준 브랜치>`는 실제 값으로 바꾼다.
 
 > 너는 코드 리뷰어다. **파일을 수정하지 않는다.** 읽기와 조회 명령만 쓴다.
 >
 > 1. `<규칙 파일>`을 읽는다. 이 파일에 적힌 규칙만 본다. 다른 관점의 지적이나 린터가 잡는 것은 보고하지 않는다.
-> 2. `git diff $(git merge-base origin/develop HEAD) -- frontend`와 새로 추가된 파일(`git ls-files --others --exclude-standard -- frontend`)을 본다. 필요하면 변경된 파일의 전체 내용과 호출하는 쪽 코드도 읽는다.
+> 2. `git diff $(git merge-base <기준 브랜치> HEAD) -- frontend`와 새로 추가된 파일(`git ls-files --others --exclude-standard -- frontend`)을 본다. 필요하면 변경된 파일의 전체 내용과 호출하는 쪽 코드도 읽는다.
 > 3. 규칙 위반마다 한 줄씩, 아래 형식으로만 답한다. 위반이 없으면 `지적 없음`이라고만 답한다.
 >
 >    `규칙 ID | 파일:줄 | 무엇이 왜 문제인지 한 문장 | 필수 또는 권장`
@@ -51,7 +58,7 @@ git ls-files --others --exclude-standard -- frontend           # 새로 추가�
 린트는 이번 변경 파일에만 돌린다. `frontend/` 전체에 돌리면 이번 작업과 상관없는 파일의 기존 에러까지 걸린다.
 
 ```bash
-BASE=$(git merge-base origin/develop HEAD)
+BASE=$(git merge-base <기준 브랜치> HEAD)
 { git diff --name-only --diff-filter=d "$BASE" -- frontend; git ls-files --others --exclude-standard -- frontend; } \
   | sed 's|^frontend/||' \
   | (cd frontend && xargs -r npx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true)
@@ -64,7 +71,7 @@ BASE=$(git merge-base origin/develop HEAD)
 ## 5. 리뷰 기록
 
 ```bash
-scripts/review-hash.sh    # 해시 출력
+scripts/review-hash.sh -b <기준 브랜치>    # 해시 출력
 ```
 
 `.review/<브랜치 이름에서 / 를 - 로 바꾼 것>.md`에 아래 형식으로 쓴다. 파일이 이미 있으면 덮어쓴다.
@@ -72,6 +79,7 @@ scripts/review-hash.sh    # 해시 출력
 ```markdown
 # 리뷰 기록
 
+base: <기준 브랜치>
 diff-hash: <review-hash.sh 출력>
 
 | 규칙 ID | 위치 | 지적 | 구분 | 상태 | 비고 |

@@ -1,15 +1,23 @@
 #!/bin/sh
 # 리뷰 대상 코드의 diff 해시를 출력한다. frontend-review Skill, pre-push, CI 가 모두 이 스크립트를 쓴다.
 #
-#   scripts/review-hash.sh          작업 트리 기준 (커밋 안 한 변경과 새 파일 포함). 리뷰 시점에 쓴다
-#   scripts/review-hash.sh <커밋>    그 커밋 기준. push·CI 시점에 쓴다
+#   scripts/review-hash.sh [-b <기준 브랜치>]          작업 트리 기준 (커밋 안 한 변경과 새 파일 포함). 리뷰 시점에 쓴다
+#   scripts/review-hash.sh [-b <기준 브랜치>] <커밋>   그 커밋 기준. push·CI 시점에 쓴다
 #
-# 기준점은 develop 과의 merge-base, 범위는 frontend/ 다. .review/ 는 범위 밖이라 기록을 써도 해시가 바뀌지 않는다.
-# 같은 내용이면 커밋 전(작업 트리)과 커밋 후(커밋)의 해시가 같다.
+# 기준점은 기준 브랜치(기본 origin/develop)와의 merge-base, 범위는 frontend/ 다.
+# 기준 브랜치는 PR 이 머지될 브랜치다. 다른 PR 위에 쌓은 브랜치는 부모 브랜치를 준다. 그래야 부모의 변경이 리뷰 범위에 섞이지 않는다.
+# .review/ 는 범위 밖이라 기록을 써도 해시가 바뀌지 않는다. 같은 내용이면 커밋 전(작업 트리)과 커밋 후(커밋)의 해시가 같다.
 set -eu
 
 SCOPE=frontend
 BASE_BRANCH=origin/develop
+while getopts b: option; do
+  case $option in
+    b) BASE_BRANCH=$OPTARG ;;
+    *) exit 2 ;;
+  esac
+done
+shift $((OPTIND - 1))
 
 cd "$(git rev-parse --show-toplevel)"
 

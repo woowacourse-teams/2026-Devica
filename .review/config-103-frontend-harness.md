@@ -1,5 +1,6 @@
 # 리뷰 기록
 
+base: origin/develop
 diff-hash: a69f43fb25bd252939590e2baac347ae5ad1213a
 
 지적 없음
