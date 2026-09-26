@@ -10,7 +10,6 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "biome check .",
-    "lint:fix": "biome check --write .",
     "prepare": "cd .. && husky"
   },
   "dependencies": {
@@ -28,6 +27,6 @@
     "vite": "^8.3.0"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,json,jsonc,css}": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
+    "*.{ts,tsx,js,jsx,json,css}": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
   }
 }

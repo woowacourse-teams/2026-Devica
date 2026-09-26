@@ -32,4 +32,4 @@ fi
 git -c core.quotePath=true diff --no-color --no-ext-diff --no-textconv --no-renames --full-index --binary \
   --diff-algorithm=myers --src-prefix=a/ --dst-prefix=b/ \
   "$BASE" "$TREE" -- "$SCOPE" \
-  | git hash-object --stdin
+  | git hash-object --stdin  # sha256sum(Linux)·shasum(macOS)처럼 OS마다 다른 명령 대신 어디서나 같은 git 을 쓴다

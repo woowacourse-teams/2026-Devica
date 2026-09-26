@@ -20,9 +20,6 @@
       "indentWidth": 4
     }
   },
-  "assist": {
-    "enabled": false
-  },
   "linter": {
     "rules": {
       "recommended": true,
