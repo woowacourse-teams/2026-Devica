@@ -18,13 +18,27 @@ export function SearchLoadingView({ specs }: Props) {
         <div className="search-loading__specs" id="search-loading-specs">
           {specs.map((spec) => (
             <p className="search-loading__spec" key={spec.items.find((item) => item.code === 'OS')?.value ?? ''}>
-              {LINE_CODES.map((code) => spec.items.find((item) => item.code === code)?.displayValue)
-                .filter((value) => value !== undefined)
-                .join(' · ')}
+              <ChipIcon />
+              <span>
+                {LINE_CODES.map((code) => spec.items.find((item) => item.code === code)?.displayValue)
+                  .filter((value) => value !== undefined)
+                  .join(' · ')}
+              </span>
             </p>
           ))}
         </div>
       </div>
     </section>
+  );
+}
+
+// 와이어프레임의 칩 아이콘. 글자 크기를 따라가고 색은 글자색을 쓴다.
+function ChipIcon() {
+  return (
+    <svg className="search-loading__icon" viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="4" y="4" width="8" height="8" fill="none" stroke="currentColor" />
+      <rect x="6.5" y="6.5" width="3" height="3" fill="currentColor" />
+      <path d="M6 1v3M10 1v3M6 12v3M10 12v3M1 6h3M1 10h3M12 6h3M12 10h3" stroke="currentColor" />
+    </svg>
   );
 }
