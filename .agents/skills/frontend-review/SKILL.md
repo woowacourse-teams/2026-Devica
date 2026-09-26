@@ -1,5 +1,5 @@
 ---
-name: review
+name: frontend-review
 description: 프론트엔드(frontend/) 변경을 팀 리뷰 규칙으로 리뷰하고, 지적을 반영한 뒤 .review/ 에 리뷰 기록을 남긴다. frontend/ 를 고친 뒤 push 하기 전에 사용한다.
 ---
 

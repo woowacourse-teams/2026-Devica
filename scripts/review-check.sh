@@ -16,7 +16,7 @@ cd "$(git rev-parse --show-toplevel)"
 
 fail() {
   echo "✖ 리뷰 검사 실패: $1" >&2
-  echo "  → 에이전트에서 review Skill 을 실행하고, 코드와 .review/ 기록을 함께 커밋하세요." >&2
+  echo "  → 에이전트에서 frontend-review Skill 을 실행하고, 코드와 .review/ 기록을 함께 커밋하세요." >&2
   exit 1
 }
 

@@ -1,5 +1,5 @@
 #!/bin/sh
-# 리뷰 대상 코드의 diff 해시를 출력한다. review Skill, pre-push, CI 가 모두 이 스크립트를 쓴다.
+# 리뷰 대상 코드의 diff 해시를 출력한다. frontend-review Skill, pre-push, CI 가 모두 이 스크립트를 쓴다.
 #
 #   scripts/review-hash.sh          작업 트리 기준 (커밋 안 한 변경과 새 파일 포함). 리뷰 시점에 쓴다
 #   scripts/review-hash.sh <커밋>    그 커밋 기준. push·CI 시점에 쓴다
