@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CategoryTabs } from './CategoryTabs';
+import { FaqView } from './FaqView';
 import { IntroView } from './IntroView';
 import { ProductDetailView } from './ProductDetailView';
 import { initialListState, type ListMode, type ProductListState, ProductListView } from './ProductListView';
@@ -22,7 +23,8 @@ import { SiteHeader } from './SiteHeader';
 // - 추천 흐름: CATEGORY → PURPOSE → INTRO → QUESTION → RESULT → 맞춤 목록(PRODUCT_LIST, MATCHED)
 // - 검색 흐름(UC-07): 전체 목록(PRODUCT_LIST, ALL, 맨 위에 제품 유형 탭) → PRODUCT_DETAIL
 // 뒤로 가기는 지금 흐름 안에서 한 단계 위로 간다. 검색 흐름의 맨 위(전체 목록)에서 뒤로 가면 들어오기 전 추천 흐름 화면으로 돌아간다.
-type View = 'CATEGORY' | 'PURPOSE' | 'INTRO' | 'QUESTION' | 'RESULT' | 'PRODUCT_LIST' | 'PRODUCT_DETAIL';
+// FAQ(UC-10)는 어느 화면에서든 헤더로 열고, 닫으면 연 화면으로 그대로 돌아간다.
+type View = 'CATEGORY' | 'PURPOSE' | 'INTRO' | 'QUESTION' | 'RESULT' | 'PRODUCT_LIST' | 'PRODUCT_DETAIL' | 'FAQ';
 
 // 검색 흐름을 빠져나올 때 돌아갈 수 있는 추천 흐름 화면이다.
 const RETURNABLE = ['CATEGORY', 'PURPOSE', 'INTRO', 'QUESTION', 'RESULT'] as const;
@@ -37,9 +39,17 @@ const BACK_LABELS: Record<ReturnView, string> = {
   RESULT: '← 권장 사양으로',
 };
 
-// 다른 페이지의 헤더에서는 링크로 넘어온다. 주소에 view=products 가 있으면 전체 목록으로 시작한다.
-function openedFromLink(): boolean {
-  return new URLSearchParams(window.location.search).get('view') === 'products';
+// 다른 페이지의 헤더에서는 링크로 넘어온다. 주소의 view 가 products 면 전체 목록, faq 면 FAQ 로 시작한다.
+function openedFromLink(target: 'products' | 'faq'): boolean {
+  return new URLSearchParams(window.location.search).get('view') === target;
+}
+
+// FAQ 를 닫을 때 돌아갈 화면의 문구다. 추천 흐름 화면은 BACK_LABELS 를 쓴다.
+function faqBackLabel(view: View): string {
+  if (isReturnable(view)) {
+    return BACK_LABELS[view];
+  }
+  return view === 'PRODUCT_DETAIL' ? '← 제품 상세로' : '← 제품 목록으로';
 }
 
 function isReturnable(view: View): view is ReturnView {
@@ -47,7 +57,13 @@ function isReturnable(view: View): view is ReturnView {
 }
 
 export function App() {
-  const [view, setView] = useState<View>(() => (openedFromLink() ? 'PRODUCT_LIST' : 'CATEGORY'));
+  const [view, setView] = useState<View>(() => {
+    if (openedFromLink('products')) {
+      return 'PRODUCT_LIST';
+    }
+    return openedFromLink('faq') ? 'FAQ' : 'CATEGORY';
+  });
+  const [faqReturn, setFaqReturn] = useState<View>('CATEGORY');
   // 첫 화면 흐름에서 고른 유형과 전체 목록에서 고른 유형은 따로 둔다. 헤더로 다른 유형을 봐도 진행 중인 흐름은 그대로다.
   const [categoryCode, setCategoryCode] = useState<string | null>(null);
   const [listCategoryCode, setListCategoryCode] = useState<string | null>(null);
@@ -64,11 +80,11 @@ export function App() {
   const [resultFailed, setResultFailed] = useState(false);
   // 목록의 정렬·검색 조건은 여기 둔다. 상세를 다녀와도 조작이 풀리지 않아야 한다.
   const [listState, setListState] = useState<ProductListState>(() => initialListState([]));
-  const [listMode, setListMode] = useState<ListMode>(() => (openedFromLink() ? 'ALL' : 'MATCHED'));
+  const [listMode, setListMode] = useState<ListMode>(() => (openedFromLink('products') ? 'ALL' : 'MATCHED'));
   // 맞춤 목록의 "전체 제품 보기"로 연 전체 목록은 검색 흐름이 아니라 맞춤 목록에서 필터를 푼 것이다. 뒤로 가면 맞춤 목록으로 돌아간다.
   const [allFromMatched, setAllFromMatched] = useState(false);
   const [matchedListState, setMatchedListState] = useState<ProductListState>(() => initialListState([]));
-  const [returnView, setReturnView] = useState<ReturnView>(() => (openedFromLink() ? 'CATEGORY' : 'RESULT'));
+  const [returnView, setReturnView] = useState<ReturnView>(() => (openedFromLink('products') ? 'CATEGORY' : 'RESULT'));
   // 사양 대조 화면은 목록이 제품을 받아올 때까지 띄운다. 상세를 다녀올 때는 다시 띄우지 않는다.
   const [searching, setSearching] = useState(false);
   const [productId, setProductId] = useState<number | null>(null);
@@ -148,7 +164,10 @@ export function App() {
     }
   };
 
-  const inSearchFlow = (view === 'PRODUCT_LIST' || view === 'PRODUCT_DETAIL') && listMode === 'ALL' && !allFromMatched;
+  // FAQ 를 보는 중이면 FAQ 를 열기 전 화면을 기준으로 판단한다.
+  const baseView = view === 'FAQ' ? faqReturn : view;
+  const inSearchFlow =
+    (baseView === 'PRODUCT_LIST' || baseView === 'PRODUCT_DETAIL') && listMode === 'ALL' && !allFromMatched;
 
   // 검색 흐름의 유형은 탭에서 고른다. null 이면 아무 탭도 고르지 않은 채 연다.
   const openAllProducts = (category: string | null, fromMatched: boolean) => {
@@ -166,8 +185,17 @@ export function App() {
       setView('PRODUCT_LIST');
       return;
     }
-    setReturnView(isReturnable(view) ? view : 'RESULT');
-    openAllProducts(view === 'CATEGORY' ? null : categoryCode, false);
+    setReturnView(isReturnable(baseView) ? baseView : 'RESULT');
+    openAllProducts(baseView === 'CATEGORY' ? null : categoryCode, false);
+  };
+
+  // 헤더의 "가이드". 연 화면을 기억해 두고, 닫으면 그 화면과 상태로 돌아간다(UC-10).
+  const openFaq = () => {
+    if (view === 'FAQ') {
+      return;
+    }
+    setFaqReturn(view);
+    setView('FAQ');
   };
 
   const changeListCategory = (code: string) => {
@@ -201,8 +229,17 @@ export function App() {
 
   return (
     <>
-      <SiteHeader onProductList={openSearch} />
+      <SiteHeader onGuide={openFaq} onProductList={openSearch} />
       <main className="probe" id="main-content">
+        {view === 'FAQ' && (
+          <FaqView
+            // 추천 흐름에서 제품 유형과 사용 목적을 모두 골랐다면 그 조합의 FAQ 를 보여준다.
+            categoryCode={purposeCode === null ? null : categoryCode}
+            purposeCode={purposeCode}
+            backLabel={faqBackLabel(faqReturn)}
+            onBack={() => setView(faqReturn)}
+          />
+        )}
         {view === 'CATEGORY' && (
           <SelectionView
             categoryCode={null}

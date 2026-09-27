@@ -1,0 +1,52 @@
+/* FAQ 목록과 답변. 제품 선택 화면과 같은 제목 크기를 쓴다. */
+
+.faq-view__title {
+    margin: 0;
+    font-size: var(--headline-lg-font-size);
+    font-weight: var(--headline-lg-font-weight);
+    line-height: var(--headline-lg-line-height);
+    letter-spacing: var(--headline-lg-letter-spacing);
+}
+
+.faq-list {
+    margin: 0;
+    border-top: 1px solid var(--on-surface);
+    padding: 0;
+    list-style: none;
+}
+
+.faq-list__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gutter);
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid var(--outline-variant);
+    padding: var(--gutter) 0;
+    color: var(--on-surface);
+    background: transparent;
+    font: inherit;
+    font-size: var(--body-lg-font-size);
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.faq-list__item:hover {
+    background: var(--surface-container-low);
+}
+
+.faq-list__item:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* 답변은 줄바꿈을 그대로 살린다. */
+.faq-answer {
+    margin: 0;
+    color: var(--on-surface);
+    font-size: var(--body-lg-font-size);
+    line-height: var(--body-lg-line-height);
+    white-space: pre-line;
+}
