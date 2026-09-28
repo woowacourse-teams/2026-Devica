@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { type FaqDetail, type FaqSummary, fetchFaq, fetchFaqs } from './faq';
+import { type SyntheticEvent, useEffect, useState } from 'react';
+import { type FaqSummary, fetchFaq, fetchFaqs } from './faq';
 import './FaqView.css';
 
 type Props = {
@@ -9,12 +9,11 @@ type Props = {
   onBack: () => void;
 };
 
-/** UC-10. 목록에서 질문을 고르면 답변을 보여준다. 답변에서 뒤로 가면 목록, 목록에서 뒤로 가면 들어오기 전 화면이다. */
+/** UC-10. 질문을 펼치면 그 자리에서 답변을 보여준다. 답이 짧고 여러 개를 한 번에 훑는 경우가 많아 화면을 옮기지 않는다. */
 export function FaqView({ categoryCode, purposeCode, backLabel, onBack }: Props) {
   // 아직 받지 못한 상태(null)와 실패를 빈 목록과 구분한다.
   const [faqs, setFaqs] = useState<FaqSummary[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const [slug, setSlug] = useState<string | null>(null);
 
   useEffect(() => {
     let stale = false;
@@ -35,10 +34,6 @@ export function FaqView({ categoryCode, purposeCode, backLabel, onBack }: Props)
       stale = true;
     };
   }, [categoryCode, purposeCode]);
-
-  if (slug !== null) {
-    return <FaqAnswer slug={slug} onBack={() => setSlug(null)} />;
-  }
 
   return (
     <section className="view-panel faq-view" aria-labelledby="faq-title">
@@ -65,10 +60,7 @@ export function FaqView({ categoryCode, purposeCode, backLabel, onBack }: Props)
         <ul className="faq-list">
           {faqs.map((faq) => (
             <li key={faq.slug}>
-              <button className="faq-list__item" type="button" onClick={() => setSlug(faq.slug)}>
-                <span>{faq.question}</span>
-                <span aria-hidden="true">→</span>
-              </button>
+              <FaqItem faq={faq} />
             </li>
           ))}
         </ul>
@@ -77,50 +69,46 @@ export function FaqView({ categoryCode, purposeCode, backLabel, onBack }: Props)
   );
 }
 
-function FaqAnswer({ slug, onBack }: { slug: string; onBack: () => void }) {
-  const [faq, setFaq] = useState<FaqDetail | null>(null);
+// 여러 개를 함께 펼쳐 둘 수 있다. 펼침 상태는 브라우저의 details 가 관리한다.
+function FaqItem({ faq }: { faq: FaqSummary }) {
+  // 목록 API 에는 답이 없다. 처음 펼칠 때 받고, 접었다 다시 펼쳐도 다시 받지 않는다.
+  const [answer, setAnswer] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const [requested, setRequested] = useState(false);
 
-  useEffect(() => {
-    let stale = false;
-    setFaq(null);
+  const load = (event: SyntheticEvent<HTMLDetailsElement>) => {
+    if (!event.currentTarget.open || requested) {
+      return;
+    }
+    setRequested(true);
     setFailed(false);
-    fetchFaq(slug)
-      .then((received) => {
-        if (!stale) {
-          setFaq(received);
-        }
-      })
+    fetchFaq(faq.slug)
+      .then((received) => setAnswer(received.answer))
       .catch(() => {
-        if (!stale) {
-          setFailed(true);
-        }
+        // 실패하면 다시 펼칠 때 다시 받는다.
+        setFailed(true);
+        setRequested(false);
       });
-    return () => {
-      stale = true;
-    };
-  }, [slug]);
+  };
 
   return (
-    <section className="view-panel faq-view" aria-labelledby="faq-answer-title">
-      <button className="text-button view-back-button" type="button" onClick={onBack}>
-        ← 질문 목록으로
-      </button>
-      {faq === null && !failed && <p className="section-description">답변을 불러오는 중입니다…</p>}
-      {/* 없거나 비공개인 질문도 같은 실패로 온다(#72). 목록으로 돌아가도록 안내한다. */}
-      {failed && (
-        <p className="notice" role="alert">
-          질문을 찾지 못했습니다. 질문 목록에서 다시 골라 주세요.
-        </p>
-      )}
-      {faq !== null && (
-        <>
-          <h1 className="faq-view__title" id="faq-answer-title">
-            {faq.question}
-          </h1>
-          <p className="faq-answer">{faq.answer}</p>
-        </>
-      )}
-    </section>
+    <details className="faq-item" onToggle={load}>
+      <summary className="faq-item__question">
+        <span>{faq.question}</span>
+        <span className="faq-item__marker" aria-hidden="true">
+          ▾
+        </span>
+      </summary>
+      <div className="faq-item__answer">
+        {answer === null && !failed && <p className="section-description">답변을 불러오는 중입니다…</p>}
+        {/* 없거나 비공개인 질문도 같은 실패로 온다(#72). */}
+        {failed && (
+          <p className="notice" role="alert">
+            답변을 불러오지 못했습니다. 접었다가 다시 펼쳐 주세요.
+          </p>
+        )}
+        {answer !== null && <p className="faq-answer">{answer}</p>}
+      </div>
+    </details>
   );
 }
