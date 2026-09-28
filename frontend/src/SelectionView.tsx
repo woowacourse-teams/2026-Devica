@@ -21,7 +21,7 @@ export function SelectionView({ categoryCode, onSelect, onBack }: Props) {
   // 아직 받지 못한 상태(null)와 실패를 빈 목록과 구분한다.
   const [cards, setCards] = useState<SelectionCard[] | null>(null);
   const [failed, setFailed] = useState(false);
-  // 사용 목적은 와이어프레임대로 고른 뒤 "다음"으로 넘어간다. 제품 유형은 누르면 바로 넘어간다.
+  // 두 화면 모두 고른 뒤 "다음"을 눌러야 넘어간다.
   const [picked, setPicked] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,14 +46,6 @@ export function SelectionView({ categoryCode, onSelect, onBack }: Props) {
       stale = true;
     };
   }, [categoryCode]);
-
-  const choose = (code: string) => {
-    if (choosingCategory) {
-      onSelect(code);
-      return;
-    }
-    setPicked(code);
-  };
 
   return (
     <section className="view-panel selection" aria-labelledby="selection-title">
@@ -86,8 +78,8 @@ export function SelectionView({ categoryCode, onSelect, onBack }: Props) {
                 className="selection__card"
                 type="button"
                 disabled={!card.available}
-                aria-pressed={choosingCategory ? undefined : picked === card.code}
-                onClick={() => choose(card.code)}
+                aria-pressed={picked === card.code}
+                onClick={() => setPicked(card.code)}
               >
                 <span className="selection__name">
                   {card.name}
@@ -100,16 +92,14 @@ export function SelectionView({ categoryCode, onSelect, onBack }: Props) {
         </ul>
       )}
 
-      {!choosingCategory && (
-        <button
-          className="button button--primary button--wide"
-          type="button"
-          disabled={picked === null}
-          onClick={() => picked !== null && onSelect(picked)}
-        >
-          다음
-        </button>
-      )}
+      <button
+        className="button button--primary button--wide"
+        type="button"
+        disabled={picked === null}
+        onClick={() => picked !== null && onSelect(picked)}
+      >
+        다음
+      </button>
     </section>
   );
 }
