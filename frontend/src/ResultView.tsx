@@ -26,7 +26,10 @@ export function ResultView({ specs, os, onChangeOs, onSearch }: Props) {
 
   // 원본은 두 OS 권장안을 늘 들고 있어 토글이 언제나 동작한다. 서버는 답에 맞는 OS 만 주므로
   // 받은 것만 고를 수 있게 한다. 하나뿐이면 고를 게 없어 토글을 감춘다.
-  const choices = specs.map((spec) => ({ value: osValueOf(spec), label: OS_LABEL[osValueOf(spec)] ?? osValueOf(spec) }));
+  const choices = specs.map((spec) => ({
+    value: osValueOf(spec),
+    label: OS_LABEL[osValueOf(spec)] ?? osValueOf(spec),
+  }));
   if (choices.length > 1) {
     choices.push({ value: 'BOTH', label: '둘 다' });
   }
@@ -54,7 +57,7 @@ export function ResultView({ specs, os, onChangeOs, onSearch }: Props) {
 
       <div className="spec-list" id="spec-list">
         {visible.map((spec) => (
-          <SpecCard key={osValueOf(spec)} spec={spec}/>
+          <SpecCard key={osValueOf(spec)} spec={spec} />
         ))}
       </div>
 
@@ -86,7 +89,9 @@ function SpecCard({ spec }: { spec: Spec }) {
             <strong className="spec-row__value">{item.displayValue}</strong>
             {/* 한 항목에 조건이 여럿 걸리면 근거도 여럿이라 줄을 나눠 적는다. */}
             {item.reasons.map((reason) => (
-              <p className="spec-row__reason" key={reason}>{reason}</p>
+              <p className="spec-row__reason" key={reason}>
+                {reason}
+              </p>
             ))}
           </section>
         );

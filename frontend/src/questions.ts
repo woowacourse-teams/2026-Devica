@@ -101,15 +101,17 @@ export function resolveScreens(questions: Question[], answers: Answers): Screen[
     }
 
     const single = visible.length === 1 && spec.labels === undefined;
-    return [{
-      title: spec.title ?? visible[0].title,
-      description: single ? visible[0].description : null,
-      currentSpec: spec.currentSpec ?? false,
-      questions: visible.map((question) => ({
-        question,
-        label: spec.labels?.[question.code] ?? (single ? null : question.title),
-      })),
-    }];
+    return [
+      {
+        title: spec.title ?? visible[0].title,
+        description: single ? visible[0].description : null,
+        currentSpec: spec.currentSpec ?? false,
+        questions: visible.map((question) => ({
+          question,
+          label: spec.labels?.[question.code] ?? (single ? null : question.title),
+        })),
+      },
+    ];
   });
 }
 

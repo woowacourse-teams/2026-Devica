@@ -177,7 +177,10 @@ function toQuery(spec: Spec | null, sort: SortType, condition: SearchCondition):
   }
   if (condition.cpuTier !== null) {
     // 등급은 OS 마다 따로 매겨진다. 권장 등급과 견주려면 어느 OS 의 등급인지 알아야 한다.
-    query.set('cpuTier', higherTier(query.get('os') ?? osOfTier(condition.cpuTier), query.get('cpuTier'), condition.cpuTier));
+    query.set(
+      'cpuTier',
+      higherTier(query.get('os') ?? osOfTier(condition.cpuTier), query.get('cpuTier'), condition.cpuTier),
+    );
   }
   if (condition.memoryGb !== null) {
     query.set('memoryGb', String(atLeast(query.get('memoryGb'), condition.memoryGb)));

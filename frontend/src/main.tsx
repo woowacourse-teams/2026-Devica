@@ -12,6 +12,6 @@ if (root === null) {
 
 createRoot(root).render(
   <StrictMode>
-    <App/>
+    <App />
   </StrictMode>,
 );

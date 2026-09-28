@@ -193,7 +193,7 @@ export function ProductListView({
   };
 
   if (matching) {
-    return <SearchLoadingView specs={specs}/>;
+    return <SearchLoadingView specs={specs} />;
   }
 
   return (
@@ -203,9 +203,13 @@ export function ProductListView({
       </button>
       <div className="product-list-heading">
         <div>
-          <p className="eyebrow" id="product-list-eyebrow">{heading.eyebrow}</p>
+          <p className="eyebrow" id="product-list-eyebrow">
+            {heading.eyebrow}
+          </p>
           <h2 id="product-list-title">{heading.title}</h2>
-          <p className="section-description" id="product-list-description">{heading.description}</p>
+          <p className="section-description" id="product-list-description">
+            {heading.description}
+          </p>
         </div>
         <div className="product-list-controls">
           <button
@@ -220,7 +224,11 @@ export function ProductListView({
           </button>
           <label className="product-list-control product-list-sort" htmlFor="product-sort">
             <span className="product-list-control__label">정렬</span>
-            <select id="product-sort" value={sort} onChange={(event) => onChangeState((previous) => ({ ...previous, sort: event.target.value as SortType }))}>
+            <select
+              id="product-sort"
+              value={sort}
+              onChange={(event) => onChangeState((previous) => ({ ...previous, sort: event.target.value as SortType }))}
+            >
               {SORT_LABELS.map(({ value, label }) => (
                 <option value={value} key={value} hidden={value === 'RECOMMENDED' && !recommendable}>
                   {label}
@@ -233,59 +241,59 @@ export function ProductListView({
 
       {/* 접어도 DOM 에 남긴다. 사라지면 aria-controls 가 없는 id 를 가리킨다. */}
       <div className="product-filter-panel" id="product-filter-panel" hidden={!filterOpen}>
-          <label className="product-filter product-filter--wide" htmlFor="product-filter-keyword">
-            <span className="product-filter__label">검색어</span>
-            <input
-              id="product-filter-keyword"
-              type="search"
-              value={typed}
-              placeholder="브랜드 · 제품명"
-              onChange={(event) => setTyped(event.target.value)}
-            />
-          </label>
-          <Filter
-            field="price"
-            label="가격"
-            value={condition.maxPrice === null ? '' : String(condition.maxPrice)}
-            choices={options.maxPrice.map((price) => ({ value: String(price), label: `${formatPrice(price)} 이하` }))}
-            onChange={(raw) => change('maxPrice', raw === '' ? null : Number(raw))}
+        <label className="product-filter product-filter--wide" htmlFor="product-filter-keyword">
+          <span className="product-filter__label">검색어</span>
+          <input
+            id="product-filter-keyword"
+            type="search"
+            value={typed}
+            placeholder="브랜드 · 제품명"
+            onChange={(event) => setTyped(event.target.value)}
           />
-          <Filter
-            field="os"
-            label="OS"
-            value={condition.os ?? ''}
-            choices={options.os.map((os) => ({ value: os, label: OS_GROUP_LABELS[os] ?? os }))}
-            onChange={(raw) => changeOs(raw === '' ? null : raw)}
-          />
-          <CpuFilter
-            groups={options.cpu}
-            value={condition.cpuTier ?? ''}
-            onChange={(raw) => change('cpuTier', raw === '' ? null : raw)}
-          />
-          <Filter
-            field="brand"
-            label="브랜드"
-            value={condition.brand ?? ''}
-            choices={options.brand.map((brand) => ({ value: brand, label: brand }))}
-            onChange={(raw) => change('brand', raw === '' ? null : raw)}
-          />
-          <Filter
-            field="memory"
-            label="RAM"
-            value={condition.memoryGb === null ? '' : String(condition.memoryGb)}
-            choices={options.memoryGb.map((memory) => ({ value: String(memory), label: `${memory}GB 이상` }))}
-            onChange={(raw) => change('memoryGb', raw === '' ? null : Number(raw))}
-          />
-          <Filter
-            field="storage"
-            label="저장장치"
-            value={condition.storageGb === null ? '' : String(condition.storageGb)}
-            choices={options.storageGb.map((storage) => ({
-              value: String(storage),
-              label: `${formatStorage(storage)} 이상`,
-            }))}
-            onChange={(raw) => change('storageGb', raw === '' ? null : Number(raw))}
-          />
+        </label>
+        <Filter
+          field="price"
+          label="가격"
+          value={condition.maxPrice === null ? '' : String(condition.maxPrice)}
+          choices={options.maxPrice.map((price) => ({ value: String(price), label: `${formatPrice(price)} 이하` }))}
+          onChange={(raw) => change('maxPrice', raw === '' ? null : Number(raw))}
+        />
+        <Filter
+          field="os"
+          label="OS"
+          value={condition.os ?? ''}
+          choices={options.os.map((os) => ({ value: os, label: OS_GROUP_LABELS[os] ?? os }))}
+          onChange={(raw) => changeOs(raw === '' ? null : raw)}
+        />
+        <CpuFilter
+          groups={options.cpu}
+          value={condition.cpuTier ?? ''}
+          onChange={(raw) => change('cpuTier', raw === '' ? null : raw)}
+        />
+        <Filter
+          field="brand"
+          label="브랜드"
+          value={condition.brand ?? ''}
+          choices={options.brand.map((brand) => ({ value: brand, label: brand }))}
+          onChange={(raw) => change('brand', raw === '' ? null : raw)}
+        />
+        <Filter
+          field="memory"
+          label="RAM"
+          value={condition.memoryGb === null ? '' : String(condition.memoryGb)}
+          choices={options.memoryGb.map((memory) => ({ value: String(memory), label: `${memory}GB 이상` }))}
+          onChange={(raw) => change('memoryGb', raw === '' ? null : Number(raw))}
+        />
+        <Filter
+          field="storage"
+          label="저장장치"
+          value={condition.storageGb === null ? '' : String(condition.storageGb)}
+          choices={options.storageGb.map((storage) => ({
+            value: String(storage),
+            label: `${formatStorage(storage)} 이상`,
+          }))}
+          onChange={(raw) => change('storageGb', raw === '' ? null : Number(raw))}
+        />
       </div>
 
       {!failed && base !== null && matched !== null && (
@@ -296,7 +304,9 @@ export function ProductListView({
 
       <div className="product-list" id="product-list" aria-live="polite" aria-busy={loading}>
         {failed ? (
-          <p className="notice" role="alert">제품 목록을 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.</p>
+          <p className="notice" role="alert">
+            제품 목록을 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.
+          </p>
         ) : matched === null ? (
           <p className="product-list-status">제품을 불러오는 중입니다…</p>
         ) : matched.length === 0 ? (
@@ -308,7 +318,7 @@ export function ProductListView({
             onShowAll={onShowAll}
           />
         ) : (
-          matched.map((product) => <ProductCard product={product} onDetail={onDetail} key={product.id}/>)
+          matched.map((product) => <ProductCard product={product} onDetail={onDetail} key={product.id} />)
         )}
       </div>
     </section>
@@ -319,7 +329,7 @@ function ProductCard({ product, onDetail }: { product: Product; onDetail: (produ
   return (
     <article className="bordered-panel product-card">
       {/* 제품 이미지 필드가 아직 응답에 없다. 틀만 두고 사진이 생기면 안을 채운다. */}
-      <div className="product-card__image-frame"/>
+      <div className="product-card__image-frame" />
       <div className="product-card__body">
         <div className="product-card__heading-row">
           <div>
@@ -366,7 +376,9 @@ function EmptyResult({ condition, hasCondition, showsAll, onReset, onShowAll }: 
       <div className="empty-result">
         <p>조건에 맞는 제품이 없습니다.</p>
         <p className="empty-result__condition">적용한 검색 조건 — {describeCondition(condition)}</p>
-        <button className="button button--secondary" type="button" onClick={onReset}>검색 조건 지우기</button>
+        <button className="button button--secondary" type="button" onClick={onReset}>
+          검색 조건 지우기
+        </button>
       </div>
     );
   }
@@ -375,7 +387,9 @@ function EmptyResult({ condition, hasCondition, showsAll, onReset, onShowAll }: 
     <div className="empty-result">
       <p>조건에 맞는 제품이 없습니다. 사양을 직접 조정해 다시 확인해 주세요.</p>
       {!showsAll && (
-        <button className="button button--secondary" type="button" onClick={onShowAll}>전체 제품 보기</button>
+        <button className="button button--secondary" type="button" onClick={onShowAll}>
+          전체 제품 보기
+        </button>
       )}
     </div>
   );
@@ -404,9 +418,12 @@ function Filter({ field, label, value, choices, onChange }: FilterProps) {
         onChange={(event) => onChange(event.target.value)}
       >
         <option value="">{usable ? '전체' : '선택지 없음'}</option>
-        {usable && choices.map(({ value: raw, label: text }) => (
-          <option value={raw} key={raw}>{text}</option>
-        ))}
+        {usable &&
+          choices.map(({ value: raw, label: text }) => (
+            <option value={raw} key={raw}>
+              {text}
+            </option>
+          ))}
       </select>
     </label>
   );
@@ -423,15 +440,23 @@ function CpuFilter({ groups, value, onChange }: CpuFilterProps) {
   return (
     <label className="product-filter" htmlFor="product-filter-cpu">
       <span className="product-filter__label">CPU</span>
-      <select id="product-filter-cpu" value={value} disabled={!usable} onChange={(event) => onChange(event.target.value)}>
+      <select
+        id="product-filter-cpu"
+        value={value}
+        disabled={!usable}
+        onChange={(event) => onChange(event.target.value)}
+      >
         <option value="">{usable ? '전체' : '선택지 없음'}</option>
-        {usable && groups.map(({ os, tiers }) => (
-          <optgroup label={OS_GROUP_LABELS[os] ?? os} key={os}>
-            {tiers.map((tier) => (
-              <option value={tier} key={tier}>{cpuFilterLabel(os, tier)}</option>
-            ))}
-          </optgroup>
-        ))}
+        {usable &&
+          groups.map(({ os, tiers }) => (
+            <optgroup label={OS_GROUP_LABELS[os] ?? os} key={os}>
+              {tiers.map((tier) => (
+                <option value={tier} key={tier}>
+                  {cpuFilterLabel(os, tier)}
+                </option>
+              ))}
+            </optgroup>
+          ))}
       </select>
     </label>
   );
@@ -443,11 +468,17 @@ function CpuFilter({ groups, value, onChange }: CpuFilterProps) {
  */
 function buildFilterOptions(products: Product[], specs: Spec[], os: string | null) {
   return {
-    maxPrice: PRICE_STEPS.filter((step) => products.some((product) => product.minPrice !== null && product.minPrice <= step)),
-    os: [...new Set(products.map((product) => specItem(product, 'OS')?.value ?? ''))].filter((value) => value !== '').sort(),
+    maxPrice: PRICE_STEPS.filter((step) =>
+      products.some((product) => product.minPrice !== null && product.minPrice <= step),
+    ),
+    os: [...new Set(products.map((product) => specItem(product, 'OS')?.value ?? ''))]
+      .filter((value) => value !== '')
+      .sort(),
     // 고른 OS 의 등급만 연다. 고르지 않았고 권장안도 없으면 등급표를 모두 연다.
-    cpu: (os !== null ? [os] : specs.length === 0 ? Object.keys(CPU_TIERS) : specs.map(osValueOf))
-      .map((value) => ({ os: value, tiers: CPU_TIERS[value] ?? [] })),
+    cpu: (os !== null ? [os] : specs.length === 0 ? Object.keys(CPU_TIERS) : specs.map(osValueOf)).map((value) => ({
+      os: value,
+      tiers: CPU_TIERS[value] ?? [],
+    })),
     brand: [...new Set(products.map((product) => product.brand))].sort((one, other) => one.localeCompare(other)),
     memoryGb: uniqueAscending(products, 'MEMORY'),
     storageGb: uniqueAscending(products, 'STORAGE'),
@@ -470,7 +501,9 @@ function describeCondition({ keyword, maxPrice, os, cpuTier, brand, memoryGb, st
     cpuTier !== null ? cpuFilterLabel(osOfTier(cpuTier) ?? '', cpuTier) : '',
     memoryGb !== null ? `RAM ${memoryGb}GB 이상` : '',
     storageGb !== null ? `저장장치 ${formatStorage(storageGb)} 이상` : '',
-  ].filter((text) => text !== '').join(' · ');
+  ]
+    .filter((text) => text !== '')
+    .join(' · ');
 }
 
 function specItem(product: Product, code: string): ProductSpecItem | undefined {

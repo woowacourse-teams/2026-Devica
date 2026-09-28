@@ -26,17 +26,19 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
   const answered = screen.questions.some(({ question }) => (answers[question.code] ?? []).length > 0);
   const last = index === screens.length - 1;
   // 답을 고르지 않아도 넘어갈 수 있다. 미응답은 서버가 기본값으로 처리한다.
-  const flowLabel = !answered ? '건너뛰기' : (last ? '결과 보기' : '다음');
-  const nextLabel = waiting ? '불러오는 중…' : (failed ? '다시 시도' : flowLabel);
+  const flowLabel = !answered ? '건너뛰기' : last ? '결과 보기' : '다음';
+  const nextLabel = waiting ? '불러오는 중…' : failed ? '다시 시도' : flowLabel;
 
   return (
     <section className="view-panel question-view" id="question-view" aria-live="polite">
       <p className="progress-meta">
         <span id="progress-label">사양 맞추는 중</span>
-        <span id="progress-count">{index + 1} / {screens.length}</span>
+        <span id="progress-count">
+          {index + 1} / {screens.length}
+        </span>
       </p>
       <div className="progress-track" aria-hidden="true">
-        <span id="progress-value" style={{ width: `${((index + 1) / screens.length) * 100}%` }}/>
+        <span id="progress-value" style={{ width: `${((index + 1) / screens.length) * 100}%` }} />
       </div>
 
       <div id="question-content">
@@ -46,7 +48,7 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
         {screen.currentSpec ? (
           <div className="current-spec-form">
             <p className="choice-hint">{HINT}</p>
-            <CurrentSpecFields screen={screen} answers={answers} onAnswer={onAnswer} waiting={waiting}/>
+            <CurrentSpecFields screen={screen} answers={answers} onAnswer={onAnswer} waiting={waiting} />
           </div>
         ) : (
           <>
@@ -96,7 +98,12 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
 }
 
 // 현재 사양은 레이블만 달린 칩 목록이다. OS 를 고르기 전에는 프로세서 선택지가 없다.
-function CurrentSpecFields({ screen, answers, onAnswer, waiting }: Pick<Props, 'answers' | 'onAnswer' | 'waiting'> & { screen: Screen }) {
+function CurrentSpecFields({
+  screen,
+  answers,
+  onAnswer,
+  waiting,
+}: Pick<Props, 'answers' | 'onAnswer' | 'waiting'> & { screen: Screen }) {
   const hasCpu = screen.questions.some(({ question }) => question.code.endsWith('_CPU'));
 
   return (
@@ -166,9 +173,7 @@ function QuestionGroup({ question, label, chosen, onAnswer, waiting }: GroupProp
           onClick={() => toggle(option.code)}
         >
           <span className="question-option__title">{option.content}</span>
-          {option.description !== null && (
-            <span className="question-option__description">{option.description}</span>
-          )}
+          {option.description !== null && <span className="question-option__description">{option.description}</span>}
         </button>
       ))}
     </fieldset>
