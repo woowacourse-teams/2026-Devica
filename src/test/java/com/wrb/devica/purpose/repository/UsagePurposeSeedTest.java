@@ -1,0 +1,36 @@
+package com.wrb.devica.purpose.repository;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.wrb.devica.common.FlywayTestConfiguration;
+import com.wrb.devica.purpose.domain.UsagePurpose;
+import com.wrb.devica.purpose.domain.UsagePurposeCode;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
+
+// 조회는 enum 으로 하므로 시드가 어긋나도 API 에는 증상이 없다
+@SpringBootTest
+@ActiveProfiles("flyway-test")
+@Import(FlywayTestConfiguration.class)
+@Transactional
+class UsagePurposeSeedTest {
+
+    @Autowired
+    private UsagePurposeRepository usagePurposeRepository;
+
+    @Test
+    void 시드된_사용_목적과_enum이_일대일로_대응한다() {
+        // when
+        List<UsagePurposeCode> seeded = usagePurposeRepository.findAll().stream()
+            .map(UsagePurpose::getCode)
+            .toList();
+
+        // then
+        assertThat(seeded).containsExactlyInAnyOrder(UsagePurposeCode.values());
+    }
+}

@@ -2,7 +2,7 @@ package com.wrb.devica.fixture;
 
 import static java.util.Objects.requireNonNullElse;
 
-import com.wrb.devica.product.Cpu;
+import com.wrb.devica.product.domain.Cpu;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.NoArgsConstructor;

@@ -1,5 +1,6 @@
 package com.wrb.devica.common;
 
+import com.wrb.devica.common.config.JpaAuditingConfig;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

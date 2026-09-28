@@ -8,11 +8,20 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
-import com.wrb.devica.category.ProductCategory;
-import com.wrb.devica.category.ProductCategoryCode;
-import com.wrb.devica.category.ProductCategoryRepository;
+import com.wrb.devica.category.domain.ProductCategory;
+import com.wrb.devica.category.domain.ProductCategoryCode;
+import com.wrb.devica.category.repository.ProductCategoryRepository;
 import com.wrb.devica.common.E2ETest;
 import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
+import com.wrb.devica.product.domain.Cpu;
+import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.Laptop;
+import com.wrb.devica.product.domain.OfferStatus;
+import com.wrb.devica.product.domain.Os;
+import com.wrb.devica.product.domain.Product;
+import com.wrb.devica.product.repository.CpuRepository;
+import com.wrb.devica.product.repository.LaptopRepository;
+import com.wrb.devica.product.repository.ProductOfferRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,7 +85,8 @@ class LaptopE2ETest extends E2ETest {
 
         // 조건을 하나씩만 어긋나게 둔다
         onSaleLaptop(laptop().brand("LG").name("os 프로").os(Os.MAC), 2_500_000L);
-        addOnSaleOffer(laptopRepository.save(laptop().category(category).cpu(cpu).brand("LG").name("cpu 프로").cpu(cpuRepository.save(cpu().score(5000).build())).build()), 2_500_000L);
+        addOnSaleOffer(laptopRepository.save(laptop().category(category).cpu(cpu).brand("LG").name("cpu 프로")
+            .cpu(cpuRepository.save(cpu().score(5000).build())).build()), 2_500_000L);
         onSaleLaptop(laptop().brand("LG").name("메모리 프로").memoryGb(8), 2_500_000L);
         onSaleLaptop(laptop().brand("LG").name("저장장치 프로").storageGb(256), 2_500_000L);
         onSaleLaptop(laptop().brand("LG").name("싼 프로"), 900_000L);

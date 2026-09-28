@@ -19,9 +19,9 @@ public class DatabaseCleaner {
     @SuppressWarnings("unchecked")
     void findTableNames() {
         tableNames = em.createNativeQuery("""
-                        SELECT table_name FROM information_schema.tables
-                        WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'
-                        """).getResultList();
+            SELECT table_name FROM information_schema.tables
+            WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'
+            """).getResultList();
     }
 
     @Transactional

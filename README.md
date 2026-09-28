@@ -66,9 +66,9 @@ Devica는 전자기기를 구매할 때 필요한 정보가 여러 곳에 흩어
 
 ## 멤버 소개
 
-| 와이제리(최용준) | 라텔(김규빈) | 밤밤(홍우현) |
-| :---: | :---: | :---: |
-| Backend | Backend | Backend |
+|                                                               와이제리(최용준)                                                               |                                                               라텔(김규빈)                                                               |                                                                     밤밤(홍우현)                                                                     |
+|:-------------------------------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------:|
+|                                                                Backend                                                                |                                                               Backend                                                               |                                                                     Backend                                                                     |
 | <a href="https://github.com/yj9107v"><img src="https://avatars.githubusercontent.com/yj9107v" width="150" alt="와이제리 GitHub 프로필"/></a> | <a href="https://github.com/bin1225"><img src="https://avatars.githubusercontent.com/bin1225" width="150" alt="라텔 GitHub 프로필"/></a> | <a href="https://github.com/Woohyeon-Hong"><img src="https://avatars.githubusercontent.com/Woohyeon-Hong" width="150" alt="밤밤 GitHub 프로필"/></a> |
 
 <br>

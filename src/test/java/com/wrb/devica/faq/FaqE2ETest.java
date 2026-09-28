@@ -5,6 +5,8 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 import com.wrb.devica.common.E2ETest;
+import com.wrb.devica.faq.domain.Faq;
+import com.wrb.devica.faq.repository.FaqRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 

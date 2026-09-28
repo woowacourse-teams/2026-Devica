@@ -3,9 +3,9 @@ package com.wrb.devica.fixture;
 import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 
-import com.wrb.devica.product.OfferStatus;
-import com.wrb.devica.product.Product;
-import com.wrb.devica.product.ProductOffer;
+import com.wrb.devica.product.domain.OfferStatus;
+import com.wrb.devica.product.domain.Product;
+import com.wrb.devica.product.domain.ProductOffer;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
