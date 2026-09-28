@@ -22,6 +22,7 @@ import com.wrb.devica.product.domain.Product;
 import com.wrb.devica.product.repository.CpuRepository;
 import com.wrb.devica.product.repository.LaptopRepository;
 import com.wrb.devica.product.repository.ProductOfferRepository;
+import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -250,7 +251,10 @@ class LaptopE2ETest extends E2ETest {
             .build());
 
         productOfferRepository.save(onSaleOffer(laptop, 2_990_000L));
-        productOfferRepository.save(onSaleOffer(laptop, 2_850_000L));
+        productOfferRepository.save(offer()
+            .product(laptop)
+            .price(2_850_000L).checkedAt(LocalDate.of(2026, 8, 19))
+            .build());
         productOfferRepository.save(offer()
             .product(laptop)
             .price(2_500_000L).status(OfferStatus.SOLD_OUT)
@@ -263,7 +267,8 @@ class LaptopE2ETest extends E2ETest {
             .body("name", is("gram Pro 16"))
             .body("specs.code", contains("OS", "CPU", "MEMORY", "STORAGE", "CPU_CORE", "SCREEN_SIZE", "WEIGHT"))
             .body("offers.price", contains(2_850_000, 2_990_000))
-            .body("offers[0].purchaseUrl", is("https://example.com/" + laptop.getCode()));
+            .body("offers[0].purchaseUrl", is("https://example.com/" + laptop.getCode()))
+            .body("offers.checkedAt", contains("2026-08-19", null));
     }
 
     // UC-11: 판매처가 없어도 제품 정보는 볼 수 있다
