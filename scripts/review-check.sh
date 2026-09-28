@@ -3,7 +3,7 @@
 #
 #   scripts/review-check.sh [커밋]   기본값 HEAD
 #
-# 통과 조건: frontend/ 에 변경이 없거나, .review/*.md 중 diff-hash 가 일치하고 미해결 필수 항목이 없는 기록이 있다.
+# 통과 조건: frontend/ 에 변경이 없거나, .review/*.md 중 diff-hash 가 일치하고 모든 항목이 끝난(필수는 해결·기각, 권장은 미해결도 허용) 기록이 있다.
 # 기록은 작업 트리가 아니라 커밋에서 읽는다. 기록을 커밋하지 않고 push 하면 CI 에서 막히기 때문이다.
 #
 # 해시의 기준 브랜치는 기록의 base: 줄을 따른다(없으면 origin/develop). 다른 PR 위에 쌓은 브랜치는 부모 브랜치가 적힌다.
@@ -45,12 +45,26 @@ for record in $RECORDS; do
   hash=$("$SCRIPT_DIR/review-hash.sh" -b "$base" "$REV")
   echo "$content" | grep -qx "diff-hash: $hash" || continue
 
-  # 표의 5번째 칸(구분)이 필수이고 6번째 칸(상태)이 미해결인 행
-  unresolved=$(echo "$content" | awk -F'|' '
+  # 표의 행마다 칸 수와 상태를 허용 목록으로 검사한다. 실패할 값 하나만 찾으면 빈 칸이나 오타가 통과한다.
+  # 칸: 규칙 ID | 위치 | 지적 | 구분 | 상태 | 비고. 내용 안의 | 는 \| 로 쓰고, 칸을 나누기 전에 지운다.
+  invalid=$(echo "$content" | awk '
     function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
-    /^\|/ && trim($5) == "필수" && trim($6) == "미해결" { print "  - " trim($2) " " trim($3) }')
-  [ -z "$unresolved" ] || fail "$record 에 미해결 필수 항목이 있습니다.
-$unresolved"
+    !/^\|/ { next }
+    {
+      line = $0
+      gsub(/\\\|/, "", line)
+      n = split(line, c, "|")
+      id = trim(c[2])
+      if (id == "규칙 ID" || id ~ /^-+$/) next
+      if (n != 8) { print "  - " id ": 칸이 6개가 아닙니다. 내용 안의 | 는 \\| 로 씁니다."; next }
+      kind = trim(c[5]); state = trim(c[6]); note = trim(c[7])
+      if (kind == "필수" && state != "해결" && state != "기각") print "  - " id " " trim(c[3]) ": 필수 항목의 상태는 해결 또는 기각이어야 합니다 (현재: " state ")"
+      else if (kind == "권장" && state != "해결" && state != "기각" && state != "미해결") print "  - " id " " trim(c[3]) ": 상태는 해결, 기각, 미해결 중 하나여야 합니다 (현재: " state ")"
+      else if (kind != "필수" && kind != "권장") print "  - " id ": 구분은 필수 또는 권장이어야 합니다 (현재: " kind ")"
+      else if ((state == "기각" || state == "미해결") && note == "") print "  - " id " " trim(c[3]) ": " state " 항목은 비고에 이유를 적어야 합니다"
+    }')
+  [ -z "$invalid" ] || fail "$record 에 끝나지 않았거나 잘못 적힌 항목이 있습니다.
+$invalid"
 
   echo "✔ 리뷰 검사 통과: $record (기준 $base)"
   exit 0
