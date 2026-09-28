@@ -179,6 +179,8 @@ export function App() {
             onBack={() => setView('CATEGORY')}
             onSelect={(code) => {
               setPurposeCode(code);
+              // 이전 목적에서 실패한 권장 사양 안내가 새 목적의 첫 화면에 남지 않게 한다.
+              setResultFailed(false);
               setView('INTRO');
             }}
           />
