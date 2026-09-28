@@ -1,0 +1,87 @@
+/* 제품 선택과 사용 목적 선택이 함께 쓴다. */
+
+.selection__title {
+    margin: 0;
+    font-size: var(--headline-lg-font-size);
+    font-weight: var(--headline-lg-font-weight);
+    line-height: var(--headline-lg-line-height);
+    letter-spacing: var(--headline-lg-letter-spacing);
+}
+
+/* 좁은 화면은 한 열, 넓은 화면은 두 열이다. 항목이 4개라 2×2 로 빈칸 없이 채워진다. */
+.selection__list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--density-high);
+    margin: 0;
+    border-top: 1px solid var(--outline);
+    padding: var(--gutter) 0 0;
+    list-style: none;
+}
+
+/* 같은 줄의 카드는 설명 길이가 달라도 높이를 맞춘다. */
+.selection__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--density-high);
+    width: 100%;
+    height: 100%;
+    border: 1px solid var(--outline);
+    padding: var(--gutter);
+    color: var(--on-surface);
+    background: var(--surface-container-lowest);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.selection__card:hover:not(:disabled),
+.selection__card[aria-pressed="true"] {
+    border-color: var(--primary);
+    box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.selection__card:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.selection__card:disabled {
+    border-color: var(--outline-variant);
+    color: var(--outline);
+    background: var(--surface);
+    cursor: not-allowed;
+}
+
+.selection__name {
+    display: flex;
+    align-items: center;
+    gap: var(--density-high);
+    font-size: var(--headline-md-font-size);
+    font-weight: var(--headline-md-font-weight);
+    line-height: var(--headline-md-line-height);
+}
+
+.selection__badge {
+    padding: var(--unit) var(--density-high);
+    color: var(--on-surface-variant);
+    background: var(--surface-container-high);
+    font-size: var(--label-md-font-size);
+    font-weight: var(--label-md-font-weight);
+}
+
+.selection__description {
+    color: var(--on-surface-variant);
+    font-size: var(--body-md-font-size);
+    line-height: var(--body-md-line-height);
+}
+
+.selection__card:disabled .selection__description {
+    color: var(--outline);
+}
+
+@media (min-width: 768px) {
+    .selection__list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
