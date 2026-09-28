@@ -49,6 +49,14 @@ class CpuTierTest {
     }
 
     @Test
+    void 등급은_OS_별로_모아_낮은_등급부터_줄_세운다() {
+        // when & then
+        assertThat(CpuTier.inOrder()).containsExactly(
+            CpuTier.U, CpuTier.P_HS, CpuTier.H, CpuTier.HX,
+            CpuTier.BASIC, CpuTier.PRO, CpuTier.MAX);
+    }
+
+    @Test
     void 등급_비교는_점수로_한다() {
         // when & then
         assertThat(CpuTier.H.higherOf(CpuTier.P_HS)).isEqualTo(CpuTier.H);

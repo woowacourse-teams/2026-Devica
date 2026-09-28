@@ -271,6 +271,17 @@ class LaptopE2ETest extends E2ETest {
             .body("offers.checkedAt", contains("2026-08-19", null));
     }
 
+    // UC-08: CPU 필터 선택지는 서버의 등급을 쓴다. 등급을 바꿔도 화면을 고치지 않는다
+    @Test
+    void CPU_등급을_조회하면_OS_별로_낮은_등급부터_받는다() {
+        given()
+            .when().get("/api/cpu-tiers")
+            .then().statusCode(200)
+            .body("code", contains("U", "P_HS", "H", "HX", "BASIC", "PRO", "MAX"))
+            .body("[0].name", is("저전력 Core Ultra 5 / Ryzen 5"))
+            .body("[4].os", is("MAC"));
+    }
+
     // UC-11: 판매처가 없어도 제품 정보는 볼 수 있다
     @Test
     void 판매_중인_판매처가_없어도_상세를_받는다() {
