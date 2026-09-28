@@ -41,7 +41,7 @@ class RecommendationE2ETest extends E2ETest {
             .body("specs[0].items.find { it.code == 'OS' }.value", is("WINDOWS"))
             .body("specs[0].items.find { it.code == 'REQUIRED_CPU' }.value", is("H"))
             .body("specs[0].items.find { it.code == 'MEMORY' }.displayValue", is("32GB"))
-            .body("specs[0].items.find { it.code == 'STORAGE' }.displayValue", is("1024GB"))
+            .body("specs[0].items.find { it.code == 'STORAGE' }.displayValue", is("1TB"))
             .body("specs[0].items.find { it.code == 'MEMORY' }.reasons",
                 hasItem("권장 메모리는 32GB 입니다."));
     }

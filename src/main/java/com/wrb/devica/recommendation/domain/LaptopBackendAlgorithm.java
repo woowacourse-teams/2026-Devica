@@ -17,6 +17,7 @@ import static com.wrb.devica.question.domain.QuestionCode.USAGE_PERIOD;
 import com.wrb.devica.product.domain.CpuTier;
 import com.wrb.devica.product.domain.LaptopSpec;
 import com.wrb.devica.product.domain.Os;
+import com.wrb.devica.product.domain.StorageSize;
 import com.wrb.devica.purpose.domain.UsagePurposeCode;
 import com.wrb.devica.question.domain.OptionCode;
 import com.wrb.devica.question.domain.QuestionCode;
@@ -125,7 +126,7 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
         }
         cpuReasons.add("권장 CPU 는 " + spec.cpuTier().getDisplayName() + " 입니다.");
         reasons.get(MEMORY_ITEM).add("권장 메모리는 " + spec.memoryGb() + "GB 입니다.");
-        reasons.get(STORAGE_ITEM).add("권장 저장 공간은 " + spec.storageGb() + "GB 입니다.");
+        reasons.get(STORAGE_ITEM).add("권장 저장 공간은 " + StorageSize.display(spec.storageGb()) + " 입니다.");
     }
 
     private int calculateMemory(Answers answers, List<String> reasons) {

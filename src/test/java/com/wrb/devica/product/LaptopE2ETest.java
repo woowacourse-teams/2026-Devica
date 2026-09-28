@@ -74,7 +74,7 @@ class LaptopE2ETest extends E2ETest {
             .body("content.size()", is(1))
             .body("content[0].name", is("gram Pro 16"))
             .body("content[0].specs.code", contains("OS", "CPU", "MEMORY", "STORAGE"))
-            .body("content[0].specs.displayValue", contains("Windows", "Intel Core Ultra 7 255H", "32GB", "1024GB"))
+            .body("content[0].specs.displayValue", contains("Windows", "Intel Core Ultra 7 255H", "32GB", "1TB"))
             .body("content[0].minPrice", is(2_850_000));
     }
 
