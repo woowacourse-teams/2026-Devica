@@ -150,7 +150,7 @@ export function App() {
 
   const inSearchFlow = (view === 'PRODUCT_LIST' || view === 'PRODUCT_DETAIL') && listMode === 'ALL' && !allFromMatched;
 
-  // 검색 흐름의 유형은 탭에서 고른다. null 이면 탭이 고를 수 있는 첫 유형을 대신 고른다.
+  // 검색 흐름의 유형은 탭에서 고른다. null 이면 아무 탭도 고르지 않은 채 연다.
   const openAllProducts = (category: string | null, fromMatched: boolean) => {
     setListCategoryCode(category);
     setAllFromMatched(fromMatched);
@@ -254,6 +254,15 @@ export function App() {
         )}
         {view === 'PRODUCT_LIST' && inSearchFlow && (
           <CategoryTabs selected={listCategoryCode} onSelect={changeListCategory} />
+        )}
+        {/* 목록은 유형이 정해져야 그린다. 고르기 전에도 돌아갈 수 있게 뒤로 가기는 여기서 둔다. */}
+        {view === 'PRODUCT_LIST' && shownCategoryCode === null && (
+          <section className="view-panel" aria-label="제품 유형 선택 안내">
+            <button className="text-button view-back-button" type="button" onClick={closeList}>
+              {listBackLabel}
+            </button>
+            <p className="section-description">위에서 제품 유형을 골라 주세요.</p>
+          </section>
         )}
         {view === 'PRODUCT_LIST' && shownCategoryCode !== null && (
           <ProductListView

@@ -3,7 +3,7 @@ import { CATEGORY_DISPLAY, fetchCategories, type SelectionCard, toCards } from '
 import './CategoryTabs.css';
 
 type Props = {
-  // 아직 고르지 않았으면 null 이다. 목록을 받으면 고를 수 있는 첫 유형을 대신 고른다.
+  // 추천 흐름에서 유형을 고르기 전에 들어왔으면 null 이다. 대신 고르지 않고 사용자가 탭을 누르게 한다.
   selected: string | null;
   onSelect: (code: string) => void;
 };
@@ -31,14 +31,6 @@ export function CategoryTabs({ selected, onSelect }: Props) {
       stale = true;
     };
   }, []);
-
-  // 추천 흐름에서 유형을 고르지 않고 들어왔다면 고를 수 있는 첫 유형을 연다. 지금은 노트북 하나라 한 번 더 누르게 할 이유가 없다.
-  useEffect(() => {
-    const first = cards?.find((card) => card.available);
-    if (selected === null && first !== undefined) {
-      onSelect(first.code);
-    }
-  }, [cards, selected, onSelect]);
 
   if (failed) {
     return (
