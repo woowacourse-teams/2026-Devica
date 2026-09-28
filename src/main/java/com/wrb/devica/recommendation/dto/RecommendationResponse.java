@@ -13,14 +13,16 @@ public record RecommendationResponse(List<SpecResponse> specs) {
             .toList());
     }
 
-    public record SpecResponse(List<ItemResponse> items) {
+    public record SpecResponse(List<ItemResponse> items, boolean preferred) {
 
         private static SpecResponse from(RecommendedSpec recommended) {
-            return new SpecResponse(recommended.spec().values().stream()
-                .map(value -> ItemResponse.of(
-                    value,
-                    recommended.itemReasons().getOrDefault(value.code(), List.of())))
-                .toList());
+            return new SpecResponse(
+                recommended.spec().values().stream()
+                    .map(value -> ItemResponse.of(
+                        value,
+                        recommended.itemReasons().getOrDefault(value.code(), List.of())))
+                    .toList(),
+                recommended.preferred());
         }
     }
 

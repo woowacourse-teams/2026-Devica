@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.springframework.stereotype.Component;
 
 /**
@@ -86,19 +87,16 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
 
     @Override
     public List<RecommendedSpec> recommend(Answers answers) {
-        return targetOsList(answers).stream()
+        return Stream.of(Os.MAC, Os.WINDOWS)
             .map(os -> recommendFor(os, answers))
             .toList();
     }
 
-    private List<Os> targetOsList(Answers answers) {
-        if (answers.has(PREFERRED_OS, PreferredOs.MACOS)) {
-            return List.of(Os.MAC);
-        }
-        if (answers.has(PREFERRED_OS, PreferredOs.WINDOWS)) {
-            return List.of(Os.WINDOWS);
-        }
-        return List.of(Os.MAC, Os.WINDOWS);
+    private boolean isPreferred(Os os, Answers answers) {
+        return switch (os) {
+            case MAC -> answers.has(PREFERRED_OS, PreferredOs.MACOS);
+            case WINDOWS -> answers.has(PREFERRED_OS, PreferredOs.WINDOWS);
+        };
     }
 
     private RecommendedSpec recommendFor(Os os, Answers answers) {
@@ -111,7 +109,7 @@ public class LaptopBackendAlgorithm implements RecommendationAlgorithm {
 
         LaptopSpec spec = buyableSpec(os, cpuTier, memoryGb, storageGb, reasons);
         addResultReasons(spec, answers, reasons);
-        return new RecommendedSpec(spec, reasons);
+        return new RecommendedSpec(spec, reasons, isPreferred(os, answers));
     }
 
     /**
