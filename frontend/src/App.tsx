@@ -266,8 +266,8 @@ export function App() {
         )}
         {view === 'PRODUCT_LIST' && shownCategoryCode !== null && (
           <ProductListView
-            // 유형이 바뀌면 새로 그린다. 받아 둔 이전 유형의 제품이 새 유형의 결과처럼 보이지 않고 불러오는 중부터 시작한다.
-            key={shownCategoryCode}
+            // 유형이나 목록 모드(맞춤·전체)가 바뀌면 새로 그린다. 받아 둔 이전 목록이 새 결과처럼 보이지 않고 불러오는 중부터 시작한다.
+            key={`${listMode}-${shownCategoryCode}`}
             categoryCode={shownCategoryCode}
             mode={listMode}
             specs={listMode === 'ALL' ? [] : visibleSpecs}
