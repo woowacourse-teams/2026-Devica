@@ -1,0 +1,75 @@
+/* FAQ 목록. 질문을 펼치면 아래에 답변이 열린다. 제품 선택 화면과 같은 제목 크기를 쓴다. */
+
+.faq-view__title {
+    margin: 0;
+    font-size: var(--headline-lg-font-size);
+    font-weight: var(--headline-lg-font-weight);
+    line-height: var(--headline-lg-line-height);
+    letter-spacing: var(--headline-lg-letter-spacing);
+}
+
+.faq-list {
+    margin: 0;
+    border-top: 1px solid var(--on-surface);
+    padding: 0;
+    list-style: none;
+}
+
+.faq-item {
+    border-bottom: 1px solid var(--outline-variant);
+}
+
+.faq-item__question {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--gutter);
+    padding: var(--gutter) 0;
+    color: var(--on-surface);
+    font-size: var(--body-lg-font-size);
+    font-weight: 600;
+    cursor: pointer;
+    /* 기본 삼각형 표시는 브라우저마다 달라 지우고 오른쪽 표시로 대신한다. */
+    list-style: none;
+}
+
+.faq-item__question::-webkit-details-marker {
+    display: none;
+}
+
+.faq-item__question:hover {
+    background: var(--surface-container-low);
+}
+
+.faq-item__question:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.faq-item__marker {
+    flex-shrink: 0;
+    transition: transform 0.15s;
+}
+
+.faq-item[open] .faq-item__marker {
+    transform: rotate(180deg);
+}
+
+.faq-item__answer {
+    padding: 0 0 var(--gutter);
+}
+
+/* 답변은 줄바꿈을 그대로 살린다. */
+.faq-answer {
+    margin: 0;
+    color: var(--on-surface);
+    font-size: var(--body-lg-font-size);
+    line-height: var(--body-lg-line-height);
+    white-space: pre-line;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .faq-item__marker {
+        transition: none;
+    }
+}
