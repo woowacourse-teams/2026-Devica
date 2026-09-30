@@ -12,12 +12,12 @@ export function SiteHeader({ onGuide, onProductList }: Props) {
         <a className="site-logo" href="/">
           DEVICA
         </a>
-        {/* 원본은 같은 페이지에서 화면만 바꾼다. 주소로 들어온 경우를 위해 href 는 남긴다. */}
+        {/* 누르면 앱 안에서 화면을 옮긴다. 새 탭으로 열 때를 위해 href 는 실제 주소를 둔다. */}
         <nav className="site-nav" aria-label="주요 메뉴">
           <a
             className="site-nav__item"
             id="nav-guide-button"
-            href="/?view=faq"
+            href="/faq"
             onClick={(event) => {
               event.preventDefault();
               onGuide();
@@ -28,7 +28,7 @@ export function SiteHeader({ onGuide, onProductList }: Props) {
           <a
             className="site-nav__item"
             id="nav-product-list-button"
-            href="/?view=products"
+            href="/products"
             onClick={(event) => {
               event.preventDefault();
               onProductList();

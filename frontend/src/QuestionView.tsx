@@ -12,12 +12,9 @@ type Props = {
   onAnswer: (code: string, values: string[]) => void;
   onPrevious: () => void;
   onNext: () => void;
-  // 권장 사양을 기다리는 동안은 답을 바꾸거나 화면을 옮길 수 없다.
-  waiting: boolean;
-  failed: boolean;
 };
 
-export function QuestionView({ screens, index, answers, onAnswer, onPrevious, onNext, waiting, failed }: Props) {
+export function QuestionView({ screens, index, answers, onAnswer, onPrevious, onNext }: Props) {
   const screen = screens[index];
   if (screen === undefined) {
     return null;
@@ -26,8 +23,7 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
   const answered = screen.questions.some(({ question }) => (answers[question.code] ?? []).length > 0);
   const last = index === screens.length - 1;
   // 답을 고르지 않아도 넘어갈 수 있다. 미응답은 서버가 기본값으로 처리한다.
-  const flowLabel = !answered ? '건너뛰기' : last ? '결과 보기' : '다음';
-  const nextLabel = waiting ? '불러오는 중…' : failed ? '다시 시도' : flowLabel;
+  const nextLabel = !answered ? '건너뛰기' : last ? '결과 보기' : '다음';
 
   return (
     <section className="view-panel question-view" id="question-view" aria-live="polite">
@@ -48,7 +44,7 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
         {screen.currentSpec ? (
           <div className="current-spec-form">
             <p className="choice-hint">{HINT}</p>
-            <CurrentSpecFields screen={screen} answers={answers} onAnswer={onAnswer} waiting={waiting} />
+            <CurrentSpecFields screen={screen} answers={answers} onAnswer={onAnswer} />
           </div>
         ) : (
           <>
@@ -60,34 +56,20 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
                 label={label}
                 chosen={answers[question.code] ?? []}
                 onAnswer={onAnswer}
-                waiting={waiting}
               />
             ))}
           </>
         )}
       </div>
 
-      {failed && (
-        <p className="notice" role="alert">
-          권장 사양을 불러오지 못했습니다. 답변은 그대로 두었으니 다시 시도해 주세요.
-        </p>
-      )}
-
       <div className="flow-actions">
-        <button
-          className="button button--secondary"
-          id="previous-button"
-          type="button"
-          disabled={waiting}
-          onClick={onPrevious}
-        >
+        <button className="button button--secondary" id="previous-button" type="button" onClick={onPrevious}>
           이전
         </button>
         <button
           className={`button ${answered ? 'button--primary' : 'button--skip'}`}
           id="next-button"
           type="button"
-          disabled={waiting}
           onClick={onNext}
         >
           {nextLabel}
@@ -98,12 +80,7 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
 }
 
 // 현재 사양은 레이블만 달린 칩 목록이다. OS 를 고르기 전에는 프로세서 선택지가 없다.
-function CurrentSpecFields({
-  screen,
-  answers,
-  onAnswer,
-  waiting,
-}: Pick<Props, 'answers' | 'onAnswer' | 'waiting'> & { screen: Screen }) {
+function CurrentSpecFields({ screen, answers, onAnswer }: Pick<Props, 'answers' | 'onAnswer'> & { screen: Screen }) {
   const hasCpu = screen.questions.some(({ question }) => question.code.endsWith('_CPU'));
 
   return (
@@ -116,7 +93,6 @@ function CurrentSpecFields({
               choices={question.options.map((option) => ({ value: option.code, label: option.content }))}
               value={answers[question.code]?.[0] ?? null}
               onChange={(value) => onAnswer(question.code, value === null ? [] : [value])}
-              disabled={waiting}
             />
           </fieldset>
           {/* 프로세서는 OS 다음 자리다. 고르기 전이라 선택지가 없어도 자리는 지킨다. */}
@@ -137,10 +113,9 @@ type GroupProps = {
   label: string | null;
   chosen: string[];
   onAnswer: (code: string, values: string[]) => void;
-  waiting: boolean;
 };
 
-function QuestionGroup({ question, label, chosen, onAnswer, waiting }: GroupProps) {
+function QuestionGroup({ question, label, chosen, onAnswer }: GroupProps) {
   const exclusiveCode = question.options.find((option) => option.exclusive)?.code ?? null;
 
   const toggle = (optionCode: string) => {
@@ -168,7 +143,6 @@ function QuestionGroup({ question, label, chosen, onAnswer, waiting }: GroupProp
           className="question-option"
           type="button"
           key={option.code}
-          disabled={waiting}
           aria-pressed={chosen.includes(option.code)}
           onClick={() => toggle(option.code)}
         >
