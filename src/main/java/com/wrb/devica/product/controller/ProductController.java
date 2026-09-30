@@ -1,12 +1,16 @@
 package com.wrb.devica.product.controller;
 
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.Product;
+import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.dto.CpuTierResponse;
 import com.wrb.devica.product.dto.LaptopSearchCondition;
 import com.wrb.devica.product.dto.PageCondition;
 import com.wrb.devica.product.dto.ProductDetailResponse;
 import com.wrb.devica.product.dto.ProductListResponse;
 import com.wrb.devica.product.dto.ProductSummaryResponse;
+import com.wrb.devica.product.service.ProductImageUrlResolver;
+import com.wrb.devica.product.service.ProductOfferService;
 import com.wrb.devica.product.service.ProductService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductOfferService productOfferService;
+    private final ProductImageUrlResolver productImageUrlResolver;
 
     @GetMapping("/api/product-categories/{categoryCode}/products")
     public ResponseEntity<ProductListResponse> findProductsByCategory(
@@ -47,7 +53,11 @@ public class ProductController {
 
     @GetMapping("/api/products/{id}")
     public ResponseEntity<ProductDetailResponse> findProductById(@PathVariable Long id) {
-        ProductDetailResponse productDetailResponse = productService.findProductDetailById(id);
+        Product product = productService.findProductById(id);
+        List<ProductOffer> offers = productOfferService.findOnSaleOffers(product.getId());
+        String imageUrl = productImageUrlResolver.resolve(product.getImageKey());
+
+        ProductDetailResponse productDetailResponse = ProductDetailResponse.of(product, offers, imageUrl);
         return ResponseEntity.ok().body(productDetailResponse);
     }
 }
