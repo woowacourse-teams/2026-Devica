@@ -6,6 +6,9 @@ spring:
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  jpa:
+    show-sql: false
+
 logging:
   structured:
     format:
