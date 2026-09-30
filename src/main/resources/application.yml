@@ -7,6 +7,8 @@ spring:
 
   flyway:
     enabled: true
+    # 이력 없는 기존 DB 를 기준선으로 삼지 않는다. 빈 DB 에서 시작한다 (ADR 0028)
+    baseline-on-migrate: false
 
   jpa:
     open-in-view: false

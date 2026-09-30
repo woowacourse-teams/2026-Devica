@@ -21,3 +21,10 @@ management:
     web:
       exposure:
         include: health
+
+# 팀원 확인용으로 켜 둔다 (ADR 0020)
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
