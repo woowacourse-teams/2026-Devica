@@ -12,6 +12,11 @@ prometheus.exporter.unix "host" {
   sysfs_path     = "/host/sys"
   rootfs_path    = "/host/root"
   set_collectors = ["cpu", "meminfo", "vmstat", "filesystem", "loadavg"]
+
+  // rootfs 에는 루트 디스크의 디렉터리 하나만 마운트하므로 / 외의 마운트 지점은 잴 수 없다.
+  filesystem {
+    mount_points_exclude = "^/.+"
+  }
 }
 
 prometheus.scrape "host" {
