@@ -1,0 +1,1491 @@
+{
+  "schemaVersion": 1,
+  "preparedAt": "2026-09-28",
+  "sourceFile": "source-products.json",
+  "cpuFile": "cpus.json",
+  "schemaMapping": {
+    "product": "Product의 공통 필드. categoryCode는 product_category.code로 id를 조회하는 적재용 키다.",
+    "laptop": "Laptop의 사양 필드. cpuKey는 cpus.json의 CPU와 cpu_id를 연결하는 적재용 키다. screenSizeInch는 DECIMAL(3,1)에 맞춰 소수 한 자리 문자열로 기록했다.",
+    "offers": "ProductOffer의 필드. productId는 Product 삽입 후 생성된 id로 연결한다. externalItemId는 쿠팡 vendorItemId를 보존한다.",
+    "metadata": "출처, 가격 확인일, 이미지 키, 검수 상태를 보존한다. priceCheckedAt은 product_offer.checked_at, imageKey는 product.image_key로 적재한다."
+  },
+  "registrationPolicy": {
+    "requiredStatus": "READY",
+    "rejectMissingRequiredSpecs": true,
+    "ids": "DB_GENERATED",
+    "timestamps": "INSERT_TIME",
+    "note": "scripts/generate_product_seed.py로 JSON을 Flyway 시드 SQL로 변환한다. 가격 확인일을 created_at으로 대체하지 않는다. releasedAt은 일 단위로 조사하지 않아 null이다. offers.status는 원본 active의 당시 상태이며 전체 20개 제품의 현재 재고를 확인한 값이 아니다. 일부 제품은 원본 제조사 모델과 판매 구성이 달라 별도로 검증했다."
+  },
+  "storage": {
+    "provider": "AWS_S3",
+    "imageDirectory": "images",
+    "imageKeyTemplate": "devica/dev/product-images/{prototypeId}/{sha256}.webp",
+    "uploadStatus": "UPLOADED",
+    "cloudFront": "DEFERRED",
+    "note": "S3의 devica/dev/product-images/에 있는 WebP 객체 20개를 확인했다. imageKey는 S3 객체 키 전체이며 PRODUCT_IMAGE_BASE_URL은 버킷 주소를 기본값으로 사용한다."
+  },
+  "specSourceRegistry": {
+    "apple-air": {
+      "url": "https://www.apple.com/kr/macbook-air/specs/",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "CHIP_AND_SCREEN_SIZE",
+      "note": "M5 Air 제품군. 13형 1.23kg, 15형 1.51kg."
+    },
+    "apple-air-screen": {
+      "url": "https://www.apple.com/newsroom/2026/03/apple-introduces-the-new-macbook-air-with-m5/",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "CHIP_AND_SCREEN_SIZE",
+      "note": "13.6형 및 15.3형 화면 확인."
+    },
+    "apple-pro": {
+      "url": "https://www.apple.com/kr/macbook-pro/specs/",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "CHIP_AND_SCREEN_SIZE",
+      "note": "14형 M5 1.55kg, 14형 M5 Pro 1.60kg, 16형 M5 Pro 2.14kg."
+    },
+    "apple-pro-screen": {
+      "url": "https://www.apple.com/macbook-pro/specs/",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "CHIP_AND_SCREEN_SIZE",
+      "note": "14.2형 및 16.2형 화면 확인."
+    },
+    "samsung-book6-family": {
+      "url": "https://www.samsung.com/sec/galaxybook/galaxy-book6-series/buy/?modelCode=NT760VJG-KD72G",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "DIFFERENT_SKU_SAME_PRODUCT_FAMILY",
+      "note": "삼성 NT760VJG-KD72G: Core Ultra 7 355, 40.6cm, 1.74kg. 판매자 공개 답변의 하드웨어 동일성 설명과 정확한 선택 옵션 고시를 교차 확인해 NT760VJT-A72A에 적용했다."
+    },
+    "samsung-book6-ultra-family": {
+      "url": "https://www.samsung.com/uk/business/computers/galaxy-book/galaxy-book6-ultra-ultra-7-32gb-1tb-np960ujh-xg7uk/",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "DIFFERENT_REGIONAL_SKU_SAME_PRODUCT_FAMILY",
+      "note": "공식 356H·32GB·1TB·RTX UJH 제품군: 16.0형, 1.89kg. 국내 NT960UJH-X72A의 정확한 판매 옵션 및 필수 무게 고시도 일치함."
+    },
+    "lg-258v": {
+      "url": "https://www.lge.co.kr/product/notebook/16z90ts-gu7wk",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "EXACT_SKU",
+      "note": "16Z90TS-GU7WK. 화면 40.6cm, 무게 약 1199g."
+    },
+    "lg-255h": {
+      "url": "https://www.lge.co.kr/product/notebook/16z90tr-sd7wk?modelId=MD10543852&pdpType=PURCHASE&sKwd=1TB&sRank=23&sTab=unit_product_list",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "EXACT_SKU",
+      "note": "16Z90TR-SD7WK. 화면 40.6cm, 무게 약 1359g."
+    },
+    "lenovo-ideapad": {
+      "url": "https://psref.lenovo.com/Detail/IdeaPad_Pro_5_16IPH11?M=83SK0009KR",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "EXACT_SKU",
+      "note": "356H, 32GB, 1TB, Windows 11 Home, 내장 그래픽, 비터치 16형. 무게 1.65kg부터."
+    },
+    "lenovo-legion": {
+      "url": "https://psref.lenovo.com/Detail/Legion_Pro_5_16IAX10H?M=83LU000UKR",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "EXACT_SKU",
+      "note": "275HX, 32GB, 1TB, 16형, 무게 약 2.42kg. 출고 OS None이며 원본 판매 링크의 선택 구성은 Windows 11 Pro이다."
+    },
+    "asus-zenbook-kr": {
+      "url": "https://www.asus.com/kr/laptops/for-home/zenbook/asus-zenbook-14-oled-um3406/where-to-buy/",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "EXACT_SKU_LISTING",
+      "note": "공식 국내 판매 목록의 UM3406GA-QL151W 및 Ryzen AI 7 445 확인. 직접 페이지는 타임아웃으로 검색에 노출된 제조사 목록 사용."
+    },
+    "asus-rog": {
+      "url": "https://rog.asus.com/kr/laptops/rog-strix/rog-strix-g16-2025-g614/spec/",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "EXACT_SKU",
+      "note": "G614PM-TS171W: 8940HX 16코어, Windows 11 Home, 16형, 2.50kg. 기본 RAM 16GB와 정확한 판매 옵션 RAM 32GB를 구분해 등록 값은 32GB로 유지했다."
+    },
+    "retailer-book6": {
+      "url": "https://www.coupang.com/vp/products/9458954410?itemId=28152507754&vendorItemId=95107817299",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "EXACT_VENDOR_ITEM",
+      "sourceRole": "RETAILER_PRIMARY_DESCRIPTION",
+      "note": "상품명/선택 옵션 32GB·1TB·WIN11 Home. 필수 고시 무게 1.74kg, 인증 R-R-SEC-NT760VJG. 2026-09-18 판매자 답변: 32GB 선택 시 NT760VJT-A72A가 출고되며 NT760VJG-KD72G와 메모리·기본 SSD·출고 OS 외 사양/외관이 같음."
+    },
+    "retailer-book6-ultra": {
+      "url": "https://www.coupang.com/vp/products/9339542914?itemId=27696774261&vendorItemId=94658532515",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "EXACT_VENDOR_ITEM",
+      "sourceRole": "RETAILER_PRIMARY_DESCRIPTION",
+      "note": "정확한 SKU NT960UJH-X72A, 32GB·1TB·WIN11 Home·RTX5060 선택 옵션. 필수 고시 무게 1.89Kg."
+    },
+    "retailer-legion": {
+      "url": "https://www.coupang.com/vp/products/8888042529?itemId=25949552933&vendorItemId=92932462159",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "EXACT_VENDOR_ITEM",
+      "sourceRole": "RETAILER_PRIMARY_DESCRIPTION",
+      "note": "정확한 SKU 83LU000UKR의 선택 옵션 32GB·1TB·WIN11 Pro. 제조사 출고 OS None과 구분되는 판매 구성."
+    },
+    "retailer-zenbook": {
+      "url": "https://www.coupang.com/vp/products/9470833374?itemId=27653967019&vendorItemId=94616357403",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "EXACT_VENDOR_ITEM",
+      "sourceRole": "RETAILER_PRIMARY_DESCRIPTION",
+      "note": "정확한 SKU UM3406GA-QL151W, 32GB·1TB·WIN11 Home. 판매 상세의 ASUS 사양 이미지에 터치스크린과 1.28kg 표기. 동일 제품군 해외 비터치 1.20kg을 적용하지 않음."
+    },
+    "retailer-rog": {
+      "url": "https://www.coupang.com/vp/products/9568845900?itemId=28559191661&vendorItemId=95503812693",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "EXACT_VENDOR_ITEM",
+      "sourceRole": "RETAILER_PRIMARY_DESCRIPTION",
+      "note": "정확한 SKU G614PM-TS171W의 선택 옵션 32GB·1TB·WIN11 Home. 제조사 기본 RAM 16GB와 구분되는 판매 구성."
+    },
+    "asus-zenbook-touch-family": {
+      "url": "https://www.asus.com/in/laptops/for-home/zenbook/asus-zenbook-14-oled-um3406/techspec/",
+      "checkedAt": "2026-09-28",
+      "modelMatch": "SAME_PRODUCT_FAMILY_TOUCH_CONFIGURATION",
+      "note": "UM3406GA 터치 구성의 14형·1.28kg 사양을 확인했다. CPU 및 메모리는 국내 정확한 판매 모델 기준을 사용하고, 인도 GA의 430/16GB 구성으로 바꾸지 않았다."
+    }
+  },
+  "summary": {
+    "productCount": 20,
+    "readyCount": 20,
+    "needsReviewCount": 0,
+    "missingRequiredSpecs": []
+  },
+  "products": [
+    {
+      "prototypeId": "mac-air13-m5-16-512",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Apple",
+        "name": "MacBook Air 13 M5",
+        "code": "MDH74KH/A",
+        "description": "Apple M5와 16GB 메모리, 512GB SSD를 갖춘 13형 MacBook Air입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "apple-m5-10-core",
+        "os": "MAC",
+        "memoryGb": 16,
+        "storageGb": 512,
+        "weightG": 1230,
+        "screenSizeInch": "13.6"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 2080500,
+          "externalItemId": "94919713475",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9410641464?itemId=27961674147&vendorItemId=94919713475",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "BASIC",
+        "sourceCpuModelName": "Apple M5 10코어 CPU·8코어 GPU",
+        "priceCheckedAt": "2026-08-19",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/mac-air13-m5-16-512.webp",
+        "imageKey": "devica/dev/product-images/mac-air13-m5-16-512/7fc6561c46ad4516b1e90370b6970ccfc2d505c2d626d3e768c1c9572c7e309f.webp",
+        "imageSha256": "7fc6561c46ad4516b1e90370b6970ccfc2d505c2d626d3e768c1c9572c7e309f",
+        "imageBytes": 19540,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Apple MacBook Air 13 M5 (MDH74KH/A) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "apple-air",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          },
+          {
+            "sourceKey": "apple-air-screen",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "BASIC",
+        "sourceGpuCoreCount": 8
+      }
+    },
+    {
+      "prototypeId": "mac-air13-m5-24-1t",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Apple",
+        "name": "MacBook Air 13 M5",
+        "code": "MDHD4KH/A",
+        "description": "Apple M5와 24GB 메모리, 1TB SSD를 갖춘 13형 MacBook Air입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "apple-m5-10-core",
+        "os": "MAC",
+        "memoryGb": 24,
+        "storageGb": 1024,
+        "weightG": 1230,
+        "screenSizeInch": "13.6"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 2840000,
+          "externalItemId": "94919713484",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9410641464?itemId=27961674159&vendorItemId=94919713484",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "BASIC",
+        "sourceCpuModelName": "Apple M5 10코어 CPU·10코어 GPU",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/mac-air13-m5-24-1t.webp",
+        "imageKey": "devica/dev/product-images/mac-air13-m5-24-1t/15fac971cd390775e7190c9ee4603d84c01f49a7a53ada51a635a56585d7fa17.webp",
+        "imageSha256": "15fac971cd390775e7190c9ee4603d84c01f49a7a53ada51a635a56585d7fa17",
+        "imageBytes": 25382,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Apple MacBook Air 13 M5 (MDHD4KH/A) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "apple-air",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          },
+          {
+            "sourceKey": "apple-air-screen",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "BASIC",
+        "sourceGpuCoreCount": 10
+      }
+    },
+    {
+      "prototypeId": "mac-air15-m5-16-512",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Apple",
+        "name": "MacBook Air 15 M5",
+        "code": "MDVD4KH/A",
+        "description": "Apple M5와 16GB 메모리, 512GB SSD를 갖춘 15형 MacBook Air입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "apple-m5-10-core",
+        "os": "MAC",
+        "memoryGb": 16,
+        "storageGb": 512,
+        "weightG": 1510,
+        "screenSizeInch": "15.3"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 2330640,
+          "externalItemId": "94919713458",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9410641499?itemId=27961674328&vendorItemId=94919713458",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "BASIC",
+        "sourceCpuModelName": "Apple M5 10코어 CPU·10코어 GPU",
+        "priceCheckedAt": "2026-08-19",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/mac-air15-m5-16-512.webp",
+        "imageKey": "devica/dev/product-images/mac-air15-m5-16-512/992a366826dd55b6a3576ccdddccf3dd75ec836977fa1185a017e3d4f6b778d0.webp",
+        "imageSha256": "992a366826dd55b6a3576ccdddccf3dd75ec836977fa1185a017e3d4f6b778d0",
+        "imageBytes": 24014,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Apple MacBook Air 15 M5 (MDVD4KH/A) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "apple-air",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          },
+          {
+            "sourceKey": "apple-air-screen",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "BASIC",
+        "sourceGpuCoreCount": 10
+      }
+    },
+    {
+      "prototypeId": "mac-air15-m5-24-1t",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Apple",
+        "name": "MacBook Air 15 M5",
+        "code": "MDVC4KH/A",
+        "description": "Apple M5와 24GB 메모리, 1TB SSD를 갖춘 15형 MacBook Air입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "apple-m5-10-core",
+        "os": "MAC",
+        "memoryGb": 24,
+        "storageGb": 1024,
+        "weightG": 1510,
+        "screenSizeInch": "15.3"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 3126240,
+          "externalItemId": "94919713465",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9410641499?itemId=27961674335&vendorItemId=94919713465",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "BASIC",
+        "sourceCpuModelName": "Apple M5 10코어 CPU·10코어 GPU",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/mac-air15-m5-24-1t.webp",
+        "imageKey": "devica/dev/product-images/mac-air15-m5-24-1t/0fe1e33447015bf032ad6f7c3bc3f76f9ffb0a0e254f22bb60b519da217f27ce.webp",
+        "imageSha256": "0fe1e33447015bf032ad6f7c3bc3f76f9ffb0a0e254f22bb60b519da217f27ce",
+        "imageBytes": 22422,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Apple MacBook Air 15 M5 (MDVC4KH/A) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "apple-air",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          },
+          {
+            "sourceKey": "apple-air-screen",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "BASIC",
+        "sourceGpuCoreCount": 10
+      }
+    },
+    {
+      "prototypeId": "mac-pro14-m5-16-1t",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Apple",
+        "name": "MacBook Pro 14 M5",
+        "code": "MDE14KH/A",
+        "description": "Apple M5와 16GB 메모리, 1TB SSD를 갖춘 14형 MacBook Pro입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "apple-m5-10-core",
+        "os": "MAC",
+        "memoryGb": 16,
+        "storageGb": 1024,
+        "weightG": 1550,
+        "screenSizeInch": "14.2"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 3047370,
+          "externalItemId": "93875613386",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9140128274?itemId=26906195808&vendorItemId=93875613386",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "BASIC",
+        "sourceCpuModelName": "Apple M5 10코어 CPU·10코어 GPU",
+        "priceCheckedAt": "2026-08-19",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/mac-pro14-m5-16-1t.webp",
+        "imageKey": "devica/dev/product-images/mac-pro14-m5-16-1t/12448bae2f62451a865526a8a87c0c584dbb77ea3c8d91dd0875ef64adfab8ef.webp",
+        "imageSha256": "12448bae2f62451a865526a8a87c0c584dbb77ea3c8d91dd0875ef64adfab8ef",
+        "imageBytes": 4290,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Apple MacBook Pro 14 M5 (MDE14KH/A) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "apple-pro",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          },
+          {
+            "sourceKey": "apple-pro-screen",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "BASIC",
+        "sourceGpuCoreCount": 10
+      }
+    },
+    {
+      "prototypeId": "mac-pro14-m5-24-1t",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Apple",
+        "name": "MacBook Pro 14 M5",
+        "code": "Z1KN0001B",
+        "description": "Apple M5와 24GB 메모리, 1TB SSD를 갖춘 14형 MacBook Pro입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "apple-m5-10-core",
+        "os": "MAC",
+        "memoryGb": 24,
+        "storageGb": 1024,
+        "weightG": 1550,
+        "screenSizeInch": "14.2"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 3321990,
+          "externalItemId": "94002473679",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9140128274?itemId=27033962329&vendorItemId=94002473679",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "BASIC",
+        "sourceCpuModelName": "Apple M5 10코어 CPU·10코어 GPU",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/mac-pro14-m5-24-1t.webp",
+        "imageKey": "devica/dev/product-images/mac-pro14-m5-24-1t/0c7bee5661de45da4b6f7feb5b2b12680008ce2f6e10f3bf951e6461b83ce4a1.webp",
+        "imageSha256": "0c7bee5661de45da4b6f7feb5b2b12680008ce2f6e10f3bf951e6461b83ce4a1",
+        "imageBytes": 4842,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Apple MacBook Pro 14 M5 (Z1KN0001B) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "apple-pro",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          },
+          {
+            "sourceKey": "apple-pro-screen",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "BASIC",
+        "sourceGpuCoreCount": 10
+      }
+    },
+    {
+      "prototypeId": "mac-pro14-m5-32-1t",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Apple",
+        "name": "MacBook Pro 14 M5",
+        "code": "Z1KN0001E",
+        "description": "Apple M5와 32GB 메모리, 1TB SSD를 갖춘 14형 MacBook Pro입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "apple-m5-10-core",
+        "os": "MAC",
+        "memoryGb": 32,
+        "storageGb": 1024,
+        "weightG": 1550,
+        "screenSizeInch": "14.2"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 3970000,
+          "externalItemId": "94002473487",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9140128274?itemId=27033962079&vendorItemId=94002473487",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "BASIC",
+        "sourceCpuModelName": "Apple M5 10코어 CPU·10코어 GPU",
+        "priceCheckedAt": "2026-08-19",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/mac-pro14-m5-32-1t.webp",
+        "imageKey": "devica/dev/product-images/mac-pro14-m5-32-1t/9b59a55811cfc4ad5eeba95ef7104f5e5bd387540fec4e05460b0482fca85961.webp",
+        "imageSha256": "9b59a55811cfc4ad5eeba95ef7104f5e5bd387540fec4e05460b0482fca85961",
+        "imageBytes": 4368,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Apple MacBook Pro 14 M5 (Z1KN0001E) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "apple-pro",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          },
+          {
+            "sourceKey": "apple-pro-screen",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "BASIC",
+        "sourceGpuCoreCount": 10
+      }
+    },
+    {
+      "prototypeId": "mac-pro14-m5pro-24-1t",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Apple",
+        "name": "MacBook Pro 14 M5 Pro",
+        "code": "Z1MH001VY",
+        "description": "Apple M5 Pro와 24GB 메모리, 1TB SSD를 갖춘 14형 MacBook Pro입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "apple-m5-pro-15-core",
+        "os": "MAC",
+        "memoryGb": 24,
+        "storageGb": 1024,
+        "weightG": 1600,
+        "screenSizeInch": "14.2"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 3826900,
+          "externalItemId": "95034602880",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9140128274?itemId=28078100250&vendorItemId=95034602880",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "PRO",
+        "sourceCpuModelName": "Apple M5 Pro 15코어 CPU·16코어 GPU",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/mac-pro14-m5pro-24-1t.webp",
+        "imageKey": "devica/dev/product-images/mac-pro14-m5pro-24-1t/c1fb18b4c8f274c362a6e519c3f675476e37ee80ed9ade2f52146e0e9582541d.webp",
+        "imageSha256": "c1fb18b4c8f274c362a6e519c3f675476e37ee80ed9ade2f52146e0e9582541d",
+        "imageBytes": 5114,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Apple MacBook Pro 14 M5 Pro (Z1MH001VY) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "apple-pro",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          },
+          {
+            "sourceKey": "apple-pro-screen",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "MAX",
+        "sourceGpuCoreCount": 16
+      }
+    },
+    {
+      "prototypeId": "mac-pro14-m5pro-48-1t",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Apple",
+        "name": "MacBook Pro 14 M5 Pro 48GB",
+        "code": "Z1ML001Y3",
+        "description": "Apple M5 Pro와 48GB 메모리, 1TB SSD를 갖춘 14형 MacBook Pro입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "apple-m5-pro-15-core",
+        "os": "MAC",
+        "memoryGb": 48,
+        "storageGb": 1024,
+        "weightG": 1600,
+        "screenSizeInch": "14.2"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 4846900,
+          "externalItemId": "95050035786",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9140128274?itemId=28093741944&vendorItemId=95050035786",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "PRO",
+        "sourceCpuModelName": "Apple M5 Pro 15코어 CPU·16코어 GPU",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/mac-pro14-m5pro-48-1t.webp",
+        "imageKey": "devica/dev/product-images/mac-pro14-m5pro-48-1t/84788f7d66283e902f224f2b46e5287570e67f630cfcb4a0d310dc19621892e6.webp",
+        "imageSha256": "84788f7d66283e902f224f2b46e5287570e67f630cfcb4a0d310dc19621892e6",
+        "imageBytes": 4928,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Apple MacBook Pro 14 M5 Pro 48GB (Z1ML001Y3) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "apple-pro",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          },
+          {
+            "sourceKey": "apple-pro-screen",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "MAX",
+        "sourceGpuCoreCount": 16
+      }
+    },
+    {
+      "prototypeId": "mac-pro14-m5pro-48-2t",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Apple",
+        "name": "MacBook Pro 14 M5 Pro 48GB 2TB",
+        "code": "Z1MM001CH",
+        "description": "Apple M5 Pro와 48GB 메모리, 2TB SSD를 갖춘 14형 MacBook Pro입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "apple-m5-pro-18-core",
+        "os": "MAC",
+        "memoryGb": 48,
+        "storageGb": 2048,
+        "weightG": 1600,
+        "screenSizeInch": "14.2"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 5961000,
+          "externalItemId": "95050035747",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9140128274?itemId=28093741917&vendorItemId=95050035747",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "PRO",
+        "sourceCpuModelName": "Apple M5 Pro 18코어 CPU·20코어 GPU",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/mac-pro14-m5pro-48-2t.webp",
+        "imageKey": "devica/dev/product-images/mac-pro14-m5pro-48-2t/84788f7d66283e902f224f2b46e5287570e67f630cfcb4a0d310dc19621892e6.webp",
+        "imageSha256": "84788f7d66283e902f224f2b46e5287570e67f630cfcb4a0d310dc19621892e6",
+        "imageBytes": 4928,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Apple MacBook Pro 14 M5 Pro 48GB 2TB (Z1MM001CH) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "apple-pro",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          },
+          {
+            "sourceKey": "apple-pro-screen",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "MAX",
+        "sourceGpuCoreCount": 20
+      }
+    },
+    {
+      "prototypeId": "mac-pro16-m5pro-24-1t",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Apple",
+        "name": "MacBook Pro 16 M5 Pro",
+        "code": "MGE44KH/A",
+        "description": "Apple M5 Pro와 24GB 메모리, 1TB SSD를 갖춘 16형 MacBook Pro입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "apple-m5-pro-18-core",
+        "os": "MAC",
+        "memoryGb": 24,
+        "storageGb": 1024,
+        "weightG": 2140,
+        "screenSizeInch": "16.2"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 4491000,
+          "externalItemId": "94919837914",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9410700446?itemId=27961799434&vendorItemId=94919837914",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "PRO",
+        "sourceCpuModelName": "Apple M5 Pro 18코어 CPU·20코어 GPU",
+        "priceCheckedAt": "2026-08-19",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/mac-pro16-m5pro-24-1t.webp",
+        "imageKey": "devica/dev/product-images/mac-pro16-m5pro-24-1t/c203dd2f680dfc16bd90ead58046097ec9b68b46e622b01e73ec04443c2e01da.webp",
+        "imageSha256": "c203dd2f680dfc16bd90ead58046097ec9b68b46e622b01e73ec04443c2e01da",
+        "imageBytes": 4648,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Apple MacBook Pro 16 M5 Pro (MGE44KH/A) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "apple-pro",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          },
+          {
+            "sourceKey": "apple-pro-screen",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "MAX",
+        "sourceGpuCoreCount": 20
+      }
+    },
+    {
+      "prototypeId": "mac-pro16-m5pro-48-1t",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Apple",
+        "name": "MacBook Pro 16 M5 Pro",
+        "code": "MGEC4KH/A",
+        "description": "Apple M5 Pro와 48GB 메모리, 1TB SSD를 갖춘 16형 MacBook Pro입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "apple-m5-pro-18-core",
+        "os": "MAC",
+        "memoryGb": 48,
+        "storageGb": 1024,
+        "weightG": 2140,
+        "screenSizeInch": "16.2"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 5566770,
+          "externalItemId": "94919837921",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9410700446?itemId=27961799447&vendorItemId=94919837921",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "PRO",
+        "sourceCpuModelName": "Apple M5 Pro 18코어 CPU·20코어 GPU",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/mac-pro16-m5pro-48-1t.webp",
+        "imageKey": "devica/dev/product-images/mac-pro16-m5pro-48-1t/5098d91d7bcb6fb31ff622a46a44e3c1684d210075c8126b60b73d797ce542a8.webp",
+        "imageSha256": "5098d91d7bcb6fb31ff622a46a44e3c1684d210075c8126b60b73d797ce542a8",
+        "imageBytes": 5132,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Apple MacBook Pro 16 M5 Pro (MGEC4KH/A) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "apple-pro",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          },
+          {
+            "sourceKey": "apple-pro-screen",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "MAX",
+        "sourceGpuCoreCount": 20
+      }
+    },
+    {
+      "prototypeId": "win-samsung-book6-356h",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Samsung",
+        "name": "Galaxy Book6",
+        "code": "NT760VJT-A72A",
+        "description": "Intel Core Ultra 7 355와 32GB 메모리, 1TB SSD를 갖춘 Galaxy Book6입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "intel-core-ultra-7-355",
+        "os": "WINDOWS",
+        "memoryGb": 32,
+        "storageGb": 1024,
+        "weightG": 1740,
+        "screenSizeInch": "16.0"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 2849000,
+          "externalItemId": "95107817299",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9458954410?itemId=28152507754&vendorItemId=95107817299",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "H",
+        "sourceCpuModelName": "Intel Core Ultra 7 356H",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/win-samsung-book6-356h.webp",
+        "imageKey": "devica/dev/product-images/win-samsung-book6-356h/6849980121d6945c5f33e4ca9098bf622d67389541c2feda48dd410833197e10.webp",
+        "imageSha256": "6849980121d6945c5f33e4ca9098bf622d67389541c2feda48dd410833197e10",
+        "imageBytes": 18450,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Samsung Galaxy Book6 (NT760VJT-A72A) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "samsung-book6-family",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "cpuKey",
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL_WITH_RETAILER_CONFIRMATION",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "P_HS",
+        "descriptionChangeReason": "교차 확인한 CPU 355를 소개문에 반영했다.",
+        "retailerSources": [
+          {
+            "sourceKey": "retailer-book6",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "memoryGb",
+              "storageGb",
+              "os",
+              "product.code",
+              "weightG"
+            ]
+          }
+        ],
+        "sourceModelCode": "NT760VJT-A71A",
+        "selectedOfferOperatingSystem": "Windows 11 Home",
+        "cpuVerificationMethod": "삼성 NT760VJG-KD72G의 355 사양과 판매자의 동일 사양 설명을 연결해 확인했다. 판매자 상세의 직접 CPU 숫자 표기와 구분되는 교차 확인이다.",
+        "modelCodeVerificationMethod": "2026-09-18 판매자 공개 답변에서 32GB 옵션의 출고 모델 NT760VJT-A72A를 확인했다.",
+        "resolvedDiscrepancies": [
+          {
+            "field": "product.code",
+            "sourceValue": "NT760VJT-A71A",
+            "normalizedValue": "NT760VJT-A72A",
+            "reason": "원본 상품명은 A71A이지만 선택한 32GB 구성의 실제 출고 모델은 A72A이다.",
+            "sourceKey": "retailer-book6"
+          },
+          {
+            "field": "laptop.cpuKey",
+            "sourceValue": "Intel Core Ultra 7 356H",
+            "normalizedValue": "intel-core-ultra-7-355",
+            "reason": "판매자의 동일 사양 설명과 삼성 공식 대응 모델 사양을 교차 확인했다.",
+            "sourceKeys": [
+              "samsung-book6-family",
+              "retailer-book6"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "prototypeId": "win-samsung-book6-ultra-356h",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Samsung",
+        "name": "Galaxy Book6 Ultra",
+        "code": "NT960UJH-X72A",
+        "description": "Intel Core Ultra 7 356H와 32GB 메모리, 1TB SSD를 갖춘 Galaxy Book6 Ultra입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "intel-core-ultra-7-356h",
+        "os": "WINDOWS",
+        "memoryGb": 32,
+        "storageGb": 1024,
+        "weightG": 1890,
+        "screenSizeInch": "16.0"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 5829000,
+          "externalItemId": "94658532515",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9339542914?itemId=27696774261&vendorItemId=94658532515",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "H",
+        "sourceCpuModelName": "Intel Core Ultra 7 356H",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/win-samsung-book6-ultra-356h.webp",
+        "imageKey": "devica/dev/product-images/win-samsung-book6-ultra-356h/cb1d50445980ee5a79eb054af811a54abccf5ffe578dfd2142ec7b931f6a4932.webp",
+        "imageSha256": "cb1d50445980ee5a79eb054af811a54abccf5ffe578dfd2142ec7b931f6a4932",
+        "imageBytes": 24098,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Samsung Galaxy Book6 Ultra (NT960UJH-X72A) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "samsung-book6-ultra-family",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL_WITH_RETAILER_CONFIRMATION",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "H",
+        "retailerSources": [
+          {
+            "sourceKey": "retailer-book6-ultra",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "memoryGb",
+              "storageGb",
+              "os",
+              "weightG"
+            ]
+          }
+        ],
+        "sourceModelCode": "NT960UJH-X72A",
+        "selectedOfferOperatingSystem": "Windows 11 Home"
+      }
+    },
+    {
+      "prototypeId": "win-lg-grampro16-258v",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "LG",
+        "name": "gram Pro AI 16",
+        "code": "16Z90TS-GU7WK",
+        "description": "Intel Core Ultra 7 258V와 32GB 메모리, 1TB SSD를 갖춘 gram Pro AI 16입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "intel-core-ultra-7-258v",
+        "os": "WINDOWS",
+        "memoryGb": 32,
+        "storageGb": 1024,
+        "weightG": 1199,
+        "screenSizeInch": "16.0"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 3000000,
+          "externalItemId": "95514237961",
+          "purchaseUrl": "https://www.coupang.com/vp/products/8670821592?itemId=25170697413&vendorItemId=95514237961",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "P_HS",
+        "sourceCpuModelName": "Intel Core Ultra 7 258V",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/win-lg-grampro16-258v.webp",
+        "imageKey": "devica/dev/product-images/win-lg-grampro16-258v/fe841a1d250ebdf5ba9ac224308256198eb44d17f1ec7e11624f6ef7ad1a997b.webp",
+        "imageSha256": "fe841a1d250ebdf5ba9ac224308256198eb44d17f1ec7e11624f6ef7ad1a997b",
+        "imageBytes": 12896,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "LG gram Pro AI 16 (16Z90TS-GU7WK) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "lg-258v",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "APPROXIMATE",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "U"
+      }
+    },
+    {
+      "prototypeId": "win-lg-grampro16-255h",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "LG",
+        "name": "gram Pro 16",
+        "code": "16Z90TR-SD7WK",
+        "description": "Intel Core Ultra 7 255H와 32GB 메모리, 1TB SSD를 갖춘 gram Pro 16입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "intel-core-ultra-7-255h",
+        "os": "WINDOWS",
+        "memoryGb": 32,
+        "storageGb": 1024,
+        "weightG": 1359,
+        "screenSizeInch": "16.0"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 2850000,
+          "externalItemId": "92715203892",
+          "purchaseUrl": "https://www.coupang.com/vp/products/8829567591?itemId=25726533506&vendorItemId=92715203892",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "H",
+        "sourceCpuModelName": "Intel Core Ultra 7 255H",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/win-lg-grampro16-255h.webp",
+        "imageKey": "devica/dev/product-images/win-lg-grampro16-255h/3165f5bccfd76cea263670a0c4488b94241957bc3f415d16be308f62c60de4a6.webp",
+        "imageSha256": "3165f5bccfd76cea263670a0c4488b94241957bc3f415d16be308f62c60de4a6",
+        "imageBytes": 11788,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "LG gram Pro 16 (16Z90TR-SD7WK) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "lg-255h",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "APPROXIMATE",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "H"
+      }
+    },
+    {
+      "prototypeId": "win-lenovo-ideapadpro5-356h",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Lenovo",
+        "name": "IdeaPad Pro 5i Gen 11",
+        "code": "83SK0009KR",
+        "description": "Intel Core Ultra 7 356H와 32GB 메모리, 1TB SSD를 갖춘 IdeaPad Pro 5i입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "intel-core-ultra-7-356h",
+        "os": "WINDOWS",
+        "memoryGb": 32,
+        "storageGb": 1024,
+        "weightG": 1650,
+        "screenSizeInch": "16.0"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 2449000,
+          "externalItemId": "95173538944",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9478742459?itemId=28219563534&vendorItemId=95173538944",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "H",
+        "sourceCpuModelName": "Intel Core Ultra 7 356H",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/win-lenovo-ideapadpro5-356h.webp",
+        "imageKey": "devica/dev/product-images/win-lenovo-ideapadpro5-356h/117a9657a6042e923864074fa1d543a25b9c93e813b3405684606d1449fc7a0d.webp",
+        "imageSha256": "117a9657a6042e923864074fa1d543a25b9c93e813b3405684606d1449fc7a0d",
+        "imageBytes": 17328,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Lenovo IdeaPad Pro 5i Gen 11 (83SK0009KR) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "lenovo-ideapad",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "STARTING_AT",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "H"
+      }
+    },
+    {
+      "prototypeId": "win-lenovo-legionpro5-275hx",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "Lenovo",
+        "name": "Legion Pro 5i Gen 10",
+        "code": "83LU000UKR",
+        "description": "Intel Core Ultra 9 275HX와 32GB 메모리, 1TB SSD를 갖춘 Legion Pro 5i입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "intel-core-ultra-9-275hx",
+        "os": "WINDOWS",
+        "memoryGb": 32,
+        "storageGb": 1024,
+        "weightG": 2420,
+        "screenSizeInch": "16.0"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 4649000,
+          "externalItemId": "92932462159",
+          "purchaseUrl": "https://www.coupang.com/vp/products/8888042529?itemId=25949552933&vendorItemId=92932462159",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "HX",
+        "sourceCpuModelName": "Intel Core Ultra 9 275HX",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/win-lenovo-legionpro5-275hx.webp",
+        "imageKey": "devica/dev/product-images/win-lenovo-legionpro5-275hx/79d451f6c70d71066693ce54402399a1e43ed2deb0689c4f418122596e6a5ecb.webp",
+        "imageSha256": "79d451f6c70d71066693ce54402399a1e43ed2deb0689c4f418122596e6a5ecb",
+        "imageBytes": 18852,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "Lenovo Legion Pro 5i Gen 10 (83LU000UKR) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "lenovo-legion",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "APPROXIMATE",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "HX",
+        "manufacturerOperatingSystem": "NONE",
+        "retailerSources": [
+          {
+            "sourceKey": "retailer-legion",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "memoryGb",
+              "storageGb",
+              "os"
+            ]
+          }
+        ],
+        "sourceModelCode": "83LU000UKR",
+        "selectedOfferOperatingSystem": "Windows 11 Pro",
+        "resolvedDiscrepancies": [
+          {
+            "field": "os",
+            "manufacturerValue": "NONE",
+            "selectedOfferValue": "Windows 11 Pro",
+            "normalizedValue": "WINDOWS",
+            "reason": "제조사 출고 구성과 판매처의 선택 구성을 구분했다.",
+            "sourceKey": "retailer-legion"
+          }
+        ]
+      }
+    },
+    {
+      "prototypeId": "win-asus-zenbook14-ai7",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "ASUS",
+        "name": "Zenbook 14",
+        "code": "UM3406GA-QL151W",
+        "description": "AMD Ryzen AI 7 445와 32GB 메모리, 1TB SSD를 갖춘 Zenbook 14입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "amd-ryzen-ai-7-445",
+        "os": "WINDOWS",
+        "memoryGb": 32,
+        "storageGb": 1024,
+        "weightG": 1280,
+        "screenSizeInch": "14.0"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 2099000,
+          "externalItemId": "94616357403",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9470833374?itemId=27653967019&vendorItemId=94616357403",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "P_HS",
+        "sourceCpuModelName": "AMD Ryzen AI 7 445",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/win-asus-zenbook14-ai7.webp",
+        "imageKey": "devica/dev/product-images/win-asus-zenbook14-ai7/aa65d8c2047c1222969d956040537d67e5fa0fc1e16fbe51be862293841ca872.webp",
+        "imageSha256": "aa65d8c2047c1222969d956040537d67e5fa0fc1e16fbe51be862293841ca872",
+        "imageBytes": 14572,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "ASUS Zenbook 14 (UM3406GA-QL151W) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "asus-zenbook-kr",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "candidateWeightG",
+              "screenSizeInch"
+            ]
+          },
+          {
+            "sourceKey": "asus-zenbook-touch-family",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_SPEC_IMAGE_FOR_RETAIL_CONFIGURATION",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "U",
+        "retailerSources": [
+          {
+            "sourceKey": "retailer-zenbook",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "memoryGb",
+              "storageGb",
+              "os",
+              "weightG",
+              "touchScreen"
+            ]
+          }
+        ],
+        "sourceModelCode": "UM3406GA-QL151W",
+        "selectedOfferOperatingSystem": "Windows 11 Home",
+        "touchScreen": true,
+        "resolvedDiscrepancies": [
+          {
+            "field": "weightG",
+            "candidateValue": 1200,
+            "normalizedValue": 1280,
+            "reason": "판매 상세의 터치 구성은 1.28kg이다. 다른 국가의 비터치 구성 1.20kg과 구분했다.",
+            "sourceKey": "retailer-zenbook"
+          }
+        ]
+      }
+    },
+    {
+      "prototypeId": "win-asus-rog-g16-8940hx",
+      "product": {
+        "categoryCode": "LAPTOP",
+        "brand": "ASUS",
+        "name": "ROG Strix G16",
+        "code": "G614PM-TS171W",
+        "description": "AMD Ryzen 9 8940HX와 32GB 메모리, 1TB SSD를 갖춘 ROG Strix G16입니다.",
+        "releasedAt": null
+      },
+      "laptop": {
+        "cpuKey": "amd-ryzen-9-8940hx",
+        "os": "WINDOWS",
+        "memoryGb": 32,
+        "storageGb": 1024,
+        "weightG": 2500,
+        "screenSizeInch": "16.0"
+      },
+      "offers": [
+        {
+          "name": "쿠팡",
+          "price": 3814940,
+          "externalItemId": "95503812693",
+          "purchaseUrl": "https://www.coupang.com/vp/products/9568845900?itemId=28559191661&vendorItemId=95503812693",
+          "status": "ON_SALE"
+        }
+      ],
+      "metadata": {
+        "sourceCpuTier": "HX",
+        "sourceCpuModelName": "AMD Ryzen 9 8940HX",
+        "priceCheckedAt": "2026-08-14",
+        "sourcePriceType": "GENERAL",
+        "sourceActive": true,
+        "imageFile": "images/win-asus-rog-g16-8940hx.webp",
+        "imageKey": "devica/dev/product-images/win-asus-rog-g16-8940hx/ab7f67e4a46f27800f312301f4fd88e66dae8179cec41250876ee28f2c639259.webp",
+        "imageSha256": "ab7f67e4a46f27800f312301f4fd88e66dae8179cec41250876ee28f2c639259",
+        "imageBytes": 17368,
+        "imageUploadStatus": "UPLOADED",
+        "imageAlt": "ASUS ROG Strix G16 (G614PM-TS171W) 제품 이미지",
+        "specSources": [
+          {
+            "sourceKey": "asus-rog",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "weightG",
+              "screenSizeInch"
+            ]
+          }
+        ],
+        "weightQualifier": "MANUFACTURER_NOMINAL",
+        "verificationStatus": "READY",
+        "reviewReasons": [],
+        "highestMatchingSearchTier": "HX",
+        "manufacturerMemoryGb": 16,
+        "retailerSources": [
+          {
+            "sourceKey": "retailer-rog",
+            "checkedAt": "2026-09-28",
+            "fields": [
+              "memoryGb",
+              "storageGb",
+              "os"
+            ]
+          }
+        ],
+        "sourceModelCode": "G614PM-TS171W",
+        "selectedOfferOperatingSystem": "Windows 11 Home",
+        "resolvedDiscrepancies": [
+          {
+            "field": "memoryGb",
+            "manufacturerValue": 16,
+            "selectedOfferValue": 32,
+            "normalizedValue": 32,
+            "reason": "제조사 기본 구성과 판매처 32GB 선택 구성을 구분하고 원본 32GB를 유지했다.",
+            "sourceKey": "retailer-rog"
+          }
+        ]
+      }
+    }
+  ]
+}

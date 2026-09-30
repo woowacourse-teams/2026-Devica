@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "researchCheckedAt": "2026-09-28",
+  "searchThresholds": {
+    "MAC": {
+      "BASIC": 20000,
+      "PRO": 30000,
+      "MAX": 45000
+    },
+    "WINDOWS": {
+      "U": 15000,
+      "P_HS": 20000,
+      "H": 24000,
+      "HX": 35000
+    }
+  },
+  "note": "cpuKey와 metadata는 적재·검수용이다. 현재 cpu에는 manufacturer, name, coreCount, score를 저장한다. id와 timestamps는 등록 시 생성한다. 최고 통과 등급은 현재 검색 기준의 검수 정보이며 칩 제품군을 재명명하지 않는다.",
+  "cpus": [
+    {
+      "cpuKey": "apple-m5-10-core",
+      "manufacturer": "Apple",
+      "name": "Apple M5",
+      "coreCount": 10,
+      "score": 26763,
+      "metadata": {
+        "scoreMetric": "PassMark CPU Mark (Multithread Rating)",
+        "scoreSourceUrl": "https://www.cpubenchmark.net/cpu.php?cpu=Apple+M5+10+Core&id=6981",
+        "scoreCheckedAt": "2026-09-28",
+        "specSourceUrl": "https://www.apple.com/kr/macbook-air/specs/",
+        "specCheckedAt": "2026-09-28",
+        "highestMatchingSearchTier": "BASIC"
+      }
+    },
+    {
+      "cpuKey": "apple-m5-pro-15-core",
+      "manufacturer": "Apple",
+      "name": "Apple M5 Pro 15-core",
+      "coreCount": 15,
+      "score": 48861,
+      "metadata": {
+        "scoreMetric": "PassMark CPU Mark (Multithread Rating)",
+        "scoreSourceUrl": "https://www.cpubenchmark.net/cpu.php?cpu=Apple+M5+Pro+15+Core&id=7230",
+        "scoreCheckedAt": "2026-09-28",
+        "specSourceUrl": "https://www.apple.com/kr/macbook-pro/specs/",
+        "specCheckedAt": "2026-09-28",
+        "highestMatchingSearchTier": "MAX"
+      }
+    },
+    {
+      "cpuKey": "apple-m5-pro-18-core",
+      "manufacturer": "Apple",
+      "name": "Apple M5 Pro 18-core",
+      "coreCount": 18,
+      "score": 57153,
+      "metadata": {
+        "scoreMetric": "PassMark CPU Mark (Multithread Rating)",
+        "scoreSourceUrl": "https://www.cpubenchmark.net/cpu.php?cpu=Apple+M5+Pro+18+Core&id=7229",
+        "scoreCheckedAt": "2026-09-28",
+        "specSourceUrl": "https://www.apple.com/kr/macbook-pro/specs/",
+        "specCheckedAt": "2026-09-28",
+        "highestMatchingSearchTier": "MAX"
+      }
+    },
+    {
+      "cpuKey": "intel-core-ultra-7-255h",
+      "manufacturer": "Intel",
+      "name": "Intel Core Ultra 7 255H",
+      "coreCount": 16,
+      "score": 30785,
+      "metadata": {
+        "scoreMetric": "PassMark CPU Mark (Multithread Rating)",
+        "scoreSourceUrl": "https://www.cpubenchmark.net/cpu.php?cpu=Intel+Core+Ultra+7+255H&id=6471",
+        "scoreCheckedAt": "2026-09-28",
+        "specSourceUrl": "https://www.intel.com/content/www/us/en/products/sku/241751/intel-core-ultra-7-processor-255h-24m-cache-up-to-5-10-ghz/specifications.html",
+        "specCheckedAt": "2026-09-28",
+        "highestMatchingSearchTier": "H"
+      }
+    },
+    {
+      "cpuKey": "intel-core-ultra-7-258v",
+      "manufacturer": "Intel",
+      "name": "Intel Core Ultra 7 258V",
+      "coreCount": 8,
+      "score": 18867,
+      "metadata": {
+        "scoreMetric": "PassMark CPU Mark (Multithread Rating)",
+        "scoreSourceUrl": "https://www.cpubenchmark.net/cpu.php?cpu=Intel+Core+Ultra+7+258V",
+        "scoreCheckedAt": "2026-09-28",
+        "specSourceUrl": "https://www.intel.com/content/www/us/en/products/sku/240957/intel-core-ultra-7-processor-258v-12m-cache-up-to-4-80-ghz/specifications.html",
+        "specCheckedAt": "2026-09-28",
+        "highestMatchingSearchTier": "U"
+      }
+    },
+    {
+      "cpuKey": "intel-core-ultra-7-356h",
+      "manufacturer": "Intel",
+      "name": "Intel Core Ultra 7 356H",
+      "coreCount": 16,
+      "score": 34251,
+      "metadata": {
+        "scoreMetric": "PassMark CPU Mark (Multithread Rating)",
+        "scoreSourceUrl": "https://www.cpubenchmark.net/cpu.php?cpu=Intel+Core+Ultra+7+356H&id=7104",
+        "scoreCheckedAt": "2026-09-28",
+        "specSourceUrl": "https://www.intel.com/content/www/us/en/products/sku/245532/intel-core-ultra-7-processor-356h-18m-cache-up-to-4-70-ghz/specifications.html",
+        "specCheckedAt": "2026-09-28",
+        "highestMatchingSearchTier": "H"
+      }
+    },
+    {
+      "cpuKey": "intel-core-ultra-9-275hx",
+      "manufacturer": "Intel",
+      "name": "Intel Core Ultra 9 275HX",
+      "coreCount": 24,
+      "score": 55710,
+      "metadata": {
+        "scoreMetric": "PassMark CPU Mark (Multithread Rating)",
+        "scoreSourceUrl": "https://www.cpubenchmark.net/cpu.php?cpu=Intel+Core+Ultra+9+275HX",
+        "scoreCheckedAt": "2026-09-28",
+        "specSourceUrl": "https://www.intel.com/content/www/us/en/products/sku/242293/intel-core-ultra-9-processor-275hx-36m-cache-up-to-5-40-ghz/specifications.html",
+        "specCheckedAt": "2026-09-28",
+        "highestMatchingSearchTier": "HX"
+      }
+    },
+    {
+      "cpuKey": "amd-ryzen-ai-7-445",
+      "manufacturer": "AMD",
+      "name": "AMD Ryzen AI 7 445",
+      "coreCount": 6,
+      "score": 18257,
+      "metadata": {
+        "scoreMetric": "PassMark CPU Mark (Multithread Rating)",
+        "scoreSourceUrl": "https://www.cpubenchmark.net/cpu.php?cpu=AMD+Ryzen+AI+7+445&id=7159",
+        "scoreCheckedAt": "2026-09-28",
+        "specSourceUrl": "https://www.amd.com/en/products/processors/laptop/ryzen/ai-400-series/amd-ryzen-ai-7-445.html",
+        "specCheckedAt": "2026-09-28",
+        "highestMatchingSearchTier": "U"
+      }
+    },
+    {
+      "cpuKey": "amd-ryzen-9-8940hx",
+      "manufacturer": "AMD",
+      "name": "AMD Ryzen 9 8940HX",
+      "coreCount": 16,
+      "score": 49471,
+      "metadata": {
+        "scoreMetric": "PassMark CPU Mark (Multithread Rating)",
+        "scoreSourceUrl": "https://www.cpubenchmark.net/cpu.php?cpu=AMD+Ryzen+9+8940HX",
+        "scoreCheckedAt": "2026-09-28",
+        "specSourceUrl": "https://rog.asus.com/kr/laptops/rog-strix/rog-strix-g16-2025-g614/spec/",
+        "specCheckedAt": "2026-09-28",
+        "highestMatchingSearchTier": "HX"
+      }
+    },
+    {
+      "cpuKey": "intel-core-ultra-7-355",
+      "manufacturer": "Intel",
+      "name": "Intel Core Ultra 7 355",
+      "coreCount": 8,
+      "score": 20168,
+      "metadata": {
+        "scoreMetric": "PassMark CPU Mark (Multithread Rating)",
+        "scoreSourceUrl": "https://www.cpubenchmark.net/cpu.php?cpu=Intel+Core+Ultra+7+355",
+        "scoreCheckedAt": "2026-09-28",
+        "specSourceUrl": "https://www.intel.com/content/www/us/en/products/sku/245722/intel-core-ultra-7-processor-355-12m-cache-up-to-4-70-ghz/specifications.html",
+        "specCheckedAt": "2026-09-28",
+        "highestMatchingSearchTier": "P_HS",
+        "productCpuVerification": "삼성 공식 대응 모델과 원본 판매자의 사양 동일성 설명으로 확인."
+      }
+    }
+  ]
+}
