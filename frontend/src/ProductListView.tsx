@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   CPU_TIERS,
   cpuFilterLabel,
@@ -12,6 +12,7 @@ import {
   type SortType,
 } from './products';
 import { osValueOf, type Spec } from './recommendation';
+import { currentNavState } from './routes';
 import { SearchLoadingView } from './SearchLoadingView';
 import './ProductListView.css';
 
@@ -180,6 +181,19 @@ export function ProductListView({
       onSearched();
     }
   }, [searching, matching, onSearched]);
+
+  // 뒤로 가기로 돌아오면 제품을 다 그린 뒤 보던 위치로 되돌린다. 그리기 전에는 페이지가 짧아 그 위치까지 내려가지 못한다.
+  const restored = useRef(false);
+  useEffect(() => {
+    if (matched === null || restored.current) {
+      return;
+    }
+    restored.current = true;
+    const { scrollY } = currentNavState();
+    if (scrollY !== undefined) {
+      window.scrollTo(0, scrollY);
+    }
+  }, [matched]);
 
   const heading = HEADINGS[mode];
   const options = buildFilterOptions(base ?? [], specs, condition.os);
