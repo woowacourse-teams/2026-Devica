@@ -20,7 +20,12 @@ spring:
     init:
       mode: never
 
-logging:
-  level:
-    # 405 등을 GlobalExceptionHandler 와 한 번 더 WARN 으로 남기는 Spring 로거라 끈다
-    org.springframework.web.servlet.PageNotFound: error
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+        add-additional-paths: true
+      group:
+        readiness:
+          include: readinessState, db
