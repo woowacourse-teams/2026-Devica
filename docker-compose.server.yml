@@ -39,9 +39,12 @@ services:
   alloy:
     image: grafana/alloy:v1.20.1
     container_name: devica-alloy
+    # 호스트 지표의 instance 라벨이 된다. 고정하지 않으면 재생성할 때마다 새 series 로 갈린다.
+    hostname: devica-${SPRING_PROFILES_ACTIVE}
     command:
       - run
       - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
     environment:
       DEVICA_ENV: ${SPRING_PROFILES_ACTIVE}
       GRAFANA_CLOUD_PROM_URL: ${GRAFANA_CLOUD_PROM_URL}
