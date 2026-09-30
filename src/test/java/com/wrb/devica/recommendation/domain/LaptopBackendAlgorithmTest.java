@@ -40,9 +40,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.NullSource;
 
 class LaptopBackendAlgorithmTest {
 
@@ -79,15 +76,20 @@ class LaptopBackendAlgorithmTest {
             .containsExactly(tuple(Os.MAC, false), tuple(Os.WINDOWS, true));
     }
 
-    @ParameterizedTest
-    @EnumSource(value = PreferredOs.class, names = "UNDECIDED")
-    @NullSource
-    void 선호_OS_가_없으면_어느_권장안도_기본으로_표시하지_않는다(PreferredOs preferredOs) {
-        // given
-        AnswersBuilder builder = preferredOs == null ? answers() : answers().with(PREFERRED_OS, preferredOs);
-
+    @Test
+    void 선호_OS_를_정하지_않았으면_어느_권장안도_기본으로_표시하지_않는다() {
         // when
-        List<RecommendedSpec> recommended = algorithm.recommend(builder.build());
+        List<RecommendedSpec> recommended = algorithm.recommend(
+            answers().with(PREFERRED_OS, PreferredOs.UNDECIDED).build());
+
+        // then
+        assertThat(recommended).extracting(RecommendedSpec::preferred).containsExactly(false, false);
+    }
+
+    @Test
+    void 선호_OS_를_건너뛰었으면_어느_권장안도_기본으로_표시하지_않는다() {
+        // when
+        List<RecommendedSpec> recommended = algorithm.recommend(Answers.empty());
 
         // then
         assertThat(recommended).extracting(RecommendedSpec::preferred).containsExactly(false, false);
