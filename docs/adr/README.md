@@ -35,6 +35,7 @@
 | [0027](0027-API-요청-연결-방식.md)     | API 요청을 Vercel rewrite로 백엔드에 넘긴다                 | Accepted           |
 | [0028](0028-DB-스키마-마이그레이션-관리.md) | DB 스키마 변경을 Flyway 마이그레이션으로 관리한다                  | Accepted           |
 | [0029](0029-프론트엔드-하네스.md)    | 프론트엔드 하네스로 팀의 최소 작업 기준을 맞춘다               | Accepted           |
+| [0032](0032-로그-형식.md)          | 로그 형식으로 ECS(Elastic Common Schema)를 사용한다          | Accepted           |
 
 ## 작성 방법
 
