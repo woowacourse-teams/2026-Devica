@@ -75,6 +75,7 @@ export type Product = {
   id: number;
   brand: string;
   name: string;
+  imageUrl: string | null;
   // 판매 중인 판매처가 없으면 비어 온다.
   minPrice: number | null;
   specs: ProductSpecItem[];
@@ -91,6 +92,7 @@ export type ProductDetail = {
   brand: string;
   name: string;
   code: string;
+  imageUrl: string | null;
   // 설명이 없는 제품이 있다.
   description: string | null;
   specs: ProductSpecItem[];

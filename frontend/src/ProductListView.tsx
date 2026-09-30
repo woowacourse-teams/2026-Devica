@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   CPU_TIERS,
   cpuFilterLabel,
@@ -13,6 +13,7 @@ import {
 } from './products';
 import { osValueOf, type Spec } from './recommendation';
 import { currentNavState } from './routes';
+import { ProductImage } from './ProductImage';
 import { SearchLoadingView } from './SearchLoadingView';
 import './ProductListView.css';
 
