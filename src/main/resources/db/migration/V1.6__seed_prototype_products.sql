@@ -1,4 +1,4 @@
--- products.json + cpus.json + source-products.json에서 생성한 일회성 초기 데이터
+-- prototype 제품 20개와 CPU 10개를 등록하는 일회성 초기 데이터
 -- 전제: V1.2 카테고리, V1.4 checked_at, V1.5 image_key 적용
 -- 생성 SQL은 MySQL의 기존 DB ID를 가정하지 않는다.
 -- CPU 10개, 제품·노트북·판매처 각 20개
