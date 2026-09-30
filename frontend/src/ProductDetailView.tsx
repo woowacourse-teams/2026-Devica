@@ -12,10 +12,12 @@ const DETAIL_SPECS: { code: string; label: string }[] = [
 
 type Props = {
   productId: number;
+  // 목록에서 들어왔으면 그 목록으로, 앱 밖에서 바로 들어왔으면 전체 목록으로 돌아간다.
+  backLabel: string;
   onBack: () => void;
 };
 
-export function ProductDetailView({ productId, onBack }: Props) {
+export function ProductDetailView({ productId, backLabel, onBack }: Props) {
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -34,7 +36,7 @@ export function ProductDetailView({ productId, onBack }: Props) {
 
   const back = (
     <button className="text-button product-detail__back" type="button" onClick={onBack}>
-      ← 제품 목록으로
+      {backLabel}
     </button>
   );
 

@@ -22,6 +22,16 @@ spring:
     init:
       mode: never
 
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+        add-additional-paths: true
+      group:
+        readiness:
+          include: readinessState, db
+
 logging:
   structured:
     json:

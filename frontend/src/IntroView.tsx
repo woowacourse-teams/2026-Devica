@@ -16,9 +16,6 @@ type Props = {
   canStart: boolean;
   questionsFailed: boolean;
   questionsLoading: boolean;
-  // 기본 권장 사양을 기다리는 동안은 비워 두지 않고 버튼을 잠그며, 실패하면 알린다.
-  waiting: boolean;
-  resultFailed: boolean;
   onBaseline: () => void;
 };
 
@@ -29,8 +26,6 @@ export function IntroView({
   canStart,
   questionsFailed,
   questionsLoading,
-  waiting,
-  resultFailed,
   onBaseline,
 }: Props) {
   // 아직 받지 못한 상태(null)를 빈 목록과 구분한다.
@@ -61,8 +56,7 @@ export function IntroView({
 
   return (
     <section className="view-panel hero" id="intro-view" aria-labelledby="hero-title">
-      {/* 기본 권장 사양을 기다리는 동안 목적을 바꾸면 늦게 온 응답이 새 목적의 화면을 덮는다. 다른 버튼과 함께 잠근다. */}
-      <button className="text-button view-back-button" type="button" disabled={waiting} onClick={onBack}>
+      <button className="text-button view-back-button" type="button" onClick={onBack}>
         ← 사용 목적 다시 고르기
       </button>
       <p className="eyebrow">백엔드 개발용 노트북 사양 찾기</p>
@@ -104,30 +98,24 @@ export function IntroView({
           지금은 사양 정보를 불러오지 못했습니다. 잠시 뒤에 새로고침해 주세요.
         </p>
       )}
-      {!unavailable && resultFailed && (
-        <p className="notice" role="alert">
-          권장 사양을 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.
-        </p>
-      )}
 
       <button
         className="button button--primary button--wide"
         id="start-button"
         type="button"
-        disabled={unavailable || !canStart || waiting}
+        disabled={unavailable || !canStart}
         onClick={onStart}
       >
         {questionsLoading ? '질문을 불러오는 중…' : '질문 시작하고 내 사양 찾기'}
       </button>
-      {/* 답을 비워 보내면 조정 전 기본 권장 사양이 온다. 원본도 답을 무시하고 기본으로 되돌린다. */}
       <button
         className="button button--primary button--wide"
         id="baseline-product-button"
         type="button"
-        disabled={unavailable || waiting}
+        disabled={unavailable}
         onClick={onBaseline}
       >
-        {waiting ? '불러오는 중…' : resultFailed ? '다시 시도' : '기본 권장 사양으로 제품 보기'}
+        기본 권장 사양으로 제품 보기
       </button>
     </section>
   );
