@@ -2,6 +2,7 @@ package com.wrb.devica.product.domain;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 import lombok.Getter;
 
 /**
@@ -40,6 +41,12 @@ public enum CpuTier {
         this.os = os;
         this.displayName = displayName;
         this.minScore = minScore;
+    }
+
+    public static List<CpuTier> inOrder() {
+        return Arrays.stream(values())
+            .sorted(Comparator.comparing(CpuTier::getOs).thenComparingInt(CpuTier::getMinScore))
+            .toList();
     }
 
     public CpuTier stepUp() {

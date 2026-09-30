@@ -22,6 +22,7 @@ import com.wrb.devica.product.domain.Product;
 import com.wrb.devica.product.repository.CpuRepository;
 import com.wrb.devica.product.repository.LaptopRepository;
 import com.wrb.devica.product.repository.ProductOfferRepository;
+import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,7 +75,7 @@ class LaptopE2ETest extends E2ETest {
             .body("content.size()", is(1))
             .body("content[0].name", is("gram Pro 16"))
             .body("content[0].specs.code", contains("OS", "CPU", "MEMORY", "STORAGE"))
-            .body("content[0].specs.displayValue", contains("Windows", "Intel Core Ultra 7 255H", "32GB", "1024GB"))
+            .body("content[0].specs.displayValue", contains("Windows", "Intel Core Ultra 7 255H", "32GB", "1TB"))
             .body("content[0].minPrice", is(2_850_000));
     }
 
@@ -250,7 +251,10 @@ class LaptopE2ETest extends E2ETest {
             .build());
 
         productOfferRepository.save(onSaleOffer(laptop, 2_990_000L));
-        productOfferRepository.save(onSaleOffer(laptop, 2_850_000L));
+        productOfferRepository.save(offer()
+            .product(laptop)
+            .price(2_850_000L).checkedAt(LocalDate.of(2026, 8, 19))
+            .build());
         productOfferRepository.save(offer()
             .product(laptop)
             .price(2_500_000L).status(OfferStatus.SOLD_OUT)
@@ -263,7 +267,19 @@ class LaptopE2ETest extends E2ETest {
             .body("name", is("gram Pro 16"))
             .body("specs.code", contains("OS", "CPU", "MEMORY", "STORAGE", "CPU_CORE", "SCREEN_SIZE", "WEIGHT"))
             .body("offers.price", contains(2_850_000, 2_990_000))
-            .body("offers[0].purchaseUrl", is("https://example.com/" + laptop.getCode()));
+            .body("offers[0].purchaseUrl", is("https://example.com/" + laptop.getCode()))
+            .body("offers.checkedAt", contains("2026-08-19", null));
+    }
+
+    // UC-08: CPU 필터 선택지는 서버의 등급을 쓴다. 등급을 바꿔도 화면을 고치지 않는다
+    @Test
+    void CPU_등급을_조회하면_OS_별로_낮은_등급부터_받는다() {
+        given()
+            .when().get("/api/cpu-tiers")
+            .then().statusCode(200)
+            .body("code", contains("U", "P_HS", "H", "HX", "BASIC", "PRO", "MAX"))
+            .body("[0].name", is("저전력 Core Ultra 5 / Ryzen 5"))
+            .body("[4].os", is("MAC"));
     }
 
     // UC-11: 판매처가 없어도 제품 정보는 볼 수 있다

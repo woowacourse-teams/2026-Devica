@@ -8,6 +8,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -41,14 +42,19 @@ public class ProductOffer extends BaseTimeEntity {
     @Column(nullable = false, length = 32)
     private OfferStatus status;
 
+    // 판매처에서 가격을 마지막으로 확인한 날. 가격이 그대로여도 확인하면 갱신하므로 updatedAt 과 다르다
+    @Column(name = "checked_at")
+    private LocalDate checkedAt;
+
     @Builder
     private ProductOffer(Long productId, String name, long price, String externalItemId,
-                         String purchaseUrl, OfferStatus status) {
+                         String purchaseUrl, OfferStatus status, LocalDate checkedAt) {
         this.productId = productId;
         this.name = name;
         this.price = price;
         this.externalItemId = externalItemId;
         this.purchaseUrl = purchaseUrl;
         this.status = status;
+        this.checkedAt = checkedAt;
     }
 }

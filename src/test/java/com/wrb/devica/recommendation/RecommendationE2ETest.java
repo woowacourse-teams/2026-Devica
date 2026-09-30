@@ -1,6 +1,7 @@
 package com.wrb.devica.recommendation;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 
@@ -22,10 +23,11 @@ class RecommendationE2ETest extends E2ETest {
             .body("specs[0].items.find { it.code == 'OS' }.displayValue", is("Mac"))
             .body("specs[0].items.find { it.code == 'REQUIRED_CPU' }.displayValue", is("M 칩"))
             .body("specs[0].items.find { it.code == 'MEMORY' }.displayValue", is("16GB"))
-            .body("specs[1].items.find { it.code == 'OS' }.displayValue", is("Windows"));
+            .body("specs[1].items.find { it.code == 'OS' }.displayValue", is("Windows"))
+            .body("specs.preferred", contains(false, false));
     }
 
-    // UC-04: 답변을 파라미터로 보내면 조정한 사양과 근거를 받는다
+    // UC-04: 답변을 파라미터로 보내면 조정한 사양과 근거를 받는다. 선호 OS 는 기본으로 보여줄 권장안만 정한다
     @Test
     void 답변을_보내면_조정한_사양과_근거를_받는다() {
         given().log().all()
@@ -37,12 +39,13 @@ class RecommendationE2ETest extends E2ETest {
             .when().get(PATH)
             .then().log().all()
             .statusCode(200)
-            .body("specs.size()", is(1))
-            .body("specs[0].items.find { it.code == 'OS' }.value", is("WINDOWS"))
-            .body("specs[0].items.find { it.code == 'REQUIRED_CPU' }.value", is("H"))
-            .body("specs[0].items.find { it.code == 'MEMORY' }.displayValue", is("32GB"))
-            .body("specs[0].items.find { it.code == 'STORAGE' }.displayValue", is("1024GB"))
-            .body("specs[0].items.find { it.code == 'MEMORY' }.reasons",
+            .body("specs.size()", is(2))
+            .body("specs.preferred", contains(false, true))
+            .body("specs[1].items.find { it.code == 'OS' }.value", is("WINDOWS"))
+            .body("specs[1].items.find { it.code == 'REQUIRED_CPU' }.value", is("H"))
+            .body("specs[1].items.find { it.code == 'MEMORY' }.displayValue", is("32GB"))
+            .body("specs[1].items.find { it.code == 'STORAGE' }.displayValue", is("1TB"))
+            .body("specs[1].items.find { it.code == 'MEMORY' }.reasons",
                 hasItem("권장 메모리는 32GB 입니다."));
     }
 }

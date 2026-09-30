@@ -1,7 +1,9 @@
 package com.wrb.devica.product.controller;
 
+import com.wrb.devica.product.domain.CpuTier;
 import com.wrb.devica.product.domain.Product;
 import com.wrb.devica.product.domain.ProductOffer;
+import com.wrb.devica.product.dto.CpuTierResponse;
 import com.wrb.devica.product.dto.LaptopSearchCondition;
 import com.wrb.devica.product.dto.PageCondition;
 import com.wrb.devica.product.dto.ProductDetailResponse;
@@ -36,6 +38,15 @@ public class ProductController {
             condition, pageCondition);
         ProductListResponse productListResponse = ProductListResponse.from(productSlice);
         return ResponseEntity.ok().body(productListResponse);
+    }
+
+    // 순서가 곧 등급 순서다. 목록의 CPU 필터는 고른 등급 이상을 찾는다
+    @GetMapping("/api/cpu-tiers")
+    public ResponseEntity<List<CpuTierResponse>> findCpuTiers() {
+        List<CpuTierResponse> cpuTiers = CpuTier.inOrder().stream()
+            .map(CpuTierResponse::from)
+            .toList();
+        return ResponseEntity.ok(cpuTiers);
     }
 
     @GetMapping("/api/products/{id}")

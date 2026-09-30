@@ -15,6 +15,7 @@ import static com.wrb.devica.question.domain.QuestionCode.SLOWDOWN;
 import static com.wrb.devica.question.domain.QuestionCode.STORAGE_SHORTAGE;
 import static com.wrb.devica.question.domain.QuestionCode.USAGE_PERIOD;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.wrb.devica.product.domain.CpuTier;
 import com.wrb.devica.product.domain.LaptopSpec;
@@ -65,14 +66,33 @@ class LaptopBackendAlgorithmTest {
     }
 
     @Test
-    void 선호_OS_를_고르면_그_권장안만_낸다() {
+    void 선호_OS_를_골라도_두_권장안을_내고_그쪽을_기본으로_표시한다() {
         // when
         List<RecommendedSpec> recommended = algorithm.recommend(
             answers().with(PREFERRED_OS, PreferredOs.WINDOWS).build());
 
         // then
-        assertThat(recommended).extracting(recommendedSpec -> spec(recommendedSpec).os())
-            .containsExactly(Os.WINDOWS);
+        assertThat(recommended).extracting(recommendedSpec -> spec(recommendedSpec).os(), RecommendedSpec::preferred)
+            .containsExactly(tuple(Os.MAC, false), tuple(Os.WINDOWS, true));
+    }
+
+    @Test
+    void 선호_OS_를_정하지_않았으면_어느_권장안도_기본으로_표시하지_않는다() {
+        // when
+        List<RecommendedSpec> recommended = algorithm.recommend(
+            answers().with(PREFERRED_OS, PreferredOs.UNDECIDED).build());
+
+        // then
+        assertThat(recommended).extracting(RecommendedSpec::preferred).containsExactly(false, false);
+    }
+
+    @Test
+    void 선호_OS_를_건너뛰었으면_어느_권장안도_기본으로_표시하지_않는다() {
+        // when
+        List<RecommendedSpec> recommended = algorithm.recommend(Answers.empty());
+
+        // then
+        assertThat(recommended).extracting(RecommendedSpec::preferred).containsExactly(false, false);
     }
 
     @Test
@@ -322,7 +342,7 @@ class LaptopBackendAlgorithmTest {
     }
 
     private RecommendedSpec macRecommendation(AnswersBuilder builder) {
-        return algorithm.recommend(builder.with(PREFERRED_OS, PreferredOs.MACOS).build()).getFirst();
+        return preferredOf(builder.with(PREFERRED_OS, PreferredOs.MACOS));
     }
 
     private LaptopSpec macSpec(AnswersBuilder builder) {
@@ -334,7 +354,14 @@ class LaptopBackendAlgorithmTest {
     }
 
     private RecommendedSpec windowsRecommendation(AnswersBuilder builder) {
-        return algorithm.recommend(builder.with(PREFERRED_OS, PreferredOs.WINDOWS).build()).getFirst();
+        return preferredOf(builder.with(PREFERRED_OS, PreferredOs.WINDOWS));
+    }
+
+    private RecommendedSpec preferredOf(AnswersBuilder builder) {
+        return algorithm.recommend(builder.build()).stream()
+            .filter(RecommendedSpec::preferred)
+            .findFirst()
+            .orElseThrow();
     }
 
     private static class AnswersBuilder {
