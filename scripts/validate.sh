@@ -7,8 +7,8 @@
 set -euo pipefail
 
 # compose 가 호스트 80 -> 컨테이너 8080 을 매핑하므로 호스트의 80 을 본다.
-# application-prod.yml 이 health 엔드포인트만 노출해 두었다.
-HEALTH_URL="http://localhost/actuator/health"
+# Actuator 는 호스트에 열지 않는 관리 포트에 있으므로 메인 포트의 readiness 경로를 쓴다.
+HEALTH_URL="http://localhost/readyz"
 MAX_ATTEMPTS=20
 INTERVAL=3
 
