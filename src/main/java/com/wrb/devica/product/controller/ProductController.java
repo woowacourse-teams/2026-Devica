@@ -43,7 +43,10 @@ public class ProductController {
     // 순서가 곧 등급 순서다. 목록의 CPU 필터는 고른 등급 이상을 찾는다
     @GetMapping("/api/cpu-tiers")
     public ResponseEntity<List<CpuTierResponse>> findCpuTiers() {
-        return ResponseEntity.ok(CpuTier.inOrder().stream().map(CpuTierResponse::from).toList());
+        List<CpuTierResponse> cpuTiers = CpuTier.inOrder().stream()
+            .map(CpuTierResponse::from)
+            .toList();
+        return ResponseEntity.ok(cpuTiers);
     }
 
     @GetMapping("/api/products/{id}")
