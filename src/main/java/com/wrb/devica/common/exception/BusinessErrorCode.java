@@ -5,7 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
 /**
- * * 도메인 규칙을 어겼을 때 쓴다.
+ * 도메인 규칙을 어겼을 때 쓴다. 요청 쪽 문제이므로 4xx 상태만 쓴다.
+ * 서버 쪽 실패는 비즈니스 예외로 만들지 않는다.
  */
 @Getter
 @RequiredArgsConstructor
