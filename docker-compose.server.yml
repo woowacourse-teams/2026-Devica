@@ -35,5 +35,25 @@ services:
       retries: 10
     restart: unless-stopped
 
+  # 접속 정보가 .env 에 없어도 앱 배포는 막지 않는다. 이때는 이 컨테이너만 실패한다.
+  alloy:
+    image: grafana/alloy:v1.20.1
+    container_name: devica-alloy
+    command:
+      - run
+      - /etc/alloy/config.alloy
+    environment:
+      DEVICA_ENV: ${SPRING_PROFILES_ACTIVE}
+      GRAFANA_CLOUD_PROM_URL: ${GRAFANA_CLOUD_PROM_URL}
+      GRAFANA_CLOUD_PROM_USER: ${GRAFANA_CLOUD_PROM_USER}
+      GRAFANA_CLOUD_TOKEN: ${GRAFANA_CLOUD_TOKEN}
+    volumes:
+      - ./monitoring/config.alloy:/etc/alloy/config.alloy:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+    mem_limit: 256m
+    restart: unless-stopped
+
 volumes:
   mysql-data:

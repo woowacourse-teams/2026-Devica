@@ -67,4 +67,5 @@ artifacts:
     - image.tar
     - image-tag.txt
     - docker-compose.server.yml
+    - monitoring/*
     - scripts/*

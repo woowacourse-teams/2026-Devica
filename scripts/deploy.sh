@@ -21,6 +21,7 @@ rm -f "${RELEASE_DIR}/image.tar"
 
 # 배포되는 커밋의 compose 파일이 항상 적용되게 한다.
 install -m 644 "${RELEASE_DIR}/docker-compose.server.yml" "${APP_DIR}/docker-compose.server.yml"
+install -D -m 644 "${RELEASE_DIR}/monitoring/config.alloy" "${APP_DIR}/monitoring/config.alloy"
 
 cd "${APP_DIR}"
 
@@ -32,6 +33,8 @@ else
 fi
 
 docker compose -f docker-compose.server.yml up -d
+# 설정 파일은 마운트라서 내용이 바뀌어도 up 이 컨테이너를 교체하지 않는다. 새 설정을 읽게 한다.
+docker compose -f docker-compose.server.yml restart alloy
 
 # 태그가 붙은 옛 이미지는 dangling 이 아니라서 그냥 두면 계속 쌓인다.
 # 배포마다 레이어가 늘어나므로 일주일치만 남긴다.
