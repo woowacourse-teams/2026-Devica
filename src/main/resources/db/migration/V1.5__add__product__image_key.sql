@@ -1,0 +1,2 @@
+ALTER TABLE product
+    ADD COLUMN image_key VARCHAR(1024) NULL;

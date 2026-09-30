@@ -12,8 +12,8 @@ import com.wrb.devica.product.domain.CpuTier;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.dto.LaptopSearchCondition;
-import com.wrb.devica.product.dto.ProductSummaryResponse;
-import com.wrb.devica.product.dto.QProductSummaryResponse;
+import com.wrb.devica.product.dto.ProductSummaryRow;
+import com.wrb.devica.product.dto.QProductSummaryRow;
 import com.wrb.devica.product.dto.SortType;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
@@ -32,15 +32,16 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
     }
 
     @Override
-    public Slice<ProductSummaryResponse> findSummariesWithMinPrice(LaptopSearchCondition condition, SortType sort,
+    public Slice<ProductSummaryRow> findSummariesWithMinPrice(LaptopSearchCondition condition, SortType sort,
                                                                    Pageable pageable) {
         int pageSize = pageable.getPageSize();
 
-        List<ProductSummaryResponse> found = queryFactory
-            .select(new QProductSummaryResponse(
+        List<ProductSummaryRow> found = queryFactory
+            .select(new QProductSummaryRow(
                 laptop.id,
                 laptop.brand,
                 laptop.name,
+                laptop.imageKey,
                 productOffer.price.min(),
                 laptop.os,
                 cpu.name,

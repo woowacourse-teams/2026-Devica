@@ -22,6 +22,7 @@ public final class LaptopFixture {
 
     @Builder
     public static Laptop laptopBuilder(ProductCategory category, String brand, String name, String code,
+                                       String imageKey,
                                        Os os, Cpu cpu, Integer memoryGb, Integer storageGb,
                                        BigDecimal screenSizeInch, Integer weightG) {
         requireNonNull(category, "노트북은 카테고리가 있어야 한다. laptop().category(...) 로 지정한다");
@@ -31,6 +32,7 @@ public final class LaptopFixture {
             .category(category)
             .brand(requireNonNullElse(brand, "브랜드"))
             .name(requireNonNullElse(name, "노트북"))
+            .imageKey(imageKey)
             .os(requireNonNullElse(os, Os.WINDOWS))
             .memoryGb(requireNonNullElse(memoryGb, 16))
             .storageGb(requireNonNullElse(storageGb, 512))

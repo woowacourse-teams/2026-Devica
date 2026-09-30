@@ -79,6 +79,26 @@ class LaptopE2ETest extends E2ETest {
             .body("content[0].minPrice", is(2_850_000));
     }
 
+    @Test
+    void 목록과_상세에서_이미지_주소만_반환한다() {
+        Laptop saved = laptopRepository.save(laptop().category(category).cpu(cpu)
+            .imageKey("/devica/products/sample.webp").build());
+
+        String imageUrl = "https://images.example.test/devica/products/sample.webp";
+
+        given()
+            .when().get(PATH)
+            .then().statusCode(200)
+            .body("content[0].imageUrl", is(imageUrl))
+            .body("content[0].containsKey('imageKey')", is(false));
+
+        given()
+            .when().get("/api/products/" + saved.getId())
+            .then().statusCode(200)
+            .body("imageUrl", is(imageUrl))
+            .body("containsKey('imageKey')", is(false));
+    }
+
     // UC-07/UC-08: 검색어와 가격·사양·OS·브랜드 조건을 적용할 수 있고, 조건을 지정하면 조건을 만족하는 제품만 반환한다
     @Test
     void 조건을_지정하면_전부_만족하는_노트북만_받는다() {

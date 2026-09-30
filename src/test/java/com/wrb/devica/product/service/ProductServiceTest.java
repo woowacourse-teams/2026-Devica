@@ -33,7 +33,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Slice;
 
 @JpaSliceTest
-@Import(ProductService.class)
+@Import({ProductService.class, ProductImageUrlResolver.class})
 class ProductServiceTest {
 
     private static final String CATEGORY = "LAPTOP";

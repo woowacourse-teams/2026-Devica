@@ -44,10 +44,10 @@ public class Laptop extends Product {
 
     @Builder
     private Laptop(ProductCategory category, String brand, String name, String code,
-                   String description, LocalDate releasedAt,
+                   String description, LocalDate releasedAt, String imageKey,
                    Cpu cpu, Os os, int memoryGb, int storageGb, int weightG,
                    BigDecimal screenSizeInch) {
-        super(category, brand, name, code, description, releasedAt);
+        super(category, brand, name, code, description, releasedAt, imageKey);
         this.cpu = cpu;
         this.os = os;
         this.memoryGb = memoryGb;
