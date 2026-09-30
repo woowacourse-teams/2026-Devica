@@ -21,6 +21,7 @@ rm -f "${RELEASE_DIR}/image.tar"
 
 # 배포되는 커밋의 compose 파일이 항상 적용되게 한다.
 install -m 644 "${RELEASE_DIR}/docker-compose.server.yml" "${APP_DIR}/docker-compose.server.yml"
+install -D -m 644 "${RELEASE_DIR}/monitoring/config.alloy" "${APP_DIR}/monitoring/config.alloy"
 
 cd "${APP_DIR}"
 
@@ -31,7 +32,13 @@ else
   echo "IMAGE_TAG=${IMAGE_TAG}" >> .env
 fi
 
-docker compose -f docker-compose.server.yml up -d
+docker compose -f docker-compose.server.yml up -d app db
+
+# 수집 에이전트는 이미지를 받지 못하거나 뜨지 못해도 앱 배포를 실패시키지 않는다.
+# 설정 파일은 마운트라서 내용이 바뀌어도 up 이 컨테이너를 교체하지 않는다. restart 로 새 설정을 읽게 한다.
+if ! { docker compose -f docker-compose.server.yml up -d alloy && docker compose -f docker-compose.server.yml restart alloy; }; then
+  echo "alloy 를 띄우지 못했다. 앱 배포는 계속한다."
+fi
 
 # 태그가 붙은 옛 이미지는 dangling 이 아니라서 그냥 두면 계속 쌓인다.
 # 배포마다 레이어가 늘어나므로 일주일치만 남긴다.
