@@ -6,12 +6,12 @@ spring:
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  jpa:
-    show-sql: true
-
 logging:
+  structured:
+    format:
+      console: ecs
   level:
-    org.hibernate.orm.jdbc.bind: trace
+    com.wrb.devica: debug
 
 management:
   endpoints:

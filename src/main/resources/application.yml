@@ -19,3 +19,12 @@ spring:
   sql:
     init:
       mode: never
+
+logging:
+  structured:
+    json:
+      exclude: service
+  level:
+    # Spring 이 405 요청마다 이 로거로 WARN 을 한 줄 남기는데, GlobalExceptionHandler 도 같은 요청을 WARN 으로 남겨 중복된다.
+    # ERROR 로 올려 이 로거의 WARN 을 끈다.
+    org.springframework.web.servlet.PageNotFound: error
