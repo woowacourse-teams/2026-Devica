@@ -80,14 +80,23 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         Exception exception, Object body, HttpHeaders headers,
         HttpStatusCode status, WebRequest request) {
 
-        if (status.is5xxServerError()) {
-            log.error("처리하지 못한 예외가 발생", exception);
-        } else if (!(exception instanceof NoResourceFoundException)) {
-            log.atWarn()
-                .addKeyValue("error.type", exception.getClass().getName())
-                .log("잘못된 요청");
-        }
+        logException(exception, status);
         return ResponseEntity.status(status)
             .body(ErrorResponse.from(CommonErrorCode.from(status)));
+    }
+
+    private void logException(Exception exception, HttpStatusCode status) {
+        if (status.is5xxServerError()) {
+            log.error("처리하지 못한 예외가 발생", exception);
+            return;
+        }
+
+        if (exception instanceof NoResourceFoundException) {
+            return;
+        }
+
+        log.atWarn()
+            .addKeyValue("error.type", exception.getClass().getName())
+            .log("잘못된 요청");
     }
 }
