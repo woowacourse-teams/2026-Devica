@@ -6,12 +6,15 @@ spring:
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  jpa:
-    show-sql: true
-
 logging:
+  structured:
+    format:
+      console: ecs
+    json:
+      # service.* 는 수집기(Alloy)가 붙이는 app·env 레이블과 겹쳐 본문에서 뺀다
+      exclude: service
   level:
-    org.hibernate.orm.jdbc.bind: trace
+    com.wrb.devica: debug
 
 management:
   endpoints:

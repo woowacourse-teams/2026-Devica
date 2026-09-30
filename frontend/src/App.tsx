@@ -284,10 +284,11 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
 }
 
 // 결과와 맞춤 목록은 주소의 사용 목적과 답으로 권장 사양을 받는다. 새로고침과 공유 링크도 같은 길을 탄다.
+// 유형이 없으면 권장 사양을 받아도 제품을 찾을 수 없다. 두 화면이 같은 조건으로 주소를 거른다.
 function useRecommendation(params: URLSearchParams) {
-  const { purpose } = flowOf(params);
+  const { category, purpose } = flowOf(params);
   const answers = toSearchParams(answersOf(params));
-  return useFetched(purpose === null ? null : `recommendation:${purpose}?${answers}`, () =>
+  return useFetched(category === null || purpose === null ? null : `recommendation:${purpose}?${answers}`, () =>
     fetchRecommendation(purpose ?? '', answers),
   );
 }
@@ -319,7 +320,8 @@ function RecommendationStatus({ failed, onRetry }: { failed: boolean; onRetry: (
 function ResultPage({ params }: PageProps) {
   const recommendation = useRecommendation(params);
   const specs = recommendation.data;
-  if (flowOf(params).purpose === null) {
+  const { category, purpose } = flowOf(params);
+  if (category === null || purpose === null) {
     return <NotFound />;
   }
   if (specs === null) {
