@@ -1,0 +1,22 @@
+.product-image__photo,
+.product-image__fallback {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.product-image__photo {
+    box-sizing: border-box;
+    padding: var(--density-med);
+    object-fit: contain;
+}
+
+.product-image__fallback {
+    display: grid;
+    place-items: center;
+    padding: var(--gutter);
+    box-sizing: border-box;
+    color: var(--on-surface-variant);
+    text-align: center;
+}

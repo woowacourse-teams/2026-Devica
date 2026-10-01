@@ -1,0 +1,32 @@
+spring:
+  datasource:
+    url: jdbc:mysql://db:3306/${MYSQL_DATABASE}?characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      # 엔티티 매핑과 실제 스키마가 어긋나면 기동을 실패시킨다.
+      ddl-auto: validate
+    show-sql: false
+
+logging:
+  structured:
+    format:
+      console: ecs
+
+management:
+  # compose 가 호스트에 열지 않는 포트, 같은 도커 네트워크의 수집 에이전트만 접근을 허용한다.
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health, prometheus
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

@@ -1,0 +1,109 @@
+/* 백엔드 연동 점검 화면 전용. 지금은 App 에서 렌더하지 않는다. */
+
+.panel {
+    max-width: 720px;
+    margin: 0 auto;
+    border: 1px solid var(--on-surface);
+    background: var(--surface-container-lowest);
+}
+
+.panel__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--gutter);
+    padding: var(--density-med);
+    border-bottom: 1px solid var(--on-surface);
+}
+
+.panel__title {
+    margin: 0;
+    font-size: var(--headline-sm-font-size);
+    font-weight: var(--headline-sm-font-weight);
+    line-height: var(--headline-sm-line-height);
+}
+
+.panel__build,
+.check__label {
+    font-family: var(--font-label);
+    font-size: var(--label-md-font-size);
+    font-weight: var(--label-md-font-weight);
+    letter-spacing: var(--label-md-letter-spacing);
+}
+
+.panel__build {
+    color: var(--on-surface-variant);
+}
+
+.panel__note {
+    margin: 0;
+    padding: var(--density-med);
+    color: var(--on-surface-variant);
+    border-bottom: 1px solid var(--outline-variant);
+}
+
+.check {
+    padding: var(--density-med);
+    border-bottom: 1px solid var(--outline-variant);
+}
+
+/* 실패한 점검만 눈에 띄어야 한다. 디자인 시스템에서 색을 쓰는 유일한 경우다. */
+.check--fail {
+    border-left: 3px solid var(--error);
+}
+
+.check__head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--density-high);
+}
+
+.check__label {
+    flex: 1;
+}
+
+.check__badge {
+    padding: 2px var(--density-high);
+    border: 1px solid var(--on-surface);
+    font-size: var(--body-sm-font-size);
+}
+
+.check--ok .check__badge {
+    background: var(--primary);
+    color: var(--on-primary);
+}
+
+.check--pending .check__badge {
+    border-color: var(--outline-variant);
+    color: var(--outline);
+}
+
+.check__elapsed {
+    min-width: 56px;
+    font-family: var(--font-label);
+    font-size: var(--body-sm-font-size);
+    color: var(--on-surface-variant);
+    text-align: right;
+}
+
+.check__request,
+.check__summary,
+.check__diagnosis {
+    margin: var(--density-high) 0 0;
+    overflow-wrap: anywhere;
+}
+
+.check__request {
+    font-size: var(--body-sm-font-size);
+    color: var(--on-surface-variant);
+}
+
+.check__diagnosis {
+    color: var(--on-surface-variant);
+}
+
+.panel__foot {
+    display: flex;
+    justify-content: flex-end;
+    padding: var(--density-med);
+}

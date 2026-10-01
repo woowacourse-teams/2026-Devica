@@ -1,0 +1,224 @@
+/* 첫 화면의 서비스 소개. */
+
+.home-hero__accent {
+    color: var(--accent);
+}
+
+.home-hero__description {
+    max-width: 40em;
+    color: var(--on-surface-variant);
+    font-size: var(--body-lg-font-size);
+    line-height: var(--body-lg-line-height);
+}
+
+.home-hero__start {
+    align-self: flex-start;
+}
+
+.home-hero__heading {
+    margin-bottom: var(--density-med);
+    font-size: var(--headline-sm-font-size);
+    font-weight: var(--headline-sm-font-weight);
+    line-height: var(--headline-sm-line-height);
+}
+
+/* 수치는 짧아서 좁은 화면에서도 한 줄에 나란히 둔다. */
+.home-hero__stats {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    margin: 0;
+    border-top: 1px solid var(--on-surface);
+    border-bottom: 1px solid var(--on-surface);
+}
+
+.home-hero__stat {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: var(--unit);
+    padding: var(--gutter) var(--density-high);
+}
+
+.home-hero__stat + .home-hero__stat {
+    border-left: 1px solid var(--outline-variant);
+}
+
+.home-hero__stat dd {
+    margin: 0;
+    font-size: var(--headline-md-font-size);
+    font-weight: var(--headline-md-font-weight);
+    line-height: var(--headline-md-line-height);
+}
+
+.home-hero__stat dt {
+    color: var(--on-surface-variant);
+    font-size: var(--body-sm-font-size);
+    line-height: var(--body-sm-line-height);
+}
+
+.home-hero__worries {
+    padding: var(--gutter);
+}
+
+.home-hero__worries ul {
+    display: grid;
+    gap: var(--density-high);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.home-hero__worries li {
+    padding-top: var(--density-high);
+    border-top: 1px solid var(--outline-variant);
+    font-weight: 600;
+}
+
+.home-hero__worries li:first-child {
+    padding-top: 0;
+    border-top: 0;
+}
+
+.home-hero__worries li::before {
+    content: "Q. ";
+    color: var(--outline);
+}
+
+.home-hero__steps {
+    display: grid;
+    gap: var(--density-high);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.home-hero__steps li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--unit) var(--gutter);
+    padding-top: var(--density-high);
+    border-top: 1px solid var(--outline-variant);
+}
+
+.home-hero__step-index {
+    font-family: var(--font-label);
+    font-size: var(--label-md-font-size);
+    font-weight: var(--label-md-font-weight);
+    letter-spacing: var(--label-md-letter-spacing);
+}
+
+.home-hero__step-title {
+    font-weight: 600;
+}
+
+.home-hero__step-meta {
+    margin-left: auto;
+    color: var(--on-surface-variant);
+    font-size: var(--body-md-font-size);
+}
+
+/* "이런 결과를 받아요" 팝업. 디자인 시스템의 Level 2(2px 테두리, 흐림 없는 4px 블록 그림자)를 쓴다. */
+.result-preview {
+    position: relative;
+    align-self: flex-start;
+}
+
+.result-preview__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--density-high);
+    border: 1px solid var(--on-surface);
+    padding: var(--density-high) var(--density-med);
+    color: var(--on-surface);
+    background: var(--surface-container-lowest);
+    font: inherit;
+    font-size: var(--headline-sm-font-size);
+    font-weight: var(--headline-sm-font-weight);
+    line-height: var(--headline-sm-line-height);
+    cursor: pointer;
+}
+
+.result-preview__trigger:hover,
+.result-preview__trigger[aria-expanded="true"] {
+    color: var(--on-primary);
+    background: var(--primary);
+}
+
+.result-preview__trigger:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.result-preview__mark {
+    font-family: var(--font-label);
+}
+
+/* 트리거 바로 아래에 붙여 띄운다. 마우스가 틈에 빠져 닫히지 않도록 간격 없이 붙인다. */
+.result-preview__panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 10;
+    width: min(400px, calc(100vw - 2 * var(--margin-mobile)));
+    border: 2px solid var(--primary);
+    padding: var(--gutter);
+    background: var(--surface-container-lowest);
+    box-shadow: 4px 4px 0 var(--primary);
+    animation: result-preview-in 120ms ease-out;
+}
+
+.result-preview__panel[hidden] {
+    display: none;
+}
+
+.result-preview__title {
+    margin-bottom: var(--density-med);
+    font-weight: 600;
+}
+
+.result-preview__items {
+    display: grid;
+    margin: 0;
+}
+
+.result-preview__items div {
+    display: flex;
+    flex-direction: column;
+    gap: var(--unit);
+    padding: var(--density-high) 0;
+    border-top: 1px solid var(--outline-variant);
+}
+
+.result-preview__items dt {
+    color: var(--on-surface-variant);
+    font-family: var(--font-label);
+    font-size: var(--label-md-font-size);
+    letter-spacing: var(--label-md-letter-spacing);
+}
+
+.result-preview__items dd {
+    margin: 0;
+    font-size: var(--body-md-font-size);
+}
+
+.result-preview__footer {
+    margin: var(--density-high) 0 0;
+    border-top: 1px solid var(--on-surface);
+    padding-top: var(--density-med);
+    font-size: var(--body-md-font-size);
+    font-weight: 600;
+}
+
+@keyframes result-preview-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .result-preview__panel {
+        animation: none;
+    }
+}

@@ -9,6 +9,9 @@ build/
 out/
 .vscode/
 
+# IntelliJ 로 빌드할 때 나오는 애너테이션 프로세서 출력 (QueryDSL Q클래스). Gradle 은 build/ 에 만든다
+src/main/generated/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -16,6 +19,10 @@ Thumbs.db
 # 로그
 *.log
 
-# 운영 환경 설정 (절대 커밋 금지)
+# 운영 환경 비밀값 (절대 커밋 금지)
 *.env
-application-prod.yml
+
+# Claude Code 개인 설정은 커밋하지 않는다. 팀이 공유하는 Skill 만 커밋한다.
+CLAUDE.local.md
+.claude/*
+!.claude/skills/

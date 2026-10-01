@@ -1,0 +1,6 @@
+# push 하는 커밋마다 리뷰 기록을 검사한다. 입력 형식: <로컬 ref> <로컬 sha> <원격 ref> <원격 sha>
+while read -r _ local_sha _ _; do
+  # 브랜치 삭제 push 는 검사할 코드가 없다
+  [ "$local_sha" = 0000000000000000000000000000000000000000 ] && continue
+  scripts/review-check.sh "$local_sha" || exit 1
+done

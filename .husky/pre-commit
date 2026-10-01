@@ -1,0 +1,3 @@
+# frontend/ 변경이 스테이징된 경우에만 린트·포맷(자동 수정)과 타입 검사를 한다.
+git diff --cached --quiet -- frontend && exit 0
+cd frontend && npx lint-staged && npx tsc --noEmit

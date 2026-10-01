@@ -11,3 +11,13 @@ spring:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
+
+  flyway:
+    enabled: false
+
+  sql:
+    init:
+      mode: never
+
+app:
+  product-image-base-url: https://images.example.test/

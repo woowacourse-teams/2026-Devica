@@ -1,0 +1,133 @@
+CREATE TABLE product_category
+(
+    id   BIGINT       NOT NULL AUTO_INCREMENT,
+    code VARCHAR(255) NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_product_category_code (code)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE usage_purpose
+(
+    id                  BIGINT       NOT NULL AUTO_INCREMENT,
+    product_category_id BIGINT       NOT NULL,
+    code                VARCHAR(255) NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_usage_purpose_category_code (product_category_id, code),
+    CONSTRAINT fk_usage_purpose_product_category
+        FOREIGN KEY (product_category_id) REFERENCES product_category (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE faq
+(
+    id               BIGINT       NOT NULL AUTO_INCREMENT,
+    usage_purpose_id BIGINT       NULL,
+    slug             VARCHAR(255) NOT NULL,
+    title            VARCHAR(255) NOT NULL,
+    content          TEXT         NOT NULL,
+    published        BOOLEAN      NOT NULL,
+    display_order    INT          NOT NULL,
+    created_at       DATETIME     NOT NULL,
+    updated_at       DATETIME     NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_faq_slug (slug),
+    KEY              idx_faq_home_published_display_order (usage_purpose_id, published, display_order),
+    CONSTRAINT fk_faq_usage_purpose
+        FOREIGN KEY (usage_purpose_id) REFERENCES usage_purpose (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE cpu
+(
+    id           BIGINT       NOT NULL AUTO_INCREMENT,
+    manufacturer VARCHAR(32)  NOT NULL,
+    name         VARCHAR(128) NOT NULL,
+    core_count   INT          NOT NULL,
+    score        INT          NOT NULL,
+    created_at   DATETIME     NOT NULL,
+    updated_at   DATETIME     NOT NULL,
+    PRIMARY KEY (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE product
+(
+    id                  BIGINT       NOT NULL AUTO_INCREMENT,
+    product_category_id BIGINT       NOT NULL,
+    brand               VARCHAR(64)  NOT NULL,
+    name                VARCHAR(128) NOT NULL,
+    code                VARCHAR(64)  NOT NULL,
+    description         TEXT         NULL,
+    released_at         DATE         NULL,
+    created_at          DATETIME     NOT NULL,
+    updated_at          DATETIME     NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_product_code (code),
+    CONSTRAINT fk_product_product_category
+        FOREIGN KEY (product_category_id) REFERENCES product_category (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE laptop
+(
+    id               BIGINT        NOT NULL,
+    cpu_id           BIGINT        NOT NULL,
+    os               VARCHAR(16)   NOT NULL,
+    memory_gb        INT           NOT NULL,
+    storage_gb       INT           NOT NULL,
+    weight_g         INT           NOT NULL,
+    screen_size_inch DECIMAL(3, 1) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_laptop_product
+        FOREIGN KEY (id) REFERENCES product (id),
+    CONSTRAINT fk_laptop_cpu
+        FOREIGN KEY (cpu_id) REFERENCES cpu (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE product_offer
+(
+    id               BIGINT      NOT NULL AUTO_INCREMENT,
+    product_id       BIGINT      NOT NULL,
+    name             VARCHAR(64) NOT NULL,
+    price            BIGINT      NOT NULL,
+    external_item_id VARCHAR(64) NULL,
+    purchase_url     TEXT        NOT NULL,
+    status           VARCHAR(32) NOT NULL,
+    created_at       DATETIME    NOT NULL,
+    updated_at       DATETIME    NOT NULL,
+    PRIMARY KEY (id),
+    KEY              idx_product_offer_product_status_price (product_id, status, price),
+    CONSTRAINT fk_product_offer_product
+        FOREIGN KEY (product_id) REFERENCES product (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE question
+(
+    id               BIGINT       NOT NULL AUTO_INCREMENT,
+    usage_purpose_id BIGINT       NOT NULL,
+    code             VARCHAR(255) NOT NULL,
+    title            VARCHAR(256) NOT NULL,
+    description      VARCHAR(512) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_question_purpose_code (usage_purpose_id, code),
+    CONSTRAINT fk_question_usage_purpose
+        FOREIGN KEY (usage_purpose_id) REFERENCES usage_purpose (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE question_option
+(
+    id          BIGINT       NOT NULL AUTO_INCREMENT,
+    question_id BIGINT       NOT NULL,
+    code        VARCHAR(64)  NOT NULL,
+    content     VARCHAR(128) NOT NULL,
+    description VARCHAR(256) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_question_option_question_code (question_id, code),
+    CONSTRAINT fk_question_option_question
+        FOREIGN KEY (question_id) REFERENCES question (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4;

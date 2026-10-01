@@ -1,0 +1,40 @@
+/* intro-view 전용. 공유 부품은 shared.css 에 있다. */
+
+.baseline-list {
+    display: grid;
+    gap: var(--gutter);
+    margin: 24px 0;
+}
+
+.baseline-card {
+    padding: var(--gutter);
+}
+
+.baseline-card h2 {
+    margin: var(--density-high) 0 var(--gutter);
+}
+
+.baseline-card dl {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: var(--density-high) var(--gutter);
+    margin: 0;
+}
+
+.baseline-card dt {
+    color: var(--on-surface-variant);
+    font-size: var(--label-md-font-size);
+    letter-spacing: var(--label-md-letter-spacing);
+}
+
+.baseline-card dd {
+    margin: 0;
+    font-weight: 600;
+    text-align: right;
+}
+
+@media (min-width: 768px) {
+    .baseline-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

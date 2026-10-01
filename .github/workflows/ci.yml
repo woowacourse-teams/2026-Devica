@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+
+# 같은 브랜치에 새 커밋이 올라오면 진행 중이던 검증은 취소한다
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: devica_test
+          TZ: Asia/Seoul
+        ports:
+          # test/application.yml 의 TEST_DB_PORT 값을 컨테이너의 3306 에 매핑한다.
+          # 그 값을 바꾸면 이 포트도 함께 고쳐야 한다.
+          - 3307:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-retries=10
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: JDK 21 설정
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Gradle 설정
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: 빌드 및 테스트
+        run: ./gradlew build
+
+  # 백엔드 검증과 분리한다. test 는 MySQL 컨테이너 기동을 기다리므로, 같은 잡에 넣으면
+  # 프론트엔드 빌드가 그만큼 늦어지고 한쪽이 깨졌을 때 다른 쪽 결과를 볼 수 없다.
+  frontend:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node 22 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          # uses 로 실행하는 단계에는 defaults.run 이 적용되지 않아 경로를 따로 적는다.
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: 빌드
+        run: npm run build
+
+  # pre-push 와 같은 검사다. --no-verify 로 훅을 건너뛴 push 를 PR 단계에서 막는다.
+  # git 만 쓰므로 Node 설치 없이 frontend 잡과 따로 돌린다.
+  review-record:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+        with:
+          # merge-base 를 구하려면 develop 이력이 필요하다.
+          fetch-depth: 0
+          # PR 에서는 기본값인 가상 병합 커밋 대신 브랜치 끝 커밋을 본다.
+          # 병합 커밋은 최신 develop 이 섞여, 코드가 같아도 로컬 pre-push 와 해시가 달라질 수 있다.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: 리뷰 기록 검사
+        run: scripts/review-check.sh HEAD
+        env:
+          # 기록에 적힌 기준 브랜치 대신 실제 PR 의 base 로 해시를 계산한다. push 이벤트에서는 비워 두어 기록을 따른다.
+          REVIEW_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
