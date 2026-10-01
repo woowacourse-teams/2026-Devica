@@ -86,7 +86,8 @@ type Props = {
   onChangeState: (update: (previous: ProductListState) => ProductListState) => void;
   // 권장 사양에서 검색으로 들어왔다. 제품을 받을 때까지 사양 대조 화면이 자리를 지킨다.
   searching: boolean;
-  onSearched: () => void;
+  // 목록을 받지 못하고 끝났으면 failed 가 참이다.
+  onSearched: (failed: boolean) => void;
   onBack: () => void;
   onDetail: (productId: number) => void;
   onShowAll: () => void;
@@ -179,9 +180,9 @@ export function ProductListView({
 
   useEffect(() => {
     if (searching && !matching) {
-      onSearched();
+      onSearched(failed);
     }
-  }, [searching, matching, onSearched]);
+  }, [searching, matching, failed, onSearched]);
 
   // 뒤로 가기로 돌아오면 제품을 다 그린 뒤 보던 위치로 되돌린다. 그리기 전에는 페이지가 짧아 그 위치까지 내려가지 못한다.
   const restored = useRef(false);

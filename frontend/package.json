@@ -13,6 +13,7 @@
     "prepare": "cd .. && husky"
   },
   "dependencies": {
+    "posthog-js": "^1.435.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "wouter": "^3.12.0"
