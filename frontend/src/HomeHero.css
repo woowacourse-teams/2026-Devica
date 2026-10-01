@@ -1,5 +1,9 @@
 /* 첫 화면의 서비스 소개. */
 
+.home-hero__accent {
+    color: var(--accent);
+}
+
 .home-hero__description {
     max-width: 40em;
     color: var(--on-surface-variant);

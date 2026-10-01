@@ -98,7 +98,8 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
                   <span className="product-offer__name">{offer.name}</span>
                   <strong className="product-offer__price">{formatPrice(offer.price)}</strong>
                   <a
-                    className="button button--primary product-offer__buy"
+                    // 판매처가 여러 곳이면 강조색 버튼이 몰리므로 최저가 한 곳만 강조한다.
+                    className={`button ${offer === lowest ? 'button--primary' : 'button--neutral'} product-offer__buy`}
                     href={offer.purchaseUrl}
                     target="_blank"
                     rel="noopener noreferrer"

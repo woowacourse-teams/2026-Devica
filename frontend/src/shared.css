@@ -52,11 +52,23 @@
 }
 
 .button--primary {
+    border-color: var(--accent);
+    color: var(--on-primary);
+    background: var(--accent);
+}
+
+.button--primary:hover:not(:disabled) {
+    color: var(--accent);
+    background: var(--on-primary);
+}
+
+/* 주요 버튼이지만 강조색을 쓰지 않는다. 한 화면에 강조색 버튼이 몰리지 않게 할 때 쓴다. */
+.button--neutral {
     color: var(--on-primary);
     background: var(--primary);
 }
 
-.button--primary:hover:not(:disabled) {
+.button--neutral:hover:not(:disabled) {
     color: var(--primary);
     background: var(--on-primary);
 }
@@ -89,6 +101,8 @@
     background: transparent;
     font: inherit;
     font-weight: 600;
+    /* 링크(<a>)로 만든 경우에도 버튼으로 만든 것처럼 hover 때만 밑줄을 긋는다. */
+    text-decoration: none;
     cursor: pointer;
 }
 
