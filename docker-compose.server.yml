@@ -51,6 +51,8 @@ services:
       GRAFANA_CLOUD_PROM_URL: ${GRAFANA_CLOUD_PROM_URL}
       GRAFANA_CLOUD_PROM_USER: ${GRAFANA_CLOUD_PROM_USER}
       GRAFANA_CLOUD_TOKEN: ${GRAFANA_CLOUD_TOKEN}
+      GRAFANA_CLOUD_LOKI_URL: ${GRAFANA_CLOUD_LOKI_URL}
+      GRAFANA_CLOUD_LOKI_USER: ${GRAFANA_CLOUD_LOKI_USER}
     volumes:
       - ./monitoring/config.alloy:/etc/alloy/config.alloy:ro
       - /proc:/host/proc:ro
