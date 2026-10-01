@@ -56,11 +56,14 @@ export function App() {
     document.title = titleOf(pathname);
   }, [pathname]);
 
+  // 제품 유형 선택과 제품 목록은 주소가 같고 category 쿼리로만 나뉜다. 둘 사이를 오가는 것도 화면이 바뀐 것으로 본다.
+  const choosingCategory = pathname === PATHS.products && new URLSearchParams(search).get('category') === null;
+
   // 새 화면은 맨 위에서, 뒤로 가기로 돌아온 화면은 보던 위치에서 연다. 목록은 제품을 그린 뒤 한 번 더 맞춘다.
   // biome-ignore lint/correctness/useExhaustiveDependencies: 화면이 바뀔 때마다 돌아야 한다. 같은 화면에서 조건만 바꿀 때는 스크롤을 건드리지 않는다.
   useEffect(() => {
     window.scrollTo(0, currentNavState().scrollY ?? 0);
-  }, [pathname]);
+  }, [pathname, choosingCategory]);
 
   const params = new URLSearchParams(search);
   const screen = screenOf(pathname);
