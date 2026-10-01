@@ -101,6 +101,8 @@
     background: transparent;
     font: inherit;
     font-weight: 600;
+    /* 링크(<a>)로 만든 경우에도 버튼으로 만든 것처럼 hover 때만 밑줄을 긋는다. */
+    text-decoration: none;
     cursor: pointer;
 }
 

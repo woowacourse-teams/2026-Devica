@@ -1,6 +1,6 @@
 # 리뷰 기록
 
-base: origin/feature/155-home-intro
-diff-hash: ff3ceb08da5bd9ce720cc610e55598af0bc86bd9
+base: origin/develop
+diff-hash: c282b227b36b4d95466d0b32a859259fcf820493
 
 지적 없음
