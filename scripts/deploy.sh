@@ -42,6 +42,8 @@ chmod 2750 "${APP_DIR}/logs/app" "${APP_DIR}/logs/db"
 find "${APP_DIR}/logs/app" "${APP_DIR}/logs/db" -type f -exec chown ":${ALLOY_GID}" {} +
 find "${APP_DIR}/logs/app" "${APP_DIR}/logs/db" -type f -exec chmod g+r {} +
 # 기존 root 소유의 읽기 위치도 일반 계정으로 이전한다. DB 데이터 볼륨은 건드리지 않는다.
+# Alloy 읽기 위치 볼륨은 여기서 만든다. compose 는 이 볼륨을 external 로 쓴다.
+docker volume create "${COMPOSE_PROJECT_NAME}_alloy-data" >/dev/null
 if ! docker run --rm --user 0:0 --entrypoint chown \
   -v "${COMPOSE_PROJECT_NAME}_alloy-data:/var/lib/devica-alloy" \
   mysql:8.4 -R "${ALLOY_UID}:${ALLOY_GID}" /var/lib/devica-alloy; then

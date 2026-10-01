@@ -34,9 +34,7 @@ class RequestLoggingFilterE2ETest extends E2ETest {
             .then().extract().header("X-Trace-Id");
 
         // then
-        List<String> requestLogs = findRequestLogs(output);
-
-        await().untilAsserted(() -> assertThat(requestLogs)
+        await().untilAsserted(() -> assertThat(findRequestLogs(output))
             .anySatisfy(log -> assertThat(log).contains(
                 "\"trace\":{\"id\":\"" + traceId + "\"}",
                 "\"route\":\"/api/faqs/{slug}\"",

@@ -17,7 +17,8 @@ public enum BusinessErrorCode implements ErrorCode {
     LAPTOP_NOT_FOUND(HttpStatus.NOT_FOUND, "조회할 수 없는 노트북입니다."),
     QUESTION_NOT_FOUND(HttpStatus.BAD_REQUEST, "존재하지 않는 질문입니다."),
     ANSWER_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "질문에 없는 선택지이거나 함께 고를 수 없는 선택지입니다."),
-    FAQ_NOT_FOUND(HttpStatus.NOT_FOUND, "조회할 수 없는 FAQ입니다.");
+    FAQ_NOT_FOUND(HttpStatus.NOT_FOUND, "조회할 수 없는 FAQ입니다."),
+    BOARD_POST_NOT_FOUND(HttpStatus.NOT_FOUND, "조회할 수 없는 게시글입니다.");
 
     private final HttpStatus status;
     private final String message;
