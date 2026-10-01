@@ -1,6 +1,7 @@
 package com.wrb.devica.board.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.wrb.devica.board.domain.BoardPost;
 import com.wrb.devica.board.dto.BoardPostSummaryResponse;
@@ -47,7 +48,7 @@ class BoardPostRepositoryTest {
         insertPost(purposeId, "선택한 목적의 글", createdAt);
         insertPost(otherPurposeId, "다른 목적의 글", createdAt.plusHours(1));
 
-        Slice<BoardPostSummaryResponse> found = boardPostRepository.findByUsagePurpose_IdOrderByCreatedAtDescIdDesc(
+        Slice<BoardPostSummaryResponse> found = boardPostRepository.findSummariesByUsagePurposeId(
             purposeId, PageRequest.of(0, 20)
         );
 
@@ -64,10 +65,10 @@ class BoardPostRepositoryTest {
         insertPost(purposeId, "같은 시각 작은 ID", createdAt);
         insertPost(purposeId, "같은 시각 큰 ID", createdAt);
 
-        Slice<BoardPostSummaryResponse> first = boardPostRepository.findByUsagePurpose_IdOrderByCreatedAtDescIdDesc(
+        Slice<BoardPostSummaryResponse> first = boardPostRepository.findSummariesByUsagePurposeId(
             purposeId, PageRequest.of(0, 2)
         );
-        Slice<BoardPostSummaryResponse> second = boardPostRepository.findByUsagePurpose_IdOrderByCreatedAtDescIdDesc(
+        Slice<BoardPostSummaryResponse> second = boardPostRepository.findSummariesByUsagePurposeId(
             purposeId, PageRequest.of(1, 2)
         );
 
@@ -77,6 +78,24 @@ class BoardPostRepositoryTest {
         assertThat(second.getContent()).extracting(BoardPostSummaryResponse::title)
             .containsExactly("같은 시각 작은 ID");
         assertThat(second.hasNext()).isFalse();
+    }
+
+    @Test
+    void 글마다_댓글_수를_함께_조회한다() {
+        long purposeId = backendPurposeId();
+        LocalDateTime createdAt = LocalDateTime.of(2026, 10, 1, 12, 0);
+        insertPost(purposeId, "댓글 없는 글", createdAt);
+        insertPost(purposeId, "댓글 두 개", createdAt.plusHours(1));
+        long postId = jdbcTemplate.queryForObject("SELECT id FROM board_post WHERE title = '댓글 두 개'", Long.class);
+        insertComment(postId);
+        insertComment(postId);
+
+        Slice<BoardPostSummaryResponse> found = boardPostRepository.findSummariesByUsagePurposeId(
+            purposeId, PageRequest.of(0, 20)
+        );
+
+        assertThat(found.getContent()).extracting(BoardPostSummaryResponse::title, BoardPostSummaryResponse::commentCount)
+            .containsExactly(tuple("댓글 두 개", 2L), tuple("댓글 없는 글", 0L));
     }
 
     @Test
@@ -106,5 +125,12 @@ class BoardPostRepositoryTest {
             INSERT INTO board_post (usage_purpose_id, title, content, created_at, updated_at)
             VALUES (?, ?, '본문', ?, ?)
             """, purposeId, title, createdAt, createdAt);
+    }
+
+    private void insertComment(long postId) {
+        jdbcTemplate.update("""
+            INSERT INTO board_comment (board_post_id, content, created_at, updated_at)
+            VALUES (?, '댓글', NOW(), NOW())
+            """, postId);
     }
 }
