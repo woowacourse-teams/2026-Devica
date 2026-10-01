@@ -32,22 +32,11 @@
     overflow-wrap: anywhere;
 }
 
-.board-scope__links,
 .board-actions {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--gutter);
-}
-
-.board-scope__links {
-    color: var(--on-surface-variant);
-    font-size: var(--body-md-font-size);
-}
-
-.board-scope__links a {
-    padding: var(--density-high) 0;
-    text-underline-offset: 4px;
 }
 
 .board-toolbar,
@@ -57,11 +46,6 @@
     justify-content: space-between;
     gap: var(--gutter);
     margin-top: var(--density-high);
-}
-
-.board-toolbar > span {
-    color: var(--on-surface-variant);
-    font-size: var(--body-md-font-size);
 }
 
 .board-button {
@@ -96,8 +80,7 @@
 }
 
 .board-list__link:focus-visible,
-.board-pagination a:focus-visible,
-.board-scope a:focus-visible {
+.board-pagination a:focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
 }
@@ -129,6 +112,11 @@
 .board-list__arrow {
     flex-shrink: 0;
     color: var(--outline);
+}
+
+.board-list__comments {
+    color: var(--primary);
+    font-weight: 600;
 }
 
 .board-status {
@@ -242,6 +230,42 @@
 .board-return {
     align-self: flex-start;
     margin-top: var(--gutter);
+}
+
+.board-comments {
+    margin-top: 32px;
+}
+
+.board-comments__title {
+    margin: 0 0 var(--gutter);
+    font-size: var(--headline-sm-font-size);
+}
+
+.board-comments__list {
+    margin: 0;
+    border-top: 1px solid var(--on-surface);
+    padding: 0;
+    list-style: none;
+}
+
+.board-comments__list li {
+    border-bottom: 1px solid var(--outline-variant);
+    padding: 24px 0;
+}
+
+.board-comments__content {
+    margin: var(--density-high) 0 0;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.board-comment-form textarea {
+    min-height: 128px;
+}
+
+.board-comment-form > button {
+    align-self: flex-end;
 }
 
 @media (max-width: 600px) {

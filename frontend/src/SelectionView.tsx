@@ -15,12 +15,10 @@ type Props = {
   onSelect: (code: string) => void;
   // 뒤로 가기는 들어온 경로마다 돌아갈 곳이 달라 문구와 함께 받는다.
   back?: { label: string; onClick: () => void };
-  context?: 'recommendation' | 'board';
 };
 
-export function SelectionView({ categoryCode, onSelect, back, context = 'recommendation' }: Props) {
+export function SelectionView({ categoryCode, onSelect, back }: Props) {
   const choosingCategory = categoryCode === null;
-  const forBoard = context === 'board';
   // 아직 받지 못한 상태(null)와 실패를 빈 목록과 구분한다.
   const [cards, setCards] = useState<SelectionCard[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -60,20 +58,12 @@ export function SelectionView({ categoryCode, onSelect, back, context = 'recomme
         </button>
       )}
       <h1 className="selection__title" id="selection-title">
-        {forBoard
-          ? choosingCategory
-            ? '어떤 제품의 질문을 찾아볼까요?'
-            : '어떤 사용 목적의 질문을 찾아볼까요?'
-          : choosingCategory
-            ? '어떤 제품을 찾으시나요?'
-            : '어떤 용도로 사용하시나요?'}
+        {choosingCategory ? '어떤 제품을 찾으시나요?' : '어떤 용도로 사용하시나요?'}
       </h1>
       <p className="section-description">
-        {forBoard
-          ? '제품과 사용 목적을 고르면 해당 질문 게시판으로 이동합니다.'
-          : choosingCategory
-            ? '찾으시는 제품을 골라 주세요.'
-            : '자주 사용하는 용도를 선택해 주시면 가장 적합한 모델을 추천해 드립니다.'}
+        {choosingCategory
+          ? '찾으시는 제품을 골라 주세요.'
+          : '자주 사용하는 용도를 선택해 주시면 가장 적합한 모델을 추천해 드립니다.'}
       </p>
 
       {cards === null && !failed && <p className="section-description">불러오는 중입니다…</p>}
@@ -116,7 +106,7 @@ export function SelectionView({ categoryCode, onSelect, back, context = 'recomme
         disabled={picked === null}
         onClick={() => picked !== null && onSelect(picked)}
       >
-        {forBoard ? (choosingCategory ? '사용 목적 선택' : '게시판 보기') : '다음'}
+        다음
       </button>
     </section>
   );

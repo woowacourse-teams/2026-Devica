@@ -32,7 +32,7 @@ export function SiteHeader({ onGuide, onProductList, boardHref, onBoard, boardAc
             href="/faq"
             onClick={(event) => navigateInside(event, onGuide)}
           >
-            가이드
+            FAQ
           </a>
           <a
             className="site-nav__item"
