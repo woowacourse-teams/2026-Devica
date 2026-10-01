@@ -2,6 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'reac
 import { Redirect, Route, Switch } from 'wouter';
 import { useHistoryState, usePathname, useSearch } from 'wouter/use-browser-location';
 import { track } from './analytics';
+import { BoardPage } from './BoardPage';
+import { BoardPostPage } from './BoardPostView';
 import { CategoryCards } from './CategoryCards';
 import { FaqView } from './FaqView';
 import { useFetched } from './fetched';
@@ -18,6 +20,7 @@ import {
   answerEntries,
   answersOf,
   backLabelOf,
+  boardEntryUrl,
   conditionOf,
   currentNavState,
   flowEntries,
@@ -42,7 +45,7 @@ import { SiteHeader } from './SiteHeader';
 // 화면은 두 흐름으로 나뉜다.
 // - 추천 흐름: 첫 화면(서비스 소개) → 제품 선택 → 사용 목적 → 기본 권장 사양 → 질문 → 결과 → 맞춤 목록
 // - 검색 흐름(UC-07): 제품 유형 선택 → 전체 목록 → 제품 상세
-// FAQ(UC-10)는 어느 화면에서든 헤더로 연다.
+// 공통 FAQ와 질문 게시판은 어느 화면에서든 헤더로 연다.
 // 화면 안의 뒤로 버튼은 브라우저 뒤로 가기와 같은 곳으로 간다. 앱 밖에서 바로 들어왔으면 정해 둔 화면으로 간다.
 export function App() {
   const pathname = usePathname();
@@ -62,10 +65,12 @@ export function App() {
   const params = new URLSearchParams(search);
   const screen = screenOf(pathname);
 
-  // 헤더의 "가이드". 추천 흐름에서 유형과 목적을 골랐다면 그 조합의 FAQ 를 연다.
+  const boardHref = boardEntryUrl(pathname, params);
+
+  // 가이드는 선택한 제품·목적과 관계없이 공통 FAQ를 연다.
   const openFaq = () => {
-    if (screen !== 'faq') {
-      go(`${PATHS.faq}${query(flowEntries(flowOf(params)))}`);
+    if (screen !== 'faq' || search !== '') {
+      go(PATHS.faq);
     }
   };
 
@@ -85,7 +90,13 @@ export function App() {
 
   return (
     <>
-      <SiteHeader onGuide={openFaq} onProductList={openSearch} />
+      <SiteHeader
+        onGuide={openFaq}
+        onProductList={openSearch}
+        boardHref={boardHref}
+        onBoard={() => go(boardHref)}
+        boardActive={screen === 'board' || screen === 'boardWrite' || screen === 'boardPost'}
+      />
       <main className="probe" id="main-content">
         <Switch>
           <Route path={PATHS.home}>
@@ -112,7 +123,14 @@ export function App() {
           </Route>
           <Route path={PATHS.detail}>{({ id }) => <DetailPage id={positiveOf(id)} />}</Route>
           <Route path={PATHS.faq}>
-            <FaqPage params={params} />
+            <FaqPage />
+          </Route>
+          <Route path={PATHS.boardWrite}>
+            <BoardPage params={params} writing />
+          </Route>
+          <Route path={PATHS.boardPost}>{({ id }) => <BoardPostPage id={id} />}</Route>
+          <Route path={PATHS.board}>
+            <BoardPage params={params} />
           </Route>
           <Route>
             <NotFound />
@@ -512,14 +530,12 @@ function DetailPage({ id }: { id: number | null }) {
   );
 }
 
-function FaqPage({ params }: PageProps) {
+function FaqPage() {
   const navState = useHistoryState<NavState | null>();
-  const { category, purpose } = flowOf(params);
   return (
     <FaqView
-      // 추천 흐름에서 제품 유형과 사용 목적을 모두 골랐다면 그 조합의 FAQ 를 보여준다.
-      categoryCode={purpose === null ? null : category}
-      purposeCode={purpose}
+      categoryCode={null}
+      purposeCode={null}
       backLabel={backLabelOf(navState?.from ?? 'home')}
       onBack={() => goBack(PATHS.home)}
     />

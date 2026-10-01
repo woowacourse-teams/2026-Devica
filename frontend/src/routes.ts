@@ -15,6 +15,9 @@ export const PATHS = {
   products: '/products',
   detail: '/products/:id',
   faq: '/faq',
+  board: '/board',
+  boardWrite: '/board/new',
+  boardPost: '/board/posts/:id',
 } as const;
 
 export type Screen = keyof typeof PATHS;
@@ -30,6 +33,9 @@ const SCREEN_NAMES: Record<Screen, string> = {
   products: '제품 목록',
   detail: '제품 상세',
   faq: '자주 묻는 질문',
+  board: '질문 게시판',
+  boardWrite: '질문 작성',
+  boardPost: '질문 상세',
 };
 
 // 조사가 이름마다 달라 "← ○○으로" 를 만들지 않고 적어 둔다.
@@ -44,6 +50,9 @@ const BACK_LABELS: Record<Screen, string> = {
   products: '← 제품 목록으로',
   detail: '← 제품 상세로',
   faq: '← 자주 묻는 질문으로',
+  board: '← 질문 게시판으로',
+  boardWrite: '← 질문 작성으로',
+  boardPost: '← 질문 상세로',
 };
 
 export function screenOf(pathname: string): Screen | null {
@@ -55,6 +64,9 @@ export function screenOf(pathname: string): Screen | null {
   }
   if (/^\/products\/[^/]+$/.test(pathname)) {
     return 'detail';
+  }
+  if (/^\/board\/posts\/[^/]+$/.test(pathname)) {
+    return 'boardPost';
   }
   const found = (Object.keys(PATHS) as Screen[]).find((screen) => PATHS[screen] === pathname);
   return found ?? null;
@@ -141,6 +153,23 @@ export function flowEntries(flow: Flow): [string, string | null][] {
     ['category', flow.category],
     ['purpose', flow.purpose],
   ];
+}
+
+export function boardUrl(category: string | null = null, purpose: string | null = null, page = 0): string {
+  return `${PATHS.board}${query([...flowEntries({ category, purpose }), ['page', page === 0 ? null : page]])}`;
+}
+
+// 각 화면이 실제로 쓰는 값만 이어받는다. 일반 제품 목록의 목적이나 홈·FAQ에 남은 쿼리는 무시한다.
+export function boardEntryUrl(pathname: string, params: URLSearchParams): string {
+  const screen = screenOf(pathname);
+  if (screen === 'products' || screen === 'purpose') {
+    return boardUrl(params.get('category'));
+  }
+  if (['intro', 'question', 'result', 'matched', 'board', 'boardWrite'].includes(screen ?? '')) {
+    const { category, purpose } = flowOf(params);
+    return boardUrl(category, category === null ? null : purpose);
+  }
+  return PATHS.board;
 }
 
 // 답은 "질문코드.선택지코드" 로 이어 answer 에 반복해 담는다. 목록 검색 조건과 이름이 겹치지 않는다.
