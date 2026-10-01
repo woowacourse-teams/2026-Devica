@@ -102,4 +102,7 @@ services:
 
 volumes:
   mysql-data:
+  # 배포 스크립트가 Alloy 를 띄우기 전에 만들고 권한을 맞춘다. compose 가 만들면 이미 있는 볼륨과 이름만 같아 경고가 난다.
   alloy-data:
+    external: true
+    name: app_alloy-data
