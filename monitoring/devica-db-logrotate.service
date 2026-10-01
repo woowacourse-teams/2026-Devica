@@ -1,0 +1,8 @@
+[Unit]
+Description=Rotate Devica MySQL error log
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/app/scripts/rotate-db-log.sh

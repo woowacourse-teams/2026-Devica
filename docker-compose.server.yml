@@ -11,6 +11,23 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:?각 서버의 .env 에 SPRING_PROFILES_ACTIVE 를 지정한다}
       PRODUCT_IMAGE_BASE_URL: ${PRODUCT_IMAGE_BASE_URL:?각 서버의 .env 에 PRODUCT_IMAGE_BASE_URL 을 지정한다}
       TZ: Asia/Seoul
+      LOGGING_FILE_NAME: /var/log/devica/app.log
+      LOGGING_STRUCTURED_FORMAT_FILE: ecs
+      LOGGING_LOGBACK_ROLLINGPOLICY_MAXFILESIZE: 10MB
+      LOGGING_LOGBACK_ROLLINGPOLICY_MAXHISTORY: "7"
+      LOGGING_LOGBACK_ROLLINGPOLICY_TOTALSIZECAP: 100MB
+      LOGGING_LOGBACK_ROLLINGPOLICY_CLEANHISTORYONSTART: "true"
+    volumes:
+      - type: bind
+        source: ./logs/app
+        target: /var/log/devica
+        bind:
+          create_host_path: false
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "80:8080"
     depends_on:
@@ -27,8 +44,19 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_0900_ai_ci
+      - --log-error=/var/log/mysql/error.log
     volumes:
       - mysql-data:/var/lib/mysql
+      - type: bind
+        source: ./logs/db
+        target: /var/log/mysql
+        bind:
+          create_host_path: false
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: [ "CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD" ]
       interval: 5s
@@ -45,18 +73,27 @@ services:
     command:
       - run
       - /etc/alloy/config.alloy
-      - --storage.path=/var/lib/alloy/data
+      - --storage.path=/var/lib/devica-alloy
     environment:
       DEVICA_ENV: ${SPRING_PROFILES_ACTIVE}
       GRAFANA_CLOUD_PROM_URL: ${GRAFANA_CLOUD_PROM_URL}
       GRAFANA_CLOUD_PROM_USER: ${GRAFANA_CLOUD_PROM_USER}
       GRAFANA_CLOUD_TOKEN: ${GRAFANA_CLOUD_TOKEN}
+      GRAFANA_CLOUD_LOKI_URL: ${GRAFANA_CLOUD_LOKI_URL}
+      GRAFANA_CLOUD_LOKI_USER: ${GRAFANA_CLOUD_LOKI_USER}
     volumes:
       - ./monitoring/config.alloy:/etc/alloy/config.alloy:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       # 디스크 사용률은 이 디렉터리가 속한 루트 디스크 값으로 잰다. / 를 통째로 열면 docker.sock 과 .env 가 보인다.
       - ./monitoring:/host/root:ro
+      - type: bind
+        source: ./logs
+        target: /var/log/devica
+        read_only: true
+        bind:
+          create_host_path: false
+      - alloy-data:/var/lib/devica-alloy
     user: "473:473"
     cap_drop: [ ALL ]
     security_opt: [ "no-new-privileges:true" ]
@@ -65,3 +102,4 @@ services:
 
 volumes:
   mysql-data:
+  alloy-data:

@@ -39,3 +39,62 @@ prometheus.remote_write "grafana_cloud" {
     env = sys.env("DEVICA_ENV"),
   }
 }
+
+local.file_match "application_logs" {
+  path_targets = [
+    {"__path__" = "/var/log/devica/app/app.log", "app" = "devica-app"},
+    {"__path__" = "/var/log/devica/db/error.log", "app" = "devica-db"},
+  ]
+}
+
+loki.source.file "application_logs" {
+  targets    = local.file_match.application_logs.targets
+  forward_to = [loki.process.application_logs.receiver]
+}
+
+loki.process "application_logs" {
+  stage.match {
+    selector = "{app=\"devica-app\"}"
+    stage.json {
+      expressions = { timestamp = "\"@timestamp\"" }
+    }
+    stage.timestamp {
+      source = "timestamp"
+      format = "RFC3339Nano"
+      action_on_failure = "skip"
+    }
+  }
+
+  stage.match {
+    selector = "{app=\"devica-db\"}"
+    stage.regex {
+      expression = "^(?P<timestamp>[0-9T:Z.+-]+) "
+    }
+    stage.timestamp {
+      source = "timestamp"
+      format = "RFC3339Nano"
+      action_on_failure = "skip"
+    }
+  }
+
+  stage.label_drop {
+    values = ["filename"]
+  }
+
+  forward_to = [loki.write.grafana_cloud.receiver]
+}
+
+loki.write "grafana_cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_CLOUD_LOKI_URL")
+
+    basic_auth {
+      username = sys.env("GRAFANA_CLOUD_LOKI_USER")
+      password = sys.env("GRAFANA_CLOUD_TOKEN")
+    }
+  }
+
+  external_labels = {
+    env = sys.env("DEVICA_ENV"),
+  }
+}
