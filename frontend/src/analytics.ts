@@ -26,7 +26,13 @@ export function initAnalytics(): void {
     return;
   }
   // 팀원은 ?internal=1 로 한 번 접속해 그 브라우저의 수집을 끈다. 받는 사이 주소가 바뀔 수 있어 먼저 읽어 둔다.
-  const internal = new URLSearchParams(window.location.search).get('internal') === '1';
+  const url = new URL(window.location.href);
+  const internal = url.searchParams.get('internal') === '1';
+  if (url.searchParams.has('internal')) {
+    // 주소를 복사해 건네면 받은 사람의 수집까지 꺼지므로 주소에서 지운다.
+    url.searchParams.delete('internal');
+    window.history.replaceState(window.history.state, '', url);
+  }
   import('posthog-js')
     .then(({ default: posthog }) => {
       posthog.init(KEY, {
