@@ -1,6 +1,6 @@
 import { Link } from 'wouter';
 import type { BoardScope } from './board';
-import { boardUrl, PATHS } from './routes';
+import { PATHS } from './routes';
 import './BoardView.css';
 
 export function BoardMessage({
@@ -44,20 +44,13 @@ export function BoardLoading({ message = '게시판을 불러오는 중입니다
   );
 }
 
-export function BoardScopeInfo({ scope, editable = false }: { scope: BoardScope; editable?: boolean }) {
+export function BoardScopeInfo({ scope }: { scope: BoardScope }) {
   return (
     <div className="board-scope">
       <p className="board-scope__name">
         {scope.category.name}
         {scope.purpose && <> / {scope.purpose.name}</>}
       </p>
-      {editable && (
-        <div className="board-scope__links">
-          <Link href={PATHS.board}>제품 변경</Link>
-          <span aria-hidden="true">·</span>
-          <Link href={boardUrl(scope.category.code)}>사용 목적 변경</Link>
-        </div>
-      )}
     </div>
   );
 }
