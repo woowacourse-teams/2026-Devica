@@ -15,16 +15,20 @@ type Props = {
   onSelect: (code: string) => void;
   // 뒤로 가기는 들어온 경로마다 돌아갈 곳이 달라 문구와 함께 받는다.
   back?: { label: string; onClick: () => void };
+  context?: 'recommendation' | 'board';
 };
 
-export function SelectionView({ categoryCode, onSelect, back }: Props) {
+export function SelectionView({ categoryCode, onSelect, back, context = 'recommendation' }: Props) {
   const choosingCategory = categoryCode === null;
+  const forBoard = context === 'board';
   // 아직 받지 못한 상태(null)와 실패를 빈 목록과 구분한다.
   const [cards, setCards] = useState<SelectionCard[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [round, setRound] = useState(0);
   // 두 화면 모두 고른 뒤 "다음"을 눌러야 넘어간다.
   const [picked, setPicked] = useState<string | null>(null);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: round는 실패 후 같은 목록을 다시 요청할 때 바뀐다.
   useEffect(() => {
     let stale = false;
     setCards(null);
@@ -46,7 +50,7 @@ export function SelectionView({ categoryCode, onSelect, back }: Props) {
     return () => {
       stale = true;
     };
-  }, [categoryCode]);
+  }, [categoryCode, round]);
 
   return (
     <section className="view-panel selection" aria-labelledby="selection-title">
@@ -56,19 +60,32 @@ export function SelectionView({ categoryCode, onSelect, back }: Props) {
         </button>
       )}
       <h1 className="selection__title" id="selection-title">
-        {choosingCategory ? '어떤 제품을 찾으시나요?' : '어떤 용도로 사용하시나요?'}
+        {forBoard
+          ? choosingCategory
+            ? '어떤 제품의 질문을 찾아볼까요?'
+            : '어떤 사용 목적의 질문을 찾아볼까요?'
+          : choosingCategory
+            ? '어떤 제품을 찾으시나요?'
+            : '어떤 용도로 사용하시나요?'}
       </h1>
       <p className="section-description">
-        {choosingCategory
-          ? '찾으시는 제품을 골라 주세요.'
-          : '자주 사용하는 용도를 선택해 주시면 가장 적합한 모델을 추천해 드립니다.'}
+        {forBoard
+          ? '제품과 사용 목적을 고르면 해당 질문 게시판으로 이동합니다.'
+          : choosingCategory
+            ? '찾으시는 제품을 골라 주세요.'
+            : '자주 사용하는 용도를 선택해 주시면 가장 적합한 모델을 추천해 드립니다.'}
       </p>
 
       {cards === null && !failed && <p className="section-description">불러오는 중입니다…</p>}
       {failed && (
-        <p className="notice" role="alert">
-          {choosingCategory ? '제품' : '사용 목적'} 목록을 불러오지 못했습니다. 잠시 뒤에 새로고침해 주세요.
-        </p>
+        <div>
+          <p className="notice" role="alert">
+            {choosingCategory ? '제품' : '사용 목적'} 목록을 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.
+          </p>
+          <button className="text-button" type="button" onClick={() => setRound((previous) => previous + 1)}>
+            다시 시도
+          </button>
+        </div>
       )}
 
       {cards !== null && (
@@ -99,7 +116,7 @@ export function SelectionView({ categoryCode, onSelect, back }: Props) {
         disabled={picked === null}
         onClick={() => picked !== null && onSelect(picked)}
       >
-        다음
+        {forBoard ? (choosingCategory ? '사용 목적 선택' : '게시판 보기') : '다음'}
       </button>
     </section>
   );
