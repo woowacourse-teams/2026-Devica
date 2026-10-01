@@ -35,7 +35,6 @@
 
 .product-detail__price {
     display: block;
-    color: var(--accent);
     margin-top: 32px;
     padding: var(--gutter) 0;
     border-top: 1px solid var(--outline-variant);
@@ -112,7 +111,6 @@
 }
 
 .product-offer__price {
-    color: var(--accent);
     font-size: var(--headline-sm-font-size);
     text-align: right;
     white-space: nowrap;

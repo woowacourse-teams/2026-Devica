@@ -15,7 +15,7 @@
     --inverse-primary: #c6c6c6;
     --on-primary-fixed-variant: #474747;
     --error: #ba1a1a;
-    /* 주요 버튼과 강조 문구에만 쓴다. 흰 배경 4.8:1, surface 4.6:1 이라 그보다 어두운 회색 위에는 글자로 쓰지 않는다. 디자인 시스템 문서에는 아직 없다. */
+    /* 주요 버튼과 첫 화면 헤드라인에만 쓴다. 흰 배경 4.8:1, surface 4.6:1 이라 그보다 어두운 회색 위에는 글자로 쓰지 않는다. */
     --accent: #b85432;
     --display-font-size: 48px;
     --display-font-weight: 700;

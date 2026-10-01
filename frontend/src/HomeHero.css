@@ -81,7 +81,7 @@
 
 .home-hero__worries li::before {
     content: "Q. ";
-    color: var(--accent);
+    color: var(--outline);
 }
 
 .home-hero__steps {
@@ -102,7 +102,6 @@
 }
 
 .home-hero__step-index {
-    color: var(--accent);
     font-family: var(--font-label);
     font-size: var(--label-md-font-size);
     font-weight: var(--label-md-font-weight);
@@ -142,9 +141,8 @@
 
 .result-preview__trigger:hover,
 .result-preview__trigger[aria-expanded="true"] {
-    border-color: var(--accent);
     color: var(--on-primary);
-    background: var(--accent);
+    background: var(--primary);
 }
 
 .result-preview__trigger:focus-visible {
