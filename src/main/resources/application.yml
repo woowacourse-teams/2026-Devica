@@ -35,4 +35,4 @@ management:
         http.server.requests: 100ms, 300ms, 500ms, 1s, 2s, 5s
 
 app:
-  product-image-base-url: ${PRODUCT_IMAGE_BASE_URL:https://techcourse-project-2026.s3.ap-northeast-2.amazonaws.com}
+  product-image-base-url: ${PRODUCT_IMAGE_BASE_URL}

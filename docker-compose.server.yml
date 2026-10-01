@@ -7,8 +7,9 @@ services:
     container_name: devica-app
     env_file: .env
     environment:
-      # .env에 SPRING_PROFILES_ACTIVE 값이 없으면 실패한다.
+      # 필수 환경변수가 .env에 없으면 컨테이너를 만들기 전에 실패한다.
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:?각 서버의 .env 에 SPRING_PROFILES_ACTIVE 를 지정한다}
+      PRODUCT_IMAGE_BASE_URL: ${PRODUCT_IMAGE_BASE_URL:?각 서버의 .env 에 PRODUCT_IMAGE_BASE_URL 을 지정한다}
       TZ: Asia/Seoul
     ports:
       - "80:8080"
