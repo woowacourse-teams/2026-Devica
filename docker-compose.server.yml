@@ -94,7 +94,7 @@ services:
         bind:
           create_host_path: false
       - alloy-data:/var/lib/devica-alloy
-    user: "0:0"
+    user: "473:473"
     cap_drop: [ ALL ]
     security_opt: [ "no-new-privileges:true" ]
     mem_limit: 256m

@@ -27,12 +27,22 @@ cd "${APP_DIR}"
 
 # 이미지의 실행 사용자에 맞춰 로그 전용 디렉터리를 준비한다. DB 데이터와 비밀값은 연결하지 않는다.
 APP_LOG_UID="$(docker run --rm --entrypoint id "devica:${IMAGE_TAG}" -u)"
-APP_LOG_GID="$(docker run --rm --entrypoint id "devica:${IMAGE_TAG}" -g)"
 DB_LOG_UID="$(docker run --rm --entrypoint id mysql:8.4 -u mysql)"
-DB_LOG_GID="$(docker run --rm --entrypoint id mysql:8.4 -g mysql)"
-install -d -m 750 "${APP_DIR}/logs"
-install -d -m 750 -o "${APP_LOG_UID}" -g "${APP_LOG_GID}" "${APP_DIR}/logs/app"
-install -d -m 750 -o "${DB_LOG_UID}" -g "${DB_LOG_GID}" "${APP_DIR}/logs/db"
+# Alloy의 GID를 공통 읽기 그룹으로 사용한다. setgid로 새 파일에도 그룹이 상속된다.
+ALLOY_UID=473
+ALLOY_GID=473
+install -d -m 750 -o root -g "${ALLOY_GID}" "${APP_DIR}/logs"
+install -d -m 2750 -o "${APP_LOG_UID}" -g "${ALLOY_GID}" "${APP_DIR}/logs/app"
+install -d -m 2750 -o "${DB_LOG_UID}" -g "${ALLOY_GID}" "${APP_DIR}/logs/db"
+# 이전 배포에서 만들어진 파일도 Alloy가 읽을 수 있게 한다.
+find "${APP_DIR}/logs/app" "${APP_DIR}/logs/db" -type f -exec chgrp "${ALLOY_GID}" {} +
+find "${APP_DIR}/logs/app" "${APP_DIR}/logs/db" -type f -exec chmod g+r {} +
+# 기존 root 소유의 읽기 위치도 일반 계정으로 이전한다. DB 데이터 볼륨은 건드리지 않는다.
+if ! docker run --rm --user 0:0 --entrypoint chown \
+  -v "${COMPOSE_PROJECT_NAME}_alloy-data:/var/lib/devica-alloy" \
+  mysql:8.4 -R "${ALLOY_UID}:${ALLOY_GID}" /var/lib/devica-alloy; then
+  echo "alloy 읽기 위치 볼륨의 권한을 변경하지 못했다. 로그·메트릭 수집이 중단될 수 있으나 앱 배포는 계속한다."
+fi
 install -D -m 750 "${RELEASE_DIR}/scripts/rotate-db-log.sh" "${APP_DIR}/scripts/rotate-db-log.sh"
 install -m 644 "${RELEASE_DIR}/monitoring/devica-db-logrotate.service" /etc/systemd/system/devica-db-logrotate.service
 install -m 644 "${RELEASE_DIR}/monitoring/devica-db-logrotate.timer" /etc/systemd/system/devica-db-logrotate.timer
