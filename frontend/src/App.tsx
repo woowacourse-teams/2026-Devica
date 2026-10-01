@@ -69,6 +69,22 @@ export function App() {
   const screen = screenOf(pathname);
 
   const boardHref = boardEntryUrl(pathname, params);
+  const inBoard = screen === 'board' || screen === 'boardWrite' || screen === 'boardPost';
+
+  // 게시판 진입점은 헤더의 "질문 게시판" 링크다. 게시판 밖의 화면이 바뀔 때마다 그 링크가 보인 것으로 센다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 같은 화면에서 조건만 바꿀 때는 다시 세지 않는다.
+  useEffect(() => {
+    if (!inBoard) {
+      track('board_entry_viewed', {});
+    }
+  }, [pathname]);
+
+  // 게시판 밖에서 게시판으로 들어올 때만 센다. 게시판 안에서 목록·글·작성을 오가는 것은 세지 않는다.
+  useEffect(() => {
+    if (inBoard) {
+      track('board_entered', {});
+    }
+  }, [inBoard]);
 
   // 가이드는 선택한 제품·목적과 관계없이 공통 FAQ를 연다.
   const openFaq = () => {
@@ -98,7 +114,7 @@ export function App() {
         onProductList={openSearch}
         boardHref={boardHref}
         onBoard={() => go(boardHref)}
-        boardActive={screen === 'board' || screen === 'boardWrite' || screen === 'boardPost'}
+        boardActive={inBoard}
       />
       <main className="probe" id="main-content">
         <Switch>

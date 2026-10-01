@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { Link } from 'wouter';
+import { track } from './analytics';
 import { BoardScopeInfo } from './BoardShared';
 import { type BoardScope, boardDate, fetchBoardPosts } from './board';
 import { boardUrl, PATHS, query } from './routes';
@@ -10,6 +12,11 @@ export function BoardListView({ scope, page }: { scope: BoardScope & { purpose: 
   const { state, retry } = useBoardRequest(JSON.stringify([category.code, purpose.code, page]), (signal) =>
     fetchBoardPosts(category.code, purpose.code, page, signal),
   );
+  // 글쓰기 버튼은 목록을 받았는지와 관계없이 늘 보인다. 게시판을 바꿨을 때만 다시 센다.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 게시판이 바뀔 때마다 돌아야 한다. 쪽만 넘길 때는 다시 세지 않는다.
+  useEffect(() => {
+    track('question_cta_viewed', {});
+  }, [category.code, purpose.code]);
   const writingUrl = `${PATHS.boardWrite}${query([
     ['category', category.code],
     ['purpose', purpose.code],
