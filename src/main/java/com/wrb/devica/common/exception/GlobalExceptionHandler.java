@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
@@ -21,6 +22,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException exception) {
         ErrorCode errorCode = exception.getErrorCode();
+        log.atWarn()
+            .addKeyValue("error.code", errorCode.getCode())
+            .log("비즈니스 예외가 발생");
+
         return ResponseEntity.status(errorCode.getStatus()).body(ErrorResponse.from(errorCode));
     }
 
@@ -40,7 +45,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             .map(DefaultMessageSourceResolvable::getDefaultMessage)
             .collect(Collectors.joining(" "));
 
-        return toResponse(status, message);
+        return toValidationFailureResponse(exception, status, message);
     }
 
     @Override
@@ -52,15 +57,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             .map(MessageSourceResolvable::getDefaultMessage)
             .collect(Collectors.joining(" "));
 
-        return toResponse(status, message);
+        return toValidationFailureResponse(exception, status, message);
     }
 
-    private ResponseEntity<Object> toResponse(HttpStatusCode status, String message) {
+    private ResponseEntity<Object> toValidationFailureResponse(Exception exception, HttpStatusCode status, String message) {
         CommonErrorCode errorCode = CommonErrorCode.from(status);
 
         if (message.isBlank()) {
             message = errorCode.getMessage();
         }
+
+        log.atWarn()
+            .addKeyValue("error.type", exception.getClass().getName())
+            .addKeyValue("error.message", message)
+            .log("요청 값 검증 실패");
 
         return ResponseEntity.status(status).body(ErrorResponse.of(errorCode, message));
     }
@@ -69,8 +79,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     protected ResponseEntity<Object> handleExceptionInternal(
         Exception exception, Object body, HttpHeaders headers,
         HttpStatusCode status, WebRequest request) {
-        log.error("처리하지 못한 예외가 발생", exception);
+
+        logException(exception, status);
         return ResponseEntity.status(status)
             .body(ErrorResponse.from(CommonErrorCode.from(status)));
+    }
+
+    private void logException(Exception exception, HttpStatusCode status) {
+        if (status.is5xxServerError()) {
+            log.error("처리하지 못한 예외가 발생", exception);
+            return;
+        }
+
+        if (exception instanceof NoResourceFoundException) {
+            return;
+        }
+
+        log.atWarn()
+            .addKeyValue("error.type", exception.getClass().getName())
+            .log("잘못된 요청");
     }
 }

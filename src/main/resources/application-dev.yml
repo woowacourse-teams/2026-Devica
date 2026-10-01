@@ -7,11 +7,14 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
-    show-sql: true
+    show-sql: false
 
 logging:
+  structured:
+    format:
+      console: ecs
   level:
-    org.hibernate.orm.jdbc.bind: trace
+    com.wrb.devica: debug
 
 management:
   # compose 가 호스트에 열지 않는 포트, 같은 도커 네트워크의 수집 에이전트만 접근을 허용한다.
@@ -21,3 +24,10 @@ management:
     web:
       exposure:
         include: health, prometheus
+
+# 팀원 확인용으로 켜 둔다 (ADR 0020)
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
