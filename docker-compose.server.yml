@@ -59,7 +59,6 @@ services:
       - /sys:/host/sys:ro
       # 디스크 사용률은 이 디렉터리가 속한 루트 디스크 값으로 잰다. / 를 통째로 열면 docker.sock 과 .env 가 보인다.
       - ./monitoring:/host/root:ro
-      # Docker 로그 파일만 읽는다. docker.sock 은 노출하지 않는다 (ADR 0036).
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
     user: "0:0"
     cap_drop: [ ALL ]
