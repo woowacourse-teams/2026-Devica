@@ -40,64 +40,45 @@ prometheus.remote_write "grafana_cloud" {
   }
 }
 
-// 로그는 Docker 가 호스트에 남기는 컨테이너 로그 파일을 직접 읽는다.
-// docker.sock 을 열면 호스트 root 권한을 주는 것과 같아서 쓰지 않는다 (ADR 0036).
-local.file_match "containers" {
-  path_targets = [{"__path__" = "/var/lib/docker/containers/*/*-json.log"}]
+local.file_match "application_logs" {
+  path_targets = [
+    {"__path__" = "/var/log/devica/app/app.log", "app" = "devica-app"},
+    {"__path__" = "/var/log/devica/db/error.log", "app" = "devica-db"},
+  ]
 }
 
-loki.source.file "containers" {
-  targets    = local.file_match.containers.targets
-  forward_to = [loki.process.containers.receiver]
+loki.source.file "application_logs" {
+  targets    = local.file_match.application_logs.targets
+  forward_to = [loki.process.application_logs.receiver]
 }
 
-loki.process "containers" {
-  // Docker 는 한 줄을 {"log": 원래 줄, "attrs": {...}, "time": ...} 로 감싸 저장한다.
-  // attrs 의 서비스 이름은 compose 의 logging.options.labels 가 남긴다.
-  stage.json {
-    expressions = {
-      output  = "log",
-      service = "attrs.\"com.docker.compose.service\"",
-      time    = "time",
-    }
-  }
-
-  stage.labels {
-    values = {
-      service = "",
-    }
-  }
-
-  // 수집 대상은 앱과 DB 만이다. 서비스 이름이 없는 컨테이너도 여기서 걸러진다.
+loki.process "application_logs" {
   stage.match {
-    selector = "{service!~\"app|db\"}"
-    action   = "drop"
+    selector = "{app=\"devica-app\"}"
+    stage.json {
+      expressions = { timestamp = "\"@timestamp\"" }
+    }
+    stage.timestamp {
+      source = "timestamp"
+      format = "RFC3339Nano"
+      action_on_failure = "skip"
+    }
   }
 
-  // app 레이블은 컨테이너 이름(devica-app, devica-db)으로 붙인다.
-  stage.template {
-    source   = "app"
-    template = "devica-{{ .service }}"
-  }
-
-  stage.labels {
-    values = {
-      app = "",
+  stage.match {
+    selector = "{app=\"devica-db\"}"
+    stage.regex {
+      expression = "^(?P<timestamp>[0-9T:Z.+-]+) "
+    }
+    stage.timestamp {
+      source = "timestamp"
+      format = "RFC3339Nano"
+      action_on_failure = "skip"
     }
   }
 
   stage.label_drop {
-    values = ["service", "filename"]
-  }
-
-  // 수집기가 늦게 읽어도 로그가 찍힌 시각으로 저장되게 한다.
-  stage.timestamp {
-    source = "time"
-    format = "RFC3339Nano"
-  }
-
-  stage.output {
-    source = "output"
+    values = ["filename"]
   }
 
   forward_to = [loki.write.grafana_cloud.receiver]
