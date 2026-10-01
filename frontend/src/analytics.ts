@@ -25,6 +25,14 @@ export function initAnalytics(): void {
   if (!KEY) {
     return;
   }
+  // 팀원은 ?internal=1 로 한 번 접속해 그 브라우저의 수집을 끈다. 받는 사이 주소가 바뀔 수 있어 먼저 읽어 둔다.
+  const url = new URL(window.location.href);
+  const internal = url.searchParams.get('internal') === '1';
+  if (url.searchParams.has('internal')) {
+    // 주소를 복사해 건네면 받은 사람의 수집까지 꺼지므로 주소에서 지운다.
+    url.searchParams.delete('internal');
+    window.history.replaceState(window.history.state, '', url);
+  }
   import('posthog-js')
     .then(({ default: posthog }) => {
       posthog.init(KEY, {
@@ -34,7 +42,13 @@ export function initAnalytics(): void {
         // 탭을 닫거나 사이트를 떠날 때 $pageleave 를 보낸다. 앱 안에서 이동할 때의 체류 시간은 다음 $pageview 에 담긴다.
         capture_pageleave: true,
         autocapture: false,
+        // 수집을 끄기 전에 첫 $pageview 가 나가지 않게 한다.
+        opt_out_capturing_by_default: internal,
       });
+      if (internal) {
+        // localStorage 에 저장되어 다음 방문부터는 주소에 붙이지 않아도 꺼져 있다.
+        posthog.opt_out_capturing();
+      }
       client = posthog;
       for (const [event, properties] of pending.splice(0)) {
         posthog.capture(event, properties);
