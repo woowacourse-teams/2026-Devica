@@ -41,7 +41,7 @@
 | [0033](0033-로그-형식.md)          | 로그 형식으로 ECS(Elastic Common Schema)를 사용한다          | Accepted           |
 | [0034](0034-로그-저장소.md) | 로그 저장소로 Grafana Cloud(관리형 Loki)를 사용한다 | Accepted |
 | [0035](0035-로그-수집기.md) | 로그 수집기로 Grafana Alloy를 사용한다 | Accepted |
-| [0036](0036-로그-수집-방식.md) | Alloy가 Docker 로그 파일을 직접 읽는다 | Proposed |
+| [0036](0036-로그-수집-방식.md) | 앱·DB 로그를 전용 디렉터리에 저장하고 Alloy가 읽는다 | Accepted |
 
 ## 작성 방법
 
