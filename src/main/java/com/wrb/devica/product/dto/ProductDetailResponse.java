@@ -12,10 +12,11 @@ public record ProductDetailResponse(
     String code,
     String description,
     LocalDate releasedAt,
+    String imageUrl,
     List<SpecItemResponse> specs,
     List<OfferResponse> offers
 ) {
-    public static ProductDetailResponse of(Product product, List<ProductOffer> offers) {
+    public static ProductDetailResponse of(Product product, List<ProductOffer> offers, String imageUrl) {
         return new ProductDetailResponse(
             product.getId(),
             product.getBrand(),
@@ -23,6 +24,7 @@ public record ProductDetailResponse(
             product.getCode(),
             product.getDescription(),
             product.getReleasedAt(),
+            imageUrl,
             SpecItemResponse.from(product.allSpecValues()),
             offers.stream().map(OfferResponse::from).toList()
         );

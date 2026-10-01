@@ -9,6 +9,7 @@ import com.wrb.devica.product.dto.PageCondition;
 import com.wrb.devica.product.dto.ProductDetailResponse;
 import com.wrb.devica.product.dto.ProductListResponse;
 import com.wrb.devica.product.dto.ProductSummaryResponse;
+import com.wrb.devica.product.service.ProductImageUrlResolver;
 import com.wrb.devica.product.service.ProductOfferService;
 import com.wrb.devica.product.service.ProductService;
 import java.util.List;
@@ -27,6 +28,7 @@ public class ProductController {
 
     private final ProductService productService;
     private final ProductOfferService productOfferService;
+    private final ProductImageUrlResolver productImageUrlResolver;
 
     @GetMapping("/api/product-categories/{categoryCode}/products")
     public ResponseEntity<ProductListResponse> findProductsByCategory(
@@ -52,7 +54,10 @@ public class ProductController {
     @GetMapping("/api/products/{id}")
     public ResponseEntity<ProductDetailResponse> findProductById(@PathVariable Long id) {
         Product product = productService.findProductById(id);
-        List<ProductOffer> offers = productOfferService.findOnSaleOffers(id);
-        return ResponseEntity.ok(ProductDetailResponse.of(product, offers));
+        List<ProductOffer> offers = productOfferService.findOnSaleOffers(product.getId());
+        String imageUrl = productImageUrlResolver.resolve(product.getImageKey());
+
+        ProductDetailResponse productDetailResponse = ProductDetailResponse.of(product, offers, imageUrl);
+        return ResponseEntity.ok().body(productDetailResponse);
     }
 }
