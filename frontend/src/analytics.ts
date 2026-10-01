@@ -14,6 +14,8 @@ type Properties = Record<string, string | null>;
 let client: PostHog | null = null;
 // 라이브러리를 받기 전에 일어난 이벤트는 모아 두었다가 초기화한 뒤 보낸다.
 const pending: [EventName, Properties][] = [];
+// 라이브러리를 받지 못했으면 수집을 그만둔다. 더는 이벤트를 모으지 않는다.
+let unavailable = false;
 
 /**
  * 지표 수집 라이브러리는 앱만큼 무거워 따로 받는다. 키가 없으면 받지도 않는다.
@@ -23,20 +25,26 @@ export function initAnalytics(): void {
   if (!KEY) {
     return;
   }
-  import('posthog-js').then(({ default: posthog }) => {
-    posthog.init(KEY, {
-      api_host: 'https://us.i.posthog.com',
-      // 주소만 바뀌는 SPA 라 화면 이동마다 $pageview 를 보내게 한다.
-      capture_pageview: 'history_change',
-      // 탭을 닫거나 사이트를 떠날 때 $pageleave 를 보낸다. 앱 안에서 이동할 때의 체류 시간은 다음 $pageview 에 담긴다.
-      capture_pageleave: true,
-      autocapture: false,
+  import('posthog-js')
+    .then(({ default: posthog }) => {
+      posthog.init(KEY, {
+        api_host: 'https://us.i.posthog.com',
+        // 주소만 바뀌는 SPA 라 화면 이동마다 $pageview 를 보내게 한다.
+        capture_pageview: 'history_change',
+        // 탭을 닫거나 사이트를 떠날 때 $pageleave 를 보낸다. 앱 안에서 이동할 때의 체류 시간은 다음 $pageview 에 담긴다.
+        capture_pageleave: true,
+        autocapture: false,
+      });
+      client = posthog;
+      for (const [event, properties] of pending.splice(0)) {
+        posthog.capture(event, properties);
+      }
+    })
+    .catch(() => {
+      // 지표를 못 모을 뿐 앱 동작에는 영향이 없다.
+      unavailable = true;
+      pending.length = 0;
     });
-    client = posthog;
-    for (const [event, properties] of pending.splice(0)) {
-      posthog.capture(event, properties);
-    }
-  });
 }
 
 export function track(event: EventName, properties: Properties): void {
@@ -44,7 +52,7 @@ export function track(event: EventName, properties: Properties): void {
     client.capture(event, properties);
     return;
   }
-  if (KEY) {
+  if (KEY && !unavailable) {
     pending.push([event, properties]);
   }
 }
