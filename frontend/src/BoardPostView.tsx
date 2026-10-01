@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link } from 'wouter';
 import { track } from './analytics';
+import { BoardComments } from './BoardComments';
 import { BoardLoading, BoardMessage, BoardScopeInfo } from './BoardShared';
 import { boardDate, fetchBoardPost } from './board';
 import { boardUrl } from './routes';
@@ -61,6 +62,7 @@ function BoardPostView({ id }: { id: number }) {
         </p>
         <div className="board-post__content">{post.content}</div>
       </article>
+      <BoardComments key={post.id} postId={post.id} />
       <Link className="button board-button board-return" href={listUrl}>
         목록으로
       </Link>

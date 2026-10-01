@@ -80,6 +80,10 @@ export function BoardListView({ scope, page }: { scope: BoardScope & { purpose: 
                       <span className="board-list__title">{post.title}</span>
                       <span className="board-meta">
                         익명 · <time dateTime={post.createdAt}>{boardDate(post.createdAt)}</time>
+                        {' · '}
+                        <span className={post.commentCount > 0 ? 'board-list__comments' : undefined}>
+                          댓글 {post.commentCount}
+                        </span>
                       </span>
                     </div>
                     <span className="board-list__arrow" aria-hidden="true">
