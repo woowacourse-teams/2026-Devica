@@ -31,11 +31,15 @@ DB_LOG_UID="$(docker run --rm --entrypoint id mysql:8.4 -u mysql)"
 # Alloy의 GID를 공통 읽기 그룹으로 사용한다. setgid로 새 파일에도 그룹이 상속된다.
 ALLOY_UID=473
 ALLOY_GID=473
-install -d -m 750 -o root -g "${ALLOY_GID}" "${APP_DIR}/logs"
-install -d -m 2750 -o "${APP_LOG_UID}" -g "${ALLOY_GID}" "${APP_DIR}/logs/app"
-install -d -m 2750 -o "${DB_LOG_UID}" -g "${ALLOY_GID}" "${APP_DIR}/logs/db"
+# 서버의 install 은 uutils 라 -o/-g 에 숫자 ID 를 주면 실패한다. 숫자 ID 는 chown 으로 지정한다.
+mkdir -p "${APP_DIR}/logs/app" "${APP_DIR}/logs/db"
+chown "0:${ALLOY_GID}" "${APP_DIR}/logs"
+chown "${APP_LOG_UID}:${ALLOY_GID}" "${APP_DIR}/logs/app"
+chown "${DB_LOG_UID}:${ALLOY_GID}" "${APP_DIR}/logs/db"
+chmod 750 "${APP_DIR}/logs"
+chmod 2750 "${APP_DIR}/logs/app" "${APP_DIR}/logs/db"
 # 이전 배포에서 만들어진 파일도 Alloy가 읽을 수 있게 한다.
-find "${APP_DIR}/logs/app" "${APP_DIR}/logs/db" -type f -exec chgrp "${ALLOY_GID}" {} +
+find "${APP_DIR}/logs/app" "${APP_DIR}/logs/db" -type f -exec chown ":${ALLOY_GID}" {} +
 find "${APP_DIR}/logs/app" "${APP_DIR}/logs/db" -type f -exec chmod g+r {} +
 # 기존 root 소유의 읽기 위치도 일반 계정으로 이전한다. DB 데이터 볼륨은 건드리지 않는다.
 if ! docker run --rm --user 0:0 --entrypoint chown \
