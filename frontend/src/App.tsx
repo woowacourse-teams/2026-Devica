@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Redirect, Route, Switch } from 'wouter';
 import { useHistoryState, usePathname, useSearch } from 'wouter/use-browser-location';
+import { track } from './analytics';
 import { CategoryTabs } from './CategoryTabs';
 import { FaqView } from './FaqView';
 import { useFetched } from './fetched';
@@ -192,6 +193,7 @@ function IntroPage({ params, search }: PageProps & { search: string }) {
       purposeCode={purpose}
       onBack={() => goBack(`${PATHS.purpose}${query([['category', category]])}`, 'purpose')}
       onStart={() => {
+        track('onboarding_started', { category, purpose });
         saveAnswers(purpose, {});
         go(`/questions/1${search}`);
       }}
@@ -268,6 +270,7 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
       go(`/questions/${number + 1}${suffix}`);
       return;
     }
+    track('onboarding_completed', flow);
     go(`${PATHS.result}${query([...flowEntries(flow), ...answerEntries(answers)])}`);
   };
 
@@ -321,6 +324,15 @@ function ResultPage({ params }: PageProps) {
   const recommendation = useRecommendation(params);
   const specs = recommendation.data;
   const { category, purpose } = flowOf(params);
+  const loaded = specs !== null;
+
+  // 질문을 거쳤든 건너뛰었든, 다시 들어왔든 권장 사양이 보이면 보낸다. OS 를 바꿔도 권장 사양은 다시 받지 않아 또 보내지 않는다.
+  useEffect(() => {
+    if (loaded) {
+      track('recommendation_result_viewed', { category, purpose });
+    }
+  }, [loaded, category, purpose]);
+
   if (category === null || purpose === null) {
     return <NotFound />;
   }
@@ -385,11 +397,16 @@ function useListState(search: string, defaultSort: SortType) {
 }
 
 // 사양 대조 화면은 권장 사양에서 막 넘어왔을 때 한 번만 띄운다. 새로고침이나 뒤로 가기로 돌아오면 다시 띄우지 않는다.
-const finishSearching = () =>
+// 그래서 권장 사양으로 제품을 찾아본 것은 여기서 한 번만 센다. 목록을 받지 못했으면 세지 않는다.
+const finishSearching = (failed: boolean) => {
+  if (!failed) {
+    track('recommended_products_viewed', flowOf(new URLSearchParams(window.location.search)));
+  }
   replace(`${window.location.pathname}${window.location.search}`, {
     ...currentNavState(),
     searching: false,
   });
+};
 
 function MatchedListPage({ params, search }: PageProps & { search: string }) {
   const recommendation = useRecommendation(params);
