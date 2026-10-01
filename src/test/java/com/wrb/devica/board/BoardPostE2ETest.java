@@ -55,6 +55,7 @@ class BoardPostE2ETest extends E2ETest {
             .then().statusCode(200)
             .body("content.id", contains((int) id))
             .body("content.title", contains(title))
+            .body("content.commentCount", contains(0))
             .body("page", is(0))
             .body("size", is(20))
             .body("hasNext", is(false));

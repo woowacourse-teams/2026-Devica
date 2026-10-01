@@ -36,7 +36,7 @@ public class BoardPostService {
     public Slice<BoardPostSummaryResponse> findPosts(String categoryCode, String purposeCode,
                                                      BoardPostPageCondition pageCondition) {
         UsagePurpose usagePurpose = findUsagePurpose(categoryCode, purposeCode);
-        return boardPostRepository.findByUsagePurpose_IdOrderByCreatedAtDescIdDesc(
+        return boardPostRepository.findSummariesByUsagePurposeId(
             usagePurpose.getId(), PageRequest.of(pageCondition.page(), pageCondition.size())
         );
     }
