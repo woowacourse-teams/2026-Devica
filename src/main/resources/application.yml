@@ -31,6 +31,13 @@ management:
       group:
         readiness:
           include: readinessState, db
+  metrics:
+    distribution:
+      slo:
+        http.server.requests: 100ms, 300ms, 500ms, 1s, 2s, 5s
+
+app:
+  product-image-base-url: ${PRODUCT_IMAGE_BASE_URL}
 
 logging:
   structured:

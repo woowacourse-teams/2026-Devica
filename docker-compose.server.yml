@@ -7,8 +7,9 @@ services:
     container_name: devica-app
     env_file: .env
     environment:
-      # .env에 SPRING_PROFILES_ACTIVE 값이 없으면 실패한다.
+      # 필수 환경변수가 .env에 없으면 컨테이너를 만들기 전에 실패한다.
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:?각 서버의 .env 에 SPRING_PROFILES_ACTIVE 를 지정한다}
+      PRODUCT_IMAGE_BASE_URL: ${PRODUCT_IMAGE_BASE_URL:?각 서버의 .env 에 PRODUCT_IMAGE_BASE_URL 을 지정한다}
       TZ: Asia/Seoul
     ports:
       - "80:8080"
@@ -33,6 +34,33 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
+
+  # 접속 정보가 .env 에 없어도 앱 배포는 막지 않는다. 이때는 이 컨테이너만 실패한다.
+  alloy:
+    image: grafana/alloy:v1.20.1
+    container_name: devica-alloy
+    # 호스트 지표의 instance 라벨이 된다. 고정하지 않으면 재생성할 때마다 새 series 로 갈린다.
+    hostname: devica-${SPRING_PROFILES_ACTIVE}
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+    environment:
+      DEVICA_ENV: ${SPRING_PROFILES_ACTIVE}
+      GRAFANA_CLOUD_PROM_URL: ${GRAFANA_CLOUD_PROM_URL}
+      GRAFANA_CLOUD_PROM_USER: ${GRAFANA_CLOUD_PROM_USER}
+      GRAFANA_CLOUD_TOKEN: ${GRAFANA_CLOUD_TOKEN}
+    volumes:
+      - ./monitoring/config.alloy:/etc/alloy/config.alloy:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      # 디스크 사용률은 이 디렉터리가 속한 루트 디스크 값으로 잰다. / 를 통째로 열면 docker.sock 과 .env 가 보인다.
+      - ./monitoring:/host/root:ro
+    user: "473:473"
+    cap_drop: [ ALL ]
+    security_opt: [ "no-new-privileges:true" ]
+    mem_limit: 256m
     restart: unless-stopped
 
 volumes:

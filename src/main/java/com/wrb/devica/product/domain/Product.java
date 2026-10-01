@@ -46,14 +46,18 @@ public abstract class Product extends BaseTimeEntity {
 
     private LocalDate releasedAt;
 
+    @Column(name = "image_key", length = 1024)
+    private String imageKey;
+
     protected Product(ProductCategory category, String brand, String name, String code,
-                      String description, LocalDate releasedAt) {
+                      String description, LocalDate releasedAt, String imageKey) {
         this.category = category;
         this.brand = brand;
         this.name = name;
         this.code = code;
         this.description = description;
         this.releasedAt = releasedAt;
+        this.imageKey = imageKey;
     }
 
     public abstract List<SpecValue> allSpecValues();

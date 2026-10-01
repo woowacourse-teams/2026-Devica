@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.wrb.devica.faq.controller.FaqController;
 import com.wrb.devica.faq.service.FaqService;
 import com.wrb.devica.product.controller.ProductController;
+import com.wrb.devica.product.service.ProductImageUrlResolver;
 import com.wrb.devica.product.service.ProductOfferService;
 import com.wrb.devica.product.service.ProductService;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,9 @@ class GlobalExceptionHandlerLogTest {
 
     @MockitoBean
     private ProductOfferService productOfferService;
+
+    @MockitoBean
+    private ProductImageUrlResolver productImageUrlResolver;
 
     @Test
     void 처리하지_못한_예외는_trace_id와_error_type이_담긴_ERROR_로그로_남는다(CapturedOutput output) throws Exception {

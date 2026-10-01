@@ -1,0 +1,41 @@
+// 요금이 series 당 분당 1개 데이터 기준이라 수집 간격은 60초로 둔다.
+
+prometheus.scrape "app" {
+  targets         = [{"__address__" = "app:8081", "job" = "devica-app"}]
+  metrics_path    = "/actuator/prometheus"
+  scrape_interval = "60s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.exporter.unix "host" {
+  procfs_path    = "/host/proc"
+  sysfs_path     = "/host/sys"
+  rootfs_path    = "/host/root"
+  set_collectors = ["cpu", "meminfo", "vmstat", "filesystem", "loadavg"]
+
+  // rootfs 에는 루트 디스크의 디렉터리 하나만 마운트하므로 / 외의 마운트 지점은 잴 수 없다.
+  filesystem {
+    mount_points_exclude = "^/.+"
+  }
+}
+
+prometheus.scrape "host" {
+  targets         = prometheus.exporter.unix.host.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_CLOUD_PROM_URL")
+
+    basic_auth {
+      username = sys.env("GRAFANA_CLOUD_PROM_USER")
+      password = sys.env("GRAFANA_CLOUD_TOKEN")
+    }
+  }
+
+  external_labels = {
+    env = sys.env("DEVICA_ENV"),
+  }
+}
