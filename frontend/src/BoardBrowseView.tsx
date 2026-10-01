@@ -1,7 +1,7 @@
-import { Link } from 'wouter';
+import { Link, Redirect } from 'wouter';
 import { BoardListView } from './BoardListView';
 import { fetchBoardCategories, fetchBoardPurposes } from './board';
-import { boardUrl } from './routes';
+import { boardUrl, currentNavState } from './routes';
 import { CATEGORY_DISPLAY, PURPOSE_DISPLAY, type SelectionCard, type Served, toCards } from './selection';
 import { useBoardRequest } from './useBoardRequest';
 import './BoardView.css';
@@ -17,7 +17,13 @@ export function BoardBrowseView({
   page: number;
 }) {
   const { state, retry } = useBoardRequest('board-categories', fetchBoardCategories);
+  const categories = state.status === 'success' ? toCards(state.data, CATEGORY_DISPLAY) : [];
+  const firstCategory = categories.find((item) => item.available);
   const category = state.status === 'success' ? state.data.find((item) => item.code === categoryCode) : undefined;
+
+  if (categoryCode === null && firstCategory) {
+    return <Redirect to={boardUrl(firstCategory.code, null, page)} replace state={currentNavState()} />;
+  }
 
   return (
     <section className="view-panel board-view board-browse" aria-labelledby="board-title">
@@ -37,7 +43,7 @@ export function BoardBrowseView({
             <BoardNavigation
               label="제품"
               kind="category"
-              items={toCards(state.data, CATEGORY_DISPLAY)}
+              items={categories}
               selected={categoryCode}
               href={(code) => (code === categoryCode ? boardUrl(code, purposeCode, page) : boardUrl(code))}
             />
@@ -75,7 +81,13 @@ function BoardPurposePanel({
   page: number;
 }) {
   const { state, retry } = useBoardRequest(category.code, (signal) => fetchBoardPurposes(category.code, signal));
+  const purposes = state.status === 'success' ? toCards(state.data, PURPOSE_DISPLAY) : [];
+  const firstPurpose = purposes.find((item) => item.available);
   const purpose = state.status === 'success' ? state.data.find((item) => item.code === purposeCode) : undefined;
+
+  if (purposeCode === null && firstPurpose) {
+    return <Redirect to={boardUrl(category.code, firstPurpose.code, page)} replace state={currentNavState()} />;
+  }
 
   return (
     <>
@@ -91,7 +103,7 @@ function BoardPurposePanel({
           <BoardNavigation
             label="사용 목적"
             kind="purpose"
-            items={toCards(state.data, PURPOSE_DISPLAY)}
+            items={purposes}
             selected={purposeCode}
             href={(code) => boardUrl(category.code, code, code === purposeCode ? page : 0)}
           />
