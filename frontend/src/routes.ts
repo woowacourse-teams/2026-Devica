@@ -5,7 +5,8 @@ import type { ResultOs } from './ResultView';
 
 // 화면마다 주소를 둔다(ADR 0030). 화면은 경로로, 화면이 쓰는 값은 쿼리로 나타낸다.
 export const PATHS = {
-  category: '/',
+  home: '/',
+  category: '/category',
   purpose: '/purpose',
   intro: '/intro',
   question: '/questions/:step',
@@ -22,7 +23,8 @@ export const PATHS = {
 export type Screen = keyof typeof PATHS;
 
 const SCREEN_NAMES: Record<Screen, string> = {
-  category: '처음',
+  home: '처음',
+  category: '제품 선택',
   purpose: '사용 목적 선택',
   intro: '기본 권장 사양',
   question: '질문',
@@ -38,7 +40,8 @@ const SCREEN_NAMES: Record<Screen, string> = {
 
 // 조사가 이름마다 달라 "← ○○으로" 를 만들지 않고 적어 둔다.
 const BACK_LABELS: Record<Screen, string> = {
-  category: '← 처음으로',
+  home: '← 처음으로',
+  category: '← 제품 선택으로',
   purpose: '← 사용 목적 선택으로',
   intro: '← 기본 권장 사양으로',
   question: '← 질문으로',
@@ -54,7 +57,7 @@ const BACK_LABELS: Record<Screen, string> = {
 
 export function screenOf(pathname: string): Screen | null {
   if (pathname === '/') {
-    return 'category';
+    return 'home';
   }
   if (/^\/questions\/[^/]+$/.test(pathname)) {
     return 'question';
@@ -71,7 +74,7 @@ export function screenOf(pathname: string): Screen | null {
 
 export function titleOf(pathname: string): string {
   const screen = screenOf(pathname);
-  return screen === null || screen === 'category'
+  return screen === null || screen === 'home'
     ? 'Devica — 백엔드 개발용 노트북 사양'
     : `${SCREEN_NAMES[screen]} — Devica`;
 }
@@ -84,14 +87,12 @@ export function backLabelOf(screen: Screen): string {
  * 방문 기록 한 칸에 붙여 두는 값이다. 주소에 넣지 않으므로 새로고침에는 남고 공유 링크로는 넘어가지 않는다.
  * - from: 이 화면에 들어오기 전 화면. 앱 밖에서 바로 들어왔으면 없다.
  * - searching: 권장 사양에서 "제품 검색"으로 막 넘어왔다. 사양 대조 화면을 한 번만 띄운다.
- * - widened: 맞춤 목록의 "전체 제품 보기"로 연 전체 목록이다. 검색 흐름이 아니라 맞춤 목록에서 필터를 푼 것이라 유형 탭을 두지 않는다.
  * - filterOpen: 목록의 검색 조건 패널을 펼쳐 두었다. 상세를 다녀와도 그대로 둔다.
  * - scrollY: 이 화면을 떠날 때의 스크롤 위치. 뒤로 가기로 돌아오면 되살린다.
  */
 export type NavState = {
   from?: Screen;
   searching?: boolean;
-  widened?: boolean;
   filterOpen?: boolean;
   scrollY?: number;
 };
@@ -102,7 +103,7 @@ export function currentNavState(): NavState {
 }
 
 /** 방문 기록을 한 칸 쌓는다. 떠나는 화면의 스크롤 위치를 적어 두고, 새 칸에는 어디서 왔는지 적는다. */
-export function go(to: string, extra: Pick<NavState, 'searching' | 'widened'> = {}): void {
+export function go(to: string, extra: Pick<NavState, 'searching'> = {}): void {
   window.history.replaceState({ ...currentNavState(), scrollY: window.scrollY }, '');
   const from = screenOf(window.location.pathname) ?? undefined;
   navigate(to, { state: { from, ...extra } });

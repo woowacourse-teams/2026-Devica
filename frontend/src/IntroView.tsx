@@ -3,12 +3,6 @@ import { BaselineCard } from './BaselineCard';
 import { fetchRecommendation, type Spec } from './recommendation';
 import './IntroView.css';
 
-const STEPS = [
-  { index: '1', title: '질문에 답하기', meta: '9~10개 · 약 2분' },
-  { index: '2', title: '권장 사양 확인', meta: '직접 수정 가능' },
-  { index: '3', title: '맞는 제품 보기', meta: '20개 중에서' },
-];
-
 type Props = {
   purposeCode: string;
   onBack: () => void;
@@ -55,36 +49,12 @@ export function IntroView({
   }, [purposeCode]);
 
   return (
-    <section className="view-panel hero" id="intro-view" aria-labelledby="hero-title">
+    <section className="view-panel" id="intro-view" aria-labelledby="intro-title">
       <button className="text-button view-back-button" type="button" onClick={onBack}>
         ← 사용 목적 다시 고르기
       </button>
-      <p className="eyebrow">백엔드 개발용 노트북 사양 찾기</p>
-      <h1 id="hero-title">
-        내 개발 환경에 맞는
-        <br />
-        노트북 사양을 찾아보세요
-      </h1>
-      <p className="hero__description">질문에 답하면 사양을 정리하고, 그 사양에 맞는 노트북까지 찾아드려요.</p>
-
-      <section className="bordered-panel intro-steps" aria-labelledby="intro-steps-heading">
-        <h2 className="intro-steps__heading" id="intro-steps-heading">
-          이렇게 진행됩니다
-        </h2>
-        <ol className="intro-steps__list">
-          {STEPS.map((step) => (
-            <li className="intro-steps__step" key={step.index}>
-              <span className="intro-steps__index">{step.index}</span>
-              <span className="intro-steps__title">{step.title}</span>
-              <span className="intro-steps__meta">{step.meta}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <p className="section-description">
-        아래는 백엔드 개발용 기본 권장 사양입니다. 질문에 답하면 사용 목적에 맞게 조정됩니다.
-      </p>
+      <h1 id="intro-title">기본 권장 사양</h1>
+      <p className="section-description">백엔드 개발에 필요한 기본 사양입니다.</p>
 
       <section className="baseline-list" id="initial-spec-list" aria-label="OS별 기본 권장 사양">
         {specs === null && !failed && <p className="section-description">기본 권장 사양을 불러오는 중입니다…</p>}
@@ -92,6 +62,11 @@ export function IntroView({
           <BaselineCard key={spec.items.find((item) => item.code === 'OS')?.value ?? ''} spec={spec} />
         ))}
       </section>
+
+      <p className="section-description">
+        지금 쓰는 노트북과 개발 방식, 겪어 본 불편을 알려주시면 내 작업에 맞게 사양을 조정해 드려요. 모든 질문은 건너뛸
+        수 있어요.
+      </p>
 
       {unavailable && (
         <p className="notice" role="alert">
@@ -106,7 +81,7 @@ export function IntroView({
         disabled={unavailable || !canStart}
         onClick={onStart}
       >
-        {questionsLoading ? '질문을 불러오는 중…' : '질문 시작하고 내 사양 찾기'}
+        {questionsLoading ? '질문을 불러오는 중…' : '내 개발 환경에 맞게 조정하기'}
       </button>
       <button
         className="button button--primary button--wide"
