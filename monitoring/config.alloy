@@ -39,3 +39,81 @@ prometheus.remote_write "grafana_cloud" {
     env = sys.env("DEVICA_ENV"),
   }
 }
+
+// 로그는 Docker 가 호스트에 남기는 컨테이너 로그 파일을 직접 읽는다.
+// docker.sock 을 열면 호스트 root 권한을 주는 것과 같아서 쓰지 않는다 (ADR 0036).
+local.file_match "containers" {
+  path_targets = [{"__path__" = "/var/lib/docker/containers/*/*-json.log"}]
+}
+
+loki.source.file "containers" {
+  targets    = local.file_match.containers.targets
+  forward_to = [loki.process.containers.receiver]
+}
+
+loki.process "containers" {
+  // Docker 는 한 줄을 {"log": 원래 줄, "attrs": {...}, "time": ...} 로 감싸 저장한다.
+  // attrs 의 서비스 이름은 compose 의 logging.options.labels 가 남긴다.
+  stage.json {
+    expressions = {
+      output  = "log",
+      service = "attrs.\"com.docker.compose.service\"",
+      time    = "time",
+    }
+  }
+
+  stage.labels {
+    values = {
+      service = "",
+    }
+  }
+
+  // 수집 대상은 앱과 DB 만이다. 서비스 이름이 없는 컨테이너도 여기서 걸러진다.
+  stage.match {
+    selector = "{service!~\"app|db\"}"
+    action   = "drop"
+  }
+
+  // app 레이블은 컨테이너 이름(devica-app, devica-db)으로 붙인다.
+  stage.template {
+    source   = "app"
+    template = "devica-{{ .service }}"
+  }
+
+  stage.labels {
+    values = {
+      app = "",
+    }
+  }
+
+  stage.label_drop {
+    values = ["service", "filename"]
+  }
+
+  // 수집기가 늦게 읽어도 로그가 찍힌 시각으로 저장되게 한다.
+  stage.timestamp {
+    source = "time"
+    format = "RFC3339Nano"
+  }
+
+  stage.output {
+    source = "output"
+  }
+
+  forward_to = [loki.write.grafana_cloud.receiver]
+}
+
+loki.write "grafana_cloud" {
+  endpoint {
+    url = sys.env("GRAFANA_CLOUD_LOKI_URL")
+
+    basic_auth {
+      username = sys.env("GRAFANA_CLOUD_LOKI_USER")
+      password = sys.env("GRAFANA_CLOUD_TOKEN")
+    }
+  }
+
+  external_labels = {
+    env = sys.env("DEVICA_ENV"),
+  }
+}
