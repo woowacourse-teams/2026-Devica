@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { ProductImage } from './ProductImage';
 import {
   CPU_TIERS,
   cpuFilterLabel,
@@ -349,8 +350,7 @@ export function ProductListView({
 function ProductCard({ product, onDetail }: { product: Product; onDetail: (productId: number) => void }) {
   return (
     <article className="bordered-panel product-card">
-      {/* 제품 이미지 필드가 아직 응답에 없다. 틀만 두고 사진이 생기면 안을 채운다. */}
-      <div className="product-card__image-frame" />
+      <ProductImage imageUrl={product.imageUrl} name={product.name} className="product-card__image-frame" />
       <div className="product-card__body">
         <div className="product-card__heading-row">
           <div>

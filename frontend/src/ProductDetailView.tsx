@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ProductImage } from './ProductImage';
 import { fetchProduct, formatPrice, type Offer, type ProductDetail } from './products';
 import './ProductDetailView.css';
 
@@ -67,8 +68,12 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
     <section className="view-panel product-detail-view" id="product-detail-view" aria-labelledby="product-detail-title">
       {back}
       <article className="product-detail">
-        {/* 제품 이미지 필드가 아직 응답에 없다. 틀만 두고 사진이 생기면 안을 채운다. */}
-        <div className="product-detail__image-frame" />
+        <ProductImage
+          imageUrl={product.imageUrl}
+          name={product.name}
+          className="product-detail__image-frame"
+          loading="eager"
+        />
 
         <section className="product-detail__summary">
           <p className="eyebrow">
