@@ -39,6 +39,9 @@
 | [0031](0031-라우팅-라이브러리.md)        | 라우팅에 wouter 를 사용한다                               | Accepted           |
 | [0032](0032-제품-이미지-저장과-제공.md)    | 제품 이미지는 초기에는 S3에서 직접 제공하고 CloudFront는 필요할 때 도입한다 | Accepted |
 | [0033](0033-로그-형식.md)          | 로그 형식으로 ECS(Elastic Common Schema)를 사용한다          | Accepted           |
+| [0034](0034-로그-저장소.md) | 로그 저장소로 Grafana Cloud(관리형 Loki)를 사용한다 | Accepted |
+| [0035](0035-로그-수집기.md) | 로그 수집기로 Grafana Alloy를 사용한다 | Accepted |
+| [0036](0036-로그-수집-방식.md) | Alloy가 Docker 로그 파일을 직접 읽는다 | Proposed |
 
 ## 작성 방법
 
