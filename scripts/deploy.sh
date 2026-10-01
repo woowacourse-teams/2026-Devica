@@ -25,6 +25,20 @@ install -D -m 644 "${RELEASE_DIR}/monitoring/config.alloy" "${APP_DIR}/monitorin
 
 cd "${APP_DIR}"
 
+# 이미지의 실행 사용자에 맞춰 로그 전용 디렉터리를 준비한다. DB 데이터와 비밀값은 연결하지 않는다.
+APP_LOG_UID="$(docker run --rm --entrypoint id "devica:${IMAGE_TAG}" -u)"
+APP_LOG_GID="$(docker run --rm --entrypoint id "devica:${IMAGE_TAG}" -g)"
+DB_LOG_UID="$(docker run --rm --entrypoint id mysql:8.4 -u mysql)"
+DB_LOG_GID="$(docker run --rm --entrypoint id mysql:8.4 -g mysql)"
+install -d -m 750 "${APP_DIR}/logs"
+install -d -m 750 -o "${APP_LOG_UID}" -g "${APP_LOG_GID}" "${APP_DIR}/logs/app"
+install -d -m 750 -o "${DB_LOG_UID}" -g "${DB_LOG_GID}" "${APP_DIR}/logs/db"
+install -D -m 750 "${RELEASE_DIR}/scripts/rotate-db-log.sh" "${APP_DIR}/scripts/rotate-db-log.sh"
+install -m 644 "${RELEASE_DIR}/monitoring/devica-db-logrotate.service" /etc/systemd/system/devica-db-logrotate.service
+install -m 644 "${RELEASE_DIR}/monitoring/devica-db-logrotate.timer" /etc/systemd/system/devica-db-logrotate.timer
+systemctl daemon-reload
+systemctl enable --now devica-db-logrotate.timer
+
 # IMAGE_TAG 줄만 바꾼다. 운영 비밀값이 있는 다른 줄은 건드리지 않는다.
 if grep -q '^IMAGE_TAG=' .env; then
   sed -i "s|^IMAGE_TAG=.*|IMAGE_TAG=${IMAGE_TAG}|" .env
