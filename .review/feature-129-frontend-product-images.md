@@ -1,6 +1,6 @@
 # 리뷰 기록
 
-base: origin/feature/120-products-s3
-diff-hash: 73a282745c8bc45a199ccb3c52bb452af3924d1c
+base: origin/develop
+diff-hash: 7b9a6778e567a3175c9017a2a2b20c9dc4949725
 
 지적 없음
