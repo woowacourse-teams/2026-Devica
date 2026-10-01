@@ -2,9 +2,10 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'reac
 import { Redirect, Route, Switch } from 'wouter';
 import { useHistoryState, usePathname, useSearch } from 'wouter/use-browser-location';
 import { track } from './analytics';
-import { CategoryTabs } from './CategoryTabs';
+import { CategoryCards } from './CategoryCards';
 import { FaqView } from './FaqView';
 import { useFetched } from './fetched';
+import { HomeHero } from './HomeHero';
 import { IntroView } from './IntroView';
 import { ProductDetailView } from './ProductDetailView';
 import { initialListState, type ProductListState, ProductListView } from './ProductListView';
@@ -39,8 +40,8 @@ import { SiteFooter } from './SiteFooter';
 import { SiteHeader } from './SiteHeader';
 
 // 화면은 두 흐름으로 나뉜다.
-// - 추천 흐름: 제품 선택 → 사용 목적 → 기본 권장 사양 → 질문 → 결과 → 맞춤 목록
-// - 검색 흐름(UC-07): 전체 목록(맨 위에 제품 유형 탭) → 제품 상세
+// - 추천 흐름: 첫 화면(서비스 소개) → 제품 선택 → 사용 목적 → 기본 권장 사양 → 질문 → 결과 → 맞춤 목록
+// - 검색 흐름(UC-07): 제품 유형 선택 → 전체 목록 → 제품 상세
 // FAQ(UC-10)는 어느 화면에서든 헤더로 연다.
 // 화면 안의 뒤로 버튼은 브라우저 뒤로 가기와 같은 곳으로 간다. 앱 밖에서 바로 들어왔으면 정해 둔 화면으로 간다.
 export function App() {
@@ -69,7 +70,7 @@ export function App() {
   };
 
   // 헤더의 "제품 목록". 상세에서 누르면 들어오기 전 목록으로 돌아간다.
-  // 추천 흐름에서 이미 유형을 골랐다면 그 탭을 미리 고른다. 첫 화면은 유형을 고르는 중이라 예외다.
+  // 추천 흐름에서 이미 유형을 골랐다면 유형 선택을 건너뛰고 그 목록을 연다. 첫 화면은 유형을 고르는 중이라 예외다.
   const openSearch = () => {
     if (screen === 'products') {
       return;
@@ -87,8 +88,11 @@ export function App() {
       <SiteHeader onGuide={openFaq} onProductList={openSearch} />
       <main className="probe" id="main-content">
         <Switch>
-          <Route path={PATHS.category}>
+          <Route path={PATHS.home}>
             <LegacyRedirect params={params} />
+          </Route>
+          <Route path={PATHS.category}>
+            <CategoryPage />
           </Route>
           <Route path={PATHS.purpose}>
             <PurposePage params={params} />
@@ -133,8 +137,17 @@ function LegacyRedirect({ params }: PageProps) {
   if (view === 'faq') {
     return <Redirect to={PATHS.faq} replace />;
   }
+  return <HomeHero onStart={() => go(PATHS.category)} />;
+}
+
+function CategoryPage() {
+  const navState = useHistoryState<NavState | null>();
   return (
-    <SelectionView categoryCode={null} onSelect={(code) => go(`${PATHS.purpose}${query([['category', code]])}`)} />
+    <SelectionView
+      categoryCode={null}
+      back={{ label: backLabelOf(navState?.from ?? 'home'), onClick: () => goBack(PATHS.home) }}
+      onSelect={(code) => go(`${PATHS.purpose}${query([['category', code]])}`)}
+    />
   );
 }
 
@@ -446,7 +459,7 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
       onBack={() => goBack(`${PATHS.result}?${resultParams}`)}
       onDetail={(id) => go(`/products/${id}`)}
       // 보고 있던 유형 그대로 연다. 맞춤 목록의 조건은 주소에 남아 있어 돌아오면 그대로다.
-      onShowAll={() => go(`${PATHS.products}${query([['category', category]])}`, { widened: true })}
+      onShowAll={() => go(`${PATHS.products}${query([['category', category]])}`)}
     />
   );
 }
@@ -454,45 +467,34 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
 function AllListPage({ params, search }: PageProps & { search: string }) {
   const { state, onChangeState, navState } = useListState(search, 'PRICE_ASC');
   const category = params.get('category');
-  const backLabel = backLabelOf(navState.from ?? 'category');
-  const onBack = () => goBack(PATHS.category);
+  const onBack = () => goBack(PATHS.home);
 
-  // 검색·필터 조건은 유형마다 다르다. 유형을 바꾸면 처음 상태로 연다. 기록은 쌓지 않는다.
-  const changeCategory = (code: string) =>
-    replace(`${PATHS.products}${query([['category', code]])}`, {
-      ...currentNavState(),
-      filterOpen: false,
-      scrollY: undefined,
-    });
-
+  // 유형을 고르기 전에는 추천 흐름의 제품 선택과 같은 화면을 띄우고, 고르면 목록 화면으로 넘어간다.
+  if (category === null) {
+    return (
+      <CategoryCards
+        back={{ label: backLabelOf(navState.from ?? 'home'), onClick: onBack }}
+        onSelect={(code) => go(`${PATHS.products}${query([['category', code]])}`)}
+      />
+    );
+  }
+  // 유형 선택에서 왔으면 뒤로 가기는 그 선택 화면으로 돌아간다.
+  const backLabel = navState.from === 'products' ? '← 제품 다시 고르기' : backLabelOf(navState.from ?? 'home');
   return (
-    <>
-      {navState.widened !== true && <CategoryTabs selected={category} onSelect={changeCategory} />}
-      {/* 목록은 유형이 정해져야 그린다. 고르기 전에도 돌아갈 수 있게 뒤로 가기는 여기서 둔다. */}
-      {category === null ? (
-        <section className="view-panel" aria-label="제품 유형 선택 안내">
-          <button className="text-button view-back-button" type="button" onClick={onBack}>
-            {backLabel}
-          </button>
-          <p className="section-description">위에서 제품 유형을 골라 주세요.</p>
-        </section>
-      ) : (
-        <ProductListView
-          key={`ALL-${category}`}
-          categoryCode={category}
-          mode="ALL"
-          specs={[]}
-          backLabel={backLabel}
-          state={state}
-          onChangeState={onChangeState}
-          searching={false}
-          onSearched={finishSearching}
-          onBack={onBack}
-          onDetail={(id) => go(`/products/${id}`)}
-          onShowAll={() => {}}
-        />
-      )}
-    </>
+    <ProductListView
+      key={`ALL-${category}`}
+      categoryCode={category}
+      mode="ALL"
+      specs={[]}
+      backLabel={backLabel}
+      state={state}
+      onChangeState={onChangeState}
+      searching={false}
+      onSearched={finishSearching}
+      onBack={onBack}
+      onDetail={(id) => go(`/products/${id}`)}
+      onShowAll={() => {}}
+    />
   );
 }
 
@@ -518,8 +520,8 @@ function FaqPage({ params }: PageProps) {
       // 추천 흐름에서 제품 유형과 사용 목적을 모두 골랐다면 그 조합의 FAQ 를 보여준다.
       categoryCode={purpose === null ? null : category}
       purposeCode={purpose}
-      backLabel={backLabelOf(navState?.from ?? 'category')}
-      onBack={() => goBack(PATHS.category)}
+      backLabel={backLabelOf(navState?.from ?? 'home')}
+      onBack={() => goBack(PATHS.home)}
     />
   );
 }
@@ -538,7 +540,7 @@ function NotFound() {
     <section className="view-panel" aria-labelledby="not-found-title">
       <h1 id="not-found-title">페이지를 찾을 수 없습니다</h1>
       <p className="section-description">주소가 바뀌었거나 잘못 입력되었을 수 있습니다.</p>
-      <button className="button button--primary button--wide" type="button" onClick={() => go(PATHS.category)}>
+      <button className="button button--primary button--wide" type="button" onClick={() => go(PATHS.home)}>
         처음으로
       </button>
     </section>
