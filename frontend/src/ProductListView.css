@@ -54,6 +54,7 @@
 
 .product-card__price {
     display: block;
+    color: var(--accent);
     margin: var(--density-med) 0;
     font-size: var(--headline-sm-font-size);
 }

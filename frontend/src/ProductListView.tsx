@@ -373,7 +373,7 @@ function ProductCard({ product, onDetail }: { product: Product; onDetail: (produ
       </div>
       <div className="product-card__action">
         <button
-          className="button button--primary button--wide product-card__detail"
+          className="button button--neutral button--wide product-card__detail"
           type="button"
           onClick={() => onDetail(product.id)}
         >

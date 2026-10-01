@@ -37,7 +37,7 @@ export function HomeHero({ onStart }: Props) {
       <h1 id="home-hero-title">
         내 개발 환경에 맞는
         <br />
-        노트북 사양을 찾아보세요
+        <span className="home-hero__accent">노트북 사양</span>을 찾아보세요
       </h1>
       <p className="home-hero__description">
         몇 가지 질문에 답하면 필요한 CPU · RAM · SSD 를 정리하고, 그 사양을 만족하는 노트북만 골라 보여드려요.
