@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'wouter';
+import { track } from './analytics';
 import { BoardLoading, BoardMessage, BoardScopeInfo } from './BoardShared';
 import { boardDate, fetchBoardPost } from './board';
 import { boardUrl } from './routes';
@@ -19,6 +20,13 @@ function BoardPostView({ id }: { id: number }) {
   useEffect(() => {
     document.title = title === null ? '질문 상세 — Devica' : `${title} — Devica`;
   }, [title]);
+  // 글을 받아 화면에 보였을 때만 센다. 받지 못했으면 세지 않는다.
+  const loaded = state.status === 'success';
+  useEffect(() => {
+    if (loaded) {
+      track('post_viewed', { post_id: String(id) });
+    }
+  }, [loaded, id]);
   if (state.status === 'loading') {
     return <BoardLoading message="질문을 불러오는 중입니다…" />;
   }

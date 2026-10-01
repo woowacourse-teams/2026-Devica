@@ -7,7 +7,12 @@ type EventName =
   | 'onboarding_started'
   | 'onboarding_completed'
   | 'recommendation_result_viewed'
-  | 'recommended_products_viewed';
+  | 'recommended_products_viewed'
+  | 'board_entry_viewed'
+  | 'board_entered'
+  | 'post_viewed'
+  | 'question_cta_viewed'
+  | 'question_submitted';
 
 type Properties = Record<string, string | null>;
 

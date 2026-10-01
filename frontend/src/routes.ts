@@ -72,6 +72,11 @@ export function screenOf(pathname: string): Screen | null {
   return found ?? null;
 }
 
+// 게시판 안의 화면. 헤더의 게시판 메뉴 표시와 게시판 지표 이벤트가 같은 기준을 쓴다. 게시판 화면을 늘리면 여기에 더한다.
+export function isBoardScreen(screen: Screen | null): boolean {
+  return screen === 'board' || screen === 'boardWrite' || screen === 'boardPost';
+}
+
 export function titleOf(pathname: string): string {
   const screen = screenOf(pathname);
   return screen === null || screen === 'home'
