@@ -48,13 +48,23 @@ function postsPath(category: string, purpose: string): string {
   return `/api/product-categories/${encodeURIComponent(category)}/usage-purposes/${encodeURIComponent(purpose)}/posts`;
 }
 
+export function fetchBoardCategories(signal: AbortSignal) {
+  return requestJson<Served[]>('/api/product-categories', { signal });
+}
+
+export function fetchBoardPurposes(categoryCode: string, signal: AbortSignal) {
+  return requestJson<Served[]>(`/api/product-categories/${encodeURIComponent(categoryCode)}/usage-purposes`, {
+    signal,
+  });
+}
+
 // 주소의 코드가 실제로 제공되는 선택지인지 확인하고 화면에 쓸 이름을 함께 받는다.
 export async function fetchBoardScope(
   categoryCode: string,
   purposeCode: string | null,
   signal: AbortSignal,
 ): Promise<BoardScope> {
-  const categories = await requestJson<Served[]>('/api/product-categories', { signal });
+  const categories = await fetchBoardCategories(signal);
   const category = categories.find((item) => item.code === categoryCode);
   if (category === undefined) {
     throw new BoardRequestError(404);
@@ -62,10 +72,7 @@ export async function fetchBoardScope(
   if (purposeCode === null) {
     return { category, purpose: null };
   }
-  const purposes = await requestJson<Served[]>(
-    `/api/product-categories/${encodeURIComponent(categoryCode)}/usage-purposes`,
-    { signal },
-  );
+  const purposes = await fetchBoardPurposes(categoryCode, signal);
   const purpose = purposes.find((item) => item.code === purposeCode);
   if (purpose === undefined) {
     throw new BoardRequestError(404);

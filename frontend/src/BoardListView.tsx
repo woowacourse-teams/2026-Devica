@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { Link } from 'wouter';
 import { track } from './analytics';
-import { BoardScopeInfo } from './BoardShared';
 import { type BoardScope, boardDate, fetchBoardPosts } from './board';
 import { boardUrl, PATHS, query } from './routes';
 import type { Served } from './selection';
@@ -22,14 +21,14 @@ export function BoardListView({ scope, page }: { scope: BoardScope & { purpose: 
     ['purpose', purpose.code],
   ])}`;
   return (
-    <section className="view-panel board-view" aria-labelledby="board-title">
-      <h1 className="board-title" id="board-title">
-        질문 게시판
-      </h1>
-      <p className="section-description">제품과 사용 목적에 대한 궁금한 점을 자유롭게 남겨 주세요.</p>
-      <BoardScopeInfo scope={scope} editable />
+    <section className="board-browse__posts" aria-label={`${category.name} ${purpose.name} 질문 목록`}>
       <div className="board-toolbar">
-        <span>최신순</span>
+        <div>
+          <p className="board-browse__scope">
+            {category.name} / {purpose.name}
+          </p>
+          <span className="board-meta">최신순</span>
+        </div>
         <Link className="button button--primary board-button" href={writingUrl}>
           글쓰기
         </Link>

@@ -1,10 +1,9 @@
 import { Redirect } from 'wouter';
-import { BoardListView } from './BoardListView';
+import { BoardBrowseView } from './BoardBrowseView';
 import { BoardLoading, BoardMessage } from './BoardShared';
 import { BoardWriteView } from './BoardWriteView';
 import { BOARD_PAGE_SIZE, fetchBoardScope } from './board';
-import { boardUrl, go, PATHS } from './routes';
-import { SelectionView } from './SelectionView';
+import { boardUrl } from './routes';
 import { useBoardRequest } from './useBoardRequest';
 
 export function BoardPage({ params, writing = false }: { params: URLSearchParams; writing?: boolean }) {
@@ -28,26 +27,16 @@ export function BoardPage({ params, writing = false }: { params: URLSearchParams
       />
     );
   }
-  if (writing && (category === null || purpose === null)) {
-    return <Redirect to={boardUrl(category, purpose)} replace />;
+  if (writing) {
+    if (category === null || purpose === null) {
+      return <Redirect to={boardUrl(category, purpose)} replace />;
+    }
+    return <BoardWritePage category={category} purpose={purpose} />;
   }
-  if (category === null) {
-    return <SelectionView context="board" categoryCode={null} onSelect={(code) => go(boardUrl(code))} />;
-  }
-  return <ScopedBoardPage category={category} purpose={purpose} page={page} writing={writing} />;
+  return <BoardBrowseView categoryCode={category} purposeCode={purpose} page={page} />;
 }
 
-function ScopedBoardPage({
-  category,
-  purpose,
-  page,
-  writing,
-}: {
-  category: string;
-  purpose: string | null;
-  page: number;
-  writing: boolean;
-}) {
+function BoardWritePage({ category, purpose }: { category: string; purpose: string }) {
   const { state, retry } = useBoardRequest(JSON.stringify([category, purpose]), (signal) =>
     fetchBoardScope(category, purpose, signal),
   );
@@ -65,20 +54,8 @@ function ScopedBoardPage({
   }
   const scope = state.data;
   if (scope.purpose === null) {
-    return (
-      <SelectionView
-        key={category}
-        context="board"
-        categoryCode={category}
-        back={{ label: '← 제품 다시 고르기', onClick: () => go(PATHS.board) }}
-        onSelect={(code) => go(boardUrl(category, code))}
-      />
-    );
+    return <Redirect to={boardUrl(category)} replace />;
   }
   const selected = { category: scope.category, purpose: scope.purpose };
-  return writing ? (
-    <BoardWriteView key={JSON.stringify([category, purpose])} scope={selected} />
-  ) : (
-    <BoardListView scope={selected} page={page} />
-  );
+  return <BoardWriteView key={JSON.stringify([category, purpose])} scope={selected} />;
 }
