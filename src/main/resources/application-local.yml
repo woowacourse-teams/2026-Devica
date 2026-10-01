@@ -10,6 +10,8 @@ spring:
     show-sql: true
 
 logging:
+  pattern:
+    correlation: "[%X{trace.id:-}] %kvp "
   level:
     com.wrb.devica: debug
     org.hibernate.orm.jdbc.bind: trace
