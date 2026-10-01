@@ -48,14 +48,16 @@ class BoardCommentServiceTest {
     @BeforeEach
     void setUpPost() {
         ProductCategory category = productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP));
-        UsagePurpose purpose = usagePurposeRepository.save(UsagePurpose.of(category, UsagePurposeCode.BACKEND_DEVELOPMENT));
+        UsagePurpose purpose = usagePurposeRepository.save(
+            UsagePurpose.of(category, UsagePurposeCode.BACKEND_DEVELOPMENT));
         post = boardPostRepository.save(BoardPost.of(purpose, "메모리 질문", "도커를 사용합니다."));
     }
 
     @Test
     void 댓글을_작성하면_게시글에_즉시_저장한다() {
         // when
-        Long id = boardCommentService.create(post.getId(), new BoardCommentCreateRequest("16GB면 충분합니다."));
+        Long id = boardCommentService.create(post.getId(),
+            new BoardCommentCreateRequest("16GB면 충분합니다."));
 
         // then
         BoardComment saved = boardCommentRepository.findById(id).orElseThrow();

@@ -25,6 +25,7 @@ public class BoardCommentService {
     public Long create(Long postId, BoardCommentCreateRequest request) {
         BoardPost post = boardPostRepository.findById(postId)
             .orElseThrow(() -> new BusinessException(BusinessErrorCode.BOARD_POST_NOT_FOUND));
+
         BoardComment comment = boardCommentRepository.save(BoardComment.of(post, request.content()));
         return comment.getId();
     }
@@ -33,6 +34,7 @@ public class BoardCommentService {
         if (!boardPostRepository.existsById(postId)) {
             throw new BusinessException(BusinessErrorCode.BOARD_POST_NOT_FOUND);
         }
+
         return boardCommentRepository.findByBoardPost_IdOrderByIdAsc(postId);
     }
 }

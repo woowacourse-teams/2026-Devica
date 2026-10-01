@@ -11,7 +11,6 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface BoardPostRepository extends JpaRepository<BoardPost, Long> {
 
-    // 댓글 수는 컬럼으로 두지 않고 조회할 때 센다. 게시글 FK 인덱스로 글마다 댓글 행만 읽는다.
     @Query("""
         SELECT new com.wrb.devica.board.dto.BoardPostSummaryResponse(
             p.id, p.title, p.createdAt,

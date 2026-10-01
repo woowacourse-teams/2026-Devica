@@ -45,7 +45,7 @@ class BoardCommentE2ETest extends E2ETest {
 
     @Test
     void 게시글에_댓글을_작성하면_댓글_목록에서_즉시_조회할_수_있다() {
-        // when: 로그인 없이 댓글을 작성한다.
+        // when
         given()
             .contentType(ContentType.JSON)
             .body(new BoardCommentCreateRequest("16GB면 충분합니다."))
