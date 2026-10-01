@@ -1,7 +1,7 @@
 # 리뷰 기록
 
 base: origin/develop
-diff-hash: 8e62c81f96c387a6f6fe60b35636247dd1350144
+diff-hash: 05bffd2858e95579384198e9dcf830d12cbc025a
 
 지적 없음
 
@@ -60,6 +60,11 @@ diff-hash: 8e62c81f96c387a6f6fe60b35636247dd1350144
 - 사이드 탭 전환 후 호출자가 없는 `BoardScopeInfo.editable`과 제품·사용 목적 변경 링크, 관련 CSS를 제거했다. 목록 마크업 변경 후 적용 대상이 없는 `.board-toolbar > span` 스타일도 제거했다.
 - `SelectionView`의 호출되지 않는 `context="board"` 분기를 제거하고, 추천 흐름의 기존 문구·선택·다음 동작은 유지했다.
 - 테스트 API 기반 브라우저에서 추천 제품 선택 → 다음 → 사용 목적 선택과 버튼 활성화, 게시판 자동 선택, 글쓰기·상세의 제품/목적 표시, 댓글 표시 및 `post_viewed` 이벤트 호출을 확인했다.
+
+## FAQ 메뉴 문구 변경 검증
+
+- `SiteHeader.tsx`의 화면 표시 문구를 `가이드`에서 `FAQ`로 변경했다. 기존 `/faq` 링크와 클릭 동작은 유지했다.
+- 변경을 포함한 브랜치 전체 diff를 규칙별로 재리뷰했다. 지적 0건이며 변경한 프론트엔드 파일 11개 Biome 검사와 TypeScript 검사를 통과했다.
 
 ## 연동 조건
 
