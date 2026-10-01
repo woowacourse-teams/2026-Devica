@@ -157,7 +157,6 @@ export function ProductListView({
   useEffect(() => {
     let stale = false;
     setFailed(false);
-    setMatched(null);
     fetchProductsFor(categoryCode, specs, sort, condition)
       .then((products) => !stale && setMatched(products))
       .catch(() => !stale && setFailed(true));
