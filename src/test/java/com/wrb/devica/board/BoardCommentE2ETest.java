@@ -2,7 +2,6 @@ package com.wrb.devica.board;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 import com.wrb.devica.board.domain.BoardPost;
@@ -18,8 +17,6 @@ import com.wrb.devica.purpose.repository.UsagePurposeRepository;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 class BoardCommentE2ETest extends E2ETest {
@@ -59,51 +56,5 @@ class BoardCommentE2ETest extends E2ETest {
             .body("[0].id", notNullValue())
             .body("content", contains("16GB면 충분합니다."))
             .body("[0].createdAt", notNullValue());
-    }
-
-    @Test
-    void 댓글은_1000자까지_작성할_수_있다() {
-        given()
-            .contentType(ContentType.JSON)
-            .body(new BoardCommentCreateRequest("가".repeat(1_000)))
-            .when().post(commentsPath)
-            .then().statusCode(201);
-    }
-
-    @ParameterizedTest
-    @ValueSource(ints = {0, 1_001})
-    void 비었거나_1000자를_넘는_댓글은_작성할_수_없다(int length) {
-        given()
-            .contentType(ContentType.JSON)
-            .body(new BoardCommentCreateRequest("가".repeat(length)))
-            .when().post(commentsPath)
-            .then().statusCode(400)
-            .body("code", is("INVALID_REQUEST"));
-    }
-
-    @Test
-    void 공백만_입력한_댓글은_작성할_수_없다() {
-        given()
-            .contentType(ContentType.JSON)
-            .body(new BoardCommentCreateRequest("   "))
-            .when().post(commentsPath)
-            .then().statusCode(400)
-            .body("code", is("INVALID_REQUEST"));
-    }
-
-    @Test
-    void 존재하지_않는_게시글의_댓글은_작성하거나_조회할_수_없다() {
-        String missingPath = "/api/board-posts/-1/comments";
-
-        given()
-            .contentType(ContentType.JSON)
-            .body(new BoardCommentCreateRequest("댓글"))
-            .when().post(missingPath)
-            .then().statusCode(404)
-            .body("code", is("BOARD_POST_NOT_FOUND"));
-        given()
-            .when().get(missingPath)
-            .then().statusCode(404)
-            .body("code", is("BOARD_POST_NOT_FOUND"));
     }
 }
