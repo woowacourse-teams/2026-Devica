@@ -27,6 +27,7 @@ import {
   flowOf,
   go,
   goBack,
+  isBoardScreen,
   listEntries,
   type NavState,
   PATHS,
@@ -69,7 +70,7 @@ export function App() {
   const screen = screenOf(pathname);
 
   const boardHref = boardEntryUrl(pathname, params);
-  const inBoard = screen === 'board' || screen === 'boardWrite' || screen === 'boardPost';
+  const inBoard = isBoardScreen(screen);
 
   // 게시판 진입점은 헤더의 "질문 게시판" 링크다. 게시판 밖의 화면이 바뀔 때마다 그 링크가 보인 것으로 센다.
   // biome-ignore lint/correctness/useExhaustiveDependencies: 같은 화면에서 조건만 바꿀 때는 다시 세지 않는다.
