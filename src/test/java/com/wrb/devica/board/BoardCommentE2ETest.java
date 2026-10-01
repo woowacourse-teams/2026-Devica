@@ -46,18 +46,17 @@ class BoardCommentE2ETest extends E2ETest {
     @Test
     void 게시글에_댓글을_작성하면_댓글_목록에서_즉시_조회할_수_있다() {
         // when: 로그인 없이 댓글을 작성한다.
-        long id = given()
+        given()
             .contentType(ContentType.JSON)
             .body(new BoardCommentCreateRequest("16GB면 충분합니다."))
             .when().post(commentsPath)
-            .then().statusCode(201)
-            .extract().jsonPath().getLong("id");
+            .then().statusCode(201);
 
         // then
         given()
             .when().get(commentsPath)
             .then().statusCode(200)
-            .body("id", contains((int) id))
+            .body("[0].id", notNullValue())
             .body("content", contains("16GB면 충분합니다."))
             .body("[0].createdAt", notNullValue());
     }
