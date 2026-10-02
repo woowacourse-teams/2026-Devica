@@ -25,6 +25,24 @@ prometheus.scrape "host" {
   forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
 }
 
+prometheus.exporter.self "alloy" { }
+
+prometheus.scrape "alloy" {
+  targets         = prometheus.exporter.self.alloy.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.relabel.alloy.receiver]
+}
+
+prometheus.relabel "alloy" {
+  rule {
+    source_labels = ["__name__"]
+    regex         = "loki_write_dropped_entries_total"
+    action        = "keep"
+  }
+
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
 prometheus.remote_write "grafana_cloud" {
   endpoint {
     url = sys.env("GRAFANA_CLOUD_PROM_URL")
