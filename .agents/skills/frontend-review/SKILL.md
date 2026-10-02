@@ -89,4 +89,4 @@ Frontend-Review: hash=<review-hash.sh 출력> base=<기준 브랜치> unresolved
 git commit --trailer "Frontend-Review: hash=... base=... unresolved=0"
 ```
 
-이미 커밋했다면 `git commit --amend --no-edit --trailer "..."`로 붙인다. 트레일러는 브랜치의 아무 커밋에 있어도 되고, push하는 코드의 해시와 맞기만 하면 된다.
+이미 커밋했다면 `git commit --amend --no-edit --trailer "..."`로 붙인다. 이미 push한 커밋이면 amend 대신 `git commit --allow-empty -m "<제목>" --trailer "..."`로 빈 커밋에 붙인다. 그러면 force push 없이 올릴 수 있다. 트레일러는 브랜치의 아무 커밋에 있어도 되고, push하는 코드의 해시와 맞기만 하면 된다.
