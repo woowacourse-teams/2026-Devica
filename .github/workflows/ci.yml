@@ -79,7 +79,9 @@ jobs:
 
   # pre-push 와 같은 검사다. --no-verify 로 훅을 건너뛴 push 를 PR 단계에서 막는다.
   # git 만 쓰므로 Node 설치 없이 frontend 잡과 따로 돌린다.
+  # main 대상 PR 과 main push 에서는 돌리지 않는다. develop 에 병합될 때 이미 검사를 거친 코드라 다시 볼 것이 없다.
   review-record:
+    if: github.base_ref != 'main' && github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
