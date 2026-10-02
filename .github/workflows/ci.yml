@@ -92,7 +92,7 @@ jobs:
           # 병합 커밋은 최신 develop 이 섞여, 코드가 같아도 로컬 pre-push 와 해시가 달라질 수 있다.
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: 리뷰 기록 검사
+      - name: 리뷰 트레일러 검사
         run: scripts/review-check.sh HEAD
         env:
           # 기록에 적힌 기준 브랜치 대신 실제 PR 의 base 로 해시를 계산한다. push 이벤트에서는 비워 두어 기록을 따른다.
