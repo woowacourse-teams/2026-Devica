@@ -37,6 +37,25 @@
         "refresh": 1,
         "sort": 1,
         "current": {}
+      },
+      {
+        "name": "logs_ds",
+        "label": "Logs Datasource",
+        "type": "datasource",
+        "query": "loki",
+        "regex": "grafanacloud-.*-logs",
+        "current": {}
+      },
+      {
+        "name": "trace_id",
+        "label": "Trace ID",
+        "type": "textbox",
+        "query": "none",
+        "current": {
+          "text": "none",
+          "value": "none"
+        },
+        "description": "X-Trace-Id 응답 헤더 값을 넣으면 Trace Lookup 패널에 그 요청의 로그가 나온다. none 이면 아무것도 보이지 않는다."
       }
     ]
   },
@@ -670,6 +689,334 @@
         "overrides": []
       },
       "options": {}
+    },
+    {
+      "type": "row",
+      "title": "Logs",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Log Lines (last 15m)",
+      "datasource": {
+        "type": "loki",
+        "uid": "${logs_ds}"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 0,
+        "y": 37
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${logs_ds}"
+          },
+          "expr": "sum by (app) (count_over_time({env=\"$env\"}[15m]))",
+          "queryType": "instant",
+          "legendFormat": "{{app}}"
+        }
+      ],
+      "description": "최근 15분간 들어온 로그 줄 수. 위의 요청 수는 있는데 이 값이 0이면 로그 수집이 끊긴 것이다. prod 는 외부 트래픽이 없으면 0 이 정상이다.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Errors by Type",
+      "datasource": {
+        "type": "loki",
+        "uid": "${logs_ds}"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 9,
+        "x": 6,
+        "y": 37
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${logs_ds}"
+          },
+          "expr": "sum by (error_type) (count_over_time({env=\"$env\", app=\"devica-app\"} | json | log_level=\"ERROR\" [$__auto]))",
+          "queryType": "range",
+          "legendFormat": "{{error_type}}"
+        }
+      ],
+      "description": "ERROR 로그(처리하지 못한 예외)를 예외 종류별로 센다. 5xx 가 났을 때 어떤 예외 때문인지 본다.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "type": "bargauge",
+      "title": "Client Errors by Reason",
+      "datasource": {
+        "type": "loki",
+        "uid": "${logs_ds}"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 9,
+        "x": 15,
+        "y": 37
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${logs_ds}"
+          },
+          "expr": "sum by (reason) (count_over_time({env=\"$env\", app=\"devica-app\"} | json | message=~\"비즈니스 예외가 발생|요청 값 검증 실패\" | label_format reason=`{{ if .error_code }}{{ .error_code }}{{ else }}VALIDATION_FAILED{{ end }}` [$__range]))",
+          "queryType": "instant",
+          "legendFormat": "{{reason}}"
+        }
+      ],
+      "description": "선택한 기간의 비즈니스 예외(error.code)와 검증 실패 개수. 봇이 만드는 405 와 없는 경로 404 는 뺀다. ANSWER_NOT_ALLOWED, QUESTION_NOT_FOUND 가 늘면 프론트엔드와 서버가 어긋난 것이다.",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "type": "table",
+      "title": "Slow Requests (> 1s)",
+      "datasource": {
+        "type": "loki",
+        "uid": "${logs_ds}"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${logs_ds}"
+          },
+          "expr": "{env=\"$env\", app=\"devica-app\"} | json | message=\"요청 처리 완료\" | event_duration > 1000000000 | label_format duration_ms=`{{ div .event_duration 1000000 }}` | keep trace_id, http_route, url_path, http_response_status_code, duration_ms",
+          "queryType": "range"
+        }
+      ],
+      "description": "1초를 넘긴 요청. 기준은 High Latency 알림과 같다. trace_id 로 Trace Lookup 에서 그 요청의 로그 전체를 본다.",
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "labels",
+            "format": "json",
+            "replace": false
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "duration_ms",
+                "destinationType": "number"
+              },
+              {
+                "targetField": "http_response_status_code",
+                "destinationType": "number"
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "labels": true,
+              "Line": true,
+              "id": true,
+              "tsNs": true,
+              "labelTypes": true
+            },
+            "indexByName": {
+              "Time": 0,
+              "duration_ms": 1,
+              "http_route": 2,
+              "url_path": 3,
+              "http_response_status_code": 4,
+              "trace_id": 5
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "duration_ms",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "duration_ms"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "type": "logs",
+      "title": "Error Logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "${logs_ds}"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 52
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${logs_ds}"
+          },
+          "expr": "{env=\"$env\", app=\"devica-app\"} | json | log_level=\"ERROR\" | line_format `{{ .message }} ({{ .error_type }}) trace_id={{ .trace_id }}\n{{ .error_stack_trace }}`",
+          "queryType": "range"
+        }
+      ],
+      "description": "ERROR 로그 원문과 스택 트레이스. 5xx 알림을 받았을 때 원인 코드 위치를 본다.",
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "type": "logs",
+      "title": "DB Logs",
+      "datasource": {
+        "type": "loki",
+        "uid": "${logs_ds}"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 52
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${logs_ds}"
+          },
+          "expr": "{env=\"$env\", app=\"devica-db\"}",
+          "queryType": "range"
+        }
+      ],
+      "description": "MySQL 오류 로그 원문. DB 커넥션이나 5xx 가 이상할 때 MySQL 쪽 원인을 본다.",
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "type": "logs",
+      "title": "Trace Lookup",
+      "datasource": {
+        "type": "loki",
+        "uid": "${logs_ds}"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 62
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${logs_ds}"
+          },
+          "expr": "{env=\"$env\", app=\"devica-app\"} | json | trace_id=\"$trace_id\"",
+          "queryType": "range"
+        }
+      ],
+      "description": "상단 Trace ID 입력칸에 X-Trace-Id 값을 넣으면 그 요청이 남긴 로그 전체를 보여 준다.",
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Ascending"
+      }
     }
   ]
 }
