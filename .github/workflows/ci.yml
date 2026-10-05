@@ -15,6 +15,22 @@ permissions:
   contents: read
 
 jobs:
+  flyway-migration-guard:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+        with:
+          # PR 기본 체크아웃인 가상 병합 커밋을 대상 브랜치와 비교한다.
+          # push 에서는 변경 전 커밋도 읽어야 하므로 전체 이력을 가져온다.
+          fetch-depth: 0
+
+      - name: 기존 Flyway 마이그레이션 변경 검사
+        run: sh scripts/check-flyway-migrations.sh "$BASE_SHA" HEAD
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+
   test:
     runs-on: ubuntu-latest
 
