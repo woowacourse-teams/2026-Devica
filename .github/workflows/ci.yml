@@ -79,7 +79,14 @@ jobs:
 
   # pre-push 와 같은 검사다. --no-verify 로 훅을 건너뛴 push 를 PR 단계에서 막는다.
   # git 만 쓰므로 Node 설치 없이 frontend 잡과 따로 돌린다.
+  # develop → main 배포 PR 과 main push 에서는 돌리지 않는다.
+  # hotfix 등 다른 브랜치에서 main 으로 보내는 PR 은 운영 배포 전에 검사한다.
   review-record:
+    if: >-
+      (github.event_name == 'pull_request' &&
+       (github.base_ref != 'main' || github.head_ref != 'develop')) ||
+      (github.event_name == 'push' &&
+       github.ref != 'refs/heads/main')
     runs-on: ubuntu-latest
 
     steps:
