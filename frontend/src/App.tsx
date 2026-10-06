@@ -116,8 +116,9 @@ export function App() {
         boardHref={boardHref}
         onBoard={() => go(boardHref)}
         boardActive={inBoard}
+        home={screen === 'home'}
       />
-      <main className="probe" id="main-content">
+      <main className={screen === 'home' ? 'probe probe--home' : 'probe'} id="main-content">
         <Switch>
           <Route path={PATHS.home}>
             <LegacyRedirect params={params} />
