@@ -3,7 +3,7 @@
 #
 #   scripts/review-check.sh [커밋]   기본값 HEAD
 #
-# 통과 조건: frontend/ 에 변경이 없거나, 기준 브랜치 이후 커밋 중 아래 트레일러가 있고 hash 가 일치하며 unresolved 가 0 이다.
+# 통과 조건: frontend/ 에 변경이 없거나, 기준 브랜치 이후 커밋 중 hash 가 일치하는 아래 트레일러가 있고, 그중 가장 최근 것의 unresolved 가 0 이다.
 #
 #   Frontend-Review: hash=<review-hash.sh 출력> base=<기준 브랜치> unresolved=<미해결 필수 항목 수>
 #
@@ -46,7 +46,6 @@ field() {
   echo "$1" | tr ' ' '\n' | sed -n "s/^$2=//p" | head -n 1
 }
 
-unresolved_found=
 echo "$TRAILERS" | {
   while read -r trailer; do
     base=${REVIEW_BASE:-$(field "$trailer" base)}
@@ -54,16 +53,12 @@ echo "$TRAILERS" | {
     git rev-parse --verify --quiet "$base" >/dev/null || continue
     [ "$(field "$trailer" hash)" = "$("$SCRIPT_DIR/review-hash.sh" -b "$base" "$REV")" ] || continue
 
+    # 해시가 맞는 트레일러 중 가장 최근 것이 최종 판정이다. 더 오래된 unresolved=0 으로 되돌아가지 않는다.
     unresolved=$(field "$trailer" unresolved)
-    if [ "$unresolved" != 0 ]; then
-      unresolved_found=${unresolved:-값 없음}
-      continue
-    fi
-
+    [ "$unresolved" = 0 ] || fail "미해결 필수 항목이 남아 있습니다 (unresolved=${unresolved:-값 없음}). 해결하거나 기각한 뒤 다시 리뷰하세요."
     echo "✔ 리뷰 검사 통과 (기준 $base)"
     exit 0
   done
 
-  [ -z "$unresolved_found" ] || fail "미해결 필수 항목이 남아 있습니다 (unresolved=$unresolved_found). 해결하거나 기각한 뒤 다시 리뷰하세요."
   fail "현재 코드와 diff 해시가 일치하는 트레일러가 없습니다. 리뷰 뒤에 코드가 바뀌었거나 리뷰를 하지 않았습니다."
 }
