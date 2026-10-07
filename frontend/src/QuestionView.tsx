@@ -32,25 +32,32 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
     return null;
   }
 
-  const answered = screen.questions.some(({ question }) => (answers[question.code] ?? []).length > 0);
+  const isAnswered = ({ question }: { question: Question }) => (answers[question.code] ?? []).length > 0;
   const last = index === screens.length - 1;
-  // 답을 고르지 않아도 넘어갈 수 있다. 미응답은 서버가 기본값으로 처리한다.
-  const nextLabel = !answered ? '건너뛰기' : last ? '결과 보기' : '다음';
+  // 질문 화면은 선택지에 "모르겠다"류 답이 있어 건너뛰기를 두지 않는다. 모든 질문에 답해야 넘어간다 (#181).
+  // 현재 사양에는 그런 선택지가 없어 비워 두고 넘어갈 수 있게 한다. 미응답은 서버가 기본값으로 처리한다.
+  const answered = screen.currentSpec ? screen.questions.some(isAnswered) : screen.questions.every(isAnswered);
+  const skippable = screen.currentSpec && !answered;
+  const nextLabel = skippable ? '건너뛰기' : last ? '결과 보기' : '다음';
 
   // 단일 선택 질문 하나뿐인 화면은 고르는 순간 답이 정해지므로 바로 넘어간다 (#177).
-  // 이미 고른 선택지를 눌러도 그 답으로 넘어가고, 답을 비우는 일은 "건너뛰기"가 맡는다. 그래서 버튼은 건너뛰기 하나다.
+  // 선택지를 고르는 것이 유일한 진행 수단이라 아래 버튼을 두지 않는다 (#181). 이미 고른 선택지를 눌러도 그 답으로 넘어간다.
   const single =
     !screen.currentSpec && screen.questions.length === 1 && screen.questions[0].question.inputType === 'SINGLE'
       ? screen.questions[0].question.code
       : null;
-  const answerAndAdvance = (code: string, values: string[], delay: number) => {
-    onAnswer(code, values);
+  const answerAndAdvance = (code: string, optionCode: string) => {
+    onAnswer(code, [optionCode]);
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => latestNext.current(), delay);
+    timer.current = window.setTimeout(() => latestNext.current(), ADVANCE_DELAY_MS);
   };
 
   return (
     <section className="view-panel question-view" id="question-view" aria-live="polite">
+      {/* 선택지가 많아도 스크롤 없이 닿도록 진행 표시 위에 둔다 (#181). */}
+      <button className="text-button view-back-button" id="previous-button" type="button" onClick={onPrevious}>
+        ← 이전
+      </button>
       <p className="progress-meta">
         <span id="progress-label">사양 맞추는 중</span>
         <span id="progress-count">
@@ -80,39 +87,26 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
                 label={label}
                 chosen={answers[question.code] ?? []}
                 onAnswer={onAnswer}
-                onPick={
-                  single === null ? undefined : (optionCode) => answerAndAdvance(single, [optionCode], ADVANCE_DELAY_MS)
-                }
+                onPick={single === null ? undefined : (optionCode) => answerAndAdvance(single, optionCode)}
               />
             ))}
           </>
         )}
       </div>
 
-      <div className="flow-actions">
-        <button className="button button--secondary" id="previous-button" type="button" onClick={onPrevious}>
-          이전
-        </button>
-        {single === null ? (
+      {single === null && (
+        <div className="flow-actions">
           <button
-            className={`button ${answered ? 'button--primary' : 'button--skip'}`}
+            className={`button ${skippable ? 'button--skip' : 'button--primary'}`}
             id="next-button"
             type="button"
+            disabled={!answered && !skippable}
             onClick={onNext}
           >
             {nextLabel}
           </button>
-        ) : (
-          <button
-            className="button button--skip"
-            id="next-button"
-            type="button"
-            onClick={() => answerAndAdvance(single, [], 0)}
-          >
-            건너뛰기
-          </button>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }

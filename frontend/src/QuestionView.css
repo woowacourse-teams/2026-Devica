@@ -115,14 +115,12 @@
 
 .flow-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--gutter);
     margin-top: 40px;
     padding-top: var(--gutter);
     border-top: 1px solid var(--outline-variant);
 }
 
-/* 건너뛰기는 진행 수단이지만 권장 경로는 아니다. 채운 «다음»·실선 «이전»과 테두리 명도 차이로 위계만 낮춘다. */
+/* 건너뛰기는 진행 수단이지만 권장 경로는 아니다. 채운 «다음»과 테두리 명도 차이로 위계만 낮춘다. */
 /* outline-variant·on-surface-variant는 붉은 기가 도는 회색이라, 밝기가 같은 중성 토큰으로 바꿔 쓴다. */
 .button--skip {
     border-color: var(--inverse-primary);
