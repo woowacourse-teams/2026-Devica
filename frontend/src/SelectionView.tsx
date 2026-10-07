@@ -23,15 +23,12 @@ export function SelectionView({ categoryCode, onSelect, back }: Props) {
   const [cards, setCards] = useState<SelectionCard[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [round, setRound] = useState(0);
-  // 두 화면 모두 고른 뒤 "다음"을 눌러야 넘어간다.
-  const [picked, setPicked] = useState<string | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: round는 실패 후 같은 목록을 다시 요청할 때 바뀐다.
   useEffect(() => {
     let stale = false;
     setCards(null);
     setFailed(false);
-    setPicked(null);
     const request = categoryCode === null ? fetchCategories() : fetchPurposes(categoryCode);
     const display = categoryCode === null ? CATEGORY_DISPLAY : PURPOSE_DISPLAY;
     request
@@ -86,8 +83,8 @@ export function SelectionView({ categoryCode, onSelect, back }: Props) {
                 className="selection__card"
                 type="button"
                 disabled={!card.available}
-                aria-pressed={picked === card.code}
-                onClick={() => setPicked(card.code)}
+                // 항상 하나만 고르므로 누르는 즉시 넘어간다 (#177).
+                onClick={() => onSelect(card.code)}
               >
                 <span className="selection__name">
                   {card.name}
@@ -99,15 +96,6 @@ export function SelectionView({ categoryCode, onSelect, back }: Props) {
           ))}
         </ul>
       )}
-
-      <button
-        className="button button--primary button--wide"
-        type="button"
-        disabled={picked === null}
-        onClick={() => picked !== null && onSelect(picked)}
-      >
-        다음
-      </button>
     </section>
   );
 }

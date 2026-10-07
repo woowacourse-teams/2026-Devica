@@ -80,8 +80,14 @@ export async function fetchBoardScope(
   return { category, purpose };
 }
 
-export function fetchBoardPosts(category: string, purpose: string, page: number, signal: AbortSignal) {
-  return requestJson<BoardPostList>(`${postsPath(category, purpose)}?page=${page}&size=${BOARD_PAGE_SIZE}`, { signal });
+export function fetchBoardPosts(
+  category: string,
+  purpose: string,
+  page: number,
+  signal: AbortSignal,
+  size = BOARD_PAGE_SIZE,
+) {
+  return requestJson<BoardPostList>(`${postsPath(category, purpose)}?page=${page}&size=${size}`, { signal });
 }
 
 export function fetchBoardPost(id: number, signal: AbortSignal) {

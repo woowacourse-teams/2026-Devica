@@ -7,6 +7,7 @@ type Props = {
   boardHref: string;
   onBoard: () => void;
   boardActive: boolean;
+  home?: boolean;
 };
 
 function navigateInside(event: MouseEvent<HTMLAnchorElement>, navigate: () => void) {
@@ -17,9 +18,9 @@ function navigateInside(event: MouseEvent<HTMLAnchorElement>, navigate: () => vo
   navigate();
 }
 
-export function SiteHeader({ onGuide, onProductList, boardHref, onBoard, boardActive }: Props) {
+export function SiteHeader({ onGuide, onProductList, boardHref, onBoard, boardActive, home = false }: Props) {
   return (
-    <header className="site-header">
+    <header className={home ? 'site-header site-header--home' : 'site-header'}>
       <div className="site-header__inner">
         <a className="site-logo" href="/">
           DEVICA
@@ -28,11 +29,12 @@ export function SiteHeader({ onGuide, onProductList, boardHref, onBoard, boardAc
         <nav className="site-nav" aria-label="주요 메뉴">
           <a
             className="site-nav__item"
-            id="nav-guide-button"
-            href="/faq"
-            onClick={(event) => navigateInside(event, onGuide)}
+            id="nav-board-button"
+            href={boardHref}
+            aria-current={boardActive ? 'page' : undefined}
+            onClick={(event) => navigateInside(event, onBoard)}
           >
-            FAQ
+            질문 게시판
           </a>
           <a
             className="site-nav__item"
@@ -44,12 +46,11 @@ export function SiteHeader({ onGuide, onProductList, boardHref, onBoard, boardAc
           </a>
           <a
             className="site-nav__item"
-            id="nav-board-button"
-            href={boardHref}
-            aria-current={boardActive ? 'page' : undefined}
-            onClick={(event) => navigateInside(event, onBoard)}
+            id="nav-guide-button"
+            href="/faq"
+            onClick={(event) => navigateInside(event, onGuide)}
           >
-            질문 게시판
+            FAQ
           </a>
         </nav>
       </div>

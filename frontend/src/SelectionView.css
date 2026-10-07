@@ -35,8 +35,7 @@
     cursor: pointer;
 }
 
-.selection__card:hover:not(:disabled),
-.selection__card[aria-pressed="true"] {
+.selection__card:hover:not(:disabled) {
     border-color: var(--primary);
     box-shadow: inset 0 0 0 1px var(--primary);
 }
