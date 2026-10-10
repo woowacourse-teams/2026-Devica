@@ -931,7 +931,7 @@
       },
       "gridPos": {
         "h": 10,
-        "w": 12,
+        "w": 24,
         "x": 0,
         "y": 52
       },
@@ -947,38 +947,6 @@
         }
       ],
       "description": "ERROR 로그 원문과 스택 트레이스. 5xx 알림을 받았을 때 원인 코드 위치를 본다.",
-      "options": {
-        "showTime": true,
-        "wrapLogMessage": true,
-        "enableLogDetails": true,
-        "sortOrder": "Descending"
-      }
-    },
-    {
-      "type": "logs",
-      "title": "DB Logs",
-      "datasource": {
-        "type": "loki",
-        "uid": "${logs_ds}"
-      },
-      "gridPos": {
-        "h": 10,
-        "w": 12,
-        "x": 12,
-        "y": 52
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "loki",
-            "uid": "${logs_ds}"
-          },
-          "expr": "{env=\"$env\", app=\"devica-db\"}",
-          "queryType": "range"
-        }
-      ],
-      "description": "MySQL 오류 로그 원문. DB 커넥션이나 5xx 가 이상할 때 MySQL 쪽 원인을 본다.",
       "options": {
         "showTime": true,
         "wrapLogMessage": true,
