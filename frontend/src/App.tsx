@@ -116,7 +116,8 @@ export function App() {
         boardHref={boardHref}
         onBoard={() => go(boardHref)}
         boardActive={inBoard}
-        home={screen === 'home'}
+        productListActive={screen === 'products' || screen === 'matched' || screen === 'detail'}
+        guideActive={screen === 'faq'}
       />
       <main className={screen === 'home' ? 'probe probe--home' : 'probe'} id="main-content">
         <Switch>
