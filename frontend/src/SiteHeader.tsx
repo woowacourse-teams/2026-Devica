@@ -7,7 +7,8 @@ type Props = {
   boardHref: string;
   onBoard: () => void;
   boardActive: boolean;
-  home?: boolean;
+  productListActive: boolean;
+  guideActive: boolean;
 };
 
 function navigateInside(event: MouseEvent<HTMLAnchorElement>, navigate: () => void) {
@@ -18,9 +19,17 @@ function navigateInside(event: MouseEvent<HTMLAnchorElement>, navigate: () => vo
   navigate();
 }
 
-export function SiteHeader({ onGuide, onProductList, boardHref, onBoard, boardActive, home = false }: Props) {
+export function SiteHeader({
+  onGuide,
+  onProductList,
+  boardHref,
+  onBoard,
+  boardActive,
+  productListActive,
+  guideActive,
+}: Props) {
   return (
-    <header className={home ? 'site-header site-header--home' : 'site-header'}>
+    <header className="site-header">
       <div className="site-header__inner">
         <a className="site-logo" href="/">
           DEVICA
@@ -40,6 +49,7 @@ export function SiteHeader({ onGuide, onProductList, boardHref, onBoard, boardAc
             className="site-nav__item"
             id="nav-product-list-button"
             href="/products"
+            aria-current={productListActive ? 'page' : undefined}
             onClick={(event) => navigateInside(event, onProductList)}
           >
             제품 목록
@@ -48,6 +58,7 @@ export function SiteHeader({ onGuide, onProductList, boardHref, onBoard, boardAc
             className="site-nav__item"
             id="nav-guide-button"
             href="/faq"
+            aria-current={guideActive ? 'page' : undefined}
             onClick={(event) => navigateInside(event, onGuide)}
           >
             FAQ
