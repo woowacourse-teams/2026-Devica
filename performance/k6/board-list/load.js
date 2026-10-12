@@ -1,4 +1,3 @@
-// performance/k6/board-list/load.js
 import {
   validityThresholds,
   sloThresholds,

@@ -1,4 +1,3 @@
-// performance/k6/product-detail/load.js
 import { SharedArray } from 'k6/data';
 import {
   validityThresholds,

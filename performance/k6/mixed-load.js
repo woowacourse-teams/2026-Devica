@@ -1,4 +1,3 @@
-// performance/k6/mixed-load.js
 import { SharedArray } from 'k6/data';
 import { getBoardPosts } from './board-list/requests.js';
 import {

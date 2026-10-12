@@ -1,4 +1,3 @@
-// performance/k6/board-list/requests.js
 import { checkResponse, get } from '../common/http.js';
 
 export function getBoardPosts(page = 0, size = 20) {

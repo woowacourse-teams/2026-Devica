@@ -1,4 +1,3 @@
-// performance/k6/product-list/sessions.js
 // 세션: 사용자 한 명이 목록 화면 하나를 스크롤하는 과정
 import { SharedArray } from 'k6/data';
 import { check, sleep } from 'k6';

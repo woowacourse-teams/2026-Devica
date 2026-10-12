@@ -1,4 +1,3 @@
-// performance/k6/product-list/requests.js
 import http from 'k6/http';
 import { checkResponse, params, url } from '../common/http.js';
 

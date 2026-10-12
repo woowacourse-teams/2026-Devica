@@ -1,5 +1,3 @@
-// performance/k6/product-list/load.js
-// 워밍업 1분 → 측정 10분을 끊지 않고 진행한다. SLO는 측정 구간의 요청에만 적용한다
 import exec from 'k6/execution';
 import {
   validityThresholds,

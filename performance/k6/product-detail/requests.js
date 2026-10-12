@@ -1,4 +1,3 @@
-// performance/k6/product-detail/requests.js
 import { checkResponse, get, jsonBody } from '../common/http.js';
 import { getProducts } from '../product-list/requests.js';
 
@@ -17,7 +16,6 @@ export function validateIds(ids) {
   }
 }
 
-// 제품 목록 첫 페이지의 ID를 가져온다
 export function firstPageIds() {
   const ids = jsonBody(getProducts())?.content?.map((product) => product.id);
 
