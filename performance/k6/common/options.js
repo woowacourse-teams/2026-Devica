@@ -6,13 +6,15 @@ export function userAgent(testName) {
   return `devica-k6/${testName}`;
 }
 
-// SLO: 오류율 1% 이하, p95 200ms 이하. scenario를 주면 그 시나리오의 요청에만 적용한다
+// SLO 중 k6가 판정하는 것은 오류율 1% 이하뿐이다. scenario를 주면 그 시나리오의 요청에만 적용한다.
+// p95 200ms는 네트워크를 뺀 서버 처리 시간의 예산이라, 측정 뒤 요청 로그로 판정한다
 export function sloThresholds(scenario) {
   const selector = scenario ? `{scenario:${scenario}}` : '';
 
   return {
     [`http_req_failed${selector}`]: ['rate<=0.01'],
-    [`http_req_duration${selector}`]: ['p(95)<=200'],
+    // 판정 기준이 아니다. 측정 장소에서 체감한 응답 시간을 그 구간만 따로 요약에 남긴다
+    [`http_req_duration${selector}`]: ['p(95)>=0'],
   };
 }
 
