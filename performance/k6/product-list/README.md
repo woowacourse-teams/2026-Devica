@@ -18,7 +18,7 @@
 | 스크롤 간격 | 1~5초 무작위 |
 | 세션 시작 | 6초에 13개(초당 약 2.17개)를 일정한 속도로. 평균 약 9 RPS |
 | 재현성 | 시드를 고정해 세션 조건 목록을 만들고, 모든 회차에서 같은 순서로 쓴다 |
-| 형식 검사 | 4xx가 아니다. 200 응답은 `content` 배열, 요청한 `page`·`size`와 일치. `page=0, 1`은 `hasNext: true` |
+| 형식 검사 | 3xx·4xx가 아니다. 200 응답은 `content` 배열, 요청한 `page`·`size`와 일치. `page=0, 1`은 `hasNext: true` |
 | 태그 | `screen`, `os`, `cpu_tier`, `memory_gb`, `storage_gb`, `page`, `sort` |
 
 필터 조합은 `LaptopBackendAlgorithm`의 결과 범위를 옮겨 적은 것이다. 알고리즘이 낼 수 있는 CPU 등급·메모리·스토리지가 바뀌면 `sessions.js`와 아래 데이터 확인 쿼리를 함께 고친다. 페이지 크기 `size=12`는 프론트엔드의 무한 스크롤 전환을 기준으로 한다.
