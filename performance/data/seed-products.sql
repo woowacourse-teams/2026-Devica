@@ -15,8 +15,9 @@ CREATE PROCEDURE seed_performance_products(
 BEGIN
     DECLARE v_prefix VARCHAR(30);
     DECLARE v_category_id BIGINT;
-    DECLARE v_apple_cpu_id BIGINT;
-    DECLARE v_intel_cpu_id BIGINT;
+    DECLARE v_mac_cpu_count INT;
+    DECLARE v_windows_cpu_count INT;
+    DECLARE v_missing_tiers TEXT;
     DECLARE v_start INT DEFAULT 1;
     DECLARE v_batch_count INT;
 
@@ -24,6 +25,7 @@ BEGIN
     BEGIN
         ROLLBACK;
         DROP TEMPORARY TABLE IF EXISTS perf_seed_numbers;
+        DROP TEMPORARY TABLE IF EXISTS perf_seed_cpus;
         RESIGNAL;
     END;
 
@@ -39,17 +41,57 @@ BEGIN
 
     SET v_prefix = CONCAT('PERF-', UPPER(p_run_id), '-');
     SELECT MIN(id) INTO v_category_id FROM product_category WHERE code = 'LAPTOP';
-    SELECT MIN(id) INTO v_apple_cpu_id FROM cpu WHERE manufacturer = 'Apple';
-    SELECT MIN(id) INTO v_intel_cpu_id FROM cpu WHERE manufacturer = 'Intel';
 
-    IF v_category_id IS NULL OR v_apple_cpu_id IS NULL OR v_intel_cpu_id IS NULL THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'LAPTOP category and Apple/Intel CPUs are required';
+    IF v_category_id IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'LAPTOP category is required';
     END IF;
     IF EXISTS (
         SELECT 1 FROM product
         WHERE code LIKE CONCAT(v_prefix, '%') AND CHAR_LENGTH(code) = CHAR_LENGTH(v_prefix) + 6
     ) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Products for this run_id already exist; inspect before retrying';
+    END IF;
+
+    -- OS별 CPU를 id 순으로 번호를 매겨 둔다. 노트북은 이 번호로 CPU를 돌아가며 받는다.
+    CREATE TEMPORARY TABLE perf_seed_cpus (
+        os VARCHAR(16) NOT NULL,
+        cpu_no INT NOT NULL,
+        cpu_id BIGINT NOT NULL,
+        score INT NOT NULL,
+        PRIMARY KEY (os, cpu_no)
+    ) ENGINE = InnoDB;
+    INSERT INTO perf_seed_cpus (os, cpu_no, cpu_id, score)
+    SELECT os, ROW_NUMBER() OVER (PARTITION BY os ORDER BY id) - 1, id, score
+    FROM (
+        SELECT IF(manufacturer = 'Apple', 'MAC', 'WINDOWS') AS os, id, score
+        FROM cpu
+        WHERE manufacturer IN ('Apple', 'Intel', 'AMD')
+    ) os_cpus;
+
+    SELECT COUNT(IF(os = 'MAC', 1, NULL)), COUNT(IF(os = 'WINDOWS', 1, NULL))
+    INTO v_mac_cpu_count, v_windows_cpu_count
+    FROM perf_seed_cpus;
+
+    -- 등급 점수 기준은 CpuTier.java의 minScore와 같아야 한다. 한쪽을 고치면 함께 고친다.
+    -- 등급마다 그 점수 이상인 CPU가 있어야 목록 API의 CPU 필터가 0건을 내지 않는다.
+    SELECT GROUP_CONCAT(tiers.tier ORDER BY tiers.os, tiers.min_score)
+    INTO v_missing_tiers
+    FROM (
+        SELECT 'MAC' AS os, 'BASIC' AS tier, 20000 AS min_score
+        UNION ALL SELECT 'MAC', 'PRO', 30000
+        UNION ALL SELECT 'MAC', 'MAX', 45000
+        UNION ALL SELECT 'WINDOWS', 'U', 15000
+        UNION ALL SELECT 'WINDOWS', 'P_HS', 20000
+        UNION ALL SELECT 'WINDOWS', 'H', 24000
+        UNION ALL SELECT 'WINDOWS', 'HX', 35000
+    ) tiers
+    WHERE NOT EXISTS (
+        SELECT 1 FROM perf_seed_cpus c WHERE c.os = tiers.os AND c.score >= tiers.min_score
+    );
+
+    IF v_missing_tiers IS NOT NULL THEN
+        SET v_missing_tiers = LEFT(CONCAT('No CPU reaches CPU tiers: ', v_missing_tiers), 128);
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_missing_tiers;
     END IF;
 
     -- Reuse at most 1000 offsets, keeping recursion within the default limit.
@@ -76,10 +118,13 @@ BEGIN
         WHERE n < v_batch_count
         ORDER BY n;
 
+        -- 메모리(5개)와 스토리지(4개)는 제품 5개 묶음 순번 k = FLOOR(i / 5)마다 한 칸씩 돈다.
+        -- 연속한 k 20개(lcm(5, 4))에서 OS·브랜드별로 메모리×스토리지 20조합이 한 번씩 나오므로,
+        -- CPU를 k 20개(제품 100개) 단위로 바꾸면 CPU마다 같은 조합 분포를 받는다.
         INSERT INTO laptop (id, cpu_id, os, memory_gb, storage_gb, weight_g, screen_size_inch)
         SELECT p.id,
-               IF(MOD(v_start + s.n - 1, 5) = 0, v_apple_cpu_id, v_intel_cpu_id),
-               IF(MOD(v_start + s.n - 1, 5) = 0, 'MAC', 'WINDOWS'),
+               c.cpu_id,
+               c.os,
                ELT(MOD(MOD(v_start + s.n - 1, 5) + FLOOR((v_start + s.n - 1) / 5), 5) + 1,
                    8, 16, 24, 32, 64),
                ELT(MOD(v_start + s.n - 1, 4) + 1, 256, 512, 1024, 2048),
@@ -87,6 +132,10 @@ BEGIN
                ELT(MOD(v_start + s.n - 1, 5) + 1, 13.6, 15.6, 14.0, 16.0, 15.6)
         FROM perf_seed_numbers s
         JOIN product p ON p.code = CONCAT(v_prefix, LPAD(v_start + s.n, 6, '0'))
+        JOIN perf_seed_cpus c
+          ON c.os = IF(MOD(v_start + s.n - 1, 5) = 0, 'MAC', 'WINDOWS')
+         AND c.cpu_no = MOD(FLOOR((v_start + s.n - 1) / 100),
+                            IF(MOD(v_start + s.n - 1, 5) = 0, v_mac_cpu_count, v_windows_cpu_count))
         WHERE s.n < v_batch_count;
 
         INSERT INTO product_offer (product_id, name, price, purchase_url, status, created_at, updated_at)
@@ -106,6 +155,7 @@ BEGIN
     END WHILE;
 
     DROP TEMPORARY TABLE perf_seed_numbers;
+    DROP TEMPORARY TABLE perf_seed_cpus;
 
     SELECT COUNT(DISTINCT p.id) AS products, COUNT(DISTINCT l.id) AS laptops,
            COUNT(o.id) AS on_sale_offers
