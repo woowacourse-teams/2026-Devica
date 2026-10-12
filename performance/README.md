@@ -22,12 +22,20 @@ API별 폴더 이름은 `도메인-동작` 형태로 한다. 각 폴더는 다�
 
 | 파일 | 역할 |
 | --- | --- |
+| `README.md` | 실행 방법, 입력, 측정 전 확인 방법 |
 | `requests.js` | 요청과 응답 검사. 다른 테스트도 가져다 쓴다 |
 | 조건 모듈(필요할 때) | 요청 조건을 만드는 모듈. 예: `product-list/sessions.js` |
 | `smoke.js` | 적은 부하로 스크립트와 서버가 정상인지 확인한다. 유효성 기준만 적용하고 SLO는 판정하지 않는다 |
 | `load.js` | 예상 트래픽으로 부하를 건다 |
 
-데이터 적재는 [data/README.md](data/README.md), 상품 목록 조회 테스트는 [k6/product-list/README.md](k6/product-list/README.md), 나머지 테스트의 입력과 실행 옵션은 [k6/README.md](k6/README.md)를 본다.
+API별 실행 방법과 입력은 각 폴더의 `README.md`에 둔다. 데이터 적재는 [data/README.md](data/README.md)를 본다.
+
+| 테스트 | 문서 |
+| --- | --- |
+| 상품 목록 조회 | [k6/product-list/README.md](k6/product-list/README.md) |
+| 상품 상세 조회 | [k6/product-detail/README.md](k6/product-detail/README.md) |
+| 게시글 목록 조회 | [k6/board-list/README.md](k6/board-list/README.md) |
+| 여러 API를 섞는 테스트 | [아래](#여러-api를-섞는-테스트) |
 
 ## 공통 기준
 
@@ -136,6 +144,18 @@ k6 run --summary-export=performance/results/<테스트 이름>-<YYYYMMDD-HHmm>.j
 | GC Pause | | | | |
 | DB Connections (사용 중·대기 중) | | | | |
 | RDS CPU | | | | |
+
+## 여러 API를 섞는 테스트
+
+`k6/mixed-load.js`는 제품 목록, 제품 상세, 게시글 목록의 요청률을 각각 지정한다. 세 값을 합한 수가 목표 RPS다. `0`을 지정한 요청은 실행하지 않는다.
+
+```bash
+k6 run -e BASE_URL=http://localhost:8080 -e PRODUCT_IDS_SOURCE=file \
+  -e PRODUCT_LIST_RPS=1 -e PRODUCT_DETAIL_RPS=1 -e BOARD_LIST_RPS=1 \
+  -e VUS=5 -e DURATION=30s performance/k6/mixed-load.js
+```
+
+`VUS`는 실행하는 시나리오마다 준비할 VU 수다. 제품 목록은 `PRODUCT_PAGE`, 게시글 목록은 `POST_PAGE`로 페이지를 지정한다(기본 0). `PRODUCT_IDS_SOURCE=file`은 [상품 상세 조회의 ID 파일](k6/product-detail/README.md#id-파일-준비)을 쓴다.
 
 ## 개발 서버 실행 규칙
 
