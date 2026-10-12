@@ -1,3 +1,10 @@
+// performance/k6/board-list/load.js
+import {
+  validityThresholds,
+  sloThresholds,
+  summaryTrendStats,
+  userAgent,
+} from '../common/options.js';
 import { getBoardPosts } from './requests.js';
 
 const rps = Number(__ENV.RPS || 10);
@@ -17,6 +24,7 @@ if (!Number.isInteger(page) || page < 0 || page * 20 > 2147483647) {
 }
 
 export const options = {
+  userAgent: userAgent('board-list-load'),
   scenarios: {
     board_posts: {
       executor: 'constant-arrival-rate',
@@ -29,12 +37,11 @@ export const options = {
   },
 
   thresholds: {
-    http_req_failed: ['rate==0'],
-    checks: ['rate==1'],
-    dropped_iterations: ['count==0'],
+    ...sloThresholds(),
+    ...validityThresholds,
   },
 
-  summaryTrendStats: ['avg', 'med', 'p(95)', 'p(99)', 'max'],
+  summaryTrendStats,
 };
 
 export default function () {

@@ -1,5 +1,12 @@
-import { getProducts, getProductDetail } from './requests.js';
+// performance/k6/product-detail/load.js
 import { SharedArray } from 'k6/data';
+import {
+  validityThresholds,
+  sloThresholds,
+  summaryTrendStats,
+  userAgent,
+} from '../common/options.js';
+import { firstPageIds, getProductDetail, validateIds } from './requests.js';
 
 const rps = Number(__ENV.RPS || 10);
 const vus = Number(__ENV.VUS || 20);
@@ -17,22 +24,16 @@ if (idSource !== 'first-page' && idSource !== 'file') {
   throw new Error('PRODUCT_IDS_SOURCE는 first-page 또는 file이어야 합니다.');
 }
 
-function validateIds(ids) {
-  if (!Array.isArray(ids) || ids.length === 0 ||
-      ids.some((id) => !Number.isSafeInteger(id) || id <= 0)) {
-    throw new Error('상세 조회용 제품 ID 목록은 양의 정수로 채워진 배열이어야 합니다.');
-  }
-}
-
 const fileIds = idSource === 'file'
   ? new SharedArray('product detail ids', () => {
-      const ids = JSON.parse(open('./data/product-ids.json'));
+      const ids = JSON.parse(open('../data/product-ids.json'));
       validateIds(ids);
       return ids;
     })
   : null;
 
 export const options = {
+  userAgent: userAgent('product-detail-load'),
   scenarios: {
     product_detail: {
       executor: 'constant-arrival-rate',
@@ -45,12 +46,11 @@ export const options = {
   },
 
   thresholds: {
-    http_req_failed: ['rate==0'],
-    checks: ['rate==1'],
-    dropped_iterations: ['count==0'],
+    ...sloThresholds(),
+    ...validityThresholds,
   },
 
-  summaryTrendStats: ['avg', 'med', 'p(95)', 'p(99)', 'max'],
+  summaryTrendStats,
 };
 
 export function setup() {
@@ -58,18 +58,7 @@ export function setup() {
     return null;
   }
 
-  const response = getProducts();
-  let ids;
-
-  try {
-    ids = response.json().content.map((product) => product.id);
-  } catch {
-    throw new Error('제품 목록에서 상세 조회용 ID를 읽지 못했습니다.');
-  }
-
-  validateIds(ids);
-
-  return ids;
+  return firstPageIds();
 }
 
 export default function (setupIds) {

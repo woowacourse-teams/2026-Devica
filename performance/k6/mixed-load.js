@@ -1,5 +1,14 @@
+// performance/k6/mixed-load.js
 import { SharedArray } from 'k6/data';
-import { getBoardPosts, getProductDetail, getProducts } from './requests.js';
+import { getBoardPosts } from './board-list/requests.js';
+import {
+  validityThresholds,
+  sloThresholds,
+  summaryTrendStats,
+  userAgent,
+} from './common/options.js';
+import { firstPageIds, getProductDetail, validateIds } from './product-detail/requests.js';
+import { getProducts } from './product-list/requests.js';
 
 const productListRps = Number(__ENV.PRODUCT_LIST_RPS ?? 1);
 const productDetailRps = Number(__ENV.PRODUCT_DETAIL_RPS ?? 1);
@@ -39,13 +48,6 @@ if (idSource !== 'first-page' && idSource !== 'file') {
   throw new Error('PRODUCT_IDS_SOURCE는 first-page 또는 file이어야 합니다.');
 }
 
-function validateIds(ids) {
-  if (!Array.isArray(ids) || ids.length === 0 ||
-      ids.some((id) => !Number.isSafeInteger(id) || id <= 0)) {
-    throw new Error('상세 조회용 제품 ID 목록은 양의 정수로 채워진 배열이어야 합니다.');
-  }
-}
-
 const fileIds = productDetailRps > 0 && idSource === 'file'
   ? new SharedArray('mixed load product ids', () => {
       const ids = JSON.parse(open('./data/product-ids.json'));
@@ -83,13 +85,13 @@ if (boardListRps > 0) {
 }
 
 export const options = {
+  userAgent: userAgent('mixed-load'),
   scenarios,
   thresholds: {
-    http_req_failed: ['rate==0'],
-    checks: ['rate==1'],
-    dropped_iterations: ['count==0'],
+    ...sloThresholds(),
+    ...validityThresholds,
   },
-  summaryTrendStats: ['avg', 'med', 'p(95)', 'p(99)', 'max'],
+  summaryTrendStats,
 };
 
 export function setup() {
@@ -97,21 +99,11 @@ export function setup() {
     return null;
   }
 
-  const response = getProducts();
-  let ids;
-
-  try {
-    ids = response.json().content.map((product) => product.id);
-  } catch {
-    throw new Error('제품 목록에서 상세 조회용 ID를 읽지 못했습니다.');
-  }
-
-  validateIds(ids);
-  return ids;
+  return firstPageIds();
 }
 
 export function productList() {
-  getProducts(productPage);
+  getProducts({ page: productPage });
 }
 
 export function productDetail(setupIds) {
