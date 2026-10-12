@@ -24,7 +24,7 @@ API별 폴더 이름은 `도메인-동작` 형태로 한다. 각 폴더는 다�
 | --- | --- |
 | `requests.js` | 요청과 응답 검사. 다른 테스트도 가져다 쓴다 |
 | 조건 모듈(필요할 때) | 요청 조건을 만드는 모듈. 예: `product-list/sessions.js` |
-| `smoke.js` | 적은 부하로 스크립트와 서버가 정상인지 확인한다 |
+| `smoke.js` | 적은 부하로 스크립트와 서버가 정상인지 확인한다. 유효성 기준만 적용하고 SLO는 판정하지 않는다 |
 | `load.js` | 예상 트래픽으로 부하를 건다 |
 
 데이터 적재는 [data/README.md](data/README.md), 상품 목록 조회 테스트는 [k6/product-list/README.md](k6/product-list/README.md), 나머지 테스트의 입력과 실행 옵션은 [k6/README.md](k6/README.md)를 본다.
@@ -55,7 +55,7 @@ API별 폴더 이름은 `도메인-동작` 형태로 한다. 각 폴더는 다�
 | 서버 주소 | `BASE_URL` 환경 변수. 기본값 `http://localhost:8080` |
 | 테스트 표시 헤더 | `User-Agent: devica-k6/<테스트 이름>`. 로그와 대시보드에서 테스트 트래픽을 구분한다 |
 | 요청 옵션 | 타임아웃 5초, 리다이렉트 0. 기대 상태는 200~499로 두어, 오류율(`http_req_failed`)에는 5xx와 타임아웃만 들어가게 한다 |
-| SLO 기준 | `sloThresholds()`. 워밍업이 있는 테스트는 측정 구간의 요청에만 적용한다 |
+| SLO 기준 | `sloThresholds()`. 부하 테스트에만 적용하고, 워밍업이 있으면 측정 구간의 요청에만 적용한다 |
 | 유효성 기준 | `validityThresholds`. 형식 검사(`checks`) 100% 통과, `dropped_iterations` 0. 워밍업을 포함한 전체에 적용한다 |
 | 응답 검사 | `checkResponse()`. 4xx가 아닌지 확인하고, 200 응답이면 API별 형식 검사를 한다 |
 | 결과 통계 항목 | `avg`, `med`, `p(95)`, `p(99)`, `max` |
@@ -77,7 +77,8 @@ API별 폴더 이름은 `도메인-동작` 형태로 한다. 각 폴더는 다�
 
 | 대상 | 지표 | 위치 |
 | --- | --- | --- |
-| 앱 서버 | p95 (서버 쪽) | Grafana Explore. 측정 종료 시점에 p95 패널의 쿼리 기간을 `[10m]`으로 바꿔 조회한다 |
+| 앱 서버 | 서버 처리 시간 p50·p95·p99 | Grafana Explore(`grafanacloud-logs`). 요청 로그의 처리 시간으로 계산한다 |
+| 앱 서버 | p95 (히스토그램) | Grafana Explore. 측정 종료 시점에 p95 패널의 쿼리 기간을 `[10m]`으로 바꿔 조회한다 |
 | 앱 서버 | CPU Usage, Available Memory | Grafana `Devica Overview` |
 | JVM | Heap Usage, GC Pause | Grafana `Devica Overview` |
 | 커넥션 풀 | DB Connections (사용 중·대기 중) | Grafana `Devica Overview` |
@@ -87,6 +88,14 @@ API별 폴더 이름은 `도메인-동작` 형태로 한다. 각 폴더는 다�
 
 ```promql
 histogram_quantile(0.95, sum by (le, uri) (rate(http_server_requests_seconds_bucket{env="dev", uri!="/readyz"}[10m])))
+```
+
+k6의 응답 시간에는 측정 장소와 서버 사이의 네트워크 시간이 들어간다. 측정 장소의 네트워크가 흔들리면 서버가 같아도 k6 p95가 크게 달라지므로, 요청 로그의 처리 시간을 함께 기록해 서버 쪽 변화와 네트워크 쪽 변화를 나눠 본다. 히스토그램 p95는 구간 안에서 값을 추정해 실제보다 크게 나올 수 있어, 서버 쪽 비교에는 로그의 처리 시간을 쓴다.
+
+측정 종료 시점에 아래 쿼리를 즉시 조회(Instant)로 실행한다. `0.95`를 `0.5`, `0.99`로 바꿔 p50, p99를 얻고, 결과(나노초)를 1,000,000으로 나눠 ms로 적는다.
+
+```logql
+quantile_over_time(0.95, {env="dev"} |= "요청 처리 완료" | json | http_route="<API 경로 패턴>" | unwrap event_duration [10m]) by (env)
 ```
 
 DB가 RDS에 있어 DB 지표는 대시보드에 없다. 대시보드의 CPU와 메모리는 앱 서버만 나타낸다. 병목이 DB로 의심되면 해당 쿼리의 실행 계획(`EXPLAIN ANALYZE`)을 확인한다.
@@ -111,10 +120,11 @@ k6 run --summary-export=performance/results/<테스트 이름>-<YYYYMMDD-HHmm>.j
 | 데이터 확인 결과 | | | | |
 | k6 p95 (ms) | | | | 중앙값 (최소~최대) |
 | k6 p99 (ms) | | | | |
+| 서버 처리 시간 p50 / p95 / p99 (ms) | | | | p95 중앙값 (최소~최대) |
 | 오류율 | | | | 회차별 판정 |
 | 실제 RPS | | | | |
 | `dropped_iterations` | | | | 모두 0이어야 유효 |
-| 서버 p95 (ms) | | | | |
+| 서버 p95 히스토그램 (ms) | | | | |
 | CPU Usage | | | | |
 | Available Memory | | | | |
 | Heap Usage | | | | |
