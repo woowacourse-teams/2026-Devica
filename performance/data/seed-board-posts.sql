@@ -1,5 +1,5 @@
--- Run in a dedicated MySQL 8.4 session connected to the development database.
--- Each batch commits separately. Stop on SQL errors; do not use mysql --force.
+-- 개발 DB에 연결한 MySQL 8.4 전용 세션에서 실행한다.
+-- 배치마다 따로 커밋한다. SQL 오류가 나면 멈추고, mysql --force는 쓰지 않는다.
 SET @perf_run_id = 'baseline-1';
 SET @perf_post_count = 1000000;
 SET @perf_batch_size = 1000;
@@ -59,7 +59,7 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Posts for this run_id already exist; inspect before retrying';
     END IF;
 
-    -- Reuse at most 1000 offsets even when generating millions of posts.
+    -- 게시글을 수백만 건 만들어도 번호는 최대 1000개만 만들어 재사용한다.
     CREATE TEMPORARY TABLE perf_board_seed_numbers (n INT NOT NULL PRIMARY KEY) ENGINE = InnoDB;
     INSERT INTO perf_board_seed_numbers (n)
     WITH RECURSIVE numbers(n) AS (
@@ -69,7 +69,7 @@ BEGIN
     )
     SELECT n FROM numbers;
 
-    -- Spread posts one second apart, ending at the start time of this run.
+    -- 게시글 시각을 1초 간격으로 두고, 마지막 글을 이번 실행의 시작 시각에 맞춘다.
     SET v_first_created_at = TIMESTAMPADD(SECOND, 1 - p_count, CURRENT_TIMESTAMP);
     WHILE v_start <= p_count DO
         SET v_batch_count = LEAST(p_batch_size, p_count - v_start + 1);
