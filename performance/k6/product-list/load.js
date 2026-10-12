@@ -15,7 +15,8 @@ const TIME_UNIT = '6s';
 const WARMUP_SESSIONS = 130; // 1분
 const MEASURE_SESSIONS = 1300; // 10분
 
-const sessions = sessionList(WARMUP_SESSIONS + MEASURE_SESSIONS);
+// 종료 시점에 따라 반복이 1~2회 더 돌 수 있어 여유분을 둔다
+const sessions = sessionList(WARMUP_SESSIONS + MEASURE_SESSIONS + 10);
 
 // 세션 하나는 최대 약 25초(요청 3번 × 타임아웃 5초 + 간격 2번 × 5초)다.
 // 서버가 느려져도 세션을 버리지 않도록 25초 × 초당 약 2.17세션보다 넉넉히 둔다

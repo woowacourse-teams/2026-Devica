@@ -4,7 +4,8 @@ import exec from 'k6/execution';
 import { summaryTrendStats, userAgent, validityThresholds } from '../common/options.js';
 import { runSession, sessionList } from './sessions.js';
 
-const sessions = sessionList(15);
+// 1분에 15세션. 종료 시점에 따라 반복이 1~2회 더 돌 수 있어 여유분을 둔다
+const sessions = sessionList(20);
 
 export const options = {
   userAgent: userAgent('product-list-smoke'),
