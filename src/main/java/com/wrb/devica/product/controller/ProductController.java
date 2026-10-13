@@ -57,7 +57,7 @@ public class ProductController {
         List<CpuTierResponse> cpuTiers = CpuTier.inOrder().stream()
             .map(CpuTierResponse::from)
             .toList();
-        return ResponseEntity.ok(cpuTiers);
+        return ResponseEntity.ok().body(cpuTiers);
     }
 
     @GetMapping("/api/products/{id}")
