@@ -145,18 +145,43 @@ export function ProductListView({
     return () => clearTimeout(timer);
   }, [typed, condition.keyword, onChangeState]);
 
-  // 권장안을 받기 전에는 맞춤 목록의 조건을 알 수 없어 요청하지 않는다.
-  const listQuery = productListQuery(spec, sort, condition, tiers ?? []);
-  const products = usePaged(
-    waitingForTiers || (matchedMode && spec === undefined) ? null : `products:${categoryCode}?${listQuery}`,
-    (page) => fetchProductPage(categoryCode, listQuery, page),
-  );
   const brands = useFetched(`brands:${categoryCode}:${condition.os ?? ''}`, () =>
     fetchBrands(categoryCode, condition.os),
   );
+  // 브랜드는 OS 를 바꿀 때만 검증한다. 처음부터 지정된 검색 조건은 임의로 넓히지 않는다.
+  const brandOs = useRef(condition.os);
+  const waitingForBrands =
+    brandOs.current !== condition.os &&
+    condition.brand !== null &&
+    (brands.data === null || !brands.data.includes(condition.brand));
+  const brandsFailed = waitingForBrands && brands.failed;
+
+  useEffect(() => {
+    if (brandOs.current === condition.os || (condition.brand !== null && brands.data === null)) {
+      return;
+    }
+    brandOs.current = condition.os;
+    if (condition.brand === null || brands.data?.includes(condition.brand)) {
+      return;
+    }
+    onChangeState((previous) =>
+      previous.condition.os === condition.os && previous.condition.brand === condition.brand
+        ? { ...previous, condition: { ...previous.condition, brand: null } }
+        : previous,
+    );
+  }, [brands.data, condition.os, condition.brand, onChangeState]);
+
+  // 권장안을 받기 전에는 맞춤 목록의 조건을 알 수 없어 요청하지 않는다.
+  const listQuery = productListQuery(spec, sort, condition, tiers ?? []);
+  const products = usePaged(
+    waitingForTiers || waitingForBrands || (matchedMode && spec === undefined)
+      ? null
+      : `products:${categoryCode}?${listQuery}`,
+    (page) => fetchProductPage(categoryCode, listQuery, page),
+  );
   const items = products.data;
   // 첫 페이지를 받지 못했으면 목록 자리에 안내를 띄운다. 이어 받다 실패하면 받은 제품은 그대로 둔다.
-  const failed = (products.failed || tiersFailed) && items === null;
+  const failed = (products.failed || tiersFailed || brandsFailed) && items === null;
 
   const [holding, setHolding] = useState(searching);
 
@@ -194,8 +219,8 @@ export function ProductListView({
   // 실패하면 멈추고 사용자가 다시 시도하길 기다린다. 저절로 다시 받으면 실패가 이어지는 동안 요청이 되풀이된다.
   const sentinel = useRef<HTMLDivElement>(null);
   const { hasNext, loading, more } = products;
-  // CPU 조건을 검증하는 동안에는 목록을 요청하지 않지만, 사용자에게는 똑같이 불러오는 중이다.
-  const waiting = loading || (waitingForTiers && !cpuTiers.failed);
+  // 조건을 검증하는 동안에는 목록을 요청하지 않지만, 사용자에게는 똑같이 불러오는 중이다.
+  const waiting = loading || (waitingForTiers && !cpuTiers.failed) || (waitingForBrands && !brands.failed);
   useEffect(() => {
     const target = sentinel.current;
     if (target === null || !hasNext || loading || products.failed) {
@@ -222,7 +247,7 @@ export function ProductListView({
     onChangeState((previous) => {
       const tier = previous.condition.cpuTier;
       const kept = tier !== null && (os === null || osOfTier(tiers ?? [], tier) === os) ? tier : null;
-      return { ...previous, condition: { ...previous.condition, os, cpuTier: kept, brand: null } };
+      return { ...previous, condition: { ...previous.condition, os, cpuTier: kept } };
     });
   };
 
@@ -388,8 +413,12 @@ export function ProductListView({
         {waiting ? (items === null ? '제품을 불러오는 중입니다…' : '제품을 더 불러오는 중입니다…') : ''}
         {products.failed && items !== null ? '제품을 더 불러오지 못했습니다.' : ''}
       </p>
-      {(products.failed || tiersFailed) && (
-        <button className="button button--secondary" type="button" onClick={tiersFailed ? cpuTiers.retry : more}>
+      {(products.failed || tiersFailed || brandsFailed) && (
+        <button
+          className="button button--secondary"
+          type="button"
+          onClick={tiersFailed ? cpuTiers.retry : brandsFailed ? brands.retry : more}
+        >
           다시 시도
         </button>
       )}
@@ -487,8 +516,8 @@ type FilterProps = {
 };
 
 function Filter({ field, label, value, choices, unavailable = null, onChange }: FilterProps) {
-  // 고를 값이 하나뿐이면 거는 의미가 없다. 흐리게만 두지 않고 왜 못 고르는지 적는다.
-  const usable = choices.length > 1;
+  // 선택지가 하나여도 적용한 조건을 보여 주고 해제할 수 있어야 한다.
+  const usable = choices.length > 0;
   return (
     <label className="product-filter" htmlFor={`product-filter-${field}`}>
       <span className="product-filter__label">{label}</span>
