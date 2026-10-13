@@ -1,10 +1,12 @@
 // 제품 목록은 서버가 확정 사양을 조건으로 걸러 준다. 프런트가 사양을 다시 대조하지 않는다.
-import { osValueOf, type Spec } from './recommendation';
+import type { Page } from './fetched';
+import type { Spec } from './recommendation';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
-// 원본 목록은 한 화면에 전부 담고 페이지를 나누지 않는다. 100 은 서버가 받는 상한이다.
-const PAGE_SIZE = 100;
+// 한 화면에 데스크톱은 4~5개, 모바일은 1~2개가 보인다. 한 페이지가 한 화면보다 길어야
+// 들어오자마자 목록 끝이 보여 다음 페이지를 곧바로 또 받는 일이 없다.
+const PAGE_SIZE = 10;
 
 // 권장 사양의 항목 코드를 제품 검색 조건 이름으로 옮긴다.
 // 권장 CPU 는 REQUIRED_CPU 로 등급 코드가 실려 오고, 검색은 그 등급 코드를 그대로 받는다.
@@ -100,57 +102,33 @@ export type ProductDetail = {
   offers: Offer[];
 };
 
-type ProductListResponse = {
-  content: Product[];
-  page: number;
-  size: number;
-  hasNext: boolean;
-};
-
-/**
- * 권장안이 둘이면 OS 마다 따로 받아 합친다 — 목록 API 가 OS 를 하나만 받는다.
- * 제품은 OS 를 하나만 가지므로 합쳐도 겹치지 않는다.
- * 권장안을 주지 않으면 사양 조건 없이 전체를 받는다.
- */
-export async function fetchProductsFor(
+export async function fetchProductPage(
   categoryCode: string,
-  specs: Spec[],
-  sort: SortType,
-  condition: SearchCondition,
-): Promise<Product[]> {
-  if (specs.length === 0) {
-    return fetchProducts(categoryCode, null, sort, condition);
-  }
-
-  // OS 를 골랐으면 그 OS 의 권장안만 대상이 된다. 등급만 골라도 OS 가 정해진다.
-  const chosenOs = condition.os ?? (condition.cpuTier === null ? null : osOfTier(condition.cpuTier));
-  const targets = chosenOs === null ? specs : specs.filter((spec) => osValueOf(spec) === chosenOs);
-
-  const lists = await Promise.all(targets.map((spec) => fetchProducts(categoryCode, spec, sort, condition)));
-  if (targets.length <= 1) {
-    return lists.flat();
-  }
-  // 서버 정렬은 한 호출 안에서만 유효하다. 합친 목록은 가격으로만 다시 줄 세울 수 있다 —
-  // 추천순의 기준인 CPU 점수가 응답에 없다. 그래서 화면이 둘일 때 추천순을 고르지 못하게 한다.
-  return lists.flat().sort(sort === 'PRICE_DESC' ? byPriceDesc : byPriceAsc);
-}
-
-async function fetchProducts(
-  categoryCode: string,
-  spec: Spec | null,
-  sort: SortType,
-  condition: SearchCondition,
-): Promise<Product[]> {
-  const query = toQuery(spec, sort, condition);
+  listQuery: URLSearchParams,
+  page: number,
+): Promise<Page<Product>> {
+  const query = new URLSearchParams(listQuery);
+  query.set('page', String(page));
+  query.set('size', String(PAGE_SIZE));
   const response = await fetch(`${BASE_URL}/api/product-categories/${categoryCode}/products?${query}`, {
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
     throw new Error(`제품 목록을 불러오지 못했습니다 (${response.status})`);
   }
+  return response.json();
+}
 
-  const body: ProductListResponse = await response.json();
-  return body.content;
+/** OS 를 주면 그 OS 의 브랜드만 온다. */
+export async function fetchBrands(categoryCode: string, os: string | null): Promise<string[]> {
+  const suffix = os === null ? '' : `?os=${os}`;
+  const response = await fetch(`${BASE_URL}/api/product-categories/${categoryCode}/brands${suffix}`, {
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) {
+    throw new Error(`브랜드를 불러오지 못했습니다 (${response.status})`);
+  }
+  return response.json();
 }
 
 export async function fetchProduct(id: number): Promise<ProductDetail> {
@@ -163,7 +141,8 @@ export async function fetchProduct(id: number): Promise<ProductDetail> {
   return response.json();
 }
 
-function toQuery(spec: Spec | null, sort: SortType, condition: SearchCondition): URLSearchParams {
+/** 거르기와 정렬은 서버가 한다. 같은 조건이면 같은 목록이고, 페이지만 달리해 이어 받는다. */
+export function productListQuery(spec: Spec | undefined, sort: SortType, condition: SearchCondition): URLSearchParams {
   const query = new URLSearchParams();
   spec?.items.forEach((item) => {
     const name = CONDITION_OF[item.code];
@@ -201,7 +180,6 @@ function toQuery(spec: Spec | null, sort: SortType, condition: SearchCondition):
   }
 
   query.set('sort', sort);
-  query.set('size', String(PAGE_SIZE));
   return query;
 }
 
@@ -221,28 +199,6 @@ function atLeast(recommended: string | null, chosen: number): number {
 export function cpuFilterLabel(os: string, tier: string): string {
   const label = CPU_TIER_LABELS[os]?.[tier] ?? tier;
   return label.includes(' / ') ? `${label.split(' / ')[0]}급 이상` : `${label} 이상`;
-}
-
-// 최저가가 없는 제품은 가격을 비교할 수 없어 뒤로 보낸다.
-function byPriceAsc(one: Product, other: Product): number {
-  if (one.minPrice === null || other.minPrice === null) {
-    return unpricedLast(one, other);
-  }
-  return one.minPrice - other.minPrice;
-}
-
-function byPriceDesc(one: Product, other: Product): number {
-  if (one.minPrice === null || other.minPrice === null) {
-    return unpricedLast(one, other);
-  }
-  return other.minPrice - one.minPrice;
-}
-
-function unpricedLast(one: Product, other: Product): number {
-  if (one.minPrice === other.minPrice) {
-    return 0;
-  }
-  return one.minPrice === null ? 1 : -1;
 }
 
 // 판매 중인 판매처가 없으면 최저가가 비어 온다. 원본에는 없던 상태다.
