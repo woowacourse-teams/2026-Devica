@@ -135,6 +135,15 @@ class ProductServiceTest {
     }
 
     @Test
+    void 없는_카테고리로_브랜드를_조회하면_예외가_발생한다() {
+        // when & then
+        assertThatThrownBy(() -> productService.findBrandsByCategory("UNKNOWN", null))
+            .isInstanceOf(BusinessException.class)
+            .extracting(exception -> ((BusinessException) exception).getErrorCode())
+            .isEqualTo(BusinessErrorCode.PRODUCT_CATEGORY_NOT_FOUND);
+    }
+
+    @Test
     void 없는_id로_상세를_조회하면_예외가_발생한다() {
         //given
         entityManager.flush();

@@ -1,6 +1,7 @@
 package com.wrb.devica.product.controller;
 
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.domain.Product;
 import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.dto.CpuTierResponse;
@@ -20,6 +21,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RequiredArgsConstructor
@@ -40,6 +42,13 @@ public class ProductController {
             condition, pageCondition);
         ProductListResponse productListResponse = ProductListResponse.from(productSlice);
         return ResponseEntity.ok().body(productListResponse);
+    }
+
+    @GetMapping("/api/product-categories/{categoryCode}/brands")
+    public ResponseEntity<List<String>> findBrandsByCategory(@PathVariable String categoryCode,
+                                                             @RequestParam(required = false) Os os) {
+        List<String> brandNames = productService.findBrandsByCategory(categoryCode, os);
+        return ResponseEntity.ok(brandNames);
     }
 
     // 순서가 곧 등급 순서다. 목록의 CPU 필터는 고른 등급 이상을 찾는다

@@ -302,6 +302,22 @@ class LaptopE2ETest extends E2ETest {
             .body("[4].os", is("MAC"));
     }
 
+    // UC-08: 브랜드 필터 선택지는 보고 있는 OS 에 있는 브랜드만 준다
+    @Test
+    void OS를_지정해_브랜드를_조회하면_그_OS의_브랜드만_받는다() {
+        // given
+        laptopOf(laptop().brand("Apple").os(Os.MAC));
+        laptopOf(laptop().brand("LG").os(Os.WINDOWS));
+        laptopOf(laptop().brand("ASUS").os(Os.WINDOWS));
+
+        // when & then
+        given()
+            .queryParam("os", "WINDOWS")
+            .when().get("/api/product-categories/LAPTOP/brands")
+            .then().statusCode(200)
+            .body("", contains("ASUS", "LG"));
+    }
+
     // UC-11: 판매처가 없어도 제품 정보는 볼 수 있다
     @Test
     void 판매_중인_판매처가_없어도_상세를_받는다() {
