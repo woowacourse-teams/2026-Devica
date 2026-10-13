@@ -110,9 +110,11 @@ export function ProductListView({
   onShowAll,
 }: Props) {
   const { sort, filterOpen } = state;
-  // 등급은 서버에서 받는다. 받기 전에는 주소의 등급이 맞는지 알 수 없어 목록도 요청하지 않는다.
+  // 주소에 CPU 조건이 있을 때만 등급을 기다린다. 조건이 없으면 필터 선택지와 목록을 독립적으로 받는다.
   const cpuTiers = useFetched('cpu-tiers', fetchCpuTiers);
   const tiers = cpuTiers.data;
+  const waitingForTiers = state.condition.cpuTier !== null && tiers === null;
+  const tiersFailed = waitingForTiers && cpuTiers.failed;
   const condition =
     tiers === null ? state.condition : { ...state.condition, cpuTier: validTier(tiers, state.condition) };
   const matchedMode = mode === 'MATCHED';
@@ -146,7 +148,7 @@ export function ProductListView({
   // 권장안을 받기 전에는 맞춤 목록의 조건을 알 수 없어 요청하지 않는다.
   const listQuery = productListQuery(spec, sort, condition, tiers ?? []);
   const products = usePaged(
-    tiers === null || (matchedMode && spec === undefined) ? null : `products:${categoryCode}?${listQuery}`,
+    waitingForTiers || (matchedMode && spec === undefined) ? null : `products:${categoryCode}?${listQuery}`,
     (page) => fetchProductPage(categoryCode, listQuery, page),
   );
   const brands = useFetched(`brands:${categoryCode}:${condition.os ?? ''}`, () =>
@@ -154,7 +156,7 @@ export function ProductListView({
   );
   const items = products.data;
   // 첫 페이지를 받지 못했으면 목록 자리에 안내를 띄운다. 이어 받다 실패하면 받은 제품은 그대로 둔다.
-  const failed = (products.failed || cpuTiers.failed) && items === null;
+  const failed = (products.failed || tiersFailed) && items === null;
 
   const [holding, setHolding] = useState(searching);
 
@@ -192,8 +194,8 @@ export function ProductListView({
   // 실패하면 멈추고 사용자가 다시 시도하길 기다린다. 저절로 다시 받으면 실패가 이어지는 동안 요청이 되풀이된다.
   const sentinel = useRef<HTMLDivElement>(null);
   const { hasNext, loading, more } = products;
-  // 등급을 받는 동안에는 목록을 요청하지 않지만, 사용자에게는 똑같이 불러오는 중이다.
-  const waiting = loading || (tiers === null && !cpuTiers.failed);
+  // CPU 조건을 검증하는 동안에는 목록을 요청하지 않지만, 사용자에게는 똑같이 불러오는 중이다.
+  const waiting = loading || (waitingForTiers && !cpuTiers.failed);
   useEffect(() => {
     const target = sentinel.current;
     if (target === null || !hasNext || loading || products.failed) {
@@ -325,6 +327,11 @@ export function ProductListView({
           unavailable={unavailableLabel(cpuTiers)}
           onChange={(raw) => change('cpuTier', raw === '' ? null : raw)}
         />
+        {cpuTiers.failed && !waitingForTiers && (
+          <button className="button button--secondary" type="button" onClick={cpuTiers.retry}>
+            CPU 등급 다시 시도
+          </button>
+        )}
         <Filter
           field="brand"
           label="브랜드"
@@ -381,8 +388,8 @@ export function ProductListView({
         {waiting ? (items === null ? '제품을 불러오는 중입니다…' : '제품을 더 불러오는 중입니다…') : ''}
         {products.failed && items !== null ? '제품을 더 불러오지 못했습니다.' : ''}
       </p>
-      {(products.failed || cpuTiers.failed) && (
-        <button className="button button--secondary" type="button" onClick={cpuTiers.failed ? cpuTiers.retry : more}>
+      {(products.failed || tiersFailed) && (
+        <button className="button button--secondary" type="button" onClick={tiersFailed ? cpuTiers.retry : more}>
           다시 시도
         </button>
       )}

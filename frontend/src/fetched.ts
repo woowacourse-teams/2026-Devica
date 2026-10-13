@@ -71,6 +71,8 @@ type Pages<T> = {
 const loading = new Set<string>();
 // 실패도 key 마다 적는다. 하나만 두면 늦게 실패한 이전 조건이 지금 조건의 실패를 덮는다.
 const failedKeys = new Set<string>();
+// 요청을 시작한 화면이 사라져도, 지금 목록을 보고 있는 화면에 페이지 완료를 알린다.
+const pageListeners = new Set<() => void>();
 
 export type Paged<T> = {
   // 첫 페이지를 받기 전(null)을 빈 목록과 구분한다.
@@ -91,6 +93,13 @@ export function usePaged<T extends { id: number }>(
   fetchPage: (page: number) => Promise<Page<T>>,
 ): Paged<T> {
   const [, rerender] = useState(0);
+  useEffect(() => {
+    const listener = () => rerender((count) => count + 1);
+    pageListeners.add(listener);
+    return () => {
+      pageListeners.delete(listener);
+    };
+  }, []);
   // fetchPage 는 렌더마다 새 함수다. more 를 늘 같은 함수로 두려고 마지막 것을 따로 든다.
   const latest = useRef(fetchPage);
   latest.current = fetchPage;
@@ -123,7 +132,9 @@ export function usePaged<T extends { id: number }>(
       .catch(() => failedKeys.add(key))
       .finally(() => {
         loading.delete(flight);
-        rerender((count) => count + 1);
+        pageListeners.forEach((listener) => {
+          listener();
+        });
       });
   }, [key]);
 
