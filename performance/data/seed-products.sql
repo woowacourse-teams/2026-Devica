@@ -1,5 +1,5 @@
--- Run in a dedicated MySQL 8.4 session connected to the development database.
--- Each batch commits separately. Stop on SQL errors; do not use mysql --force.
+-- 개발 DB에 연결한 MySQL 8.4 전용 세션에서 실행한다.
+-- 배치마다 따로 커밋한다. SQL 오류가 나면 멈추고, mysql --force는 쓰지 않는다.
 SET @perf_run_id = 'baseline-1';
 SET @perf_product_count = 20000;
 SET @perf_batch_size = 1000;
@@ -94,7 +94,7 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_missing_tiers;
     END IF;
 
-    -- Reuse at most 1000 offsets, keeping recursion within the default limit.
+    -- 번호는 최대 1000개만 만들어 재사용해 재귀 깊이를 기본 제한 안에 둔다.
     CREATE TEMPORARY TABLE perf_seed_numbers (n INT NOT NULL PRIMARY KEY) ENGINE = InnoDB;
     INSERT INTO perf_seed_numbers (n)
     WITH RECURSIVE numbers(n) AS (
