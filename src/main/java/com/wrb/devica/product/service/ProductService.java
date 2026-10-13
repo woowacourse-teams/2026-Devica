@@ -3,12 +3,14 @@ package com.wrb.devica.product.service;
 import com.wrb.devica.category.domain.ProductCategoryCode;
 import com.wrb.devica.common.exception.BusinessErrorCode;
 import com.wrb.devica.common.exception.BusinessException;
+import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.domain.Product;
 import com.wrb.devica.product.dto.LaptopSearchCondition;
 import com.wrb.devica.product.dto.PageCondition;
 import com.wrb.devica.product.dto.ProductSummaryResponse;
 import com.wrb.devica.product.dto.ProductSummaryRow;
 import com.wrb.devica.product.repository.LaptopRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -35,6 +37,11 @@ public class ProductService {
         return rows.map(row -> ProductSummaryResponse.from(
             row, imageUrlResolver.resolve(row.imageKey()))
         );
+    }
+
+    public List<String> findBrandsByCategory(String categoryCode, Os os) {
+        validateCategoryExists(categoryCode);
+        return laptopRepository.findBrands(os);
     }
 
     public Product findProductById(Long productId) {

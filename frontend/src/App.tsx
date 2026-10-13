@@ -10,12 +10,12 @@ import { useFetched } from './fetched';
 import { HomeHero } from './HomeHero';
 import { IntroView } from './IntroView';
 import { ProductDetailView } from './ProductDetailView';
-import { initialListState, type ProductListState, ProductListView } from './ProductListView';
-import type { SortType } from './products';
+import { type ProductListState, ProductListView } from './ProductListView';
+import type { SearchCondition, SortType } from './products';
 import { QuestionView } from './QuestionView';
 import { type Answers, fetchQuestions, pruneHiddenAnswers, resolveScreens, toSearchParams } from './questions';
 import { type ResultOs, ResultView } from './ResultView';
-import { fetchRecommendation, osValueOf, type Spec } from './recommendation';
+import { fetchRecommendation, osValueOf, preferredOsOf, type Spec } from './recommendation';
 import {
   answerEntries,
   answersOf,
@@ -349,9 +349,23 @@ function useRecommendation(params: URLSearchParams) {
   );
 }
 
-// 주소에 OS 가 없으면, 권장안이 한쪽 OS 만 나왔을 때 그 OS 를 보여준다.
+// 주소에 OS 가 없으면 선호한 OS 를 보여준다. 선호가 없으면 두 권장안을 함께 보여준다.
 function resultOsOf(params: URLSearchParams, specs: Spec[]): ResultOs {
-  return specOsOf(params) ?? (specs.length === 1 ? (osValueOf(specs[0]) as ResultOs) : 'BOTH');
+  return specOsOf(params) ?? (preferredOsOf(specs) as ResultOs | null) ?? 'BOTH';
+}
+
+// 맞춤 목록은 OS 하나씩 본다. 결과 화면에서 고른 OS 로 열고, "둘 다"였으면 선호한 OS, 선호도 없으면 첫 권장안으로 연다.
+function matchedOsOf(params: URLSearchParams, specs: Spec[]): string | null {
+  const chosen = specOsOf(params);
+  if (chosen !== null && chosen !== 'BOTH') {
+    return chosen;
+  }
+  return preferredOsOf(specs) ?? (specs.length === 0 ? null : osValueOf(specs[0]));
+}
+
+// 주소에 OS 가 없으면 기본 OS 로 채운다. 다른 OS 의 등급이 남아 있으면 목록이 버린다.
+function withOs(condition: SearchCondition, defaultOs: string | null): SearchCondition {
+  return condition.os === null ? { ...condition, os: defaultOs } : condition;
 }
 
 function RecommendationStatus({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
@@ -408,7 +422,7 @@ function ResultPage({ params }: PageProps) {
   );
 }
 
-// 추천순은 권장안이 하나일 때만 쓸 수 있다. 그때만 기본값이 추천순이다.
+// 추천순은 권장 사양이 있는 맞춤 목록에서만 쓸 수 있다. 그때만 기본값이 추천순이다.
 function listSortOf(params: URLSearchParams, defaultSort: SortType): SortType {
   const sort = sortOf(params) ?? defaultSort;
   return sort === 'RECOMMENDED' && defaultSort !== 'RECOMMENDED' ? defaultSort : sort;
@@ -418,12 +432,12 @@ function listSortOf(params: URLSearchParams, defaultSort: SortType): SortType {
  * 목록의 정렬·검색 조건은 주소에, 조건 패널을 펼쳤는지는 방문 기록 칸에 둔다.
  * 조건을 바꿀 때는 기록을 쌓지 않는다. 목록의 뒤로 버튼은 이전 조건이 아니라 들어오기 전 화면으로 간다.
  */
-function useListState(search: string, defaultSort: SortType) {
+function useListState(search: string, defaultSort: SortType, defaultOs: string | null = null) {
   const navState = useHistoryState<NavState | null>();
   const state = useMemo<Omit<ProductListState, 'filterOpen'>>(() => {
     const parsed = new URLSearchParams(search);
-    return { sort: listSortOf(parsed, defaultSort), condition: conditionOf(parsed) };
-  }, [search, defaultSort]);
+    return { sort: listSortOf(parsed, defaultSort), condition: withOs(conditionOf(parsed), defaultOs) };
+  }, [search, defaultSort, defaultOs]);
 
   // 늘 같은 함수여야 한다. 목록이 검색어 입력을 기다리는 effect 의 의존성으로 쓴다. 그래서 값은 호출할 때 주소에서 읽는다.
   const onChangeState = useCallback(
@@ -431,7 +445,7 @@ function useListState(search: string, defaultSort: SortType) {
       const current = new URLSearchParams(window.location.search);
       const next = update({
         sort: listSortOf(current, defaultSort),
-        condition: conditionOf(current),
+        condition: withOs(conditionOf(current), defaultOs),
         filterOpen: currentNavState().filterOpen === true,
       });
       for (const [key, value] of listEntries(next.sort, next.condition)) {
@@ -443,7 +457,7 @@ function useListState(search: string, defaultSort: SortType) {
       }
       replace(`${window.location.pathname}?${current}`, { ...currentNavState(), filterOpen: next.filterOpen });
     },
-    [defaultSort],
+    [defaultSort, defaultOs],
   );
 
   return { state: { ...state, filterOpen: navState?.filterOpen === true }, onChangeState, navState: navState ?? {} };
@@ -464,11 +478,7 @@ const finishSearching = (failed: boolean) => {
 function MatchedListPage({ params, search }: PageProps & { search: string }) {
   const recommendation = useRecommendation(params);
   const specs = recommendation.data ?? [];
-  const os = resultOsOf(params, specs);
-  const visibleSpecs = os === 'BOTH' ? specs : specs.filter((spec) => osValueOf(spec) === os);
-  // 권장안이 둘이면 두 목록을 합쳐야 해서 추천순을 쓸 수 없다.
-  const defaultSort = initialListState(visibleSpecs).sort;
-  const { state, onChangeState, navState } = useListState(search, defaultSort);
+  const { state, onChangeState, navState } = useListState(search, 'RECOMMENDED', matchedOsOf(params, specs));
   const { category } = flowOf(params);
 
   if (category === null || flowOf(params).purpose === null) {
@@ -490,7 +500,7 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
       key={`MATCHED-${category}`}
       categoryCode={category}
       mode="MATCHED"
-      specs={visibleSpecs}
+      specs={specs}
       backLabel={backLabelOf(navState.from ?? 'result')}
       state={state}
       onChangeState={onChangeState}

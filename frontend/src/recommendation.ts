@@ -10,8 +10,10 @@ export type SpecItem = {
   reasons: string[];
 };
 
+// 서버는 선호 OS 와 관계없이 맥·윈도우 권장안을 늘 함께 준다. 선호한 쪽은 preferred 로 알린다.
 export type Spec = {
   items: SpecItem[];
+  preferred: boolean;
 };
 
 type RecommendationResponse = {
@@ -34,4 +36,10 @@ export async function fetchRecommendation(purposeCode: string, query = ''): Prom
 
 export function osValueOf(spec: Spec): string {
   return spec.items.find((item) => item.code === 'OS')?.value ?? '';
+}
+
+// 선호 OS 를 "아직 안 정함" 으로 답했으면 없다.
+export function preferredOsOf(specs: Spec[]): string | null {
+  const preferred = specs.find((spec) => spec.preferred);
+  return preferred === undefined ? null : osValueOf(preferred);
 }

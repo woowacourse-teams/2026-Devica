@@ -81,6 +81,17 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
         return new SliceImpl<>(found, pageable, hasNext);
     }
 
+    @Override
+    public List<String> findBrands(Os os) {
+        return queryFactory
+            .select(laptop.brand)
+            .distinct()
+            .from(laptop)
+            .where(osEq(os))
+            .orderBy(laptop.brand.asc())
+            .fetch();
+    }
+
     private OrderSpecifier<?>[] orderBy(SortType sort) {
         List<OrderSpecifier<?>> orders = new ArrayList<>(sortOrders(sort));
         orders.add(laptop.id.asc());

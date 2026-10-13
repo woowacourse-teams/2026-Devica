@@ -1,16 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
+import { ChoiceGroup } from './ChoiceGroup';
+import { useFetched, usePaged } from './fetched';
 import { ProductImage } from './ProductImage';
 import {
-  CPU_TIERS,
+  type CpuTier,
   cpuFilterLabel,
   EMPTY_CONDITION,
-  fetchProductsFor,
+  fetchBrands,
+  fetchCpuTiers,
+  fetchProductPage,
   formatPrice,
+  OSES,
   osOfTier,
   type Product,
   type ProductSpecItem,
+  productListQuery,
   type SearchCondition,
   type SortType,
+  validTier,
 } from './products';
 import { osValueOf, type Spec } from './recommendation';
 import { currentNavState } from './routes';
@@ -23,8 +30,15 @@ const KEYWORD_DELAY_MS = 300;
 // 대조는 곧 끝나지만, 답이 실제로 쓰였다는 걸 보여주려고 대조 화면을 이만큼은 띄운다.
 const SEARCH_HOLD_MS = 1800;
 
-// 원본은 제품 가격 분포와 무관하게 눈에 익은 눈금을 쓴다. 후보가 없는 눈금은 감춘다.
+// 목록 끝에 닿기 전에 다음 페이지를 받아, 스크롤하는 동안 기다리지 않게 한다.
+const PREFETCH_MARGIN = '0px 0px 600px 0px';
+
+// 선택지는 고정한다. 목록 API 는 전체 집합을 주지 않는다.
+// 원본은 제품 가격 분포와 무관하게 눈에 익은 눈금을 쓴다.
 const PRICE_STEPS = [1500000, 2000000, 2500000, 3000000, 4000000, 5000000];
+// 추천 알고리즘이 내는 값이다. 알고리즘이 바뀌면 여기도 함께 바뀐다.
+const MEMORY_STEPS = [16, 24, 32, 48];
+const STORAGE_STEPS = [256, 512, 1024];
 
 const SORT_LABELS: { value: SortType; label: string }[] = [
   { value: 'RECOMMENDED', label: '추천순' },
@@ -63,25 +77,14 @@ export type ProductListState = {
   filterOpen: boolean;
 };
 
-/**
- * 권장안이 둘이면 두 목록을 합쳐야 해서 서버 추천순을 이어갈 수 없다.
- * 원본도 견줄 기준이 없으면 추천순을 감추고 가격순으로 연다.
- */
-export function initialListState(specs: Spec[]): ProductListState {
-  return {
-    sort: specs.length === 1 ? 'RECOMMENDED' : 'PRICE_ASC',
-    condition: EMPTY_CONDITION,
-    filterOpen: false,
-  };
-}
-
 type Props = {
   categoryCode: string;
   mode: ListMode;
-  // 결과 화면이 보여주고 있던 OS 의 권장안이다. 전체 목록에서는 비어 있다.
+  // 맞춤 목록의 맥·윈도우 권장안이다. 전체 목록에서는 비어 있다.
   specs: Spec[];
   backLabel: string;
   // 상세를 다녀와도 정렬과 검색 조건이 풀리지 않게 부모가 들고 있는다.
+  // 맞춤 목록에서는 condition.os 가 보고 있는 OS 탭이다. 부모가 늘 채워 준다.
   state: ProductListState;
   onChangeState: (update: (previous: ProductListState) => ProductListState) => void;
   // 권장 사양에서 검색으로 들어왔다. 제품을 받을 때까지 사양 대조 화면이 자리를 지킨다.
@@ -106,13 +109,17 @@ export function ProductListView({
   onDetail,
   onShowAll,
 }: Props) {
-  const { sort, condition, filterOpen } = state;
-  const recommendable = specs.length === 1;
-  // 필터 선택지와 "N개 중 M개" 는 조건을 걸기 전 목록을 알아야 만들 수 있다.
-  // 아직 받지 못한 상태(null)와 0건을 구분한다. 응답 전에 "제품이 없습니다" 를 보이면 안 된다.
-  const [base, setBase] = useState<Product[] | null>(null);
-  const [matched, setMatched] = useState<Product[] | null>(null);
-  const [failed, setFailed] = useState(false);
+  const { sort, filterOpen } = state;
+  // 주소에 CPU 조건이 있을 때만 등급을 기다린다. 조건이 없으면 필터 선택지와 목록을 독립적으로 받는다.
+  const cpuTiers = useFetched('cpu-tiers', fetchCpuTiers);
+  const tiers = cpuTiers.data;
+  const waitingForTiers = state.condition.cpuTier !== null && tiers === null;
+  const tiersFailed = waitingForTiers && cpuTiers.failed;
+  const condition =
+    tiers === null ? state.condition : { ...state.condition, cpuTier: validTier(tiers, state.condition) };
+  const matchedMode = mode === 'MATCHED';
+  // 맞춤 목록은 OS 탭 하나씩 서버 목록 하나를 본다. 두 OS 를 섞지 않으니 추천순을 늘 쓸 수 있다.
+  const spec = specs.find((each) => osValueOf(each) === condition.os);
 
   const [typed, setTyped] = useState(condition.keyword ?? '');
 
@@ -138,32 +145,43 @@ export function ProductListView({
     return () => clearTimeout(timer);
   }, [typed, condition.keyword, onChangeState]);
 
-  // specs 는 부모가 매번 새로 만드는 배열이라 참조로는 비교할 수 없다. OS 조합으로 본다.
-  const specKey = specs.map(osValueOf).join(',');
+  const brands = useFetched(`brands:${categoryCode}:${condition.os ?? ''}`, () =>
+    fetchBrands(categoryCode, condition.os),
+  );
+  // 브랜드는 OS 를 바꿀 때만 검증한다. 처음부터 지정된 검색 조건은 임의로 넓히지 않는다.
+  const brandOs = useRef(condition.os);
+  const waitingForBrands =
+    brandOs.current !== condition.os &&
+    condition.brand !== null &&
+    (brands.data === null || !brands.data.includes(condition.brand));
+  const brandsFailed = waitingForBrands && brands.failed;
 
-  // 조건을 빠르게 바꾸면 요청이 겹친다. 늦게 온 옛 응답이 새 조건의 목록을 덮지 않게 막는다.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: specs 는 렌더마다 새 배열이라 넣으면 매번 다시 조회한다. 내용이 같은지는 specKey 로 본다.
   useEffect(() => {
-    let stale = false;
-    fetchProductsFor(categoryCode, specs, 'PRICE_ASC', EMPTY_CONDITION)
-      .then((products) => !stale && setBase(products))
-      .catch(() => !stale && setFailed(true));
-    return () => {
-      stale = true;
-    };
-  }, [categoryCode, specKey]);
+    if (brandOs.current === condition.os || (condition.brand !== null && brands.data === null)) {
+      return;
+    }
+    brandOs.current = condition.os;
+    if (condition.brand === null || brands.data?.includes(condition.brand)) {
+      return;
+    }
+    onChangeState((previous) =>
+      previous.condition.os === condition.os && previous.condition.brand === condition.brand
+        ? { ...previous, condition: { ...previous.condition, brand: null } }
+        : previous,
+    );
+  }, [brands.data, condition.os, condition.brand, onChangeState]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: specs 는 렌더마다 새 배열이라 넣으면 매번 다시 조회한다. 내용이 같은지는 specKey 로 본다.
-  useEffect(() => {
-    let stale = false;
-    setFailed(false);
-    fetchProductsFor(categoryCode, specs, sort, condition)
-      .then((products) => !stale && setMatched(products))
-      .catch(() => !stale && setFailed(true));
-    return () => {
-      stale = true;
-    };
-  }, [categoryCode, specKey, sort, condition]);
+  // 권장안을 받기 전에는 맞춤 목록의 조건을 알 수 없어 요청하지 않는다.
+  const listQuery = productListQuery(spec, sort, condition, tiers ?? []);
+  const products = usePaged(
+    waitingForTiers || waitingForBrands || (matchedMode && spec === undefined)
+      ? null
+      : `products:${categoryCode}?${listQuery}`,
+    (page) => fetchProductPage(categoryCode, listQuery, page),
+  );
+  const items = products.data;
+  // 첫 페이지를 받지 못했으면 목록 자리에 안내를 띄운다. 이어 받다 실패하면 받은 제품은 그대로 둔다.
+  const failed = (products.failed || tiersFailed || brandsFailed) && items === null;
 
   const [holding, setHolding] = useState(searching);
 
@@ -176,7 +194,7 @@ export function ProductListView({
   }, [searching]);
 
   // 대조 화면은 최소 시간과 첫 응답 중 늦은 쪽까지 머문다. 실패하면 목록이 안내를 맡는다.
-  const matching = searching && !failed && (holding || matched === null);
+  const matching = searching && !failed && (holding || items === null);
 
   useEffect(() => {
     if (searching && !matching) {
@@ -184,10 +202,10 @@ export function ProductListView({
     }
   }, [searching, matching, failed, onSearched]);
 
-  // 뒤로 가기로 돌아오면 제품을 다 그린 뒤 보던 위치로 되돌린다. 그리기 전에는 페이지가 짧아 그 위치까지 내려가지 못한다.
+  // 뒤로 가기로 돌아오면 받아 둔 제품을 다 그린 뒤 보던 위치로 되돌린다. 그리기 전에는 페이지가 짧아 그 위치까지 내려가지 못한다.
   const restored = useRef(false);
   useEffect(() => {
-    if (matched === null || restored.current) {
+    if (items === null || restored.current) {
       return;
     }
     restored.current = true;
@@ -195,28 +213,46 @@ export function ProductListView({
     if (scrollY !== undefined) {
       window.scrollTo(0, scrollY);
     }
-  }, [matched]);
+  }, [items]);
+
+  // 목록 끝이 가까워지면 다음 페이지를 받는다. 받을 때마다 다시 지켜봐서, 받은 뒤에도 끝이 보이면 이어 받는다.
+  // 실패하면 멈추고 사용자가 다시 시도하길 기다린다. 저절로 다시 받으면 실패가 이어지는 동안 요청이 되풀이된다.
+  const sentinel = useRef<HTMLDivElement>(null);
+  const { hasNext, loading, more } = products;
+  // 조건을 검증하는 동안에는 목록을 요청하지 않지만, 사용자에게는 똑같이 불러오는 중이다.
+  const waiting = loading || (waitingForTiers && !cpuTiers.failed) || (waitingForBrands && !brands.failed);
+  useEffect(() => {
+    const target = sentinel.current;
+    if (target === null || !hasNext || loading || products.failed) {
+      return;
+    }
+    const observer = new IntersectionObserver((entries) => entries[0]?.isIntersecting && more(), {
+      rootMargin: PREFETCH_MARGIN,
+    });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasNext, loading, products.failed, more]);
 
   const heading = HEADINGS[mode];
-  const options = buildFilterOptions(base ?? [], specs, condition.os);
-  const hasCondition = Object.values(condition).some((value) => value !== null);
-  const loading = base === null || matched === null;
+  // 맞춤 목록의 OS 는 탭이라 검색 조건으로 치지 않는다. 조건을 지워도 보던 탭은 그대로다.
+  const filters = matchedMode ? { ...condition, os: null } : condition;
+  const hasCondition = Object.values(filters).some((value) => value !== null);
 
   const change = (field: keyof SearchCondition, value: SearchCondition[keyof SearchCondition]) => {
     onChangeState((previous) => ({ ...previous, condition: { ...previous.condition, [field]: value } }));
   };
 
-  // 등급은 OS 마다 따로 매겨진다. OS 를 바꾸면 그 OS 의 등급이 아닌 조건은 함께 지운다.
+  // 등급과 브랜드는 OS 마다 다르다. OS 를 바꾸면 그 OS 에 없는 조건은 함께 지운다.
   const changeOs = (os: string | null) => {
     onChangeState((previous) => {
       const tier = previous.condition.cpuTier;
-      const kept = tier !== null && (os === null || osOfTier(tier) === os) ? tier : null;
+      const kept = tier !== null && (os === null || osOfTier(tiers ?? [], tier) === os) ? tier : null;
       return { ...previous, condition: { ...previous.condition, os, cpuTier: kept } };
     });
   };
 
   if (matching) {
-    return <SearchLoadingView specs={specs} />;
+    return <SearchLoadingView specs={spec === undefined ? specs : [spec]} />;
   }
 
   return (
@@ -253,7 +289,7 @@ export function ProductListView({
               onChange={(event) => onChangeState((previous) => ({ ...previous, sort: event.target.value as SortType }))}
             >
               {SORT_LABELS.map(({ value, label }) => (
-                <option value={value} key={value} hidden={value === 'RECOMMENDED' && !recommendable}>
+                <option value={value} key={value} hidden={value === 'RECOMMENDED' && !matchedMode}>
                   {label}
                 </option>
               ))}
@@ -261,6 +297,22 @@ export function ProductListView({
           </label>
         </div>
       </div>
+
+      {matchedMode && (
+        <div className="product-list-os" id="product-list-os">
+          <ChoiceGroup
+            segmented
+            label="OS"
+            choices={specs.map((each) => ({
+              value: osValueOf(each),
+              label: OS_GROUP_LABELS[osValueOf(each)] ?? osValueOf(each),
+            }))}
+            value={condition.os}
+            // 탭은 비울 수 없다. 고른 것을 다시 눌러도 그대로 둔다.
+            onChange={(os) => os !== null && changeOs(os)}
+          />
+        </div>
+      )}
 
       {/* 접어도 DOM 에 남긴다. 사라지면 aria-controls 가 없는 id 를 가리킨다. */}
       <div className="product-filter-panel" id="product-filter-panel" hidden={!filterOpen}>
@@ -278,40 +330,53 @@ export function ProductListView({
           field="price"
           label="가격"
           value={condition.maxPrice === null ? '' : String(condition.maxPrice)}
-          choices={options.maxPrice.map((price) => ({ value: String(price), label: `${formatPrice(price)} 이하` }))}
+          choices={PRICE_STEPS.map((price) => ({ value: String(price), label: `${formatPrice(price)} 이하` }))}
           onChange={(raw) => change('maxPrice', raw === '' ? null : Number(raw))}
         />
-        <Filter
-          field="os"
-          label="OS"
-          value={condition.os ?? ''}
-          choices={options.os.map((os) => ({ value: os, label: OS_GROUP_LABELS[os] ?? os }))}
-          onChange={(raw) => changeOs(raw === '' ? null : raw)}
-        />
+        {!matchedMode && (
+          <Filter
+            field="os"
+            label="OS"
+            value={condition.os ?? ''}
+            choices={OSES.map((os) => ({ value: os, label: OS_GROUP_LABELS[os] ?? os }))}
+            onChange={(raw) => changeOs(raw === '' ? null : raw)}
+          />
+        )}
         <CpuFilter
-          groups={options.cpu}
+          // 고른 OS 의 등급만 연다. 고르지 않았으면 등급표를 모두 연다.
+          groups={(condition.os === null ? OSES : [condition.os]).map((os) => ({
+            os,
+            tiers: (tiers ?? []).filter((tier) => tier.os === os),
+          }))}
           value={condition.cpuTier ?? ''}
+          unavailable={unavailableLabel(cpuTiers)}
           onChange={(raw) => change('cpuTier', raw === '' ? null : raw)}
         />
+        {cpuTiers.failed && !waitingForTiers && (
+          <button className="button button--secondary" type="button" onClick={cpuTiers.retry}>
+            CPU 등급 다시 시도
+          </button>
+        )}
         <Filter
           field="brand"
           label="브랜드"
           value={condition.brand ?? ''}
-          choices={options.brand.map((brand) => ({ value: brand, label: brand }))}
+          choices={(brands.data ?? []).map((brand) => ({ value: brand, label: brand }))}
+          unavailable={unavailableLabel(brands)}
           onChange={(raw) => change('brand', raw === '' ? null : raw)}
         />
         <Filter
           field="memory"
           label="RAM"
           value={condition.memoryGb === null ? '' : String(condition.memoryGb)}
-          choices={options.memoryGb.map((memory) => ({ value: String(memory), label: `${memory}GB 이상` }))}
+          choices={MEMORY_STEPS.map((memory) => ({ value: String(memory), label: `${memory}GB 이상` }))}
           onChange={(raw) => change('memoryGb', raw === '' ? null : Number(raw))}
         />
         <Filter
           field="storage"
           label="저장장치"
           value={condition.storageGb === null ? '' : String(condition.storageGb)}
-          choices={options.storageGb.map((storage) => ({
+          choices={STORAGE_STEPS.map((storage) => ({
             value: String(storage),
             label: `${formatStorage(storage)} 이상`,
           }))}
@@ -319,31 +384,44 @@ export function ProductListView({
         />
       </div>
 
-      {!failed && base !== null && matched !== null && (
-        <p className="product-list-caption" id="product-list-caption">
-          {matched.length === base.length ? `${base.length}개` : `${base.length}개 중 ${matched.length}개`}
-        </p>
-      )}
-
-      <div className="product-list" id="product-list" aria-live="polite" aria-busy={loading}>
+      {/* 제품이 이어 붙을 때마다 카드를 모두 읽지 않게 목록은 알리지 않는다. 받는 중인지는 아래 상태 문구만 알린다. */}
+      <div className="product-list" id="product-list" aria-busy={waiting}>
         {failed ? (
           <p className="notice" role="alert">
             제품 목록을 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.
           </p>
-        ) : matched === null ? (
-          <p className="product-list-status">제품을 불러오는 중입니다…</p>
-        ) : matched.length === 0 ? (
+        ) : items === null ? null : items.length === 0 ? (
           <EmptyResult
-            condition={condition}
+            condition={filters}
+            tiers={tiers}
             hasCondition={hasCondition}
             showsAll={mode === 'ALL'}
-            onReset={() => onChangeState((previous) => ({ ...previous, condition: EMPTY_CONDITION }))}
+            onReset={() =>
+              onChangeState((previous) => ({
+                ...previous,
+                condition: { ...EMPTY_CONDITION, os: matchedMode ? previous.condition.os : null },
+              }))
+            }
             onShowAll={onShowAll}
           />
         ) : (
-          matched.map((product) => <ProductCard product={product} onDetail={onDetail} key={product.id} />)
+          items.map((product) => <ProductCard product={product} onDetail={onDetail} key={product.id} />)
         )}
       </div>
+      <div ref={sentinel} />
+      <p className="product-list-status" role="status">
+        {waiting ? (items === null ? '제품을 불러오는 중입니다…' : '제품을 더 불러오는 중입니다…') : ''}
+        {products.failed && items !== null ? '제품을 더 불러오지 못했습니다.' : ''}
+      </p>
+      {(products.failed || tiersFailed || brandsFailed) && (
+        <button
+          className="button button--secondary"
+          type="button"
+          onClick={tiersFailed ? cpuTiers.retry : brandsFailed ? brands.retry : more}
+        >
+          다시 시도
+        </button>
+      )}
     </section>
   );
 }
@@ -386,18 +464,19 @@ function ProductCard({ product, onDetail }: { product: Product; onDetail: (produ
 
 type EmptyResultProps = {
   condition: SearchCondition;
+  tiers: CpuTier[] | null;
   hasCondition: boolean;
   showsAll: boolean;
   onReset: () => void;
   onShowAll: () => void;
 };
 
-function EmptyResult({ condition, hasCondition, showsAll, onReset, onShowAll }: EmptyResultProps) {
+function EmptyResult({ condition, tiers, hasCondition, showsAll, onReset, onShowAll }: EmptyResultProps) {
   if (hasCondition) {
     return (
       <div className="empty-result">
         <p>조건에 맞는 제품이 없습니다.</p>
-        <p className="empty-result__condition">적용한 검색 조건 — {describeCondition(condition)}</p>
+        <p className="empty-result__condition">적용한 검색 조건 — {describeCondition(condition, tiers)}</p>
         <button className="button button--secondary" type="button" onClick={onReset}>
           검색 조건 지우기
         </button>
@@ -419,17 +498,26 @@ function EmptyResult({ condition, hasCondition, showsAll, onReset, onShowAll }: 
 
 type Choice = { value: string; label: string };
 
+// 선택지를 받는 중이거나 받지 못했으면 "선택지 없음" 대신 그 상태를 적는다. 받았으면 null 이다.
+function unavailableLabel({ data, failed }: { data: unknown; failed: boolean }): string | null {
+  if (data !== null) {
+    return null;
+  }
+  return failed ? '불러오지 못함' : '불러오는 중…';
+}
+
 type FilterProps = {
   field: string;
   label: string;
   value: string;
   choices: Choice[];
+  unavailable?: string | null;
   onChange: (raw: string) => void;
 };
 
-function Filter({ field, label, value, choices, onChange }: FilterProps) {
-  // 고를 값이 하나뿐이면 거는 의미가 없다. 흐리게만 두지 않고 왜 못 고르는지 적는다.
-  const usable = choices.length > 1;
+function Filter({ field, label, value, choices, unavailable = null, onChange }: FilterProps) {
+  // 선택지가 하나여도 적용한 조건을 보여 주고 해제할 수 있어야 한다.
+  const usable = choices.length > 0;
   return (
     <label className="product-filter" htmlFor={`product-filter-${field}`}>
       <span className="product-filter__label">{label}</span>
@@ -439,7 +527,7 @@ function Filter({ field, label, value, choices, onChange }: FilterProps) {
         disabled={!usable}
         onChange={(event) => onChange(event.target.value)}
       >
-        <option value="">{usable ? '전체' : '선택지 없음'}</option>
+        <option value="">{usable ? '전체' : (unavailable ?? '선택지 없음')}</option>
         {usable &&
           choices.map(({ value: raw, label: text }) => (
             <option value={raw} key={raw}>
@@ -452,12 +540,13 @@ function Filter({ field, label, value, choices, onChange }: FilterProps) {
 }
 
 type CpuFilterProps = {
-  groups: { os: string; tiers: string[] }[];
+  groups: { os: string; tiers: CpuTier[] }[];
   value: string;
+  unavailable: string | null;
   onChange: (raw: string) => void;
 };
 
-function CpuFilter({ groups, value, onChange }: CpuFilterProps) {
+function CpuFilter({ groups, value, unavailable, onChange }: CpuFilterProps) {
   const usable = groups.reduce((total, group) => total + group.tiers.length, 0) > 1;
   return (
     <label className="product-filter" htmlFor="product-filter-cpu">
@@ -468,13 +557,13 @@ function CpuFilter({ groups, value, onChange }: CpuFilterProps) {
         disabled={!usable}
         onChange={(event) => onChange(event.target.value)}
       >
-        <option value="">{usable ? '전체' : '선택지 없음'}</option>
+        <option value="">{usable ? '전체' : (unavailable ?? '선택지 없음')}</option>
         {usable &&
           groups.map(({ os, tiers }) => (
             <optgroup label={OS_GROUP_LABELS[os] ?? os} key={os}>
               {tiers.map((tier) => (
-                <option value={tier} key={tier}>
-                  {cpuFilterLabel(os, tier)}
+                <option value={tier.code} key={tier.code}>
+                  {cpuFilterLabel(tier)}
                 </option>
               ))}
             </optgroup>
@@ -484,43 +573,17 @@ function CpuFilter({ groups, value, onChange }: CpuFilterProps) {
   );
 }
 
-/**
- * 선택지를 목록에 실제로 있는 값으로만 만든다. 그래야 조건 하나만 걸어서 0건이 되는 일이 없다.
- * CPU 만은 그럴 수 없다 — 목록 응답이 CPU 모델명만 주고 등급을 주지 않아 가진 등급을 셀 수 없다.
- */
-function buildFilterOptions(products: Product[], specs: Spec[], os: string | null) {
-  return {
-    maxPrice: PRICE_STEPS.filter((step) =>
-      products.some((product) => product.minPrice !== null && product.minPrice <= step),
-    ),
-    os: [...new Set(products.map((product) => specItem(product, 'OS')?.value ?? ''))]
-      .filter((value) => value !== '')
-      .sort(),
-    // 고른 OS 의 등급만 연다. 고르지 않았고 권장안도 없으면 등급표를 모두 연다.
-    cpu: (os !== null ? [os] : specs.length === 0 ? Object.keys(CPU_TIERS) : specs.map(osValueOf)).map((value) => ({
-      os: value,
-      tiers: CPU_TIERS[value] ?? [],
-    })),
-    brand: [...new Set(products.map((product) => product.brand))].sort((one, other) => one.localeCompare(other)),
-    memoryGb: uniqueAscending(products, 'MEMORY'),
-    storageGb: uniqueAscending(products, 'STORAGE'),
-  };
-}
-
-function uniqueAscending(products: Product[], code: string): number[] {
-  const values = products
-    .map((product) => Number(specItem(product, code)?.value))
-    .filter((value) => !Number.isNaN(value));
-  return [...new Set(values)].sort((one, other) => one - other);
-}
-
-function describeCondition({ keyword, maxPrice, os, cpuTier, brand, memoryGb, storageGb }: SearchCondition): string {
+function describeCondition(
+  { keyword, maxPrice, os, cpuTier, brand, memoryGb, storageGb }: SearchCondition,
+  tiers: CpuTier[] | null,
+): string {
+  const tier = tiers?.find((each) => each.code === cpuTier);
   return [
     keyword !== null ? `검색어 "${keyword}"` : '',
     maxPrice !== null ? `${formatPrice(maxPrice)} 이하` : '',
     os !== null ? (OS_GROUP_LABELS[os] ?? os) : '',
     brand !== null ? `브랜드 ${brand}` : '',
-    cpuTier !== null ? cpuFilterLabel(osOfTier(cpuTier) ?? '', cpuTier) : '',
+    tier !== undefined ? cpuFilterLabel(tier) : '',
     memoryGb !== null ? `RAM ${memoryGb}GB 이상` : '',
     storageGb !== null ? `저장장치 ${formatStorage(storageGb)} 이상` : '',
   ]
