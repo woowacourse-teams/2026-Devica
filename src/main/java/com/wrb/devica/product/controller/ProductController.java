@@ -48,7 +48,7 @@ public class ProductController {
     public ResponseEntity<List<String>> findBrandsByCategory(@PathVariable String categoryCode,
                                                              @RequestParam(required = false) Os os) {
         List<String> brandNames = productService.findBrandsByCategory(categoryCode, os);
-        return ResponseEntity.ok(brandNames);
+        return ResponseEntity.ok().body(brandNames);
     }
 
     // 순서가 곧 등급 순서다. 목록의 CPU 필터는 고른 등급 이상을 찾는다
