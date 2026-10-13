@@ -16,6 +16,7 @@
 }
 
 .board-scope {
+    border-radius: var(--radius-box);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -174,7 +175,7 @@
 .board-field textarea {
     width: 100%;
     border: 1px solid var(--outline);
-    border-radius: 0;
+    border-radius: var(--radius-control);
     padding: var(--gutter);
     color: var(--on-surface);
     background: var(--surface-container-lowest);

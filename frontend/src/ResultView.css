@@ -29,6 +29,11 @@
     padding: var(--gutter);
 }
 
+/* 사양 카드 안의 데이터 칸은 외곽 카드의 곡률을 반복하지 않는다. */
+.spec-card .spec-row {
+    border-radius: 0;
+}
+
 .spec-card .spec-row + .spec-row {
     margin-top: var(--density-med);
 }

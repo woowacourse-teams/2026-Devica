@@ -21,6 +21,7 @@
 
 /* 같은 줄의 카드는 설명 길이가 달라도 높이를 맞춘다. */
 .selection__card {
+    border-radius: var(--radius-box);
     display: flex;
     flex-direction: column;
     gap: var(--density-high);
@@ -62,6 +63,7 @@
 }
 
 .selection__badge {
+    border-radius: var(--radius-detail);
     padding: var(--unit) var(--density-high);
     color: var(--on-surface-variant);
     background: var(--surface-container-high);
