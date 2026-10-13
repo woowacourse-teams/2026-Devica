@@ -20,10 +20,6 @@ export function params(tags) {
   };
 }
 
-export function get(path, tags) {
-  return http.get(url(path), params(tags));
-}
-
 export function jsonBody(response) {
   try {
     return response.json();

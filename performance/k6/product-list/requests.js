@@ -3,10 +3,6 @@ import { checkResponse, params, url } from '../common/http.js';
 
 const NAME = 'GET products';
 
-function withPage(query) {
-  return { page: 0, size: 20, ...query };
-}
-
 function productsUrl(query) {
   const queryString = Object.entries(query)
     .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
@@ -24,25 +20,16 @@ function checkProducts(response, query) {
   ));
 }
 
-// query: page, size(기본 0, 20)와 os, cpuTier, memoryGb, storageGb, sort
-export function getProducts(query = {}, tags = {}) {
-  const fullQuery = withPage(query);
-  const response = http.get(productsUrl(fullQuery), params({ name: NAME, ...tags }));
-
-  checkProducts(response, fullQuery);
-  return response;
-}
-
-// requests: [{ query, tags }]. 화면 하나가 여러 목록을 동시에 요청할 때 쓴다
+// requests: [{ query, tags }]. query는 page, size, os, cpuTier, memoryGb, storageGb, sort.
+// 화면 하나가 여러 목록을 동시에 요청할 때도 쓴다
 export function getProductsAtOnce(requests) {
-  const fullQueries = requests.map(({ query }) => withPage(query));
-  const responses = http.batch(requests.map(({ tags }, i) => [
+  const responses = http.batch(requests.map(({ query, tags }) => [
     'GET',
-    productsUrl(fullQueries[i]),
+    productsUrl(query),
     null,
     params({ name: NAME, ...tags }),
   ]));
 
-  responses.forEach((response, i) => checkProducts(response, fullQueries[i]));
+  responses.forEach((response, i) => checkProducts(response, requests[i].query));
   return responses;
 }
