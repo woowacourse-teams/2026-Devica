@@ -11,7 +11,7 @@ import { HomeHero } from './HomeHero';
 import { IntroView } from './IntroView';
 import { ProductDetailView } from './ProductDetailView';
 import { type ProductListState, ProductListView } from './ProductListView';
-import { osOfTier, type SearchCondition, type SortType } from './products';
+import type { SearchCondition, SortType } from './products';
 import { QuestionView } from './QuestionView';
 import { type Answers, fetchQuestions, pruneHiddenAnswers, resolveScreens, toSearchParams } from './questions';
 import { type ResultOs, ResultView } from './ResultView';
@@ -363,12 +363,9 @@ function matchedOsOf(params: URLSearchParams, specs: Spec[]): string | null {
   return preferredOsOf(specs) ?? (specs.length === 0 ? null : osValueOf(specs[0]));
 }
 
-// 주소에 OS 가 없으면 기본 OS 로 채운다. 등급만 있으면 OS 는 등급에서 따라온다.
+// 주소에 OS 가 없으면 기본 OS 로 채운다. 다른 OS 의 등급이 남아 있으면 목록이 버린다.
 function withOs(condition: SearchCondition, defaultOs: string | null): SearchCondition {
-  if (condition.os !== null) {
-    return condition;
-  }
-  return { ...condition, os: (condition.cpuTier === null ? null : osOfTier(condition.cpuTier)) ?? defaultOs };
+  return condition.os === null ? { ...condition, os: defaultOs } : condition;
 }
 
 function RecommendationStatus({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
