@@ -3,7 +3,7 @@ import {
   sloThresholds,
   summaryTrendStats,
   userAgent,
-} from '../common/options.js';
+} from '../common/measurement.js';
 import { getBoardPosts } from './requests.js';
 
 const rps = Number(__ENV.RPS || 10);

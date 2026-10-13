@@ -1,5 +1,5 @@
 import exec from 'k6/execution';
-import { summaryTrendStats, userAgent, validityThresholds } from '../common/options.js';
+import { summaryTrendStats, userAgent, validityThresholds } from '../common/measurement.js';
 import { runSession, sessionList } from './sessions.js';
 
 // 1분에 15세션. 반복이 1~2회 더 돌 수 있어 여유분을 둔다

@@ -4,7 +4,7 @@ import {
   sloThresholds,
   summaryTrendStats,
   userAgent,
-} from '../common/options.js';
+} from '../common/measurement.js';
 import { runSession, sessionList } from './sessions.js';
 
 // 홍보 직후 10분간 약 260명 = 6초에 13세션. 세션당 평균 4요청이라 약 9 RPS

@@ -1,4 +1,4 @@
-import { summaryTrendStats, userAgent, validityThresholds } from '../common/options.js';
+import { summaryTrendStats, userAgent, validityThresholds } from '../common/measurement.js';
 import { getBoardPosts } from './requests.js';
 
 export const options = {

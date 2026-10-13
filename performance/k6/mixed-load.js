@@ -1,6 +1,6 @@
 import {SharedArray} from 'k6/data';
 import {getBoardPosts} from './board-list/requests.js';
-import {sloThresholds, summaryTrendStats, userAgent, validityThresholds,} from './common/options.js';
+import {sloThresholds, summaryTrendStats, userAgent, validityThresholds,} from './common/measurement.js';
 import {firstPageIds, getProductDetail, validateIds} from './product-detail/requests.js';
 import {getProducts} from './product-list/requests.js';
 
