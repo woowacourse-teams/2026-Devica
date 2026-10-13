@@ -1,13 +1,8 @@
-import { SharedArray } from 'k6/data';
-import { getBoardPosts } from './board-list/requests.js';
-import {
-  validityThresholds,
-  sloThresholds,
-  summaryTrendStats,
-  userAgent,
-} from './common/options.js';
-import { firstPageIds, getProductDetail, validateIds } from './product-detail/requests.js';
-import { getProducts } from './product-list/requests.js';
+import {SharedArray} from 'k6/data';
+import {getBoardPosts} from './board-list/requests.js';
+import {sloThresholds, summaryTrendStats, userAgent, validityThresholds,} from './common/options.js';
+import {firstPageIds, getProductDetail, validateIds} from './product-detail/requests.js';
+import {getProducts} from './product-list/requests.js';
 
 const productListRps = Number(__ENV.PRODUCT_LIST_RPS ?? 1);
 const productDetailRps = Number(__ENV.PRODUCT_DETAIL_RPS ?? 1);
@@ -86,10 +81,7 @@ if (boardListRps > 0) {
 export const options = {
   userAgent: userAgent('mixed-load'),
   scenarios,
-  thresholds: {
-    ...sloThresholds(),
-    ...validityThresholds,
-  },
+  thresholds: Object.assign({}, ...Object.keys(scenarios).map((name) => sloThresholds(name)), validityThresholds),
   summaryTrendStats,
 };
 
