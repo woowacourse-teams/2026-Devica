@@ -1,4 +1,7 @@
 /* 승인된 v7 시안의 스타일은 홈 안으로 한정한다. 기존 기능 화면의 본문은 영향을 받지 않는다. */
+html:has(.landing-page) {
+    scroll-behavior: smooth;
+}
 .probe.probe--home {
     width: calc(100% - 112px);
     max-width: 1152px;
@@ -17,6 +20,36 @@
 }
 .landing-page a {
     text-decoration: none;
+}
+.landing-page [data-landing-reveal="pending"] {
+    opacity: 0;
+    transform: translateY(28px);
+}
+.landing-page [data-landing-reveal="visible"] {
+    opacity: 1;
+    transform: none;
+    transition:
+        opacity 700ms ease,
+        transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: var(--landing-reveal-delay, 0ms);
+}
+.landing-hero__copy > :nth-child(2) {
+    --landing-reveal-delay: 80ms;
+}
+.landing-hero__copy > :nth-child(3) {
+    --landing-reveal-delay: 160ms;
+}
+.landing-hero__copy > :nth-child(4) {
+    --landing-reveal-delay: 240ms;
+}
+.landing-hero__copy > :nth-child(5) {
+    --landing-reveal-delay: 320ms;
+}
+.landing-page [data-landing-reveal]:focus-visible,
+.landing-page [data-landing-reveal]:has(:focus-visible) {
+    opacity: 1;
+    transform: none;
+    transition: none;
 }
 .landing-page h1 {
     font-size: clamp(32px, 3.5vw, 48px);
@@ -135,7 +168,7 @@
 }
 .landing-how {
     border-top: 1px solid var(--landing-line);
-    padding: 48px 0 12px;
+    padding: 80px 0 12px;
     scroll-margin-top: 24px;
 }
 .landing-section-heading {
@@ -157,7 +190,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-    margin: 27px 0 8px;
+    margin: 48px 0 0;
 }
 .landing-routes a {
     padding: 19px 22px;
@@ -178,7 +211,7 @@
     line-height: 1.6;
 }
 .landing-guide {
-    padding: 40px 0 4px;
+    padding: 112px 0 4px;
     scroll-margin-top: 24px;
 }
 .landing-guide__heading {
@@ -203,10 +236,6 @@
 }
 .landing-guide__heading .landing-description {
     margin-top: 10px;
-}
-.landing-guide__heading > .landing-textlink {
-    white-space: nowrap;
-    margin-bottom: 4px;
 }
 .landing-guide__track {
     display: flex;
@@ -315,11 +344,59 @@
     min-height: 214px;
 }
 .landing-guide__controls {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
     justify-content: space-between;
     gap: 20px;
     margin-top: 13px;
+}
+.landing-guide__action {
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.landing-guide__start {
+    display: inline-flex;
+    align-items: center;
+    gap: 18px;
+    padding: 8px 8px 8px 22px;
+    border: 1px solid var(--landing-line);
+    border-radius: 999px;
+    background: #e6e3dfe6;
+    backdrop-filter: blur(12px);
+    color: #1a1c1c;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 4px 16px #20180b0a;
+    animation: landing-guide-action-in 400ms ease-out;
+}
+.landing-guide__start span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 30px;
+    line-height: 1;
+}
+.landing-guide__start:hover {
+    background: #ded9d3;
+}
+@keyframes landing-guide-action-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
 .landing-guide__controls p {
     display: flex;
@@ -333,6 +410,7 @@
 }
 .landing-guide__arrows {
     display: flex;
+    justify-self: end;
     gap: 10px;
 }
 .landing-guide__arrows button {
@@ -441,11 +519,15 @@
     .landing-section-heading {
         display: block;
     }
+    .landing-how {
+        padding-top: 56px;
+    }
     .landing-section-heading > p {
         margin-top: 13px;
     }
     .landing-routes {
         gap: 10px;
+        margin-top: 32px;
     }
     .landing-routes a {
         padding: 17px 15px;
@@ -459,9 +541,8 @@
     .landing-guide__heading {
         display: block;
     }
-    .landing-guide__heading > .landing-textlink {
-        display: inline-block;
-        margin-top: 16px;
+    .landing-guide {
+        padding-top: 72px;
     }
     .landing-guide__track {
         gap: 14px;
@@ -495,6 +576,14 @@
         display: block;
         font-size: 11px;
     }
+    .landing-guide__controls {
+        grid-template-columns: 1fr auto;
+        gap: 16px;
+    }
+    .landing-guide__action {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
     .landing-guide__count {
         display: block;
         margin-bottom: 2px;
@@ -508,6 +597,19 @@
     }
     .landing-closing h2 {
         font-size: 26px;
+    }
+}
+@media (prefers-reduced-motion: reduce), print {
+    html:has(.landing-page) {
+        scroll-behavior: auto;
+    }
+    .landing-page [data-landing-reveal] {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+    .landing-guide__start {
+        animation: none;
     }
 }
 @media (max-width: 600px) {

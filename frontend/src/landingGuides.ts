@@ -5,7 +5,7 @@ export const LANDING_GUIDES = [
     eyebrow: '내 목적에 맞는 사양이 궁금하다면',
     title: '내 사양 찾기',
     description: '제품과 사용 목적을 선택하고, 내 환경에 맞는 사양과 제품을 확인해요.',
-    linkText: '내 사양 찾기 시작 →',
+    linkText: '내 사양 찾기 시작',
     href: '/category',
     cards: [
       {
@@ -95,7 +95,7 @@ export const LANDING_GUIDES = [
     eyebrow: '나와 비슷한 고민이 궁금하다면',
     title: '질문 게시판 이용',
     description: '사양 추천 전에도, 추천받은 뒤에도.\n궁금한 질문과 다른 개발자들의 경험을 바로 둘러볼 수 있어요.',
-    linkText: '질문 게시판 둘러보기 →',
+    linkText: '질문 게시판 둘러보기',
     href: '/board',
     cards: [
       {

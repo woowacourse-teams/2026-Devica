@@ -5,6 +5,7 @@ import type { LandingGuideContent } from './landingGuides';
 export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
   const trackRef = useRef<HTMLElement>(null);
   const [edges, setEdges] = useState({ start: true, end: false });
+  const [hasExplored, setHasExplored] = useState(false);
   const trackId = `${guide.id}-track`;
 
   useEffect(() => {
@@ -16,6 +17,7 @@ export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
       const start = track.scrollLeft <= 3;
       const end = track.scrollLeft >= track.scrollWidth - track.clientWidth - 2;
       setEdges((previous) => (previous.start === start && previous.end === end ? previous : { start, end }));
+      if (!start) setHasExplored(true);
     }
 
     const observer = new ResizeObserver(updateEdges);
@@ -73,20 +75,18 @@ export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
       aria-labelledby={`${guide.id}-title`}
       aria-roledescription="캐러셀"
     >
-      <div className="landing-guide__heading">
+      <div className="landing-guide__heading" data-landing-reveal="">
         <div>
           <p className="landing-eyebrow">{guide.eyebrow}</p>
           <h2 id={`${guide.id}-title`}>{guide.title}</h2>
           <p className="landing-description">{guide.description}</p>
         </div>
-        <LandingLink className="landing-textlink" href={guide.href}>
-          {guide.linkText}
-        </LandingLink>
       </div>
       <section
         className="landing-guide__track"
         id={trackId}
         ref={trackRef}
+        data-landing-reveal=""
         // biome-ignore lint/a11y/noNoninteractiveTabindex: 가로 스크롤 영역에 초점을 두고 방향키와 Home/End로 카드를 넘긴다.
         tabIndex={0}
         aria-label={`${guide.title} 설명 카드. 좌우 방향키로 넘길 수 있습니다.`}
@@ -129,11 +129,19 @@ export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
           </article>
         ))}
       </section>
-      <div className="landing-guide__controls">
+      <div className="landing-guide__controls" data-landing-reveal="">
         <p>
           <span className="landing-guide__count">{guide.cards.length}개 카드</span>
           <span>옆으로 넘겨서 살펴보세요.</span>
         </p>
+        <div className="landing-guide__action">
+          {hasExplored && (
+            <LandingLink className="landing-guide__start" href={guide.href}>
+              {guide.linkText}
+              <span aria-hidden="true">›</span>
+            </LandingLink>
+          )}
+        </div>
         <div className="landing-guide__arrows">
           <button
             type="button"
