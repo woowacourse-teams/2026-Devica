@@ -20,8 +20,8 @@ export function ServiceEntryLink({ href, destination, entryPoint, onNavigate, me
   function navigate(event: MouseEvent<HTMLAnchorElement>) {
     if (event.button !== 0 && event.button !== 1) return;
     if (measure) {
-      // 노출 타이머보다 빠르게 누른 경우도 클릭 전에 노출을 기록한다.
-      view.record();
+      // 빠른 클릭이나 새 세션의 클릭도 노출을 보장한다. 같은 세션의 중복은 전송 전에 걸러진다.
+      track('service_entry_viewed', properties);
       track('service_entry_clicked', properties);
     }
     if (

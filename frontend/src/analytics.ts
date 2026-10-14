@@ -1,4 +1,4 @@
-import type { PostHog } from 'posthog-js';
+import type { BeforeSendFn, PostHog } from 'posthog-js';
 
 // 운영 배포에만 키를 넣는다. 키가 없는 개발·미리보기 환경에서는 수집하지 않는다.
 const KEY = import.meta.env.VITE_POSTHOG_KEY;
@@ -27,6 +27,35 @@ let client: PostHog | null = null;
 const pending: [EventName, Properties, Date][] = [];
 // 라이브러리를 받지 못했으면 수집을 그만둔다. 더는 이벤트를 모으지 않는다.
 let unavailable = false;
+
+// 같은 방문에서는 버튼 위치·페이지가 달라도 목적지별로 첫 노출만 센다.
+const entryViewSessions = new Map<string, string>();
+const deduplicateEntryView: BeforeSendFn = (event) => {
+  if (event?.event !== 'service_entry_viewed') return event;
+  const { destination, $session_id: sessionId } = event.properties;
+  if ((destination !== 'spec_finder' && destination !== 'board') || typeof sessionId !== 'string' || !sessionId) {
+    return event;
+  }
+
+  const storageKey = `devica:entry-view:${KEY}:${destination}`;
+  if (entryViewSessions.get(destination) === sessionId) return null;
+  try {
+    // 새로고침·다른 탭에서도 PostHog의 같은 세션이면 다시 세지 않는다.
+    if (window.localStorage.getItem(storageKey) === sessionId) {
+      entryViewSessions.set(destination, sessionId);
+      return null;
+    }
+  } catch {
+    // 저장소가 차단되어도 현재 페이지 안에서는 메모리로 중복을 막는다.
+  }
+  entryViewSessions.set(destination, sessionId);
+  try {
+    window.localStorage.setItem(storageKey, sessionId);
+  } catch {
+    // 저장 실패가 측정이나 서비스 이동을 막지 않게 한다.
+  }
+  return event;
+};
 
 /**
  * 지표 수집 라이브러리는 앱만큼 무거워 따로 받는다. 키가 없으면 받지도 않는다.
@@ -58,6 +87,8 @@ export function initAnalytics(): void {
         // 탭을 닫거나 사이트를 떠날 때 $pageleave 를 보낸다. 앱 안에서 이동할 때의 체류 시간은 다음 $pageview 에 담긴다.
         capture_pageleave: true,
         autocapture: false,
+        // SDK가 실제 이벤트의 세션 ID를 붙인 뒤 중복 노출만 제외한다. 클릭·기존 이벤트는 유지한다.
+        before_send: deduplicateEntryView,
         // 수집을 끄기 전에 첫 $pageview 가 나가지 않게 한다.
         opt_out_capturing_by_default: internal,
         loaded: (instance) => {
