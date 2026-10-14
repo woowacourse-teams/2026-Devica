@@ -1,4 +1,4 @@
-// 워밍업 길이는 첫 측정의 1분 단위 p95 추이를 보고 확정한다
+// 워밍업 1분은 2026-10-14 첫 측정에서 확정했다(docs/adr/0040-성능-테스트-판정-기준.md)
 const WARMUP = '1m';
 const MEASURE = '10m';
 
@@ -6,16 +6,17 @@ export function userAgent(testName) {
   return `devica-k6/${testName}`;
 }
 
-// 같은 부하로 워밍업 → 측정을 끊지 않고 이어 간다. 측정 구간은 `<name>_measure` 시나리오다
-export function warmupAndMeasure(name, scenario) {
+// 워밍업 → 측정을 끊지 않고 이어 간다. 측정 구간은 `<name>_measure` 시나리오다.
+// 측정 구간의 부하 모양이 워밍업과 다르면 measure를 따로 준다. measure는 스스로 MEASURE만큼 이어져야 한다
+export function warmupAndMeasure(name, scenario, measure = { ...scenario, duration: MEASURE }) {
   return {
     [`${name}_warmup`]: { ...scenario, startTime: '0s', duration: WARMUP },
-    [`${name}_measure`]: { ...scenario, startTime: WARMUP, duration: MEASURE },
+    [`${name}_measure`]: { ...measure, startTime: WARMUP },
   };
 }
 
 // 측정 구간에만 거는 기준. k6는 오류율만 판정한다.
-// p95 200ms는 네트워크를 뺀 서버 처리 시간의 예산이라 요청 로그로 판정한다
+// p95 200ms는 네트워크 시간을 빼고 API에 배정한 시간이라 요청 로그의 서버 처리 시간으로 판정한다
 export function measureThresholds(name) {
   const selector = `{scenario:${name}_measure}`;
 

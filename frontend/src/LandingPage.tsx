@@ -1,12 +1,15 @@
+import { track } from './analytics';
 import { LandingGuide } from './LandingGuide';
-import { LandingLink } from './LandingLink';
 import { LANDING_GUIDES } from './landingGuides';
 import { PATHS } from './routes';
+import { ServiceEntryLink } from './ServiceEntryLink';
+import { useAnalyticsView } from './useAnalyticsView';
 import { useLandingReveal } from './useLandingReveal';
 import './LandingPage.css';
 
 export function LandingPage() {
   const pageRef = useLandingReveal();
+  const landingView = useAnalyticsView<HTMLHeadingElement>('landing_viewed', {});
 
   return (
     <div className="landing-page" ref={pageRef}>
@@ -15,7 +18,7 @@ export function LandingPage() {
           <p className="landing-eyebrow" data-landing-reveal="">
             DEVICA 서비스 소개
           </p>
-          <h1 id="landing-title" data-landing-reveal="">
+          <h1 id="landing-title" data-landing-reveal="" ref={landingView.ref}>
             내 사용 목적에 맞게,
             <br />
             구매 고민은 더 가볍게.
@@ -27,14 +30,29 @@ export function LandingPage() {
           </p>
           <div className="landing-hero__actions" data-landing-reveal="">
             <div className="landing-hero__buttons">
-              <LandingLink className="landing-cta" href={PATHS.category}>
+              <ServiceEntryLink
+                className="landing-cta"
+                href={PATHS.category}
+                destination="spec_finder"
+                entryPoint="landing_hero"
+              >
                 내 사양 찾기 시작 <span aria-hidden="true">→</span>
-              </LandingLink>
-              <LandingLink className="landing-cta landing-cta--outline" href={PATHS.board}>
+              </ServiceEntryLink>
+              <ServiceEntryLink
+                className="landing-cta landing-cta--outline"
+                href={PATHS.board}
+                destination="board"
+                entryPoint="landing_hero"
+              >
                 질문 보러 가기 <span aria-hidden="true">→</span>
-              </LandingLink>
+              </ServiceEntryLink>
             </div>
-            <a className="landing-textlink landing-hero__guide-link" href="#how">
+            {/* biome-ignore lint/a11y/useValidAnchor: 클릭은 측정만 하고 href의 기본 앵커 이동을 유지한다. */}
+            <a
+              className="landing-textlink landing-hero__guide-link"
+              href="#how"
+              onClick={() => track('landing_guide_link_clicked', { guide: 'overview' })}
+            >
               사용법 먼저 보기 ↓
             </a>
           </div>
@@ -51,11 +69,13 @@ export function LandingPage() {
           </div>
         </div>
         <nav className="landing-routes" aria-label="두 가지 서비스 사용법" data-landing-reveal="">
-          <a href="#find-specs">
+          {/* biome-ignore lint/a11y/useValidAnchor: 클릭은 측정만 하고 href의 기본 앵커 이동을 유지한다. */}
+          <a href="#find-specs" onClick={() => track('landing_guide_link_clicked', { guide: 'find-specs' })}>
             <b>내 사양 찾기</b>
             <span>내 사용 목적에 맞는 사양과 제품 알아보기</span>
           </a>
-          <a href="#use-board">
+          {/* biome-ignore lint/a11y/useValidAnchor: 클릭은 측정만 하고 href의 기본 앵커 이동을 유지한다. */}
+          <a href="#use-board" onClick={() => track('landing_guide_link_clicked', { guide: 'use-board' })}>
             <b>질문 게시판 이용</b>
             <span>추천 전에도, 추천받은 뒤에도 고민 나누기</span>
           </a>
@@ -99,13 +119,18 @@ export function LandingPage() {
           </p>
         </div>
         <div className="landing-closing__actions">
-          <LandingLink className="landing-cta" href={PATHS.category}>
+          <ServiceEntryLink
+            className="landing-cta"
+            href={PATHS.category}
+            destination="spec_finder"
+            entryPoint="landing_closing"
+          >
             내 사양 찾기 시작 <span aria-hidden="true">→</span>
-          </LandingLink>
+          </ServiceEntryLink>
           <p className="landing-meta">약 2분 · 질문 9~10개</p>
-          <LandingLink className="landing-cta" href={PATHS.board}>
+          <ServiceEntryLink className="landing-cta" href={PATHS.board} destination="board" entryPoint="landing_closing">
             질문 보러 가기 <span aria-hidden="true">→</span>
-          </LandingLink>
+          </ServiceEntryLink>
         </div>
       </section>
     </div>

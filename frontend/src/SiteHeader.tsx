@@ -1,4 +1,5 @@
 import type { MouseEvent } from 'react';
+import { ServiceEntryLink } from './ServiceEntryLink';
 import './SiteLayout.css';
 
 type Props = {
@@ -45,15 +46,18 @@ export function SiteHeader({
           >
             자주 묻는 질문
           </a>
-          <a
+          <ServiceEntryLink
             className="site-nav__item"
             id="nav-board-button"
             href={boardHref}
+            destination="board"
+            entryPoint="header"
+            measure={!boardActive}
             aria-current={boardActive ? 'page' : undefined}
-            onClick={(event) => navigateInside(event, onBoard)}
+            onNavigate={onBoard}
           >
             질문 게시판
-          </a>
+          </ServiceEntryLink>
           <a
             className="site-nav__item"
             id="nav-product-list-button"

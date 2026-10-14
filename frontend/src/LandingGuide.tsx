@@ -1,12 +1,21 @@
-import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
-import { LandingLink } from './LandingLink';
+import { type KeyboardEvent, useEffect, useEffectEvent, useRef, useState } from 'react';
+import { track as trackEvent } from './analytics';
 import type { LandingGuideContent } from './landingGuides';
+import { ServiceEntryLink } from './ServiceEntryLink';
+import { useAnalyticsView } from './useAnalyticsView';
 
 export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
   const trackRef = useRef<HTMLElement>(null);
   const [edges, setEdges] = useState({ start: true, end: false });
   const [hasExplored, setHasExplored] = useState(false);
   const trackId = `${guide.id}-track`;
+  const guideView = useAnalyticsView<HTMLHeadingElement>('landing_guide_viewed', { guide: guide.id });
+  const explored = useRef(false);
+  const recordExplored = useEffectEvent(() => {
+    if (explored.current) return;
+    explored.current = true;
+    trackEvent('landing_guide_explored', { guide: guide.id });
+  });
 
   useEffect(() => {
     const track = trackRef.current;
@@ -17,7 +26,10 @@ export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
       const start = track.scrollLeft <= 3;
       const end = track.scrollLeft >= track.scrollWidth - track.clientWidth - 2;
       setEdges((previous) => (previous.start === start && previous.end === end ? previous : { start, end }));
-      if (!start) setHasExplored(true);
+      if (!start) {
+        setHasExplored(true);
+        recordExplored();
+      }
     }
 
     const observer = new ResizeObserver(updateEdges);
@@ -78,7 +90,9 @@ export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
       <div className="landing-guide__heading" data-landing-reveal="">
         <div>
           <p className="landing-eyebrow">{guide.eyebrow}</p>
-          <h2 id={`${guide.id}-title`}>{guide.title}</h2>
+          <h2 id={`${guide.id}-title`} ref={guideView.ref}>
+            {guide.title}
+          </h2>
           <p className="landing-description">{guide.description}</p>
         </div>
       </div>
@@ -136,10 +150,15 @@ export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
         </p>
         <div className="landing-guide__action">
           {hasExplored && (
-            <LandingLink className="landing-guide__start" href={guide.href}>
+            <ServiceEntryLink
+              className="landing-guide__start"
+              href={guide.href}
+              destination={guide.id === 'find-specs' ? 'spec_finder' : 'board'}
+              entryPoint="landing_guide"
+            >
               {guide.linkText}
               <span aria-hidden="true">›</span>
-            </LandingLink>
+            </ServiceEntryLink>
           )}
         </div>
         <div className="landing-guide__arrows">
