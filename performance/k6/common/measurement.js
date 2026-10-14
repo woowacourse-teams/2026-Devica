@@ -1,4 +1,4 @@
-// 워밍업 1분은 2026-10-14 첫 측정에서 확정했다(performance/기준과_근거.md의 측정 방법)
+// 워밍업 1분은 2026-10-14 첫 측정에서 확정했다(docs/adr/0039-성능-테스트-판정-기준.md)
 const WARMUP = '1m';
 const MEASURE = '10m';
 
@@ -16,7 +16,7 @@ export function warmupAndMeasure(name, scenario, measure = { ...scenario, durati
 }
 
 // 측정 구간에만 거는 기준. k6는 오류율만 판정한다.
-// p95 200ms는 네트워크를 뺀 서버 처리 시간의 예산이라 요청 로그로 판정한다
+// p95 200ms는 네트워크 시간을 빼고 API에 배정한 시간이라 요청 로그의 서버 처리 시간으로 판정한다
 export function measureThresholds(name) {
   const selector = `{scenario:${name}_measure}`;
 
