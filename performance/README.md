@@ -8,12 +8,25 @@
 
 ## 준비물
 
-| 무엇 | 확인 방법 |
-| --- | --- |
-| k6, jq | `k6 version`, `jq --version`이 버전을 출력하는지. 없으면 `brew install k6 jq`(macOS)로 설치한다 |
-| 개발 서버 SSH 접속 | `ssh ubuntu@dev.devica.co.kr`가 되는지. SSH 키와 접속 권한은 개발 서버를 관리하는 팀원에게 받는다 |
-| Grafana Cloud | 팀 스택에 로그인해 Explore를 열 수 있는지 |
-| AWS 콘솔 | RDS의 `db-devica-dev`를 볼 수 있는지 |
+측정을 시작하기 전에 네 가지가 모두 되는지 확인한다.
+
+**1. k6, jq** — 부하를 걸고 결과 파일에서 값을 뽑는다.
+
+- 확인: `k6 version`, `jq --version`이 버전을 출력한다.
+- 없으면: `brew install k6 jq` (macOS)
+
+**2. 개발 서버 SSH** — 서버 커밋과 테스트 데이터를 확인한다.
+
+- 확인: `ssh ubuntu@dev.devica.co.kr`로 접속된다.
+- 없으면: SSH 키와 접속 권한을 개발 서버를 관리하는 팀원에게 받는다.
+
+**3. Grafana Cloud** — 서버 처리 시간(판정 값)과 서버 자원을 조회한다.
+
+- 확인: 팀 스택에 로그인해 Explore를 열 수 있다.
+
+**4. AWS 콘솔** — DB CPU를 조회한다.
+
+- 확인: RDS에서 `db-devica-dev`의 모니터링 탭을 볼 수 있다.
 
 ## 측정 순서
 
