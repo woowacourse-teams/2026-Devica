@@ -9,7 +9,6 @@ export function LandingPage() {
     <div className="landing-page">
       <section className="landing-hero" aria-labelledby="landing-title">
         <div className="landing-hero__copy">
-          <p className="landing-pill">개발 장비 고민, 함께 풀어봐요</p>
           <p className="landing-eyebrow">DEVICA 서비스 소개</p>
           <h1 id="landing-title">
             내 사용 목적에 맞게,
@@ -21,7 +20,6 @@ export function LandingPage() {
             <br />
             <strong>DEVICA가 사용 목적에 맞는 사양을 정리해 어려운 구매 고민을 덜어드려요.</strong>
           </p>
-          <p className="landing-hero__support">나와 비슷한 고민과 답변도 둘러보세요.</p>
           <div className="landing-hero__actions">
             <div className="landing-hero__buttons">
               <LandingLink className="landing-cta" href={PATHS.category}>
@@ -44,11 +42,6 @@ export function LandingPage() {
             <p className="landing-eyebrow">DEVICA 사용법</p>
             <h2 id="landing-how-title">필요한 도움부터 시작하세요.</h2>
           </div>
-          <p>
-            내 사양을 찾거나,
-            <br />
-            비슷한 고민부터 둘러보세요.
-          </p>
         </div>
         <nav className="landing-routes" aria-label="두 가지 서비스 사용법">
           <a href="#find-specs">
