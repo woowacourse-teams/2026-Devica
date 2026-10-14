@@ -10,6 +10,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "biome check .",
+    "test:analytics": "node --experimental-vm-modules --test tests/analytics.test.mjs",
     "prepare": "cd .. && husky"
   },
   "dependencies": {
