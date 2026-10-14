@@ -62,5 +62,5 @@ export function useAnalyticsView<T extends HTMLElement>(
     };
   }, [enabled, viewKey]);
 
-  return { ref, record };
+  return { ref };
 }

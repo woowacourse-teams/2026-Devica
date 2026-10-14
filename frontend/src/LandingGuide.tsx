@@ -14,7 +14,6 @@ export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
   const recordExplored = useEffectEvent(() => {
     if (explored.current) return;
     explored.current = true;
-    guideView.record();
     trackEvent('landing_guide_explored', { guide: guide.id });
   });
 
