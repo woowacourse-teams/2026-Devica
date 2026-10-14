@@ -217,21 +217,21 @@ export function ProductListView({
 
   // 목록 끝이 가까워지면 다음 페이지를 받는다. 받을 때마다 다시 지켜봐서, 받은 뒤에도 끝이 보이면 이어 받는다.
   // 실패하면 멈추고 사용자가 다시 시도하길 기다린다. 저절로 다시 받으면 실패가 이어지는 동안 요청이 되풀이된다.
-  const sentinel = useRef<HTMLDivElement>(null);
+  // 요소를 상태로 받는다. 사양 대조 화면이 떠 있는 동안은 표식이 없다가, 대조가 끝나 그려질 때 effect 가 다시 돈다.
+  const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
   const { hasNext, loading, more } = products;
   // 조건을 검증하는 동안에는 목록을 요청하지 않지만, 사용자에게는 똑같이 불러오는 중이다.
   const waiting = loading || (waitingForTiers && !cpuTiers.failed) || (waitingForBrands && !brands.failed);
   useEffect(() => {
-    const target = sentinel.current;
-    if (target === null || !hasNext || loading || products.failed) {
+    if (sentinel === null || !hasNext || loading || products.failed) {
       return;
     }
     const observer = new IntersectionObserver((entries) => entries[0]?.isIntersecting && more(), {
       rootMargin: PREFETCH_MARGIN,
     });
-    observer.observe(target);
+    observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasNext, loading, products.failed, more]);
+  }, [sentinel, hasNext, loading, products.failed, more]);
 
   const heading = HEADINGS[mode];
   // 맞춤 목록의 OS 는 탭이라 검색 조건으로 치지 않는다. 조건을 지워도 보던 탭은 그대로다.
@@ -408,7 +408,7 @@ export function ProductListView({
           items.map((product) => <ProductCard product={product} onDetail={onDetail} key={product.id} />)
         )}
       </div>
-      <div ref={sentinel} />
+      <div ref={setSentinel} />
       <p className="product-list-status" role="status">
         {waiting ? (items === null ? '제품을 불러오는 중입니다…' : '제품을 더 불러오는 중입니다…') : ''}
         {products.failed && items !== null ? '제품을 더 불러오지 못했습니다.' : ''}
