@@ -90,6 +90,9 @@ jobs:
       - name: 의존성 설치
         run: npm ci
 
+      - name: 분석 이벤트 및 화면 측정 테스트
+        run: npm run test:analytics
+
       - name: 빌드
         run: npm run build
 
