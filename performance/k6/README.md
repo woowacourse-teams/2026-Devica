@@ -36,7 +36,7 @@ API별 폴더 이름은 `도메인-동작` 형태로 한다. 각 폴더는 다�
 | --- | --- |
 | 서버 주소 | `BASE_URL` 환경 변수. 기본값 `http://localhost:8080` |
 | 테스트 표시 헤더 | `userAgent(testName)`. `User-Agent: devica-k6/<테스트 이름>`을 붙인다 |
-| 요청 옵션 | `params(tags)`. 타임아웃 5초, 리다이렉트 0. 기대 상태를 200~499로 두어, 오류율(`http_req_failed`)에는 5xx와 타임아웃만 들어간다 |
+| 요청 옵션 | `params(tags)`. 타임아웃 5초, 리다이렉트 0. 기대 상태를 200~499로 두어, 오류율(`http_req_failed`)에는 5xx, 타임아웃, 연결 오류만 들어간다 |
 | 측정 구간 | `warmupAndMeasure(name, scenario, measure?)`. 테스트가 정한 부하 설정으로 `<name>_warmup`(1분)과 `<name>_measure`(10분) 시나리오를 만든다. 측정 구간의 부하 모양이 다르면(예: 피크) `measure`를 따로 주고, 이때 `measure`가 10분을 채워야 한다 |
 | SLO 기준 | `measureThresholds(name)`. `<name>_measure`의 요청에만 걸고, 오류율만 판정한다. k6 p95와 요청 수는 요약에 남기기만 한다 |
 | 유효성 기준 | `validityThresholds`. 형식 검사(`checks`) 100% 통과, `dropped_iterations` 0. 워밍업을 포함한 전체에 적용한다 |

@@ -1,6 +1,6 @@
 # 상품 목록 조회 테스트
 
-`GET /api/product-categories/LAPTOP/products`
+`GET /api/product-categories/{categoryCode}/products` (`categoryCode`는 `LAPTOP`)
 
 이 문서는 시나리오와 가정, 측정 전 데이터 확인을 다룬다. 돌리고 기록하는 방법은 [성능 테스트 안내](../../README.md)에, 예상 트래픽(260명)의 근거는 [기준과 근거](../../기준과_근거.md)에 있다.
 
@@ -74,8 +74,10 @@
 | 측정 0~2분 | 분당 390 (평균의 3배) | **약 19.5** | 780 |
 | 측정 2~10분 | 분당 65 (평균의 절반) | 약 3.3 | 520 |
 
-- 워밍업은 평균 속도로 건다. 피크를 워밍업에 쓰지 않고 측정 구간에 넣기 위해서다.
-- SLO는 측정 구간 10분 전체로 판정한다. 측정 구간 요청의 60%가 피크 2분에 있어 p95는 피크의 응답 시간에 좌우된다.
+워밍업은 평균 속도로 건다. 피크를 워밍업에 쓰지 않고 측정 구간에 넣기 위해서다. 판정은 측정 구간 10분 전체로 하므로, 요청의 60%가 몰린 피크 2분이 p95를 좌우한다.
+
+부하를 거는 방식은 실제 사용자를 따른다.
+
 - **세션 시작은 정한 속도로**: 사용자 유입은 서버가 느려도 줄지 않는다.
 - **세션 안은 차례로**: 사용자는 앞 페이지를 받아야 다음으로 넘어간다.
 - 세션은 몇 초씩 걸리므로, 서버가 느려져도 세션을 버리지 않도록 VU 수를 넉넉히 둔다.
@@ -157,20 +159,16 @@ Flyway 기본 데이터에 [제품 적재 SQL](../../data/seed-products.sql)을 
 | `combos_without_page_2`가 0이 아니다 | 그 조합에서 `page=1`의 `hasNext`가 `false`가 되어 형식 검사가 실패하고, 회차가 무효가 된다. 데이터를 확인한다 |
 | `min_products`나 `total_products`가 다르다 | 데이터가 바뀐 것이다. 개선 전후 비교에 쓰지 않는다 |
 
-## 실행
+## 로컬에서 스크립트 확인
 
-명령은 레포 루트에서 실행한다. 아래는 로컬 서버 기준이다. 개발 서버에서 재고 기록하는 순서는 [성능 테스트 안내](../../README.md)를 따른다.
+스크립트를 고친 뒤 로컬 서버에서 돌려 볼 때 쓴다. 로컬 DB에도 [제품 데이터](../../data/README.md)를 적재해야 형식 검사를 통과한다. 개발 서버에서 재고 기록하는 순서는 [성능 테스트 안내](../../README.md)를 따른다.
 
 ```bash
-# 스모크: 초당 약 0.25 세션(약 0.75 RPS), 1분
-k6 run -e BASE_URL=http://localhost:8080 performance/k6/product-list/smoke.js
+# 스모크: 초당 약 0.25세션(약 0.75 RPS), 1분
+k6 run performance/k6/product-list/smoke.js
 
-# 부하: 워밍업 1분(평균) → 측정 10분(첫 2분 피크). 진행 중인 세션은 끝까지 기다린다
-k6 run -e BASE_URL=http://localhost:8080 \
-  --summary-export=performance/results/product-list-load-$(date +%Y%m%d-%H%M).json \
-  --out json=performance/results/product-list-load-$(date +%Y%m%d-%H%M)-raw.json \
-  performance/k6/product-list/load.js
+# 부하: 워밍업 1분(평균) → 측정 10분(첫 2분 피크), 약 12분
+k6 run performance/k6/product-list/load.js
 ```
 
-- 요약 결과(`--summary-export`)는 판정과 기록에 쓴다.
-- 요청별 결과(`--out json`)는 태그로 조건별 응답 시간을 나눠 보거나, 1분 단위 p95 추이로 워밍업 길이를 확인할 때 쓴다.
+`BASE_URL`을 주지 않으면 `http://localhost:8080`으로 요청한다.

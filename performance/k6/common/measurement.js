@@ -1,4 +1,4 @@
-// 워밍업 1분은 2026-10-14 첫 측정에서 확정했다(performance/README.md의 측정 진행)
+// 워밍업 1분은 2026-10-14 첫 측정에서 확정했다(performance/기준과_근거.md의 측정 방법)
 const WARMUP = '1m';
 const MEASURE = '10m';
 
