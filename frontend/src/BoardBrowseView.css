@@ -3,6 +3,7 @@
 }
 
 .board-browse__layout {
+    border-radius: var(--radius-box);
     display: grid;
     grid-template-columns: 184px minmax(0, 1fr);
     min-height: 440px;
@@ -172,7 +173,22 @@
     }
 
     .board-browse__content {
-        padding: var(--gutter);
+        gap: var(--density-med);
+        padding: var(--density-med) var(--gutter);
+    }
+
+    /* 탭 묶음은 aria-label 이 이미 이름을 주고, 카테고리 제목은 선택된 탭과 겹친다. */
+    .board-browse__label,
+    .board-browse__category-title {
+        display: none;
+    }
+
+    .board-browse__sidebar {
+        padding: var(--density-high) var(--gutter) 0;
+    }
+
+    .board-browse__tab {
+        min-height: 40px;
     }
 
     .board-browse__nav--category > .board-browse__label {

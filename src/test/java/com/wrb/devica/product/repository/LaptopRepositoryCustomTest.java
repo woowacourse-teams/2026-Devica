@@ -23,6 +23,7 @@ import com.wrb.devica.product.dto.ProductSummaryRow;
 import com.wrb.devica.product.dto.SortType;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -393,6 +394,47 @@ class LaptopRepositoryCustomTest {
 
         // then
         assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("판매중", "오퍼없음");
+    }
+
+    @Test
+    void 브랜드를_조회하면_겹치지_않게_이름순으로_반환한다() {
+        // given
+        laptopOf(laptop().brand("Samsung"));
+        laptopOf(laptop().brand("LG"));
+        laptopOf(laptop().brand("LG"));
+
+        // when
+        List<String> brands = laptopRepository.findBrands(null);
+
+        // then
+        assertThat(brands).containsExactly("LG", "Samsung");
+    }
+
+    @Test
+    void 브랜드를_조회하면_대소문자를_구분하지_않고_이름순으로_반환한다() {
+        // given
+        laptopOf(laptop().brand("ASUS"));
+        laptopOf(laptop().brand("Acer"));
+
+        // when
+        List<String> brands = laptopRepository.findBrands(null);
+
+        // then
+        // 대소문자를 가리면 "ASUS" 가 "Acer" 보다 앞선다
+        assertThat(brands).containsExactly("Acer", "ASUS");
+    }
+
+    @Test
+    void os를_지정해_브랜드를_조회하면_그_os의_브랜드만_반환한다() {
+        // given
+        laptopOf(laptop().brand("Apple").os(Os.MAC));
+        laptopOf(laptop().brand("LG").os(Os.WINDOWS));
+
+        // when
+        List<String> brands = laptopRepository.findBrands(Os.MAC);
+
+        // then
+        assertThat(brands).containsExactly("Apple");
     }
 
     private Laptop onSaleLaptop(LaptopBuilder builder) {

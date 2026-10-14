@@ -10,6 +10,7 @@
 
 /* 원본의 .status-panel, .intro-steps, .baseline-card, .spec-card ... 나열을 대체한다. */
 .bordered-panel {
+    border-radius: var(--radius-box);
     border: 1px solid var(--on-surface);
     background: var(--surface-container-lowest);
 }
@@ -19,7 +20,7 @@
     width: 100%;
     max-width: 1120px;
     margin: 0 auto;
-    padding: 64px var(--margin-mobile) 96px;
+    padding: var(--gutter) var(--margin-mobile) 48px;
 }
 
 .eyebrow {
@@ -35,6 +36,7 @@
 }
 
 .button {
+    border-radius: var(--radius-control);
     min-height: 52px;
     border: 1px solid var(--primary);
     padding: var(--density-med) var(--gutter);
@@ -137,8 +139,27 @@
     font-size: var(--body-md-font-size);
 }
 
+/* 진행 버튼은 화면 하단에 고정한다. 부모(섹션) 안에서만 붙어 있어 푸터를 가리지 않는다. */
+.sticky-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    display: grid;
+    gap: var(--density-high);
+    margin-top: var(--gutter);
+    padding: var(--density-med) 0;
+    border-top: 1px solid var(--outline-variant);
+    background: var(--surface);
+}
+
+.sticky-actions .button {
+    min-height: 48px;
+}
+
 @media (min-width: 768px) {
     .probe {
+        padding-top: 40px;
+        padding-bottom: 64px;
         padding-right: var(--margin-desktop);
         padding-left: var(--margin-desktop);
     }

@@ -12,10 +12,10 @@
 }
 
 .chip {
-    min-height: 44px;
+    min-height: 40px;
     margin: var(--density-high) var(--unit) 0 0;
     border: 1px solid var(--on-surface);
-    border-radius: 0;
+    border-radius: var(--radius-control);
     padding: var(--density-high) var(--density-med);
     color: var(--on-surface);
     background: var(--surface-container-lowest);
@@ -56,6 +56,21 @@
 /* 인접한 칩의 테두리를 겹쳐 하나의 스위치로 읽히게 한다. */
 .choice-group--segmented {
     gap: 0;
+}
+
+/* 맞닿은 면은 그대로 두고 묶음 바깥 모서리만 둥글게 한다. */
+.choice-group--segmented .chip {
+    border-radius: 0;
+}
+
+.choice-group--segmented .chip:first-of-type {
+    border-start-start-radius: var(--radius-control);
+    border-end-start-radius: var(--radius-control);
+}
+
+.choice-group--segmented .chip:last-of-type {
+    border-start-end-radius: var(--radius-control);
+    border-end-end-radius: var(--radius-control);
 }
 
 .choice-group--segmented .chip + .chip {

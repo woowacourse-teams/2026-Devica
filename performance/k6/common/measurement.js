@@ -1,0 +1,36 @@
+// 워밍업 길이는 첫 측정의 1분 단위 p95 추이를 보고 확정한다
+const WARMUP = '1m';
+const MEASURE = '10m';
+
+export function userAgent(testName) {
+  return `devica-k6/${testName}`;
+}
+
+// 같은 부하로 워밍업 → 측정을 끊지 않고 이어 간다. 측정 구간은 `<name>_measure` 시나리오다
+export function warmupAndMeasure(name, scenario) {
+  return {
+    [`${name}_warmup`]: { ...scenario, startTime: '0s', duration: WARMUP },
+    [`${name}_measure`]: { ...scenario, startTime: WARMUP, duration: MEASURE },
+  };
+}
+
+// 측정 구간에만 거는 기준. k6는 오류율만 판정한다.
+// p95 200ms는 네트워크를 뺀 서버 처리 시간의 예산이라 요청 로그로 판정한다
+export function measureThresholds(name) {
+  const selector = `{scenario:${name}_measure}`;
+
+  return {
+    [`http_req_failed${selector}`]: ['rate<=0.01'],
+    // 아래 둘은 판정 기준이 아니다. 측정 구간의 k6 응답 시간과 요청 수를 요약에 따로 남긴다
+    [`http_req_duration${selector}`]: ['p(95)>=0'],
+    [`http_reqs${selector}`]: ['count>0'],
+  };
+}
+
+// 넘으면 SLO와 관계없이 그 회차는 무효다
+export const validityThresholds = {
+  checks: ['rate==1'],
+  dropped_iterations: ['count==0'],
+};
+
+export const summaryTrendStats = ['avg', 'med', 'p(95)', 'p(99)', 'max'];

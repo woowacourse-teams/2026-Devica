@@ -61,7 +61,6 @@ prometheus.remote_write "grafana_cloud" {
 local.file_match "application_logs" {
   path_targets = [
     {"__path__" = "/var/log/devica/app/app.log", "app" = "devica-app"},
-    {"__path__" = "/var/log/devica/db/error.log", "app" = "devica-db"},
   ]
 }
 
@@ -75,18 +74,6 @@ loki.process "application_logs" {
     selector = "{app=\"devica-app\"}"
     stage.json {
       expressions = { timestamp = "\"@timestamp\"" }
-    }
-    stage.timestamp {
-      source = "timestamp"
-      format = "RFC3339Nano"
-      action_on_failure = "skip"
-    }
-  }
-
-  stage.match {
-    selector = "{app=\"devica-db\"}"
-    stage.regex {
-      expression = "^(?P<timestamp>[0-9T:Z.+-]+) "
     }
     stage.timestamp {
       source = "timestamp"

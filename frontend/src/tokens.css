@@ -1,4 +1,9 @@
 :root {
+    /* 큰 곡률은 랜딩페이지와 기능 화면의 외곽 카드에만 쓴다. */
+    --radius-box: 23px;
+    --radius-control: 6px;
+    --radius-detail: 4px;
+    --site-font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
     --surface: #f9f9f9;
     --surface-dim: #dadada;
     --surface-container-lowest: #ffffff;

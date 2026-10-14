@@ -1,5 +1,5 @@
 import { navigate } from 'wouter/use-browser-location';
-import { CPU_TIERS, EMPTY_CONDITION, osOfTier, type SearchCondition, type SortType } from './products';
+import { EMPTY_CONDITION, OSES, type SearchCondition, type SortType } from './products';
 import type { Answers } from './questions';
 import type { ResultOs } from './ResultView';
 
@@ -216,21 +216,18 @@ function positive(value: string | null): number | null {
   return value !== null && Number.isInteger(number) && number > 0 ? number : null;
 }
 
-// 등급은 OS 마다 따로 매겨진다. 모르는 등급이나 고른 OS 의 등급이 아닌 것은 버린다.
-function osAndTierOf(params: URLSearchParams): Pick<SearchCondition, 'os' | 'cpuTier'> {
-  const rawOs = params.get('os');
-  const os = rawOs !== null && Object.hasOwn(CPU_TIERS, rawOs) ? rawOs : null;
-  const rawTier = params.get('cpuTier');
-  const tierOs = rawTier === null ? null : osOfTier(rawTier);
-  const cpuTier = tierOs !== null && (os === null || tierOs === os) ? rawTier : null;
-  return { os, cpuTier };
+// 모르는 OS 는 버린다. 등급은 서버에서 받아야 알 수 있어 목록이 받은 뒤 가린다(validTier).
+function osOf(params: URLSearchParams): string | null {
+  const value = params.get('os');
+  return OSES.find((os) => os === value) ?? null;
 }
 
 export function conditionOf(params: URLSearchParams): SearchCondition {
   return {
     keyword: params.get('keyword'),
     maxPrice: positive(params.get('maxPrice')),
-    ...osAndTierOf(params),
+    os: osOf(params),
+    cpuTier: params.get('cpuTier'),
     brand: params.get('brand'),
     memoryGb: positive(params.get('memoryGb')),
     storageGb: positive(params.get('storageGb')),

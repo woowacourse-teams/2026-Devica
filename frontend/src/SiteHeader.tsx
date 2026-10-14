@@ -7,7 +7,8 @@ type Props = {
   boardHref: string;
   onBoard: () => void;
   boardActive: boolean;
-  home?: boolean;
+  productListActive: boolean;
+  guideActive: boolean;
 };
 
 function navigateInside(event: MouseEvent<HTMLAnchorElement>, navigate: () => void) {
@@ -18,15 +19,32 @@ function navigateInside(event: MouseEvent<HTMLAnchorElement>, navigate: () => vo
   navigate();
 }
 
-export function SiteHeader({ onGuide, onProductList, boardHref, onBoard, boardActive, home = false }: Props) {
+export function SiteHeader({
+  onGuide,
+  onProductList,
+  boardHref,
+  onBoard,
+  boardActive,
+  productListActive,
+  guideActive,
+}: Props) {
   return (
-    <header className={home ? 'site-header site-header--home' : 'site-header'}>
+    <header className="site-header">
       <div className="site-header__inner">
         <a className="site-logo" href="/">
           DEVICA
         </a>
         {/* 누르면 앱 안에서 화면을 옮긴다. 새 탭으로 열 때를 위해 href 는 실제 주소를 둔다. */}
         <nav className="site-nav" aria-label="주요 메뉴">
+          <a
+            className="site-nav__item"
+            id="nav-guide-button"
+            href="/faq"
+            aria-current={guideActive ? 'page' : undefined}
+            onClick={(event) => navigateInside(event, onGuide)}
+          >
+            자주 묻는 질문
+          </a>
           <a
             className="site-nav__item"
             id="nav-board-button"
@@ -40,17 +58,10 @@ export function SiteHeader({ onGuide, onProductList, boardHref, onBoard, boardAc
             className="site-nav__item"
             id="nav-product-list-button"
             href="/products"
+            aria-current={productListActive ? 'page' : undefined}
             onClick={(event) => navigateInside(event, onProductList)}
           >
             제품 목록
-          </a>
-          <a
-            className="site-nav__item"
-            id="nav-guide-button"
-            href="/faq"
-            onClick={(event) => navigateInside(event, onGuide)}
-          >
-            FAQ
           </a>
         </nav>
       </div>

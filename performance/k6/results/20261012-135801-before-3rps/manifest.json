@@ -1,0 +1,27 @@
+{
+  "status": "preflight",
+  "created_at_kst": "2026-10-12T13:58:01.632786+09:00",
+  "base_url": "http://dev.devica.co.kr",
+  "git_commit": "7e3aa750ea10b1d340ead7c693741ce1e186e6f9",
+  "git_status": "",
+  "k6_version": "k6 v2.3.0 (commit/devel, go1.27.1, darwin/arm64)",
+  "dataset": {
+    "posts": 1000000,
+    "source": "user-provided, DB count not yet independently verified",
+    "modified_by_test": false
+  },
+  "rps": 3,
+  "duration_seconds": 600,
+  "vus": 20,
+  "size": 20,
+  "timeout_seconds": 5,
+  "graceful_stop_seconds": 10,
+  "pages": {
+    "load": 0,
+    "deep": 1000
+  },
+  "scripts": {
+    "board-load.js": "36b489985cafe1c993ada928f96b1079af5e20596e9c437109d51d797beb5ef6",
+    "requests.js": "6602cf93faae2b3648972e572b774c75e6fafbbba8bcf9605846f8d390b24a93"
+  }
+}
