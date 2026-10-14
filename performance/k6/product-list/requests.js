@@ -20,16 +20,10 @@ function checkProducts(response, query) {
   ));
 }
 
-// requests: [{ query, tags }]. query는 page, size, os, cpuTier, memoryGb, storageGb, sort.
-// 화면 하나가 여러 목록을 동시에 요청할 때도 쓴다
-export function getProductsAtOnce(requests) {
-  const responses = http.batch(requests.map(({ query, tags }) => [
-    'GET',
-    productsUrl(query),
-    null,
-    params({ name: NAME, ...tags }),
-  ]));
+// query는 page, size, sort와 필요한 필터(os, cpuTier, memoryGb, storageGb)
+export function getProducts(query, tags) {
+  const response = http.get(productsUrl(query), params({ name: NAME, ...tags }));
 
-  responses.forEach((response, i) => checkProducts(response, requests[i].query));
-  return responses;
+  checkProducts(response, query);
+  return response;
 }

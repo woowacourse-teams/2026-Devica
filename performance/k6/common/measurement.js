@@ -1,4 +1,4 @@
-// 워밍업 길이는 첫 측정의 1분 단위 p95 추이를 보고 확정한다
+// 워밍업 1분은 2026-10-14 첫 측정에서 확정했다(performance/기준과_근거.md의 측정 방법)
 const WARMUP = '1m';
 const MEASURE = '10m';
 
@@ -6,11 +6,12 @@ export function userAgent(testName) {
   return `devica-k6/${testName}`;
 }
 
-// 같은 부하로 워밍업 → 측정을 끊지 않고 이어 간다. 측정 구간은 `<name>_measure` 시나리오다
-export function warmupAndMeasure(name, scenario) {
+// 워밍업 → 측정을 끊지 않고 이어 간다. 측정 구간은 `<name>_measure` 시나리오다.
+// 측정 구간의 부하 모양이 워밍업과 다르면 measure를 따로 준다. measure는 스스로 MEASURE만큼 이어져야 한다
+export function warmupAndMeasure(name, scenario, measure = { ...scenario, duration: MEASURE }) {
   return {
     [`${name}_warmup`]: { ...scenario, startTime: '0s', duration: WARMUP },
-    [`${name}_measure`]: { ...scenario, startTime: WARMUP, duration: MEASURE },
+    [`${name}_measure`]: { ...measure, startTime: WARMUP },
   };
 }
 
