@@ -10,6 +10,7 @@
 
 /* 원본의 .status-panel, .intro-steps, .baseline-card, .spec-card ... 나열을 대체한다. */
 .bordered-panel {
+    border-radius: var(--radius-box);
     border: 1px solid var(--on-surface);
     background: var(--surface-container-lowest);
 }
@@ -35,6 +36,7 @@
 }
 
 .button {
+    border-radius: var(--radius-control);
     min-height: 52px;
     border: 1px solid var(--primary);
     padding: var(--density-med) var(--gutter);

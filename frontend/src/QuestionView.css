@@ -12,11 +12,13 @@
 }
 
 .progress-track {
+    border-radius: var(--radius-detail);
     height: var(--density-high);
     background: var(--surface-container-highest, #e2e2e2);
 }
 
 .progress-track span {
+    border-radius: inherit;
     display: block;
     width: 0;
     height: 100%;
@@ -32,6 +34,7 @@
 }
 
 .question-group {
+    border-radius: var(--radius-box);
     display: grid;
     gap: var(--density-med);
     margin-top: 32px;
@@ -49,6 +52,7 @@
 }
 
 .current-spec-field {
+    border-radius: var(--radius-box);
     display: grid;
     gap: var(--density-high);
     min-width: 0;
@@ -76,6 +80,7 @@
 }
 
 .question-option {
+    border-radius: var(--radius-control);
     display: block;
     width: 100%;
     min-height: 72px;

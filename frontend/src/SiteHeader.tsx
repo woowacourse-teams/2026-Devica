@@ -38,6 +38,15 @@ export function SiteHeader({
         <nav className="site-nav" aria-label="주요 메뉴">
           <a
             className="site-nav__item"
+            id="nav-guide-button"
+            href="/faq"
+            aria-current={guideActive ? 'page' : undefined}
+            onClick={(event) => navigateInside(event, onGuide)}
+          >
+            자주 묻는 질문
+          </a>
+          <a
+            className="site-nav__item"
             id="nav-board-button"
             href={boardHref}
             aria-current={boardActive ? 'page' : undefined}
@@ -53,15 +62,6 @@ export function SiteHeader({
             onClick={(event) => navigateInside(event, onProductList)}
           >
             제품 목록
-          </a>
-          <a
-            className="site-nav__item"
-            id="nav-guide-button"
-            href="/faq"
-            aria-current={guideActive ? 'page' : undefined}
-            onClick={(event) => navigateInside(event, onGuide)}
-          >
-            FAQ
           </a>
         </nav>
       </div>

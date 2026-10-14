@@ -7,8 +7,8 @@ import { BoardPostPage } from './BoardPostView';
 import { CategoryCards } from './CategoryCards';
 import { FaqView } from './FaqView';
 import { useFetched } from './fetched';
-import { HomeHero } from './HomeHero';
 import { IntroView } from './IntroView';
+import { LandingPage } from './LandingPage';
 import { ProductDetailView } from './ProductDetailView';
 import { type ProductListState, ProductListView } from './ProductListView';
 import type { SearchCondition, SortType } from './products';
@@ -177,7 +177,7 @@ function LegacyRedirect({ params }: PageProps) {
   if (view === 'faq') {
     return <Redirect to={PATHS.faq} replace />;
   }
-  return <HomeHero onStart={() => go(PATHS.category)} />;
+  return <LandingPage />;
 }
 
 function CategoryPage() {

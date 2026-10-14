@@ -3,6 +3,7 @@
 }
 
 .board-browse__layout {
+    border-radius: var(--radius-box);
     display: grid;
     grid-template-columns: 184px minmax(0, 1fr);
     min-height: 440px;

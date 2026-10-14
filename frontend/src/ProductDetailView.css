@@ -11,6 +11,7 @@
 }
 
 .product-detail__image-frame {
+    border-radius: var(--radius-box);
     position: relative;
     display: grid;
     aspect-ratio: 4 / 3;
