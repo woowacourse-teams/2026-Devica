@@ -2,16 +2,16 @@
 
 .baseline-list {
     display: grid;
-    gap: var(--gutter);
-    margin: 24px 0;
+    gap: var(--density-high);
+    margin: var(--density-high) 0;
 }
 
 .baseline-card {
-    padding: var(--gutter);
+    padding: var(--density-med) var(--gutter);
 }
 
 .baseline-card h2 {
-    margin: var(--density-high) 0 var(--gutter);
+    margin: var(--unit) 0 var(--density-high);
 }
 
 .baseline-card dl {

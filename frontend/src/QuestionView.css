@@ -27,17 +27,23 @@
 }
 
 .question-heading {
-    margin: 40px 0 var(--density-high);
-    font-size: var(--headline-lg-font-size);
+    margin: var(--density-med) 0 var(--unit);
+    font-size: var(--headline-md-font-size);
     line-height: var(--headline-lg-line-height);
     text-align: center;
+}
+
+.question-groups {
+    display: grid;
+    gap: var(--density-med);
+    margin-top: var(--density-med);
 }
 
 .question-group {
     border-radius: var(--radius-box);
     display: grid;
-    gap: var(--density-med);
-    margin-top: 32px;
+    gap: var(--density-high);
+    margin: 0;
 }
 
 .question-group legend {
@@ -47,17 +53,17 @@
 
 .current-spec-form {
     display: grid;
-    gap: var(--density-med);
-    margin-top: 32px;
+    gap: var(--density-high);
+    margin-top: var(--density-med);
 }
 
 .current-spec-field {
     border-radius: var(--radius-box);
     display: grid;
-    gap: var(--density-high);
+    gap: var(--unit);
     min-width: 0;
     margin: 0;
-    padding: var(--gutter);
+    padding: var(--density-high) var(--density-med);
     font-weight: 600;
 }
 
@@ -83,12 +89,19 @@
     border-radius: var(--radius-control);
     display: block;
     width: 100%;
-    min-height: 72px;
-    padding: var(--gutter);
+    min-height: 56px;
+    padding: var(--density-med) var(--gutter);
     color: var(--on-surface);
     text-align: left;
     cursor: pointer;
     transition: background-color 120ms ease-out;
+}
+
+/* 설명 없이 한 줄짜리인 선택지는 낮춰서, 질문이 둘인 화면도 한 화면에 들어오게 한다. */
+.question-option:not(:has(.question-option__description)) {
+    min-height: 44px;
+    padding-top: var(--density-high);
+    padding-bottom: var(--density-high);
 }
 
 /* 선택된 카드는 아래 aria-pressed 규칙으로 이미 검정 반전이라 미선택 상태만 다룬다. */
@@ -114,15 +127,8 @@
 
 .question-option__description {
     display: block;
-    margin-top: var(--density-high);
+    margin-top: var(--unit);
     font-size: var(--body-md-font-size);
-}
-
-.flow-actions {
-    display: grid;
-    margin-top: 40px;
-    padding-top: var(--gutter);
-    border-top: 1px solid var(--outline-variant);
 }
 
 /* 건너뛰기는 진행 수단이지만 권장 경로는 아니다. 채운 «다음»과 테두리 명도 차이로 위계만 낮춘다. */
@@ -130,4 +136,33 @@
 .button--skip {
     border-color: var(--inverse-primary);
     color: var(--on-primary-fixed-variant);
+}
+
+/* 프로세서 선택지는 이름이 길다. 칩을 조금 줄여 OS를 고른 뒤에도 칸이 길어지지 않게 한다. */
+.current-spec-field .chip {
+    min-height: 36px;
+    padding: var(--unit) var(--density-med);
+    font-size: var(--body-md-font-size);
+    text-align: left;
+}
+
+/* 선택 그룹이 여럿인 화면(현재 사양)은 넓은 화면에서 두 열로 놓는다. */
+@media (min-width: 768px) {
+    .current-spec-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    /* 질문이 둘인 화면은 나란히 놓는다. */
+    .question-groups:has(> :nth-child(2)) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+    }
+
+    /* 긴 프로세서 이름이 좁은 칸에서 여러 줄로 꺾이지 않게 전폭을 준다. */
+    .current-spec-field--wide {
+        grid-column: 1 / -1;
+    }
+
+    .current-spec-form > .choice-hint {
+        grid-column: 1 / -1;
+    }
 }
