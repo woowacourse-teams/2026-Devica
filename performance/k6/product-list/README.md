@@ -1,6 +1,16 @@
 # 상품 목록 조회 테스트
 
-`GET /api/product-categories/{categoryCode}/products` (`categoryCode`는 `LAPTOP`)
+## 테스트 정보
+
+[성능 테스트 안내](../../README.md)의 명령과 쿼리에 넣는 값이다.
+
+| 항목 | 값 |
+| --- | --- |
+| 대상 API | `GET /api/product-categories/LAPTOP/products` |
+| 테스트 폴더 (`TEST`) | `product-list` |
+| 시나리오 이름 | `product_list` |
+| 로그 조회용 경로 패턴 | `/api/product-categories/{categoryCode}/products` |
+| 스모크 시간 | 1분 |
 
 이 문서는 시나리오와 가정, 측정 전 데이터 확인을 다룬다. 돌리고 기록하는 방법은 [성능 테스트 안내](../../README.md)에, 예상 트래픽(260명)의 근거는 [기준과 근거](../../기준과_근거.md)에 있다.
 
