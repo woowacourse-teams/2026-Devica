@@ -8,7 +8,7 @@ import {
 } from '../common/measurement.js';
 import { runSession, sessionList } from './sessions.js';
 
-// 홍보 직후 10분간 약 260명 = 6초에 13세션. 세션당 평균 4요청이라 약 9 RPS
+// 홍보 직후 10분간 약 260명 = 6초에 13세션. 세션당 3요청이라 약 6.5 RPS
 const SESSIONS = 13;
 const TIME_UNIT = '6s';
 const WARMUP_SESSIONS = 130; // 워밍업 1분
