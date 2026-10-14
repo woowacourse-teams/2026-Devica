@@ -9,35 +9,17 @@
 }
 
 .product-card {
-    position: relative;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     min-width: 0;
     overflow: hidden;
-}
-
-/* 카드 어디를 눌러도 상세로 간다. 버튼은 카드 전체를 덮어 키보드 포커스와 스크린리더 대상으로 남긴다. */
-.product-card__detail::after {
-    position: absolute;
-    inset: 0;
-    content: "";
-}
-
-.product-card:has(.product-card__detail:focus-visible) {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-}
-
-.product-card:hover {
-    background: var(--surface-container-low);
 }
 
 /* 카드 이미지는 정사각형 원본을 가로형 틀에 담는다. 틀이 높이를 정하고 사진은 그 안에 맞춘다. */
 .product-card__image-frame {
     position: relative;
-    flex: 0 0 auto;
-    width: 104px;
-    border-right: 1px solid var(--on-surface);
+    aspect-ratio: 16 / 10;
+    border-bottom: 1px solid var(--on-surface);
     background: var(--surface-container-low);
 }
 
@@ -46,15 +28,17 @@
     flex: 1;
     flex-direction: column;
     justify-content: space-between;
-    gap: var(--density-high);
+    gap: var(--density-med);
     min-width: 0;
-    padding: var(--density-high) var(--density-med);
+    padding: var(--gutter);
 }
 
 .product-card__heading-row {
     display: flex;
-    flex-direction: column;
-    gap: var(--unit);
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--gutter);
 }
 
 .product-card__maker {
@@ -65,8 +49,7 @@
 
 .product-card h3 {
     margin: 0;
-    font-size: var(--body-lg-font-size);
-    line-height: 1.3;
+    font-size: var(--headline-sm-font-size);
 }
 
 .product-card__price {
@@ -76,50 +59,35 @@
 }
 
 .product-card__heading-row .product-card__price {
+    flex: 0 0 auto;
     margin: 0;
+    text-align: right;
 }
 
-/* 모바일에서는 버튼을 눈에 보이지 않게 하고 카드 전체가 눌리게 한다. */
 .product-card__action {
-    position: absolute;
-    inset: 0;
+    display: flex;
+    align-items: stretch;
+    border-top: 1px solid var(--on-surface);
+    padding: var(--gutter);
 }
 
 .product-card__detail {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    color: transparent;
-    background: transparent;
-    cursor: pointer;
+    align-self: stretch;
+    padding-right: var(--density-high);
+    padding-left: var(--density-high);
     white-space: nowrap;
 }
 
-/* 좁은 화면에서는 라벨을 감추고 값만 이어 붙여 카드 높이를 줄인다. */
+/* 좁은 화면에서 사양 3행을 세로로 쌓으면 카드가 한 화면을 넘긴다. 긴 CPU 이름만 전폭을 준다. */
 .product-card__specs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0 var(--density-high);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--density-high);
     margin: 0;
-    font-size: var(--body-sm-font-size);
 }
 
-.product-card__specs .product-spec-item {
-    border: 0;
-    padding: 0;
-}
-
-.product-card__specs .product-spec-item dt {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-}
-
-.product-card__specs .product-spec-item dd {
-    margin: 0;
-    font-size: inherit;
+.product-card__specs .product-spec-item:first-child {
+    grid-column: 1 / -1;
 }
 
 .product-list-heading {
@@ -251,70 +219,35 @@
 
 @media (min-width: 768px) {
     .product-card {
-        min-height: 120px;
-    }
-
-    .product-card__image-frame {
-        width: 160px;
-    }
-
-    .product-card__body {
-        padding: var(--density-med) var(--gutter);
-    }
-
-    .product-card__heading-row {
         flex-direction: row;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: var(--gutter);
+        /* 고정 높이로 두면 CPU 이름이 긴 제품에서 사양이 잘린다. 하한만 잡는다. */
+        min-height: 192px;
     }
 
-    .product-card__heading-row .product-card__price {
+    /* 카드가 눕는 구간에서는 높이를 카드가 정하므로 비율을 풀고 폭만 고정한다. */
+    .product-card__image-frame {
         flex: 0 0 auto;
-        text-align: right;
+        aspect-ratio: auto;
+        width: 256px;
+        border-right: 1px solid var(--on-surface);
+        border-bottom: 0;
     }
 
-    /* 데스크톱은 라벨이 있는 칸으로 되돌린다. */
+    /* 용량 칸은 "32GB"·"1TB" 라 제 폭만 쓰고, 남는 자리는 이름이 긴 CPU 가 가져간다. */
     .product-card__specs {
-        display: grid;
         grid-template-columns: minmax(0, 1fr) auto auto;
-        gap: var(--density-high);
-        font-size: inherit;
     }
 
-    .product-card__specs .product-spec-item {
-        border: 1px solid var(--outline-variant);
-        padding: var(--unit) var(--density-high);
+    .product-card__specs .product-spec-item:first-child {
+        grid-column: auto;
     }
 
-    .product-card__specs .product-spec-item dt {
-        position: static;
-        width: auto;
-        height: auto;
-        clip-path: none;
-    }
-
-    .product-card__specs .product-spec-item dd {
-        margin: 2px 0 0;
-        font-size: var(--body-md-font-size);
-    }
-
-    /* 버튼은 데스크톱에서만 눈에 보인다. 카드 전체 클릭은 그대로다. */
     .product-card__action {
-        position: static;
-        display: flex;
         flex: 0 0 auto;
         align-items: center;
-        width: 112px;
+        width: 128px;
+        border-top: 0;
         border-left: 1px solid var(--on-surface);
-        padding: var(--gutter);
-    }
-
-    .product-card__detail {
-        height: auto;
-        border: 1px solid var(--primary);
-        color: var(--on-primary);
-        background: var(--primary);
     }
 
     .product-list-heading {

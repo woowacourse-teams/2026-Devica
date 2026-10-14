@@ -80,16 +80,18 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
         ) : (
           <>
             {single === null && <p className="choice-hint">{HINT}</p>}
-            {screen.questions.map(({ question, label }) => (
-              <QuestionGroup
-                key={question.code}
-                question={question}
-                label={label}
-                chosen={answers[question.code] ?? []}
-                onAnswer={onAnswer}
-                onPick={single === null ? undefined : (optionCode) => answerAndAdvance(single, optionCode)}
-              />
-            ))}
+            <div className="question-groups">
+              {screen.questions.map(({ question, label }) => (
+                <QuestionGroup
+                  key={question.code}
+                  question={question}
+                  label={label}
+                  chosen={answers[question.code] ?? []}
+                  onAnswer={onAnswer}
+                  onPick={single === null ? undefined : (optionCode) => answerAndAdvance(single, optionCode)}
+                />
+              ))}
+            </div>
           </>
         )}
       </div>

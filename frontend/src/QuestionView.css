@@ -33,11 +33,17 @@
     text-align: center;
 }
 
+.question-groups {
+    display: grid;
+    gap: var(--density-med);
+    margin-top: var(--density-med);
+}
+
 .question-group {
     border-radius: var(--radius-box);
     display: grid;
     gap: var(--density-high);
-    margin-top: var(--density-med);
+    margin: 0;
 }
 
 .question-group legend {
@@ -91,6 +97,13 @@
     transition: background-color 120ms ease-out;
 }
 
+/* 설명 없이 한 줄짜리인 선택지는 낮춰서, 질문이 둘인 화면도 한 화면에 들어오게 한다. */
+.question-option:not(:has(.question-option__description)) {
+    min-height: 44px;
+    padding-top: var(--density-high);
+    padding-bottom: var(--density-high);
+}
+
 /* 선택된 카드는 아래 aria-pressed 규칙으로 이미 검정 반전이라 미선택 상태만 다룬다. */
 .question-option:hover:not([aria-pressed="true"]) {
     background: var(--inverse-primary);
@@ -138,6 +151,12 @@
     .current-spec-form {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+    /* 질문이 둘인 화면은 나란히 놓는다. */
+    .question-groups:has(> :nth-child(2)) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+    }
+
     /* 긴 프로세서 이름이 좁은 칸에서 여러 줄로 꺾이지 않게 전폭을 준다. */
     .current-spec-field--wide {
         grid-column: 1 / -1;

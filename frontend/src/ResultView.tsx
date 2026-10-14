@@ -83,8 +83,9 @@ function SpecCard({ spec }: { spec: Spec }) {
           <section className="bordered-panel spec-row" key={code} data-os={osValueOf(spec)}>
             <span className="spec-row__label">{label}</span>
             <strong className="spec-row__value">{item.displayValue}</strong>
-            {/* 근거는 기본으로 접어 둔다. 한 항목에 조건이 여럿 걸리면 근거도 여럿이라 줄을 나눠 적는다. */}
-            {item.reasons.length > 0 && (
+            {/* 근거가 한 줄이면 그대로 보여주고, 여럿이면 기본으로 접어 둔다. 한 항목에 조건이 여럿 걸리면 근거도 여럿이다. */}
+            {item.reasons.length === 1 && <p className="spec-row__reason">{item.reasons[0]}</p>}
+            {item.reasons.length > 1 && (
               <details className="spec-row__details">
                 <summary>근거 보기</summary>
                 {item.reasons.map((reason) => (
