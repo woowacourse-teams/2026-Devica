@@ -125,11 +125,24 @@
     color: var(--on-primary-fixed-variant);
 }
 
+/* 프로세서 선택지는 이름이 길다. 칩을 조금 줄여 OS를 고른 뒤에도 칸이 길어지지 않게 한다. */
+.current-spec-field .chip {
+    min-height: 36px;
+    padding: var(--unit) var(--density-med);
+    font-size: var(--body-md-font-size);
+    text-align: left;
+}
+
 /* 선택 그룹이 여럿인 화면(현재 사양)은 넓은 화면에서 두 열로 놓는다. */
 @media (min-width: 768px) {
     .current-spec-form {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+    /* 긴 프로세서 이름이 좁은 칸에서 여러 줄로 꺾이지 않게 전폭을 준다. */
+    .current-spec-field--wide {
+        grid-column: 1 / -1;
+    }
+
     .current-spec-form > .choice-hint {
         grid-column: 1 / -1;
     }

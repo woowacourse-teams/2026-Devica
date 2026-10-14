@@ -119,7 +119,9 @@ function CurrentSpecFields({ screen, answers, onAnswer }: Pick<Props, 'answers' 
     <>
       {screen.questions.map(({ question, label }, order) => (
         <Fragment key={question.code}>
-          <fieldset className="current-spec-field">
+          <fieldset
+            className={`current-spec-field${question.code.endsWith('_CPU') ? ' current-spec-field--wide' : ''}`}
+          >
             <legend>{label}</legend>
             <ChoiceGroup
               choices={question.options.map((option) => ({ value: option.code, label: option.content }))}
@@ -129,7 +131,7 @@ function CurrentSpecFields({ screen, answers, onAnswer }: Pick<Props, 'answers' 
           </fieldset>
           {/* 프로세서는 OS 다음 자리다. 고르기 전이라 선택지가 없어도 자리는 지킨다. */}
           {order === 0 && !hasCpu && (
-            <fieldset className="current-spec-field">
+            <fieldset className="current-spec-field current-spec-field--wide">
               <legend>PROCESSOR</legend>
               <p className="choice-notice">OS를 먼저 선택해 주세요</p>
             </fieldset>
