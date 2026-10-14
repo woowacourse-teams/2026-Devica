@@ -1,4 +1,4 @@
-// 워밍업 길이는 첫 측정의 1분 단위 p95 추이를 보고 확정한다
+// 워밍업 1분은 2026-10-14 첫 측정에서 확정했다(performance/README.md의 측정 진행)
 const WARMUP = '1m';
 const MEASURE = '10m';
 
