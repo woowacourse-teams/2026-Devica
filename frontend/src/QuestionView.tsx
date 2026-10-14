@@ -95,7 +95,7 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
       </div>
 
       {single === null && (
-        <div className="flow-actions">
+        <div className="sticky-actions">
           <button
             className={`button ${skippable ? 'button--skip' : 'button--primary'}`}
             id="next-button"

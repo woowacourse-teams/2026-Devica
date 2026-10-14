@@ -26,7 +26,14 @@
 }
 
 .spec-row {
-    padding: var(--gutter);
+    padding: var(--density-med);
+}
+
+.spec-row__details summary {
+    margin-top: var(--density-high);
+    color: var(--on-surface-variant);
+    font-size: var(--body-sm-font-size);
+    cursor: pointer;
 }
 
 /* 사양 카드 안의 데이터 칸은 외곽 카드의 곡률을 반복하지 않는다. */
@@ -35,7 +42,7 @@
 }
 
 .spec-card .spec-row + .spec-row {
-    margin-top: var(--density-med);
+    margin-top: var(--density-high);
 }
 
 .spec-row__value {

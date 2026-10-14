@@ -12,7 +12,7 @@
 }
 
 .chip {
-    min-height: 44px;
+    min-height: 40px;
     margin: var(--density-high) var(--unit) 0 0;
     border: 1px solid var(--on-surface);
     border-radius: var(--radius-control);

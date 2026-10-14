@@ -74,24 +74,26 @@ export function IntroView({
         </p>
       )}
 
-      <button
-        className="button button--primary button--wide"
-        id="start-button"
-        type="button"
-        disabled={unavailable || !canStart}
-        onClick={onStart}
-      >
-        {questionsLoading ? '질문을 불러오는 중…' : '내 개발 환경에 맞게 조정하기'}
-      </button>
-      <button
-        className="button button--neutral button--wide"
-        id="baseline-product-button"
-        type="button"
-        disabled={unavailable}
-        onClick={onBaseline}
-      >
-        기본 권장 사양으로 제품 보기
-      </button>
+      <div className="sticky-actions">
+        <button
+          className="button button--primary button--wide"
+          id="start-button"
+          type="button"
+          disabled={unavailable || !canStart}
+          onClick={onStart}
+        >
+          {questionsLoading ? '질문을 불러오는 중…' : '내 개발 환경에 맞게 조정하기'}
+        </button>
+        <button
+          className="button button--neutral button--wide"
+          id="baseline-product-button"
+          type="button"
+          disabled={unavailable}
+          onClick={onBaseline}
+        >
+          기본 권장 사양으로 제품 보기
+        </button>
+      </div>
     </section>
   );
 }
