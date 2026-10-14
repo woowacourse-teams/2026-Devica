@@ -121,7 +121,10 @@
 
 조건에 걸리는 상품 수가 바뀌면 같은 요청이라도 DB가 하는 일이 달라져, 개선 전후를 비교할 수 없다. 그래서 측정 전에 대상 DB에서 아래 쿼리를 실행하고 기준 결과와 비교한다.
 
-조건은 목록 API와 같다. CPU 등급은 그 등급의 최소 점수 이상, 메모리와 스토리지는 이상으로 찾는다. 최소 점수는 `CpuTier.java`에서 옮겨 적었으므로, 점수가 바뀌면 쿼리도 함께 고친다.
+쿼리는 두 화면의 데이터를 따로 확인한다.
+
+- **맞춤 목록**: 추천 조합마다 걸리는 노트북 수. 조건은 목록 API와 같다. CPU 등급은 그 등급의 최소 점수 이상, 메모리와 스토리지는 이상으로 찾는다. 최소 점수는 `CpuTier.java`에서 옮겨 적었으므로, 점수가 바뀌면 쿼리도 함께 고친다.
+- **전체 목록**: 필터 없이 읽는 노트북 전체와, 최저가를 구하려고 조인하는 판매 중인 오퍼 수. 추천 조합에 들지 않는 노트북(예: 최소 점수에 못 미치는 CPU)도 전체 목록에는 들어가므로 따로 센다.
 
 ```sql
 WITH cpu_memory (os, cpu_tier, min_score, memory_gb) AS (
@@ -151,7 +154,13 @@ matched AS (
 SELECT COUNT(*) AS combos,
        MIN(products) AS min_products,
        SUM(products) AS total_products,
-       SUM(products <= 20) AS combos_without_page_2
+       SUM(products <= 20) AS combos_without_page_2,
+       (SELECT COUNT(*) FROM laptop l JOIN cpu ON cpu.id = l.cpu_id) AS all_laptops,
+       (SELECT COUNT(*)
+        FROM product_offer o
+        JOIN laptop l ON l.id = o.product_id
+        JOIN cpu ON cpu.id = l.cpu_id
+        WHERE o.status = 'ON_SALE') AS on_sale_offers
 FROM matched;
 ```
 
@@ -159,15 +168,15 @@ FROM matched;
 
 Flyway 기본 데이터에 [제품 적재 SQL](../../data/seed-products.sql)을 기본값으로 한 번 실행한 상태의 결과다.
 
-| combos | min_products | total_products | combos_without_page_2 |
-| --- | --- | --- | --- |
-| 51 | 269 | 134,602 | 0 |
+| combos | min_products | total_products | combos_without_page_2 | all_laptops | on_sale_offers |
+| --- | --- | --- | --- | --- | --- |
+| 51 | 269 | 134,602 | 0 | 20,020 | 60,020 |
 
 | 결과 | 판단 |
 | --- | --- |
-| 네 값이 모두 기준과 같다 | 측정을 진행한다 |
+| 여섯 값이 모두 기준과 같다 | 측정을 진행한다 |
 | `combos_without_page_2`가 0이 아니다 | 그 조합에서 `page=1`의 `hasNext`가 `false`가 되어 형식 검사가 실패하고, 회차가 무효가 된다. 데이터를 확인한다 |
-| `min_products`나 `total_products`가 다르다 | 데이터가 바뀐 것이다. 개선 전후 비교에 쓰지 않는다 |
+| `min_products`, `total_products`, `all_laptops`, `on_sale_offers` 중 하나라도 다르다 | 데이터가 바뀐 것이다. 개선 전후 비교에 쓰지 않는다 |
 
 ## 로컬에서 스크립트 확인
 
