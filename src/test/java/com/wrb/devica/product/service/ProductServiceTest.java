@@ -16,7 +16,6 @@ import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
 import com.wrb.devica.product.domain.Cpu;
 import com.wrb.devica.product.domain.Laptop;
 import com.wrb.devica.product.dto.PageCondition;
-import com.wrb.devica.product.dto.ProductSummaryResponse;
 import com.wrb.devica.product.repository.CpuRepository;
 import com.wrb.devica.product.repository.LaptopRepository;
 import jakarta.persistence.EntityManager;
@@ -26,13 +25,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.Slice;
 
 @JpaSliceTest
 @Import({ProductService.class, ProductImageUrlResolver.class, ProductOfferService.class})
 class ProductServiceTest {
-
-    private static final String CATEGORY = "LAPTOP";
 
     @Autowired
     private ProductCategoryRepository productCategoryRepository;
@@ -102,13 +98,6 @@ class ProductServiceTest {
 
         // then
         assertThat(Hibernate.isInitialized(found.getCpu())).isTrue();
-    }
-
-    private Slice<ProductSummaryResponse> findLaptops() {
-        entityManager.flush();
-        entityManager.clear();
-        return productService.findProductsByCategory(CATEGORY,
-            condition().build(), new PageCondition(0, 10, null));
     }
 
     private Cpu saveCpu() {
