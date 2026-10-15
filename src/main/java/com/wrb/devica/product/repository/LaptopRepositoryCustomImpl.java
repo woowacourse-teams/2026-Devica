@@ -2,14 +2,12 @@ package com.wrb.devica.product.repository;
 
 import static com.wrb.devica.product.domain.QCpu.cpu;
 import static com.wrb.devica.product.domain.QLaptop.laptop;
-import static com.wrb.devica.product.domain.QProductOffer.productOffer;
+import static com.wrb.devica.product.domain.QProductMinPrice.productMinPrice;
 
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.wrb.devica.product.domain.CpuTier;
-import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.dto.LaptopSearchCondition;
 import com.wrb.devica.product.dto.ProductSummaryRow;
@@ -42,7 +40,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
                 laptop.brand,
                 laptop.name,
                 laptop.imageKey,
-                productOffer.price.min(),
+                productMinPrice.minPrice,
                 laptop.os,
                 cpu.name,
                 laptop.memoryGb,
@@ -50,20 +48,14 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             ))
             .from(laptop)
             .join(laptop.cpu, cpu)
-            .leftJoin(productOffer).on(
-                productOffer.productId.eq(laptop.id),
-                productOffer.status.eq(OfferStatus.ON_SALE)
-            )
+            .leftJoin(productMinPrice).on(productMinPrice.productId.eq(laptop.id))
             .where(
                 osEq(condition.os()),
                 cpuTierAtLeast(condition.cpuTier()),
                 memoryGbGoe(condition.memoryGb()),
                 storageGbGoe(condition.storageGb()),
                 keywordContains(condition.keyword()),
-                brandEq(condition.brand())
-            )
-            .groupBy(laptop.id, cpu.id)
-            .having(
+                brandEq(condition.brand()),
                 minPriceGoe(condition.minPrice()),
                 minPriceLoe(condition.maxPrice())
             )
@@ -103,11 +95,10 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             return List.of();
         }
 
-        NumberExpression<Long> minPrice = productOffer.price.min();
         return switch (sort) {
             case RECOMMENDED -> recommendedOrders();
-            case PRICE_ASC -> List.of(minPrice.asc().nullsLast());
-            case PRICE_DESC -> List.of(minPrice.desc().nullsLast());
+            case PRICE_ASC -> List.of(productMinPrice.minPrice.asc().nullsLast());
+            case PRICE_DESC -> List.of(productMinPrice.minPrice.desc().nullsLast());
         };
     }
 
@@ -119,14 +110,14 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
         if (minPrice == null) {
             return null;
         }
-        return productOffer.price.min().goe(minPrice);
+        return productMinPrice.minPrice.goe(minPrice);
     }
 
     private BooleanExpression minPriceLoe(Long maxPrice) {
         if (maxPrice == null) {
             return null;
         }
-        return productOffer.price.min().loe(maxPrice);
+        return productMinPrice.minPrice.loe(maxPrice);
     }
 
     private BooleanExpression keywordContains(String keyword) {

@@ -12,6 +12,7 @@ import com.wrb.devica.category.domain.ProductCategory;
 import com.wrb.devica.category.domain.ProductCategoryCode;
 import com.wrb.devica.category.repository.ProductCategoryRepository;
 import com.wrb.devica.common.E2ETest;
+import com.wrb.devica.common.MinPriceRefresher;
 import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
 import com.wrb.devica.product.domain.Cpu;
 import com.wrb.devica.product.domain.CpuTier;
@@ -26,7 +27,9 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 
+@Import(MinPriceRefresher.class)
 class LaptopE2ETest extends E2ETest {
 
     private static final String PATH = "/api/product-categories/LAPTOP/products";
@@ -42,6 +45,9 @@ class LaptopE2ETest extends E2ETest {
 
     @Autowired
     private ProductOfferRepository productOfferRepository;
+
+    @Autowired
+    private MinPriceRefresher minPriceRefresher;
 
     private ProductCategory category;
 
@@ -334,6 +340,7 @@ class LaptopE2ETest extends E2ETest {
 
     private void addOnSaleOffer(Product product, long price) {
         productOfferRepository.save(onSaleOffer(product, price));
+        minPriceRefresher.refresh(product.getId());
     }
 
     // 사양 조건 테스트가 등급 하한을 넘겨야 하므로 기본 CPU 를 H 등급 이상으로 둔다
@@ -357,6 +364,7 @@ class LaptopE2ETest extends E2ETest {
     private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, long price) {
         Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
         productOfferRepository.save(onSaleOffer(laptop, price));
+        minPriceRefresher.refresh(laptop.getId());
         return laptop;
     }
 
