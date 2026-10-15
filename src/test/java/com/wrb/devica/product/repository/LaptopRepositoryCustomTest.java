@@ -12,6 +12,7 @@ import com.wrb.devica.category.domain.ProductCategory;
 import com.wrb.devica.category.domain.ProductCategoryCode;
 import com.wrb.devica.category.repository.ProductCategoryRepository;
 import com.wrb.devica.common.JpaSliceTest;
+import com.wrb.devica.common.MinPriceRefresher;
 import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
 import com.wrb.devica.product.domain.Cpu;
 import com.wrb.devica.product.domain.CpuTier;
@@ -30,10 +31,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 
 @JpaSliceTest
+@Import(MinPriceRefresher.class)
 class LaptopRepositoryCustomTest {
 
     private static final long DEFAULT_PRICE = 1_000_000L;
@@ -46,6 +49,9 @@ class LaptopRepositoryCustomTest {
 
     @Autowired
     private ProductOfferRepository productOfferRepository;
+
+    @Autowired
+    private MinPriceRefresher minPriceRefresher;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -192,22 +198,6 @@ class LaptopRepositoryCustomTest {
     }
 
     @Test
-    void 가격_조건은_판매_중인_오퍼의_최저가를_기준으로_한다() {
-        // given
-        Laptop laptop = laptopOf(laptop().name("노트북"));
-        productOfferRepository.save(offer().product(laptop).price(3_000_000L).status(OfferStatus.ON_SALE).build());
-        productOfferRepository.save(offer().product(laptop).price(2_000_000L).status(OfferStatus.ON_SALE).build());
-        productOfferRepository.save(offer().product(laptop).price(1_000_000L).status(OfferStatus.SOLD_OUT).build());
-
-        // when
-        Slice<ProductSummaryRow> found = findLaptops(
-            condition().maxPrice(1_500_000L).build());
-
-        // then
-        assertThat(found.getContent()).isEmpty();
-    }
-
-    @Test
     void 조건을_여러_개_지정할_때_조회하면_모두_만족하는_것만_반환한다() {
         // given
         int enough = CpuTier.BASIC.getMinScore();
@@ -279,6 +269,7 @@ class LaptopRepositoryCustomTest {
         productOfferRepository.save(offer().product(soldOut).price(1_000_000L).status(OfferStatus.SOLD_OUT).build());
         productOfferRepository.save(
             offer().product(soldOut).price(1_000_000L).status(OfferStatus.DISCONTINUED).build());
+        minPriceRefresher.refresh(soldOut.getId());
 
         // when
         Slice<ProductSummaryRow> found = findLaptops(0, 10);
@@ -333,23 +324,6 @@ class LaptopRepositoryCustomTest {
 
         // then
         assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("비쌈", "중간", "쌈");
-    }
-
-    @Test
-    void 가격순은_판매_중인_오퍼의_최저가를_기준으로_한다() {
-        // given
-        Laptop soldOutCheaper = laptopOf(laptop().name("품절이더쌈"));
-        productOfferRepository.save(
-            offer().product(soldOutCheaper).price(3_000_000L).status(OfferStatus.ON_SALE).build());
-        productOfferRepository.save(
-            offer().product(soldOutCheaper).price(500_000L).status(OfferStatus.SOLD_OUT).build());
-        onSaleLaptop(laptop().name("판매중"), 2_000_000L);
-
-        // when
-        Slice<ProductSummaryRow> found = findLaptops(SortType.PRICE_ASC);
-
-        // then
-        assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("판매중", "품절이더쌈");
     }
 
     @Test
@@ -448,6 +422,7 @@ class LaptopRepositoryCustomTest {
     private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, long price) {
         Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
         productOfferRepository.save(onSaleOffer(laptop, price));
+        minPriceRefresher.refresh(laptop.getId());
         return laptop;
     }
 

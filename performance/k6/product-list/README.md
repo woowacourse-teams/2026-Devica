@@ -124,7 +124,7 @@
 쿼리는 두 화면의 데이터를 따로 확인한다.
 
 - **맞춤 목록**: 추천 조합마다 걸리는 노트북 수. 조건은 목록 API와 같다. CPU 등급은 그 등급의 최소 점수 이상, 메모리와 스토리지는 이상으로 찾는다. 최소 점수는 `CpuTier.java`에서 옮겨 적었으므로, 점수가 바뀌면 쿼리도 함께 고친다.
-- **전체 목록**: 필터 없이 읽는 노트북 전체와, 최저가를 구하려고 조인하는 판매 중인 오퍼 수. 추천 조합에 들지 않는 노트북(예: 최소 점수에 못 미치는 CPU)도 전체 목록에는 들어가므로 따로 센다.
+- **전체 목록**: 필터 없이 읽는 노트북 전체와, 최저가의 원본인 판매 중인 오퍼 수. 추천 조합에 들지 않는 노트북(예: 최소 점수에 못 미치는 CPU)도 전체 목록에는 들어가므로 따로 센다.
 
 ```sql
 WITH cpu_memory (os, cpu_tier, min_score, memory_gb) AS (
@@ -177,6 +177,35 @@ Flyway 기본 데이터에 [제품 적재 SQL](../../data/seed-products.sql)을 
 | 여섯 값이 모두 기준과 같다 | 측정을 진행한다 |
 | `combos_without_page_2`가 0이 아니다 | 그 조합에서 `page=1`의 `hasNext`가 `false`가 되어 형식 검사가 실패하고, 회차가 무효가 된다. 데이터를 확인한다 |
 | `min_products`, `total_products`, `all_laptops`, `on_sale_offers` 중 하나라도 다르다 | 데이터가 바뀐 것이다. 개선 전후 비교에 쓰지 않는다 |
+
+### 최저가 확인
+
+제품 목록은 오퍼 대신 미리 계산한 최저가(`product_min_price`)를 읽는다([ADR 0043](../../../docs/adr/0043-제품-목록-최저가-사전-계산.md)). 오퍼로 다시 계산한 값과 저장된 값이 다르거나, 판매 중인 오퍼가 없는데 최저가가 남은 제품 수를 센다. `product_min_price`가 없는 서버 커밋에서는 실행하지 않는다.
+
+```sql
+SELECT
+  (SELECT COUNT(*)
+   FROM (
+     SELECT product_id, MIN(price) AS min_price
+     FROM product_offer
+     WHERE status = 'ON_SALE'
+     GROUP BY product_id
+   ) expected
+   LEFT JOIN product_min_price saved USING (product_id)
+   WHERE NOT (saved.min_price <=> expected.min_price))
+  +
+  (SELECT COUNT(*)
+   FROM product_min_price saved
+   WHERE NOT EXISTS (
+     SELECT 1 FROM product_offer o
+     WHERE o.product_id = saved.product_id AND o.status = 'ON_SALE'
+   )) AS min_price_mismatches;
+```
+
+| 결과 | 판단 |
+| --- | --- |
+| `min_price_mismatches`가 0이다 | 측정을 진행한다 |
+| 0이 아니다 | 저장된 최저가가 판매처와 어긋난 것이다. 목록이 틀린 가격으로 거르고 정렬하므로 측정하지 않고 원인을 확인한다 |
 
 ## 로컬에서 스크립트 확인
 
