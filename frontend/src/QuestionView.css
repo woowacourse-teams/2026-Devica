@@ -167,24 +167,74 @@
     }
 }
 
-/* 캡처로 채우기. 아래 "다음" 버튼보다 눈에 덜 띄게 테두리만 둔다. */
+/* 캡처로 채우기. 아래 칸과 구분되도록 점선 테두리와 옅은 배경을 둔다. */
 .spec-capture {
+    border-radius: var(--radius-box);
+    border: 1px dashed var(--outline);
     display: grid;
-    gap: var(--unit);
-    justify-items: start;
+    gap: var(--density-med);
+    padding: var(--density-med) var(--gutter);
+    background: var(--surface-container-low);
+}
+
+.spec-capture__title {
+    margin: 0 0 var(--unit);
+    font-size: var(--body-lg-font-size);
+}
+
+.spec-capture__description {
+    margin: 0 0 var(--density-high);
+    color: var(--on-surface-variant);
+    font-size: var(--body-md-font-size);
+}
+
+.spec-capture__screens {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--unit) var(--density-med);
+    margin: 0;
+    font-size: var(--body-md-font-size);
+}
+
+.spec-capture__screens dt {
+    font-weight: 600;
+}
+
+.spec-capture__screens dd {
+    margin: 0;
 }
 
 .spec-capture__button {
-    color: var(--on-surface);
-    background: var(--surface-container-lowest);
+    width: 100%;
 }
 
-.spec-capture__button:hover:not(:disabled) {
-    background: var(--surface-container);
+.spec-capture__status {
+    margin: 0;
+    font-size: var(--body-md-font-size);
+    font-weight: 600;
+}
+
+.spec-capture__status:empty {
+    display: none;
 }
 
 @media (min-width: 768px) {
+    /* 설명 오른쪽에 버튼을 둔다. 결과 안내는 아래 줄 전체를 쓴다. */
+    .spec-capture {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        column-gap: var(--gutter);
+    }
+
     .current-spec-form > .spec-capture {
+        grid-column: 1 / -1;
+    }
+
+    .spec-capture__button {
+        width: auto;
+    }
+
+    .spec-capture__status {
         grid-column: 1 / -1;
     }
 }

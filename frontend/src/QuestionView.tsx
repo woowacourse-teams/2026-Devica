@@ -149,9 +149,6 @@ function CurrentSpecFields({ screen, answers, onAnswer }: Pick<Props, 'answers' 
 
 type CaptureStatus = 'idle' | 'reading' | 'failed' | { filled: number };
 
-const CAPTURE_GUIDE =
-  'Mac은 설정 > 일반 > 정보, Windows는 설정 > 시스템 > 정보 화면을 캡처해 올리면 아래 칸을 채웁니다.';
-
 // 시스템 정보 캡처를 읽어 현재 사양을 채운다 (#229). 읽는 데 10초 넘게 걸려 그동안 다시 올리지 못하게 막는다.
 function SpecCaptureUpload({ onAnswers }: Pick<Props, 'onAnswers'>) {
   const input = useRef<HTMLInputElement>(null);
@@ -189,14 +186,29 @@ function SpecCaptureUpload({ onAnswers }: Pick<Props, 'onAnswers'>) {
 
   const reading = status === 'reading';
   return (
-    <div className="spec-capture">
+    <section className="spec-capture" aria-labelledby="spec-capture-title">
+      <div className="spec-capture__text">
+        <h3 className="spec-capture__title" id="spec-capture-title">
+          캡처 한 장으로 자동 채우기
+        </h3>
+        <p className="spec-capture__description">
+          사양을 잘 모르겠다면 아래 화면을 캡처해 올려 주세요. 읽은 값으로 칸을 채웁니다. 캡처는 이 기기 밖으로 보내지
+          않습니다.
+        </p>
+        <dl className="spec-capture__screens">
+          <dt>Mac</dt>
+          <dd>설정 › 일반 › 정보</dd>
+          <dt>Windows</dt>
+          <dd>설정 › 시스템 › 정보</dd>
+        </dl>
+      </div>
       <button
-        className="button spec-capture__button"
+        className="button button--neutral spec-capture__button"
         type="button"
         disabled={reading}
         onClick={() => input.current?.click()}
       >
-        {reading ? '캡처 읽는 중…' : '시스템 정보 캡처로 채우기'}
+        {reading ? '캡처 읽는 중…' : '캡처 올리기'}
       </button>
       <input
         ref={input}
@@ -212,18 +224,19 @@ function SpecCaptureUpload({ onAnswers }: Pick<Props, 'onAnswers'>) {
           }
         }}
       />
-      <p className="choice-hint" role="status">
+      <p className="spec-capture__status" role="status">
         {captureMessage(status)}
       </p>
-    </div>
+    </section>
   );
 }
 
+// 처음에는 비워 둔다. 안내는 위 설명이 맡고, 이 줄은 읽은 결과만 알린다.
 function captureMessage(status: CaptureStatus): string {
-  if (status === 'idle') return CAPTURE_GUIDE;
+  if (status === 'idle') return '';
   if (status === 'reading') return '캡처를 읽고 있습니다. 10초쯤 걸립니다.';
   if (status === 'failed') return '캡처를 읽지 못했습니다. 다른 캡처를 올리거나 직접 선택해 주세요.';
-  if (status.filled === 0) return '사양을 찾지 못했습니다. 정보 화면 캡처인지 확인하거나 직접 선택해 주세요.';
+  if (status.filled === 0) return '사양을 찾지 못했습니다. 위 화면의 캡처인지 확인하거나 직접 선택해 주세요.';
   return `${status.filled}개 항목을 채웠습니다. 맞는지 확인해 주세요.`;
 }
 
