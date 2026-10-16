@@ -1,6 +1,7 @@
-import { Fragment, useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { ChoiceGroup } from './ChoiceGroup';
 import type { Answers, Question, Screen } from './questions';
+import { readSpecImage, SPEC_CODES } from './specFromImage';
 import './QuestionView.css';
 
 const HINT = '선택한 항목을 한 번 더 누르면 해제됩니다.';
@@ -12,11 +13,12 @@ type Props = {
   index: number;
   answers: Answers;
   onAnswer: (code: string, values: string[]) => void;
+  onAnswers: (changes: Answers) => void;
   onPrevious: () => void;
   onNext: () => void;
 };
 
-export function QuestionView({ screens, index, answers, onAnswer, onPrevious, onNext }: Props) {
+export function QuestionView({ screens, index, answers, onAnswer, onAnswers, onPrevious, onNext }: Props) {
   const timer = useRef<number | undefined>(undefined);
   // 타이머가 울릴 때는 방금 고른 답이 반영된 onNext 를 불러야 한다.
   const latestNext = useRef(onNext);
@@ -74,6 +76,7 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
 
         {screen.currentSpec ? (
           <div className="current-spec-form">
+            <SpecCaptureUpload onAnswers={onAnswers} />
             <p className="choice-hint">{HINT}</p>
             <CurrentSpecFields screen={screen} answers={answers} onAnswer={onAnswer} />
           </div>
@@ -142,6 +145,99 @@ function CurrentSpecFields({ screen, answers, onAnswer }: Pick<Props, 'answers' 
       ))}
     </>
   );
+}
+
+type CaptureStatus = 'idle' | 'reading' | 'failed' | { filled: number };
+
+// 시스템 정보 캡처를 읽어 현재 사양을 채운다 (#229). 읽는 데 10초 넘게 걸려 그동안 다시 올리지 못하게 막는다.
+function SpecCaptureUpload({ onAnswers }: Pick<Props, 'onAnswers'>) {
+  const input = useRef<HTMLInputElement>(null);
+  const [status, setStatus] = useState<CaptureStatus>('idle');
+  // 읽는 동안 화면을 떠나면 결과를 버린다. 남은 답이 다른 화면에서 고른 값을 덮지 않게 한다.
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  // 기다리는 사이 답이 바뀌었을 수 있다. 결과는 그때의 onAnswers 로 넣는다.
+  const latestAnswers = useRef(onAnswers);
+  useEffect(() => {
+    latestAnswers.current = onAnswers;
+  });
+
+  const read = async (file: File) => {
+    setStatus('reading');
+    try {
+      const found = await readSpecImage(file);
+      if (!alive.current) {
+        return;
+      }
+      // 못 읽은 칸은 비운다. 이전 캡처나 직접 고른 값이 남으면 이번 캡처에서 읽은 값으로 오해한다.
+      latestAnswers.current(Object.fromEntries(SPEC_CODES.map((code) => [code, found[code] ?? []])));
+      setStatus({ filled: Object.keys(found).length });
+    } catch {
+      if (alive.current) {
+        setStatus('failed');
+      }
+    }
+  };
+
+  const reading = status === 'reading';
+  return (
+    <section className="spec-capture" aria-labelledby="spec-capture-title">
+      <div className="spec-capture__text">
+        <h3 className="spec-capture__title" id="spec-capture-title">
+          캡처 한 장으로 자동 채우기
+        </h3>
+        <p className="spec-capture__description">
+          사양을 잘 모르겠다면 아래 화면을 캡처해 올려 주세요. 읽은 값으로 칸을 채웁니다. 캡처는 이 기기 밖으로 보내지
+          않습니다.
+        </p>
+        <dl className="spec-capture__screens">
+          <dt>Mac</dt>
+          <dd>설정 › 일반 › 정보</dd>
+          <dt>Windows</dt>
+          <dd>설정 › 시스템 › 정보</dd>
+        </dl>
+      </div>
+      <button
+        className="button button--neutral spec-capture__button"
+        type="button"
+        disabled={reading}
+        onClick={() => input.current?.click()}
+      >
+        {reading ? '캡처 읽는 중…' : '캡처 올리기'}
+      </button>
+      <input
+        ref={input}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          // 같은 파일을 다시 골라도 change 가 일어나게 비운다.
+          event.target.value = '';
+          if (file !== undefined) {
+            read(file);
+          }
+        }}
+      />
+      <p className="spec-capture__status" role="status">
+        {captureMessage(status)}
+      </p>
+    </section>
+  );
+}
+
+// 처음에는 비워 둔다. 안내는 위 설명이 맡고, 이 줄은 읽은 결과만 알린다.
+function captureMessage(status: CaptureStatus): string {
+  if (status === 'idle') return '';
+  if (status === 'reading') return '캡처를 읽고 있습니다. 10초쯤 걸립니다.';
+  if (status === 'failed') return '캡처를 읽지 못했습니다. 다른 캡처를 올리거나 직접 선택해 주세요.';
+  if (status.filled === 0) return '사양을 찾지 못했습니다. 위 화면의 캡처인지 확인하거나 직접 선택해 주세요.';
+  return `${status.filled}개 항목을 채웠습니다. 맞는지 확인해 주세요.`;
 }
 
 type GroupProps = {
