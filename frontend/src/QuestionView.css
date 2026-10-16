@@ -166,3 +166,25 @@
         grid-column: 1 / -1;
     }
 }
+
+/* 캡처로 채우기. 아래 "다음" 버튼보다 눈에 덜 띄게 테두리만 둔다. */
+.spec-capture {
+    display: grid;
+    gap: var(--unit);
+    justify-items: start;
+}
+
+.spec-capture__button {
+    color: var(--on-surface);
+    background: var(--surface-container-lowest);
+}
+
+.spec-capture__button:hover:not(:disabled) {
+    background: var(--surface-container);
+}
+
+@media (min-width: 768px) {
+    .current-spec-form > .spec-capture {
+        grid-column: 1 / -1;
+    }
+}

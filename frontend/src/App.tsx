@@ -303,12 +303,14 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
     );
   }
 
-  const answer = (code: string, values: string[]) => {
+  // 캡처로 현재 사양을 채울 때처럼 여러 답을 한 번에 바꾼다. 하나씩 바꾸면 앞에서 바꾼 답을 다음 호출이 모른다.
+  const answerAll = (changes: Answers) => {
     // 답이 바뀌면 딸린 질문이 사라질 수 있다. 사라진 질문의 답은 함께 지운다.
-    const next = pruneHiddenAnswers(questions.data ?? [], { ...answers, [code]: values });
+    const next = pruneHiddenAnswers(questions.data ?? [], { ...answers, ...changes });
     setAnswers(next);
     saveAnswers(purpose, next);
   };
+  const answer = (code: string, values: string[]) => answerAll({ [code]: values });
 
   const goPrevious = () => {
     if (number === 1) {
@@ -333,6 +335,7 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
       index={number - 1}
       answers={answers}
       onAnswer={answer}
+      onAnswers={answerAll}
       onPrevious={goPrevious}
       onNext={goNext}
     />
