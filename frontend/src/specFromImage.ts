@@ -1,8 +1,8 @@
 // 시스템 정보 캡처를 OCR 로 읽어 현재 사양 질문의 답 코드로 바꾼다.
 import type { Answers } from './questions';
 
-// 한국어 모델은 한글 키워드는 잘 읽지만 "16GB"·"1TB" 를 "1668"·"118" 로 읽는다. 영어 모델은 그 반대다.
-// 두 번 읽어 같은 줄끼리 이어 붙인다. 줄 나누기는 두 모델이 같다.
+// 한국어+영어 설정은 한글 항목 이름은 잘 읽지만 "16GB"·"1TB" 를 "1668"·"118" 로 읽는다. 영어 설정은 그 반대다.
+// 두 설정으로 한 번씩 읽어 같은 줄끼리 이어 붙인다. 줄 나누기는 두 설정이 같다.
 export async function readSpecImage(file: File): Promise<Answers> {
   const { recognize } = await import('tesseract.js');
   const image = await upscale(file);
