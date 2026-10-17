@@ -343,7 +343,7 @@ class LaptopRepositoryCustomTest {
     }
 
     @ParameterizedTest
-    @EnumSource(SortType.class)
+    @EnumSource(value = SortType.class, names = {"RECOMMENDED", "PRICE_ASC"})
     void 정렬_기준을_지정할_때_정렬_값이_같으면_id_오름차순으로_반환한다(SortType sort) {
         // given
         onSaleLaptop(laptop().name("먼저"), 1_000_000L);
@@ -354,6 +354,44 @@ class LaptopRepositoryCustomTest {
 
         // then
         assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("먼저", "나중");
+    }
+
+    // 최저가 인덱스를 거꾸로 읽기 때문에 같은 가격 안에서도 id 를 거꾸로 읽는다
+    @Test
+    void 가격_높은_순으로_조회할_때_최저가가_같으면_id_내림차순으로_반환한다() {
+        // given
+        onSaleLaptop(laptop().name("먼저"), 1_000_000L);
+        onSaleLaptop(laptop().name("나중"), 1_000_000L);
+
+        // when
+        Slice<ProductSummaryRow> found = findLaptops(SortType.PRICE_DESC);
+
+        // then
+        assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("나중", "먼저");
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = SortType.class, names = {"PRICE_ASC", "PRICE_DESC"})
+    void 가격순으로_페이지를_넘기면_최저가가_있는_노트북_뒤에_없는_노트북이_이어진다(SortType sort) {
+        // given
+        onSaleLaptop(laptop().name("판매중1"), 1_000_000L);
+        onSaleLaptop(laptop().name("판매중2"), 1_000_000L);
+        onSaleLaptop(laptop().name("판매중3"), 1_000_000L);
+        laptopOf(laptop().name("오퍼없음1"));
+        laptopOf(laptop().name("오퍼없음2"));
+
+        // when
+        Slice<ProductSummaryRow> first = findLaptops(condition().build(), sort, 0, 2);
+        Slice<ProductSummaryRow> boundary = findLaptops(condition().build(), sort, 1, 2);
+        Slice<ProductSummaryRow> last = findLaptops(condition().build(), sort, 2, 2);
+
+        // then
+        assertThat(first.getContent()).extracting(ProductSummaryRow::minPrice).doesNotContainNull();
+        assertThat(first.hasNext()).isTrue();
+        assertThat(boundary.getContent()).extracting(ProductSummaryRow::name).last().isEqualTo("오퍼없음1");
+        assertThat(boundary.hasNext()).isTrue();
+        assertThat(last.getContent()).extracting(ProductSummaryRow::name).containsExactly("오퍼없음2");
+        assertThat(last.hasNext()).isFalse();
     }
 
     @ParameterizedTest
