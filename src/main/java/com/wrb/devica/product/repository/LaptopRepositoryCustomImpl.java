@@ -64,15 +64,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
 
     private List<ProductSummaryRow> findSortedPageByPrice(LaptopSearchCondition condition,
                                                           SortType sort, long offset, int limit) {
-        List<ProductSummaryRow> priced = selectSummary()
-            .from(productMinPrice)
-            .join(laptop).on(laptop.id.eq(productMinPrice.productId))
-            .join(laptop.cpu, cpu)
-            .where(conditions(condition))
-            .orderBy(orders(sort))
-            .offset(offset)
-            .limit(limit)
-            .fetch();
+        List<ProductSummaryRow> priced = findPriced(condition, sort, offset, limit);
 
         if (priced.size() == limit || hasPriceCondition(condition)) {
             return priced;
@@ -84,20 +76,35 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             unpricedOffset = offset - countPriced(condition);
         }
 
-        List<ProductSummaryRow> unpriced = selectSummary()
+        List<ProductSummaryRow> found = new ArrayList<>(priced);
+        found.addAll(findUnpriced(condition, unpricedOffset, limit - priced.size()));
+        return found;
+    }
+
+    private List<ProductSummaryRow> findPriced(LaptopSearchCondition condition,
+                                               SortType sort, long offset, int limit) {
+        return selectSummary()
+            .from(productMinPrice)
+            .join(laptop).on(laptop.id.eq(productMinPrice.productId))
+            .join(laptop.cpu, cpu)
+            .where(conditions(condition))
+            .orderBy(orders(sort))
+            .offset(offset)
+            .limit(limit)
+            .fetch();
+    }
+
+    private List<ProductSummaryRow> findUnpriced(LaptopSearchCondition condition, long offset, int limit) {
+        return selectSummary()
             .from(laptop)
             .join(laptop.cpu, cpu)
             .leftJoin(productMinPrice).on(productMinPrice.productId.eq(laptop.id))
             .where(conditions(condition))
             .where(productMinPrice.productId.isNull())
             .orderBy(laptop.id.asc())
-            .offset(unpricedOffset)
-            .limit(limit - priced.size())
+            .offset(offset)
+            .limit(limit)
             .fetch();
-
-        List<ProductSummaryRow> found = new ArrayList<>(priced);
-        found.addAll(unpriced);
-        return found;
     }
 
     private long countPriced(LaptopSearchCondition condition) {
