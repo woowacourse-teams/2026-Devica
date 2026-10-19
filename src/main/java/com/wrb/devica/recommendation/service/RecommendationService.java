@@ -1,13 +1,13 @@
 package com.wrb.devica.recommendation.service;
 
 import com.wrb.devica.purpose.domain.UsagePurposeCode;
-import com.wrb.devica.recommendation.definition.RecommendationDefinition;
-import com.wrb.devica.recommendation.definition.RecommendationDefinitions;
+import com.wrb.devica.recommendation.domain.RecommendationDefinition;
+import com.wrb.devica.recommendation.domain.RecommendationDefinitions;
 import com.wrb.devica.recommendation.domain.RecommendedSpec;
-import com.wrb.devica.recommendation.judgement.Judgement;
-import com.wrb.devica.recommendation.judgement.Requirements;
-import com.wrb.devica.recommendation.laptop.BackendDevelopmentRecommender;
-import com.wrb.devica.recommendation.survey.SurveyResponse;
+import com.wrb.devica.recommendation.domain.Judgement;
+import com.wrb.devica.recommendation.domain.Requirements;
+import com.wrb.devica.recommendation.domain.BackendDevelopmentRecommender;
+import com.wrb.devica.recommendation.domain.SurveyResponse;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;

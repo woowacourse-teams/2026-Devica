@@ -1,10 +1,10 @@
 package com.wrb.devica.common.config;
 
 import com.wrb.devica.purpose.domain.UsagePurposeCode;
-import com.wrb.devica.recommendation.definition.RecommendationDefinition;
-import com.wrb.devica.recommendation.definition.RecommendationDefinitions;
-import com.wrb.devica.recommendation.laptop.LaptopCondition;
-import com.wrb.devica.recommendation.laptop.LaptopRequirement;
+import com.wrb.devica.recommendation.domain.RecommendationDefinition;
+import com.wrb.devica.recommendation.domain.RecommendationDefinitions;
+import com.wrb.devica.recommendation.domain.LaptopCondition;
+import com.wrb.devica.recommendation.domain.LaptopRequirement;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;

@@ -1,4 +1,4 @@
-package com.wrb.devica.recommendation.survey;
+package com.wrb.devica.recommendation.domain;
 
 import java.util.HashMap;
 import java.util.List;

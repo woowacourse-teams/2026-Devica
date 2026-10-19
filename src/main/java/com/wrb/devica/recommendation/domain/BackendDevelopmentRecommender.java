@@ -1,11 +1,9 @@
-package com.wrb.devica.recommendation.laptop;
+package com.wrb.devica.recommendation.domain;
 
 import com.wrb.devica.product.domain.CpuTier;
 import com.wrb.devica.product.domain.LaptopSpec;
 import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.domain.StorageSize;
-import com.wrb.devica.recommendation.domain.RecommendedSpec;
-import com.wrb.devica.recommendation.judgement.Requirements;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

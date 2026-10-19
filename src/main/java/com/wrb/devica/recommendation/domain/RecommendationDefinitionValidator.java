@@ -1,11 +1,6 @@
-package com.wrb.devica.recommendation.definition;
+package com.wrb.devica.recommendation.domain;
 
-import com.wrb.devica.recommendation.judgement.ConditionMapping;
-import com.wrb.devica.recommendation.judgement.Rule;
-import com.wrb.devica.recommendation.survey.Condition;
-import com.wrb.devica.recommendation.survey.Condition.Selected;
-import com.wrb.devica.recommendation.survey.Option;
-import com.wrb.devica.recommendation.survey.Question;
+import com.wrb.devica.recommendation.domain.Condition.Selected;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;

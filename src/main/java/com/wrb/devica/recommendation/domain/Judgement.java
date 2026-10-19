@@ -1,6 +1,5 @@
-package com.wrb.devica.recommendation.judgement;
+package com.wrb.devica.recommendation.domain;
 
-import com.wrb.devica.recommendation.survey.SurveyResponse;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

@@ -1,4 +1,4 @@
-package com.wrb.devica.recommendation.survey;
+package com.wrb.devica.recommendation.domain;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;

@@ -1,11 +1,11 @@
-package com.wrb.devica.recommendation.survey;
+package com.wrb.devica.recommendation.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.wrb.devica.common.exception.BusinessErrorCode;
 import com.wrb.devica.common.exception.BusinessException;
-import com.wrb.devica.recommendation.survey.Condition.Selected;
+import com.wrb.devica.recommendation.domain.Condition.Selected;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;

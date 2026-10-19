@@ -1,4 +1,4 @@
-package com.wrb.devica.recommendation.definition;
+package com.wrb.devica.recommendation.domain;
 
 import com.wrb.devica.purpose.domain.UsagePurposeCode;
 import java.util.ArrayList;

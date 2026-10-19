@@ -1,11 +1,11 @@
-package com.wrb.devica.recommendation.survey;
+package com.wrb.devica.recommendation.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.wrb.devica.recommendation.survey.Condition.All;
-import com.wrb.devica.recommendation.survey.Condition.Any;
-import com.wrb.devica.recommendation.survey.Condition.Not;
-import com.wrb.devica.recommendation.survey.Condition.Selected;
+import com.wrb.devica.recommendation.domain.Condition.All;
+import com.wrb.devica.recommendation.domain.Condition.Any;
+import com.wrb.devica.recommendation.domain.Condition.Not;
+import com.wrb.devica.recommendation.domain.Condition.Selected;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

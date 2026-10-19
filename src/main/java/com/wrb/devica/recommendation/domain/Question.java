@@ -1,8 +1,8 @@
-package com.wrb.devica.recommendation.survey;
+package com.wrb.devica.recommendation.domain;
 
 import com.wrb.devica.common.exception.BusinessErrorCode;
 import com.wrb.devica.common.exception.BusinessException;
-import com.wrb.devica.recommendation.survey.Condition.Selected;
+import com.wrb.devica.recommendation.domain.Condition.Selected;
 import java.util.List;
 
 public record Question(

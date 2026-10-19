@@ -1,4 +1,4 @@
-package com.wrb.devica.recommendation.definition;
+package com.wrb.devica.recommendation.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -1,4 +1,4 @@
-package com.wrb.devica.recommendation.laptop;
+package com.wrb.devica.recommendation.domain;
 
 import com.wrb.devica.product.domain.CpuTier;
 import com.wrb.devica.product.domain.Os;

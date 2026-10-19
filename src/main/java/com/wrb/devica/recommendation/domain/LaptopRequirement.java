@@ -1,4 +1,4 @@
-package com.wrb.devica.recommendation.laptop;
+package com.wrb.devica.recommendation.domain;
 
 public enum LaptopRequirement {
 

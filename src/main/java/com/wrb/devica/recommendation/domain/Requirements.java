@@ -1,4 +1,4 @@
-package com.wrb.devica.recommendation.judgement;
+package com.wrb.devica.recommendation.domain;
 
 import java.util.List;
 import java.util.Map;

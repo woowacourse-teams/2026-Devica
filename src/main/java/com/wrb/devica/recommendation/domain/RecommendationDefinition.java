@@ -1,8 +1,5 @@
-package com.wrb.devica.recommendation.definition;
+package com.wrb.devica.recommendation.domain;
 
-import com.wrb.devica.recommendation.judgement.ConditionMapping;
-import com.wrb.devica.recommendation.judgement.Rule;
-import com.wrb.devica.recommendation.survey.Survey;
 import java.io.InputStream;
 import java.util.List;
 import org.yaml.snakeyaml.Yaml;
