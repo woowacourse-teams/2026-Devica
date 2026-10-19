@@ -64,6 +64,19 @@ class SurveyResponseTest {
     }
 
     @Test
+    void 선택지를_보내지_않은_질문은_답하지_않은_것으로_본다() {
+        // given
+        Survey survey = surveyOf(question("OS", null, "MAC", "WINDOWS"));
+        Map<String, List<String>> params = Map.of("OS", List.of());
+
+        // when
+        SurveyResponse response = SurveyResponse.from(params, survey);
+
+        // then
+        assertThat(response.answers()).isEmpty();
+    }
+
+    @Test
     void 설문에_없는_질문이면_예외가_발생한다() {
         // given
         Survey survey = surveyOf(question("OS", null, "MAC", "WINDOWS"));
