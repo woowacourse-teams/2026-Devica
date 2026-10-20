@@ -49,15 +49,21 @@ record RecommendationDefinitionValidator(Set<String> requirements, Map<String, S
 
     private void validateMapping(ConditionMapping mapping, Map<String, Question> questions, List<String> errors) {
         String where = "조건 연결 " + mapping.criterion() + "=" + mapping.value();
+        validateMappingValue(mapping, where, errors);
+        validateCondition(mapping.when(), questions, where, errors);
+    }
+
+    private void validateMappingValue(ConditionMapping mapping, String where, List<String> errors) {
         Set<String> values = conditions.get(mapping.criterion());
 
         if (values == null) {
             errors.add(where + ": 없는 조건 항목입니다");
-        } else if (!values.contains(mapping.value())) {
-            errors.add(where + ": 항목이 가질 수 없는 값입니다");
+            return;
         }
 
-        validateCondition(mapping.when(), questions, where, errors);
+        if (!values.contains(mapping.value())) {
+            errors.add(where + ": 항목이 가질 수 없는 값입니다");
+        }
     }
 
     private void validateQuestion(Question question, Map<String, Question> before, List<String> errors) {
