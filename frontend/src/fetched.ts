@@ -4,6 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // 실패한 요청은 남기지 않아 다시 시도할 수 있다.
 const received = new Map<string, unknown>();
 
+/** 받아 둔 응답을 버린다. 다음에 같은 key 로 부르면 다시 요청한다. */
+export function forget(key: string) {
+  received.delete(key);
+}
+
 type Attempt<T> = {
   key: string;
   data: T | null;

@@ -6,7 +6,7 @@ import { BoardPage } from './BoardPage';
 import { BoardPostPage } from './BoardPostView';
 import { CategoryCards } from './CategoryCards';
 import { FaqView } from './FaqView';
-import { useFetched } from './fetched';
+import { forget, useFetched } from './fetched';
 import { IntroView } from './IntroView';
 import { LandingPage } from './LandingPage';
 import { ProductDetailView } from './ProductDetailView';
@@ -205,9 +205,11 @@ function PurposePage({ params }: PageProps) {
   );
 }
 
+const surveyKeyOf = (purpose: string) => `survey:${purpose}`;
+
 // 설문은 사용 목적마다 다르다. 기본 권장 사양 화면과 질문 화면이 같은 응답을 쓴다.
 function useSurvey(purpose: string | null) {
-  return useFetched(purpose === null ? null : `survey:${purpose}`, () => fetchSurvey(purpose ?? ''));
+  return useFetched(purpose === null ? null : surveyKeyOf(purpose), () => fetchSurvey(purpose ?? ''));
 }
 
 // 질문 중의 답은 주소에 담지 않는다. 문항마다 주소에 복사해 두면 앞으로 가기로 바꾸기 전 답이 되살아난다.
@@ -374,17 +376,26 @@ type RecommendationStatusProps = {
   onRetry: () => void;
   // 답을 다시 받으러 보낼 설문 시작 화면이다.
   restartTo: string;
+  // 다시 시작할 때 낡은 설문을 버릴 사용 목적이다.
+  purpose: string;
 };
 
-function RecommendationStatus({ failed, error, onRetry, restartTo }: RecommendationStatusProps) {
-  // 다시 시도해도 같은 답이라 또 거부된다. 설문을 처음부터 다시 하게 한다.
+function RecommendationStatus({ failed, error, onRetry, restartTo, purpose }: RecommendationStatusProps) {
+  // 다시 시도해도 같은 답이라 또 거부된다. 설문을 처음부터 다시 하게 한다. 받아 둔 설문이 낡았으니 최신으로 다시 받는다.
   if (error instanceof OutdatedAnswersError) {
     return (
       <section className="view-panel" aria-live="polite">
         <p className="notice" role="alert">
           질문이 바뀌어 다시 답해야 해요.
         </p>
-        <button className="button button--primary button--wide" type="button" onClick={() => go(restartTo)}>
+        <button
+          className="button button--primary button--wide"
+          type="button"
+          onClick={() => {
+            forget(surveyKeyOf(purpose));
+            go(restartTo);
+          }}
+        >
           설문 다시 시작
         </button>
       </section>
@@ -431,6 +442,7 @@ function ResultPage({ params }: PageProps) {
         error={recommendation.error}
         onRetry={recommendation.retry}
         restartTo={`${PATHS.intro}${query(flowEntries(flowOf(params)))}`}
+        purpose={purpose}
       />
     );
   }
@@ -507,9 +519,9 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
   const recommendation = useRecommendation(params);
   const specs = recommendation.data ?? [];
   const { state, onChangeState, navState } = useListState(search, 'RECOMMENDED', matchedOsOf(params, specs));
-  const { category } = flowOf(params);
+  const { category, purpose } = flowOf(params);
 
-  if (category === null || flowOf(params).purpose === null) {
+  if (category === null || purpose === null) {
     return <NotFound />;
   }
   if (recommendation.data === null) {
@@ -519,6 +531,7 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
         error={recommendation.error}
         onRetry={recommendation.retry}
         restartTo={`${PATHS.intro}${query(flowEntries(flowOf(params)))}`}
+        purpose={purpose}
       />
     );
   }
