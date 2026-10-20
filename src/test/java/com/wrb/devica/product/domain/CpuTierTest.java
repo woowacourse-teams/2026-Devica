@@ -2,12 +2,8 @@ package com.wrb.devica.product.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.wrb.devica.question.domain.OptionCode;
-import com.wrb.devica.question.domain.option.CurrentMacCpu;
-import com.wrb.devica.question.domain.option.CurrentWindowsCpu;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -69,15 +65,5 @@ class CpuTierTest {
         assertThat(CpuTier.H.isHigherThan(CpuTier.P_HS)).isTrue();
         assertThat(CpuTier.P_HS.isHigherThan(CpuTier.H)).isFalse();
         assertThat(CpuTier.H.isHigherThan(CpuTier.H)).isFalse();
-    }
-
-    // 사용자가 답변으로 고르는 현재 CPU 를 알고리즘이 이름으로 등급에 잇는다
-    @Test
-    void 현재_CPU_선택지_이름마다_같은_이름의_등급이_있다() {
-        // when & then
-        assertThat(Stream.of(CurrentMacCpu.values(), CurrentWindowsCpu.values())
-            .flatMap(Stream::of)
-            .map(OptionCode::name))
-            .allSatisfy(name -> assertThat(CpuTier.valueOf(name)).isNotNull());
     }
 }

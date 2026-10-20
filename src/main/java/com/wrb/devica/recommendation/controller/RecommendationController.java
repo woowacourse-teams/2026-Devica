@@ -20,10 +20,6 @@ public class RecommendationController {
 
     private final RecommendationService recommendationService;
 
-    /**
-     * 답변을 파라미터로 받아 조정한 권장 사양. 답변이 없으면 조정 전 기본 권장 사양이다.
-     * 답변 유무는 같은 자원의 다른 상태일 뿐이라 경로도 메서드도 나누지 않는다.
-     */
     @GetMapping
     public ResponseEntity<RecommendationResponse> recommend(
         @PathVariable String purposeCode,
