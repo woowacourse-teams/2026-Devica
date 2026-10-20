@@ -25,9 +25,17 @@ class SurveyE2ETest extends E2ETest {
             .body("steps[0].questions[1].label", is("PROCESSOR"))
             .body("steps[0].questions[1].showWhen.question", is("CURRENT_OS"))
             .body("steps[0].questions[1].showWhen.anyOf", contains("MACOS"))
+            .body("steps[2].title", nullValue())
+            .body("steps[2].layout", nullValue())
+            .body("steps[2].questions[0].title", is("주로 다루는 언어는 무엇인가요?"))
+            .body("steps[2].questions[0].description", is("여러 개를 선택할 수 있어요."))
             .body("steps[2].questions[0].input", is("MULTI"))
             .body("steps[2].questions[0].exclusive", is("UNDECIDED"))
+            .body("steps[2].questions[0].options[0].code", is("JAVA_FAMILY"))
+            .body("steps[2].questions[0].options[0].content", is("Java, Kotlin, C# 등"))
             .body("steps[3].title", is("개발 도구를 알려주세요"))
-            .body("steps[3].questions.code", contains("IDE", "AI_CODING_TOOL"));
+            .body("steps[3].questions.code", contains("IDE", "AI_CODING_TOOL"))
+            .body("steps[3].questions[0].input", is("SINGLE"))
+            .body("steps[3].questions[0].exclusive", nullValue());
     }
 }
