@@ -16,6 +16,7 @@
 }
 
 .board-scope {
+    border-radius: var(--radius-box);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -71,7 +72,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--gutter);
-    padding: 24px var(--density-high);
+    padding: var(--density-med) var(--density-high);
     text-decoration: none;
 }
 
@@ -89,7 +90,7 @@
     display: flex;
     min-width: 0;
     flex-direction: column;
-    gap: var(--density-high);
+    gap: var(--unit);
 }
 
 .board-list__title {
@@ -155,7 +156,7 @@
 .board-form {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: var(--gutter);
     margin-top: var(--gutter);
 }
 
@@ -174,7 +175,7 @@
 .board-field textarea {
     width: 100%;
     border: 1px solid var(--outline);
-    border-radius: 0;
+    border-radius: var(--radius-control);
     padding: var(--gutter);
     color: var(--on-surface);
     background: var(--surface-container-lowest);
@@ -183,7 +184,7 @@
 }
 
 .board-field textarea {
-    min-height: 240px;
+    min-height: 140px;
     resize: vertical;
 }
 

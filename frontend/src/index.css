@@ -39,6 +39,13 @@ p {
     margin-top: 0;
 }
 
+/* 조사가 다음 줄로 떨어지지 않게 단어 단위로 줄바꿈한다. */
+h1,
+h2,
+h3 {
+    word-break: keep-all;
+}
+
 h1 {
     margin-bottom: 0;
     font-size: calc(var(--display-font-size) * 0.8);

@@ -1,6 +1,7 @@
 /* 백엔드 연동 점검 화면 전용. 지금은 App 에서 렌더하지 않는다. */
 
 .panel {
+    border-radius: var(--radius-box);
     max-width: 720px;
     margin: 0 auto;
     border: 1px solid var(--on-surface);
@@ -63,6 +64,7 @@
 }
 
 .check__badge {
+    border-radius: var(--radius-detail);
     padding: 2px var(--density-high);
     border: 1px solid var(--on-surface);
     font-size: var(--body-sm-font-size);

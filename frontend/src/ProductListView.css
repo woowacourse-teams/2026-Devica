@@ -105,6 +105,7 @@
 }
 
 .product-list-control {
+    border-radius: var(--radius-control);
     display: flex;
     align-items: center;
     gap: var(--density-high);
@@ -138,6 +139,10 @@
     white-space: nowrap;
 }
 
+.product-list-os {
+    margin-top: var(--gutter);
+}
+
 .product-filter-panel {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -151,6 +156,7 @@
 }
 
 .product-filter {
+    border-radius: var(--radius-control);
     display: flex;
     flex-direction: column;
     gap: var(--unit);
@@ -188,18 +194,13 @@
     cursor: not-allowed;
 }
 
-.product-list-caption {
-    margin: var(--density-med) 0 0;
-    color: var(--on-surface-variant);
-    font-size: var(--body-sm-font-size);
-}
-
 .product-list-status {
     margin: 0;
     color: var(--on-surface-variant);
 }
 
 .empty-result {
+    border-radius: var(--radius-box);
     display: grid;
     justify-items: start;
     gap: var(--density-med);
