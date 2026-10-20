@@ -43,7 +43,7 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
   // 단일 선택 질문 하나뿐인 화면은 고르는 순간 답이 정해지므로 바로 넘어간다 (#177).
   // 선택지를 고르는 것이 유일한 진행 수단이라 아래 버튼을 두지 않는다 (#181). 이미 고른 선택지를 눌러도 그 답으로 넘어간다.
   const single =
-    !screen.currentSpec && screen.questions.length === 1 && screen.questions[0].question.inputType === 'SINGLE'
+    !screen.currentSpec && screen.questions.length === 1 && screen.questions[0].question.input === 'SINGLE'
       ? screen.questions[0].question.code
       : null;
   const answerAndAdvance = (code: string, optionCode: string) => {
@@ -154,10 +154,10 @@ type GroupProps = {
 };
 
 function QuestionGroup({ question, label, chosen, onAnswer, onPick }: GroupProps) {
-  const exclusiveCode = question.options.find((option) => option.exclusive)?.code ?? null;
+  const exclusiveCode = question.exclusive;
 
   const toggle = (optionCode: string) => {
-    if (question.inputType === 'SINGLE') {
+    if (question.input === 'SINGLE') {
       onAnswer(question.code, chosen.includes(optionCode) ? [] : [optionCode]);
       return;
     }

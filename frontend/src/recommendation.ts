@@ -20,6 +20,19 @@ type RecommendationResponse = {
   specs: Spec[];
 };
 
+// 질문이나 선택지가 바뀌어 주소에 담긴 답을 서버가 받지 않는다. 콘텐츠가 바뀌기 전의 결과 링크에서 생긴다.
+export class OutdatedAnswersError extends Error {}
+
+const OUTDATED_ANSWER_CODES = ['QUESTION_NOT_FOUND', 'ANSWER_NOT_ALLOWED'];
+
+async function errorOf(response: Response): Promise<Error> {
+  const body: { code?: string } | null = await response.json().catch(() => null);
+  if (body?.code !== undefined && OUTDATED_ANSWER_CODES.includes(body.code)) {
+    return new OutdatedAnswersError(body.code);
+  }
+  return new Error(`권장 사양을 불러오지 못했습니다 (${response.status})`);
+}
+
 /** 답을 주지 않으면 조정 전 기본 권장 사양이 온다. 경로가 같아 화면마다 나누지 않는다. */
 export async function fetchRecommendation(purposeCode: string, query = ''): Promise<Spec[]> {
   const suffix = query === '' ? '' : `?${query}`;
@@ -27,7 +40,7 @@ export async function fetchRecommendation(purposeCode: string, query = ''): Prom
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
-    throw new Error(`권장 사양을 불러오지 못했습니다 (${response.status})`);
+    throw await errorOf(response);
   }
 
   const body: RecommendationResponse = await response.json();
