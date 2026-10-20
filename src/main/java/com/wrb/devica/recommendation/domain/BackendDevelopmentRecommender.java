@@ -11,6 +11,11 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Component;
 
+/**
+ * 점수를 사양으로 바꾸고, 결과 화면의 근거 문장 일부를 직접 만든다. 이 문장들은 BACKEND_DEVELOPMENT.yml 머리 주석에
+ * 모아 두었으니 문장을 더하거나 고치면 그 목록도 함께 고친다. 문장이나 보정을 바꾸면 RecommendationServiceTest 의
+ * 스냅숏을 다시 만든다.
+ */
 @Component
 public class BackendDevelopmentRecommender {
 
