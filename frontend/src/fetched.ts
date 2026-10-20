@@ -4,16 +4,24 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // 실패한 요청은 남기지 않아 다시 시도할 수 있다.
 const received = new Map<string, unknown>();
 
+/** 받아 둔 응답을 버린다. 다음에 같은 key 로 부르면 다시 요청한다. */
+export function forget(key: string) {
+  received.delete(key);
+}
+
 type Attempt<T> = {
   key: string;
   data: T | null;
   failed: boolean;
+  error: unknown;
 };
 
 export type Fetched<T> = {
   // 아직 받지 못한 상태(null)를 빈 응답과 구분한다.
   data: T | null;
   failed: boolean;
+  // 실패했을 때 받은 오류다. 실패 종류에 따라 안내를 다르게 할 때 쓴다.
+  error: unknown;
   retry: () => void;
 };
 
@@ -29,17 +37,17 @@ export function useFetched<T>(key: string | null, fetcher: () => Promise<T>): Fe
       return;
     }
     let stale = false;
-    setAttempt({ key, data: null, failed: false });
+    setAttempt({ key, data: null, failed: false, error: null });
     fetcher()
       .then((data) => {
         received.set(key, data);
         if (!stale) {
-          setAttempt({ key, data, failed: false });
+          setAttempt({ key, data, failed: false, error: null });
         }
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (!stale) {
-          setAttempt({ key, data: null, failed: true });
+          setAttempt({ key, data: null, failed: true, error });
         }
       });
     return () => {
@@ -52,6 +60,7 @@ export function useFetched<T>(key: string | null, fetcher: () => Promise<T>): Fe
   return {
     data: cached ?? current?.data ?? null,
     failed: cached === null && (current?.failed ?? false),
+    error: cached === null ? (current?.error ?? null) : null,
     retry: () => setRound((previous) => previous + 1),
   };
 }

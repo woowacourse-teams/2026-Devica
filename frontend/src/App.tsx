@@ -6,16 +6,16 @@ import { BoardPage } from './BoardPage';
 import { BoardPostPage } from './BoardPostView';
 import { CategoryCards } from './CategoryCards';
 import { FaqView } from './FaqView';
-import { useFetched } from './fetched';
+import { forget, useFetched } from './fetched';
 import { IntroView } from './IntroView';
 import { LandingPage } from './LandingPage';
 import { ProductDetailView } from './ProductDetailView';
 import { type ProductListState, ProductListView } from './ProductListView';
 import type { SearchCondition, SortType } from './products';
 import { QuestionView } from './QuestionView';
-import { type Answers, fetchQuestions, pruneHiddenAnswers, resolveScreens, toSearchParams } from './questions';
+import { type Answers, fetchSurvey, pruneHiddenAnswers, resolveScreens, toSearchParams } from './questions';
 import { type ResultOs, ResultView } from './ResultView';
-import { fetchRecommendation, osValueOf, preferredOsOf, type Spec } from './recommendation';
+import { fetchRecommendation, OutdatedAnswersError, osValueOf, preferredOsOf, type Spec } from './recommendation';
 import {
   answerEntries,
   answersOf,
@@ -205,9 +205,11 @@ function PurposePage({ params }: PageProps) {
   );
 }
 
-// 질문은 사용 목적마다 다르다. 기본 권장 사양 화면과 질문 화면이 같은 응답을 쓴다.
-function useQuestions(purpose: string | null) {
-  return useFetched(purpose === null ? null : `questions:${purpose}`, () => fetchQuestions(purpose ?? ''));
+const surveyKeyOf = (purpose: string) => `survey:${purpose}`;
+
+// 설문은 사용 목적마다 다르다. 기본 권장 사양 화면과 질문 화면이 같은 응답을 쓴다.
+function useSurvey(purpose: string | null) {
+  return useFetched(purpose === null ? null : surveyKeyOf(purpose), () => fetchSurvey(purpose ?? ''));
 }
 
 // 질문 중의 답은 주소에 담지 않는다. 문항마다 주소에 복사해 두면 앞으로 가기로 바꾸기 전 답이 되살아난다.
@@ -236,11 +238,11 @@ function saveAnswers(purpose: string, answers: Answers): void {
 
 function IntroPage({ params, search }: PageProps & { search: string }) {
   const { category, purpose } = flowOf(params);
-  const questions = useQuestions(purpose);
+  const survey = useSurvey(purpose);
   if (category === null || purpose === null) {
     return <NotFound />;
   }
-  const screens = resolveScreens(questions.data ?? [], {});
+  const screens = resolveScreens(survey.data ?? { steps: [] }, {});
   return (
     <IntroView
       purposeCode={purpose}
@@ -251,8 +253,8 @@ function IntroPage({ params, search }: PageProps & { search: string }) {
         go(`/questions/1${search}`);
       }}
       canStart={screens.length > 0}
-      questionsFailed={questions.failed}
-      questionsLoading={questions.data === null && !questions.failed}
+      questionsFailed={survey.failed}
+      questionsLoading={survey.data === null && !survey.failed}
       // 답을 비워 보내면 조정 전 기본 권장 사양이 온다. 원본도 답을 무시하고 기본으로 되돌린다.
       onBaseline={() => {
         saveAnswers(purpose, {});
@@ -265,7 +267,7 @@ function IntroPage({ params, search }: PageProps & { search: string }) {
 function QuestionPage({ params, step }: PageProps & { step: string }) {
   const flow = flowOf(params);
   const { purpose } = flow;
-  const questions = useQuestions(purpose);
+  const survey = useSurvey(purpose);
   const [answers, setAnswers] = useState<Answers>(() => (purpose === null ? {} : loadAnswers(purpose)));
   const number = positiveOf(step);
   const suffix = query(flowEntries(flow));
@@ -273,7 +275,7 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
   if (flow.category === null || purpose === null || number === null) {
     return <NotFound />;
   }
-  if (questions.failed) {
+  if (survey.failed) {
     return (
       <section className="view-panel">
         <p className="notice" role="alert">
@@ -282,7 +284,7 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
       </section>
     );
   }
-  if (questions.data === null) {
+  if (survey.data === null) {
     return (
       <section className="view-panel">
         <p className="section-description">질문을 불러오는 중입니다…</p>
@@ -290,7 +292,7 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
     );
   }
 
-  const screens = resolveScreens(questions.data, answers);
+  const screens = resolveScreens(survey.data, answers);
   // 답이 바뀌어 문항이 줄었거나 없는 번호로 들어왔으면 남은 마지막 문항으로 보낸다.
   // 옮긴 칸의 바로 앞 칸은 이전 문항이 아닐 수 있다. from 을 지워 "이전"이 기록을 되돌리지 않고 이전 문항으로 가게 한다.
   if (number > screens.length && screens.length > 0) {
@@ -305,7 +307,7 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
 
   const answer = (code: string, values: string[]) => {
     // 답이 바뀌면 딸린 질문이 사라질 수 있다. 사라진 질문의 답은 함께 지운다.
-    const next = pruneHiddenAnswers(questions.data ?? [], { ...answers, [code]: values });
+    const next = pruneHiddenAnswers(survey.data ?? { steps: [] }, { ...answers, [code]: values });
     setAnswers(next);
     saveAnswers(purpose, next);
   };
@@ -368,7 +370,37 @@ function withOs(condition: SearchCondition, defaultOs: string | null): SearchCon
   return condition.os === null ? { ...condition, os: defaultOs } : condition;
 }
 
-function RecommendationStatus({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
+type RecommendationStatusProps = {
+  failed: boolean;
+  error: unknown;
+  onRetry: () => void;
+  // 답을 다시 받으러 보낼 설문 시작 화면이다.
+  restartTo: string;
+  // 다시 시작할 때 낡은 설문을 버릴 사용 목적이다.
+  purpose: string;
+};
+
+function RecommendationStatus({ failed, error, onRetry, restartTo, purpose }: RecommendationStatusProps) {
+  // 다시 시도해도 같은 답이라 또 거부된다. 설문을 처음부터 다시 하게 한다. 받아 둔 설문이 낡았으니 최신으로 다시 받는다.
+  if (error instanceof OutdatedAnswersError) {
+    return (
+      <section className="view-panel" aria-live="polite">
+        <p className="notice" role="alert">
+          질문이 바뀌어 다시 답해야 해요.
+        </p>
+        <button
+          className="button button--primary button--wide"
+          type="button"
+          onClick={() => {
+            forget(surveyKeyOf(purpose));
+            go(restartTo);
+          }}
+        >
+          설문 다시 시작
+        </button>
+      </section>
+    );
+  }
   return (
     <section className="view-panel" aria-live="polite">
       {failed ? (
@@ -404,7 +436,15 @@ function ResultPage({ params }: PageProps) {
     return <NotFound />;
   }
   if (specs === null) {
-    return <RecommendationStatus failed={recommendation.failed} onRetry={recommendation.retry} />;
+    return (
+      <RecommendationStatus
+        failed={recommendation.failed}
+        error={recommendation.error}
+        onRetry={recommendation.retry}
+        restartTo={`${PATHS.intro}${query(flowEntries(flowOf(params)))}`}
+        purpose={purpose}
+      />
+    );
   }
   const os = resultOsOf(params, specs);
   const withOs = (next: ResultOs) => {
@@ -479,13 +519,21 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
   const recommendation = useRecommendation(params);
   const specs = recommendation.data ?? [];
   const { state, onChangeState, navState } = useListState(search, 'RECOMMENDED', matchedOsOf(params, specs));
-  const { category } = flowOf(params);
+  const { category, purpose } = flowOf(params);
 
-  if (category === null || flowOf(params).purpose === null) {
+  if (category === null || purpose === null) {
     return <NotFound />;
   }
   if (recommendation.data === null) {
-    return <RecommendationStatus failed={recommendation.failed} onRetry={recommendation.retry} />;
+    return (
+      <RecommendationStatus
+        failed={recommendation.failed}
+        error={recommendation.error}
+        onRetry={recommendation.retry}
+        restartTo={`${PATHS.intro}${query(flowEntries(flowOf(params)))}`}
+        purpose={purpose}
+      />
+    );
   }
 
   // 앱 밖에서 바로 들어왔으면 이 목록의 권장 사양 화면으로 보낸다. 목록 조건은 권장 사양과 상관없어 뺀다.

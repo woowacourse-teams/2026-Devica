@@ -1,12 +1,13 @@
 package com.wrb.devica.recommendation.service;
 
 import com.wrb.devica.purpose.domain.UsagePurposeCode;
+import com.wrb.devica.recommendation.domain.BackendDevelopmentRecommender;
+import com.wrb.devica.recommendation.domain.Judgement;
 import com.wrb.devica.recommendation.domain.RecommendationDefinition;
 import com.wrb.devica.recommendation.domain.RecommendationDefinitions;
 import com.wrb.devica.recommendation.domain.RecommendedSpec;
-import com.wrb.devica.recommendation.domain.Judgement;
 import com.wrb.devica.recommendation.domain.Requirements;
-import com.wrb.devica.recommendation.domain.BackendDevelopmentRecommender;
+import com.wrb.devica.recommendation.domain.Survey;
 import com.wrb.devica.recommendation.domain.SurveyResponse;
 import java.util.List;
 import java.util.Map;
@@ -29,5 +30,9 @@ public class RecommendationService {
         Map<String, String> conditions = Judgement.map(purpose.mappings(), response);
 
         return backendDevelopmentRecommender.recommend(requirements, conditions);
+    }
+
+    public Survey findSurvey(String purposeCode) {
+        return recommendationDefinitions.get(UsagePurposeCode.from(purposeCode)).survey();
     }
 }
