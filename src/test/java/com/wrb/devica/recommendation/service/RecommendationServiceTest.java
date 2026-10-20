@@ -63,6 +63,18 @@ class RecommendationServiceTest {
             .isEqualTo(BusinessErrorCode.USAGE_PURPOSE_NOT_FOUND);
     }
 
+    @Test
+    void 존재하지_않는_사용_목적_코드로_설문을_찾으면_예외가_발생한다() {
+        // given
+        String purposeCode = "NOT_EXIST";
+
+        // when & then
+        assertThatThrownBy(() -> recommendationService.findSurvey(purposeCode))
+            .isInstanceOf(BusinessException.class)
+            .extracting(thrown -> ((BusinessException) thrown).getErrorCode())
+            .isEqualTo(BusinessErrorCode.USAGE_PURPOSE_NOT_FOUND);
+    }
+
     @TestFactory
     Stream<DynamicTest> 스냅숏의_답변_조합으로_추천을_요청하면_스냅숏에_저장된_응답과_같은_응답을_반환한다() throws Exception {
         // given
