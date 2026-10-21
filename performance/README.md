@@ -5,6 +5,7 @@
 | 테스트      | 대상 API                                                | 문서                                                     |
 |----------|-------------------------------------------------------|--------------------------------------------------------|
 | 상품 목록 조회 | `GET /api/product-categories/{categoryCode}/products` | [k6/product-list/README.md](k6/product-list/README.md) |
+| 질문 게시판 목록 조회 | `GET /api/product-categories/{categoryCode}/usage-purposes/{purposeCode}/posts` | [k6/board-list/README.md](k6/board-list/README.md) |
 
 ---
 
