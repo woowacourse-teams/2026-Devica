@@ -74,6 +74,7 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
 
         {screen.currentSpec ? (
           <div className="current-spec-form">
+            <SpecCheckGuide />
             <p className="choice-hint">{HINT}</p>
             <CurrentSpecFields screen={screen} answers={answers} onAnswer={onAnswer} />
           </div>
@@ -141,6 +142,23 @@ function CurrentSpecFields({ screen, answers, onAnswer }: Pick<Props, 'answers' 
         </Fragment>
       ))}
     </>
+  );
+}
+
+// 사양을 모르는 사용자가 어디서 확인하는지 알려 준다 (#229).
+function SpecCheckGuide() {
+  return (
+    <section className="spec-guide" aria-labelledby="spec-guide-title">
+      <h3 className="spec-guide__title" id="spec-guide-title">
+        내 사양 확인하는 법
+      </h3>
+      <dl className="spec-guide__screens">
+        <dt>Mac</dt>
+        <dd>설정 › 일반 › 정보</dd>
+        <dt>Windows</dt>
+        <dd>설정 › 시스템 › 정보</dd>
+      </dl>
+    </section>
   );
 }
 

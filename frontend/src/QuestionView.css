@@ -166,3 +166,38 @@
         grid-column: 1 / -1;
     }
 }
+
+/* 사양 확인 안내. 아래 칸과 구분되도록 점선 테두리와 옅은 배경을 둔다. */
+.spec-guide {
+    border-radius: var(--radius-box);
+    border: 1px dashed var(--outline);
+    padding: var(--density-med) var(--gutter);
+    background: var(--surface-container-low);
+}
+
+.spec-guide__title {
+    margin: 0 0 var(--density-high);
+    font-size: var(--body-lg-font-size);
+}
+
+.spec-guide__screens {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--unit) var(--density-med);
+    margin: 0;
+    font-size: var(--body-md-font-size);
+}
+
+.spec-guide__screens dt {
+    font-weight: 600;
+}
+
+.spec-guide__screens dd {
+    margin: 0;
+}
+
+@media (min-width: 768px) {
+    .current-spec-form > .spec-guide {
+        grid-column: 1 / -1;
+    }
+}
