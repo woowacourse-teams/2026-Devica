@@ -43,6 +43,61 @@ prometheus.relabel "alloy" {
   forward_to = [prometheus.remote_write.grafana_cloud.receiver]
 }
 
+// RDS 지표는 CloudWatch 에만 있어 여기서 가져온다. 권한은 EC2 인스턴스 역할(IMDS)로 얻는다.
+// 인스턴스를 이름으로 지정해 태그 조회 권한 없이 읽는다. 이름 규칙은 db-devica-<env> 다.
+// RDS 지표는 1분 단위인데 CloudWatch 반영이 늦어, 최근 5분 중 마지막 값을 쓴다.
+prometheus.exporter.cloudwatch "rds" {
+  sts_region = "ap-northeast-2"
+
+  static "rds" {
+    regions    = ["ap-northeast-2"]
+    namespace  = "AWS/RDS"
+    dimensions = { "DBInstanceIdentifier" = "db-devica-" + sys.env("DEVICA_ENV") }
+
+    metric {
+      name       = "FreeStorageSpace"
+      statistics = ["Minimum"]
+      period     = "1m"
+      length     = "5m"
+    }
+
+    metric {
+      name       = "FreeableMemory"
+      statistics = ["Minimum"]
+      period     = "1m"
+      length     = "5m"
+    }
+
+    metric {
+      name       = "DatabaseConnections"
+      statistics = ["Maximum"]
+      period     = "1m"
+      length     = "5m"
+    }
+
+    metric {
+      name       = "CPUUtilization"
+      statistics = ["Average"]
+      period     = "1m"
+      length     = "5m"
+    }
+
+    // RDS 의 t4g 는 Unlimited 모드라 크레딧이 바닥나도 느려지지 않고, 기준을 넘는 사용분에 요금이 붙는다.
+    metric {
+      name       = "CPUCreditBalance"
+      statistics = ["Minimum"]
+      period     = "5m"
+      length     = "10m"
+    }
+  }
+}
+
+prometheus.scrape "rds" {
+  targets         = prometheus.exporter.cloudwatch.rds.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
 prometheus.remote_write "grafana_cloud" {
   endpoint {
     url = sys.env("GRAFANA_CLOUD_PROM_URL")
