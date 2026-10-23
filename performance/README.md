@@ -13,27 +13,25 @@
 
 ## 준비하기
 
-측정 전에 아래 네 가지가 되는지 확인한다.
+측정 전에 아래 세 가지가 되는지 확인한다.
 
 | 준비물           | 쓰는 곳               | 확인                                                                  | 안 되면                         |
 |---------------|--------------------|---------------------------------------------------------------------|------------------------------|
 | k6, jq        | 부하 걸기, 결과 값 뽑기     | `k6 version`, `jq --version`이 버전을 출력한다                              | `brew install k6 jq` (macOS) |
 | 개발 서버 SSH     | 서버 커밋, 테스트 데이터 확인  | 개발 서버에 접속된다. 방법은 [백엔드 배포 가이드](../docs/백엔드_배포_가이드.md)의 "서버 구성"을 확인한다 | 서버를 관리하는 팀원에게 SSH 키와 권한을 받는다 |
-| Grafana Cloud | 서버 처리 시간, 서버 자원 조회 | 팀 스택에서 Explore가 열린다                                                 | —                            |
-| AWS 콘솔        | DB CPU 조회          | RDS에서 개발 DB의 모니터링 탭이 보인다                                            | —                            |
+| Grafana Cloud | 서버 처리 시간, 서버·DB 자원 조회 | 팀 스택에서 Explore가 열린다                                                 | —                            |
 
 ---
 
 ## 측정하기
 
-명령과 조회는 네 곳에서 한다.
+명령과 조회는 세 곳에서 한다.
 
 | 어디서 | 무엇을 |
 | --- | --- |
 | **내 컴퓨터 터미널** (레포 루트) | k6 실행(3·4단계), 결과 파일에서 값 뽑기(값 수집하기의 `grep`·`jq`) |
 | **개발 서버 터미널** (SSH 접속) | 서버 커밋과 테스트 데이터 확인(2단계) |
-| **Grafana Explore** (브라우저) | 서버 처리 시간과 서버 자원 조회 |
-| **AWS 콘솔** (브라우저) | RDS CPU 조회 |
+| **Grafana Explore** (브라우저) | 서버 처리 시간과 서버·DB 자원 조회 |
 
 내 컴퓨터 터미널에서는 시작하기 전에 두 변수를 정해 둔다. 그러면 아래 명령을 그대로 복사해 쓸 수 있다. 값을 뽑는 명령도 `$TEST`를 쓰므로, 측정이 끝날 때까지 같은 터미널을 쓴다. 새 터미널을 열었다면 변수를 다시 정한다.
 
@@ -134,8 +132,7 @@ k6 run \
 | 서버 커밋, 데이터 확인 결과 | 측정하기 2단계에서 확인한 값 |
 | 오류율, k6 p95 / p99, 실제 RPS, `dropped_iterations` | [k6 결과](#k6-결과) |
 | 서버 처리 시간 p50 / p95 / p99 | [Grafana 요청 로그](#grafana-요청-로그) |
-| 서버 p95 히스토그램, CPU, 메모리, 힙, GC, DB 커넥션 | [Grafana 지표](#grafana-지표) |
-| RDS CPU | [AWS 콘솔](#aws-콘솔) |
+| 서버 p95 히스토그램, CPU, 메모리, 힙, GC, DB 커넥션, RDS CPU | [Grafana 지표](#grafana-지표) |
 
 ### 측정 구간 시각
 
@@ -188,30 +185,25 @@ quantile_over_time(0.95, {env="dev"} |= "요청 처리 완료" | json | http_rou
 
 요청 로그와 같은 방법(Explore, 측정 구간, **Instant**)으로 조회하되, 데이터 소스만 Prometheus(`grafanacloud-…-prom`)로 고른다. 쿼리를 하나씩 실행한다.
 
-| 기록 표 항목 | 쿼리 | 단위 |
-| --- | --- | --- |
-| 서버 p95 히스토그램 | `histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{env="dev", uri="<API 경로 패턴>"}[10m])))` | 초 → ms |
-| CPU Usage 평균 | `avg_over_time((1 - avg(rate(node_cpu_seconds_total{env="dev", mode="idle"}[2m])))[10m:1m])` | 0~1 → % |
-| CPU Usage 최대 | 위 쿼리의 `avg_over_time`을 `max_over_time`으로 | 0~1 → % |
-| Available Memory 최소 | `min_over_time(node_memory_MemAvailable_bytes{env="dev"}[10m])` | 바이트 → MiB |
-| Heap Usage 최대 | `max_over_time(sum(jvm_memory_used_bytes{env="dev", area="heap"})[10m:1m])` | 바이트 → MiB |
-| GC Pause 합계 | `sum(increase(jvm_gc_pause_seconds_sum{env="dev"}[10m]))` | 초 → ms |
-| DB Connections 사용 중 최대 | `max_over_time(sum(hikaricp_connections_active{env="dev"})[10m:1m])` | 개 |
-| DB Connections 대기 중 최대 | `max_over_time(sum(hikaricp_connections_pending{env="dev"})[10m:1m])` | 개 |
+| 기록 표 항목                | 쿼리                                                                                                                     | 단위        |
+|------------------------|------------------------------------------------------------------------------------------------------------------------|-----------|
+| 서버 p95 히스토그램           | `histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{env="dev", uri="<API 경로 패턴>"}[10m])))` | 초 → ms    |
+| CPU Usage 평균           | `avg_over_time((1 - avg(rate(node_cpu_seconds_total{env="dev", mode="idle"}[2m])))[10m:1m])`                           | 0~1 → %   |
+| CPU Usage 최대           | 위 쿼리의 `avg_over_time`을 `max_over_time`으로                                                                               | 0~1 → %   |
+| Available Memory 최소    | `min_over_time(node_memory_MemAvailable_bytes{env="dev"}[10m])`                                                        | 바이트 → MiB |
+| Heap Usage 최대          | `max_over_time(sum(jvm_memory_used_bytes{env="dev", area="heap"})[10m:1m])`                                            | 바이트 → MiB |
+| GC Pause 합계            | `sum(increase(jvm_gc_pause_seconds_sum{env="dev"}[10m]))`                                                              | 초 → ms    |
+| DB Connections 사용 중 최대 | `max_over_time(sum(hikaricp_connections_active{env="dev"})[10m:1m])`                                                   | 개         |
+| DB Connections 대기 중 최대 | `max_over_time(sum(hikaricp_connections_pending{env="dev"})[10m:1m])`                                                  | 개         |
+| RDS CPU 평균             | `avg_over_time(aws_rds_cpuutilization_average{env="dev"}[10m])`                                                        | %         |
+| RDS CPU 최대             | 위 쿼리의 `avg_over_time`을 `max_over_time`으로                                                                               | %         |
 
 주의할 점:
 
 - **지표는 60초마다 수집된다.** 1분보다 짧게 치솟은 값은 놓칠 수 있다.
+- **RDS CPU는 실제보다 몇 분 늦게 들어온다.** CloudWatch 반영이 늦기 때문이다([모니터링 구성](../docs/모니터링_구성.md)). 그래서 측정 구간으로 조회하면 워밍업 이전 몇 분이 섞일 수 있다.
 - **히스토그램 p95는 실제보다 크게 나올 수 있다.** 구간 안에서 값을 추정하기 때문이다. 그래서 판정은 요청 로그로 한다.
 - **시간 흐름은 `Devica Overview` 대시보드로 본다.** `env`를 `dev`로, 시간 범위를 측정 구간으로 둔다. 요청·CPU·GC 패널은 5분 평균이라 짧은 피크가 낮게 보인다.
-
-### AWS 콘솔
-
-DB 지표는 Grafana에 없어 RDS 콘솔에서 본다.
-
-1. AWS 콘솔 → **RDS** → 데이터베이스 → 개발 DB를 연다. 이름은 백엔드 배포 가이드의 "서버 구성"에 있다.
-2. **모니터링** 탭에서 시간 범위를 측정 구간으로 맞춘다.
-3. **CPUUtilization** 그래프에서 평균과 최대를 읽는다.
 
 ---
 
