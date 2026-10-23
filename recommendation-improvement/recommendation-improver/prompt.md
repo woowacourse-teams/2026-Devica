@@ -143,7 +143,7 @@ rec compare "$ST/before.json" "$WT/$SNAP" "$ST/instruction.json" > "$ST/compare.
 
 `ok` 가 참이어야 한다. `checks` 가 사례마다 아래를 본다.
 
-- `expected` 의 권장안·항목이 그 방향으로 바뀌었다(그 밖의 항목은 보지 않는다).
+- `expected` 의 권장안·항목이 그 방향으로 바뀌었다(그 밖의 항목은 보지 않는다). `reason` 만 바꾸는 지시가 아닌데 `expected` 가 없는 사례는 실패다.
 - `reason` 만 바꾸는 지시면 결과 값이 그대로다.
 - 지시에 `reason` 이 있고 규칙을 지우지 않았으면 두 권장안의 그 항목 근거에 `reason.to` 가 있고 `reason.from` 이 없다.
 

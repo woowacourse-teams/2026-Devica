@@ -12,7 +12,7 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 os.sys.path.insert(0, HERE)
 
-from common import ITEMS, block, diff, ev, fields, hits, parse_url, result_url, validate, values, visible  # noqa: E402
+from common import ITEMS, block, diff, ev, fields, hits, parse_url, result_url, schema, validate, values, visible  # noqa: E402
 
 
 def load(component, script):
@@ -152,6 +152,24 @@ INVALID = [
 
 
 class ValidateTest(unittest.TestCase):
+    def test_실제_스키마의_예시는_통과한다(self):
+        for name in ('improvement-instruction', 'analysis-result'):
+            for data in schema(name)['examples']:
+                with self.subTest(name=name):
+                    self.assertEqual(validate(schema(name), data), [])
+
+    def test_결과_값을_바꾸는_지시는_모든_사례에_기대_결과가_있어야_한다(self):
+        s = schema('improvement-instruction')
+        ins = json.loads(json.dumps(s['examples'][0]))
+        del ins['cases'][1]['expected']
+        self.assertTrue(validate(s, ins))
+        ins['cases'][1]['expected'] = []
+        self.assertTrue(validate(s, ins))
+        ins['change'] = {'reason': {'from': '옛 문장', 'to': '새 문장'}}
+        for c in ins['cases']:
+            c.pop('expected')
+        self.assertEqual(validate(s, ins), [])
+
     def test_맞는_데이터는_통과한다(self):
         for data in VALID:
             with self.subTest(data=data):
@@ -261,6 +279,17 @@ class SignalsTest(unittest.TestCase):
         self.assertEqual(out['dropped'], {'조회 기간 전에 시작한 세션': 1, '다른 답 조합의 결과를 두 번 이상 보지 않음': 1,
                                           '처음과 마지막의 사용 목적이 다르거나 없음': 1, '바뀐 항목 없음': 1})
 
+    def test_운영_서버_오류는_질문이_바뀐_것과_구분하고_불완전으로_표시한다(self):
+        session = self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES')
+        self.assertFalse(self.run_signals(session)['incomplete'])
+        collector.api = lambda base, purpose, a: {'status': 400, 'body': None}
+        out = self.run_signals(session)
+        self.assertEqual((out['dropped'], out['incomplete']), ({'운영 결과를 받지 못함(질문이 바뀜)': 1}, False))
+        for status in (500, 429):
+            collector.api = lambda base, purpose, a: {'status': status, 'body': None}
+            out = self.run_signals(session)
+            self.assertEqual((out['dropped'], out['incomplete']), ({'운영 서버 오류(일시적일 수 있음)': 1}, True))
+
     def test_배포를_기다리는_규칙에_걸린_세션은_세지_않는다(self):
         self.develop = json.loads(json.dumps(DEF))
         self.develop['rules'].append({'criterion': 'MEMORY', 'when': {'question': 'SLOWDOWN', 'anyOf': ['SOMETIMES']}, 'weight': 1})
@@ -297,7 +326,8 @@ INSTRUCTION = {
     'change': {'weight': {'direction': 'DOWN'}},
     'cases': [{'issue': 251, 'answers': {'SLOWDOWN': ['OFTEN']},
                'expected': [{'plan': 'MAC', 'item': 'MEMORY', 'direction': 'DOWN'}]},
-              {'issue': 251, 'answers': {'SLOWDOWN': ['OFTEN'], 'VIDEO': ['YES']}}],
+              {'issue': 251, 'answers': {'SLOWDOWN': ['OFTEN'], 'VIDEO': ['YES']},
+               'expected': [{'plan': 'MAC', 'item': 'MEMORY', 'direction': 'DOWN'}]}],
 }
 
 
@@ -326,18 +356,18 @@ class ImproverTest(unittest.TestCase):
 
     def test_기대한_방향으로_바뀌면_통과(self):
         before = snapshot([{'name': '피드백 #251', 'answers': {}, 'response': body(mac=('PRO', 32, 512))},
-                           {'name': '피드백 #251 (2)', 'answers': {}, 'response': body()},
+                           {'name': '피드백 #251 (2)', 'answers': {}, 'response': body(mac=('PRO', 32, 512))},
                            {'name': '대표 사용자', 'answers': {'SLOWDOWN': ['OFTEN']}, 'response': body(mac=('PRO', 32, 512))},
                            {'answers': {'SLOWDOWN': ['NEVER']}, 'response': body()}])
         after = snapshot([{'name': '피드백 #251', 'answers': {}, 'response': body(mac=('PRO', 16, 512))},
-                          {'name': '피드백 #251 (2)', 'answers': {}, 'response': body()},
+                          {'name': '피드백 #251 (2)', 'answers': {}, 'response': body(mac=('PRO', 16, 512))},
                           {'name': '대표 사용자', 'answers': {'SLOWDOWN': ['OFTEN']}, 'response': body(mac=('PRO', 16, 512))},
                           {'answers': {'SLOWDOWN': ['NEVER']}, 'response': body()}])
         out = improver.compare(tmp(before), tmp(after), tmp(json.dumps(INSTRUCTION)))
         self.assertTrue(out['ok'], out['checks'])
         self.assertEqual(out['rows'][0]['plans']['MAC']['MEMORY'], '32GB → 16GB')
-        self.assertEqual(out['impact'], {'total': 4, 'value_changed': 2, 'reason_only': 0,
-                                         'value_changed_by_answer': {'조건 밖': 1, 'SLOWDOWN.OFTEN': 1},
+        self.assertEqual(out['impact'], {'total': 4, 'value_changed': 3, 'reason_only': 0,
+                                         'value_changed_by_answer': {'조건 밖': 2, 'SLOWDOWN.OFTEN': 1},
                                          'personas_changed': ['대표 사용자']})
 
     def test_기대와_다르면_실패(self):
@@ -349,6 +379,13 @@ class ImproverTest(unittest.TestCase):
         other = snapshot([{'name': '대표 사용자', 'answers': {}, 'response': body()}])
         missing = improver.compare(tmp(other), tmp(other), tmp(json.dumps(INSTRUCTION)))
         self.assertEqual([c['why'] for c in missing['checks']], ['스냅숏에 사례가 없다'] * 2)
+
+    def test_결과_값을_바꾸는_지시에_기대_결과가_없으면_실패(self):
+        ins = dict(INSTRUCTION, cases=[{'issue': 251, 'answers': {'SLOWDOWN': ['OFTEN']}}])
+        same = snapshot([{'name': '피드백 #251', 'answers': {}, 'response': body()}])
+        out = improver.compare(tmp(same), tmp(same), tmp(json.dumps(ins)))
+        self.assertFalse(out['ok'])
+        self.assertIn('기대 결과(expected)가 없다', out['checks'][0]['why'])
 
     def test_근거_문장만_바꾸는_지시는_값이_바뀌면_실패(self):
         ins = dict(INSTRUCTION, change={'reason': {'from': '옛 문장', 'to': '새 문장'}},
@@ -364,7 +401,7 @@ class ImproverTest(unittest.TestCase):
 
     def test_다른_피드백_사례의_변화는_따로_돌려준다(self):
         before = snapshot([{'name': '피드백 #251', 'answers': {}, 'response': body(mac=('PRO', 32, 512))},
-                           {'name': '피드백 #251 (2)', 'answers': {}, 'response': body()},
+                           {'name': '피드백 #251 (2)', 'answers': {}, 'response': body(mac=('PRO', 32, 512))},
                            {'name': '피드백 #300', 'answers': {}, 'response': body(mac=('PRO', 32, 512))}])
         after = before.replace('"32"', '"16"').replace('32GB', '16GB')
         out = improver.compare(tmp(before), tmp(after), tmp(json.dumps(INSTRUCTION)))

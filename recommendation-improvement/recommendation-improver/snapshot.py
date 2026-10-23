@@ -89,6 +89,9 @@ def compare(before_path, after_path, instruction_path):
         if reason_only:
             if plain(v1) != plain(v2):
                 fails.append('근거 문장만 바꾸는 지시인데 결과 값이 바뀌었다')
+        elif not c.get('expected'):
+            # 기대 결과가 없으면 방향을 볼 수 없어, 결과가 그대로여도 통과해 버린다
+            fails.append('결과 값을 바꾸는 지시인데 기대 결과(expected)가 없다')
         for e in c.get('expected') or []:
             a, b = v1[e['plan']][e['item']]['rank'], v2[e['plan']][e['item']]['rank']
             if not (b > a if e['direction'] == 'UP' else b < a):

@@ -86,7 +86,8 @@ properties:
   # 재현 사례. 근거 피드백마다 하나씩 적는다.
   #   answers   사용자의 답. 스냅숏 테스트의 answers 와 같은 모양이다
   #   expected  고친 뒤 바뀔 것으로 기대하는 것. 정확한 값은 적지 않고 방향만 적는다.
-  #             지적한 권장안마다 하나. reason 만 바꾸는 지시면 적지 않는다
+  #             지적한 권장안마다 하나. reason 만 바꾸는 지시면 적지 않는다.
+  #             weight·when·delete 가 있는 지시면 모든 사례에 하나 이상 적는다(맨 아래 anyOf)
   cases:
     type: array
     minItems: 1
@@ -103,6 +104,7 @@ properties:
             items: { type: string }
         expected:
           type: array
+          minItems: 1
           items:
             type: object
             additionalProperties: false
@@ -116,6 +118,17 @@ properties:
   # basis 가 METRIC_ESTIMATE 면 지표 추정임을 밝힌다.
   reason:
     type: string
+
+# 결과 값을 바꾸는 지시(weight·when·delete)는 모든 재현 사례에 expected 가 있어야 한다.
+# 없으면 수정 전후 결과가 그대로여도 개선을 확인한 것으로 처리된다
+anyOf:
+  - properties:
+      change:
+        not:
+          anyOf: [ { required: [ weight ] }, { required: [ when ] }, { required: [ delete ] } ]
+  - properties:
+      cases:
+        items: { required: [ expected ] }
 
 $defs:
   # 정의서 rules 의 when 과 같은 모양

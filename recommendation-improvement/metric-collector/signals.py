@@ -125,10 +125,11 @@ def signals(path, prod, days):
     dropped, defs, rule_state, cache, groups = Counter(), {}, {}, {}, {}
 
     def prod_values(purpose, answers):
+        # 200 이면 값, 400 이면 None(질문이 바뀌어 답이 맞지 않음), 그 밖의 오류면 'error'
         k = json.dumps([purpose, answers], sort_keys=True)
         if k not in cache:
             r = api(prod, purpose, answers)
-            cache[k] = values(r['body']) if r['status'] == 200 else None
+            cache[k] = values(r['body']) if r['status'] == 200 else None if r['status'] == 400 else 'error'
         return cache[k]
 
     for views in load_sessions(path):
@@ -166,6 +167,9 @@ def signals(path, prod, days):
             dropped['배포 전에 본 바뀐 규칙에 걸림'] += 1
             continue
         v1, v2 = prod_values(purpose, first['answers']), prod_values(purpose, last['answers'])
+        if 'error' in (v1, v2):
+            dropped['운영 서버 오류(일시적일 수 있음)'] += 1
+            continue
         if v1 is None or v2 is None:
             dropped['운영 결과를 받지 못함(질문이 바뀜)'] += 1
             continue
@@ -202,7 +206,9 @@ def signals(path, prod, days):
             f"- \"{g['problem']}\"는 사용자가 고른 것이 아니라, 답을 바꾼 뒤 {SUBJECT[g['item']]} {moved} 것을 보고 추정한 것이다.",
             ''])
         out.append(g)
-    return {'period': period, 'start': start_iso, 'groups': out, 'dropped': dict(dropped)}
+    # 서버 오류로 세지 못한 세션이 있으면 건수가 실제보다 적을 수 있다. 이번 실행은 피드백을 닫지 않는다
+    incomplete = dropped['운영 서버 오류(일시적일 수 있음)'] > 0
+    return {'period': period, 'start': start_iso, 'groups': out, 'dropped': dict(dropped), 'incomplete': incomplete}
 
 
 def issue(body_path):

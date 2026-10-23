@@ -19,16 +19,22 @@ properties:
   judgment:
     enum: [ INSTRUCTED, ON_HOLD, TEAM_HANDLES, ALREADY_CHANGED, NOT_REPRODUCIBLE ]
 
-  # 사용자가 본 값. 처음 분석할 때 받은 운영 결과에서 지적한 권장안·항목의 값이다.
-  # 다시 재현할 때 rank 로 비교해 이미 바뀌었는지 본다. 다시 판단할 때는 처음 값을 그대로 옮겨 적는다.
-  # 운영 결과를 받지 못한 주소는 적지 않는다.
+  # 사용자가 본 값. 처음 분석할 때 받은 운영 결과에서 지적한 권장안·항목의 값을 주소(답 조합)마다 적는다.
+  # 다시 재현할 때 answers·plan·item 이 같은 것끼리 rank 로 비교해 이미 바뀌었는지 본다.
+  # 한 피드백에 주소가 여럿이면 같은 권장안·항목이라도 주소마다 값이 달라서 answers 로 구분한다.
+  # 다시 판단할 때는 처음 값을 그대로 옮겨 적는다. 운영 결과를 받지 못한 주소는 적지 않는다.
   seen:
     type: array
     items:
       type: object
       additionalProperties: false
-      required: [ plan, item, value, rank ]
+      required: [ answers, plan, item, value, rank ]
       properties:
+        answers:                  # 그 주소의 답 조합. rec url 의 answers 그대로
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
         plan: { enum: [ MAC, WINDOWS ] }
         item: { enum: [ REQUIRED_CPU, MEMORY, STORAGE ] }
         value: { type: string }   # 결과 화면에 보이는 값 그대로. 예: 32GB
@@ -37,4 +43,5 @@ properties:
 examples:
   - judgment: ON_HOLD
     seen:
-      - { plan: MAC, item: MEMORY, value: 32GB, rank: 32 }
+      - { answers: { SLOWDOWN: [ OFTEN ] }, plan: MAC, item: MEMORY, value: 32GB, rank: 32 }
+      - { answers: { SLOWDOWN: [ OFTEN ], IDE: [ JETBRAINS ] }, plan: MAC, item: MEMORY, value: 24GB, rank: 24 }

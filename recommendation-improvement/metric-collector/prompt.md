@@ -113,7 +113,9 @@ rec signals "$ST/sessions.json" https://api.devica.co.kr "$DAYS" > "$ST/signals.
 - 바꾼 답은 처음 답 조합에만 있는 선택지와 마지막 답 조합에만 있는 선택지다. 예: `SLOWDOWN: OFTEN → FINE`.
 - 권장안·항목·방향·바꾼 답이 같은 신호를 묶고, 묶음마다 제목·본문([feedback.md](../interface/artifacts/feedback.md) 형식)을 만든다. 주소는 처음 본 결과의 `category`, `purpose`, `answer` 로만 새로 만든다. 맞지 않은 점은 추정한 항목·방향에 맞는 선택지 하나(예: `메모리가 과해요`), 근거 지표는 기간·"답을 바꿔 다시 본 세션"·건수와 항목·방향이 추정임을 밝히는 문장이다.
 
-`signals.json` 의 `groups`(키, 건수, 주소 수)와 `dropped`(버린 이유별 건수)를 실행 기록에 옮긴다.
+- 운영 결과가 400 이면 질문이 바뀐 것으로 보고 버린다. 그 밖의 오류(500, 429 등)는 `운영 서버 오류` 로 따로 세고 `incomplete` 를 참으로 둔다.
+
+`signals.json` 의 `groups`(키, 건수, 주소 수), `dropped`(버린 이유별 건수), `incomplete` 를 실행 기록에 옮긴다.
 
 **`MIN` 이 비어 있으면 여기서 끝낸다.** 실행 기록에 "기준값이 정해지지 않아 피드백을 만들지 않았다"를 적는다.
 
@@ -154,8 +156,9 @@ rec issue "$ST/issue-<번호>.md"
    ```
    팀원 댓글 중 첫 줄이 `<!-- product-recommendation:decision -->` 인 것이 개선 지시, `<!-- product-recommendation:result -->` 인 것이 개선 결과다. 댓글 본문을 파일로 써서 `rec block <파일>` 로 yaml 블록을 읽는다. `errors` 가 비어 있지 않으면 그 댓글은 산출물로 보지 않고 기록에 적는다. 개선 결과는 같은 이슈에서 그보다 앞선 개선 지시 중 가장 최근 것의 결과다(순서는 `created_at`, 같으면 `id`). 개선 지시의 `issues` 에 이 이슈 번호가 있고, 개선 결과가 없거나 결과가 `PR_OPENED` 인데 그 PR 이 열려 있으면(`gh pr view <pr> --repo "$GH_REPO" --json state`) 처리 중이다.
 2. **세션에 걸린 규칙이 배포를 기다리면 열어 둔다.** `pending` 이 비어 있지 않다.
-3. **지금 건수를 센다.** `c` = `signals.json` 에서 `key` 가 같은 묶음의 `count`(없으면 0). `c ≥ MIN` 이면 열어 둔다.
-4. `c < MIN` 이면 댓글을 남기고 닫는다.
+3. **`signals.json` 의 `incomplete` 가 참이면 열어 둔다.** 운영 서버 오류로 세지 못한 세션이 있어 건수가 실제보다 적을 수 있다. 사용자의 문제가 풀린 것이 아니라 응답을 받지 못한 것이므로 닫지 않고 다음 실행에서 다시 센다.
+4. **지금 건수를 센다.** `c` = `signals.json` 에서 `key` 가 같은 묶음의 `count`(없으면 0). `c ≥ MIN` 이면 열어 둔다.
+5. `c < MIN` 이면 댓글을 남기고 닫는다.
    ```markdown
    조회 기간(<signals.json 의 period>)에 같은 신호가 <c>건으로, 신호 최소 건수 <MIN>보다 적어 닫습니다.
    ```
