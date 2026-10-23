@@ -125,14 +125,14 @@ k6 run \
 
 회차마다 기록 표의 값을 모은다. 모든 조회는 그 회차의 측정 구간으로 하므로, **측정 구간 시각부터** 구한다. 이 절의 `grep`·`jq` 명령은 측정할 때 쓴 내 컴퓨터 터미널(레포 루트)에서 실행한다.
 
-| 기록 표 항목 | 어디서 |
-| --- | --- |
-| 측정 일시 (측정 구간) | [측정 구간 시각](#측정-구간-시각) |
-| 장소·네트워크 | k6를 돌린 곳을 적는다. 예: `캠퍼스 Wi-Fi`. 개선 전후는 같은 곳에서 잰다 |
-| 서버 커밋, 데이터 확인 결과 | 측정하기 2단계에서 확인한 값 |
-| 오류율, k6 p95 / p99, 실제 RPS, `dropped_iterations` | [k6 결과](#k6-결과) |
-| 서버 처리 시간 p50 / p95 / p99 | [Grafana 요청 로그](#grafana-요청-로그) |
-| 서버 p95 히스토그램, CPU, 메모리, 힙, GC, DB 커넥션, RDS CPU | [Grafana 지표](#grafana-지표) |
+| 기록 표 항목                                            | 어디서                                             |
+|----------------------------------------------------|-------------------------------------------------|
+| 측정 일시 (측정 구간)                                      | [측정 구간 시각](#측정-구간-시각)                           |
+| 장소·네트워크                                            | k6를 돌린 곳을 적는다. 예: `캠퍼스 Wi-Fi`. 개선 전후는 같은 곳에서 잰다 |
+| 서버 커밋, 데이터 확인 결과                                   | 측정하기 2단계에서 확인한 값                                |
+| 오류율, k6 p95 / p99, 실제 RPS, `dropped_iterations`    | [k6 결과](#k6-결과)                                 |
+| 서버 처리 시간 p50 / p95 / p99                           | [Grafana 요청 로그](#grafana-요청-로그)                 |
+| 서버 p95 히스토그램, CPU, 메모리, 힙, GC, DB 커넥션, RDS CPU·I/O | [Grafana 지표](#grafana-지표)                       |
 
 ### 측정 구간 시각
 
@@ -197,11 +197,16 @@ quantile_over_time(0.95, {env="dev"} |= "요청 처리 완료" | json | http_rou
 | DB Connections 대기 중 최대 | `max_over_time(sum(hikaricp_connections_pending{env="dev"})[10m:1m])`                                                  | 개         |
 | RDS CPU 평균             | `avg_over_time(aws_rds_cpuutilization_average{env="dev"}[10m])`                                                        | %         |
 | RDS CPU 최대             | 위 쿼리의 `avg_over_time`을 `max_over_time`으로                                                                               | %         |
+| RDS IOPS 읽기 최대        | `max_over_time(aws_rds_read_iops_average{env="dev"}[10m])`                                                            | 회/초       |
+| RDS IOPS 쓰기 최대        | 위 쿼리의 `read`를 `write`로                                                                                            | 회/초       |
+| RDS I/O 지연 읽기 최대      | `max_over_time(aws_rds_read_latency_average{env="dev"}[10m])`                                                         | 초 → ms    |
+| RDS I/O 지연 쓰기 최대      | 위 쿼리의 `read`를 `write`로                                                                                            | 초 → ms    |
+| RDS 디스크 대기열 최대        | `max_over_time(aws_rds_disk_queue_depth_average{env="dev"}[10m])`                                                     | 개         |
 
 주의할 점:
 
 - **지표는 60초마다 수집된다.** 1분보다 짧게 치솟은 값은 놓칠 수 있다.
-- **RDS CPU는 실제보다 몇 분 늦게 들어온다.** CloudWatch 반영이 늦기 때문이다([모니터링 구성](../docs/모니터링_구성.md)). 그래서 측정 구간으로 조회하면 워밍업 이전 몇 분이 섞일 수 있다.
+- **RDS 지표는 측정이 끝나고 5분쯤 지난 뒤 조회한다.** CloudWatch에 기록되기까지 몇 분 걸려 측정 구간의 마지막 몇 분이 늦게 채워진다([모니터링 구성](../docs/모니터링_구성.md)).
 - **히스토그램 p95는 실제보다 크게 나올 수 있다.** 구간 안에서 값을 추정하기 때문이다. 그래서 판정은 요청 로그로 한다.
 - **시간 흐름은 `Devica Overview` 대시보드로 본다.** `env`를 `dev`로, 시간 범위를 측정 구간으로 둔다. 요청·CPU·GC 패널은 5분 평균이라 짧은 피크가 낮게 보인다.
 
@@ -231,6 +236,9 @@ quantile_over_time(0.95, {env="dev"} |= "요청 처리 완료" | json | http_rou
 | GC Pause 합계                       |     |     |     |                 |
 | DB Connections 사용 중 / 대기 중 최대     |     |     |     |                 |
 | RDS CPU 평균 / 최대                   |     |     |     |                 |
+| RDS IOPS 읽기 / 쓰기 최대               |     |     |     |                 |
+| RDS I/O 지연 읽기 / 쓰기 최대 (ms)        |     |     |     |                 |
+| RDS 디스크 대기열 최대                    |     |     |     |                 |
 
 ### 측정 무효 조건
 
