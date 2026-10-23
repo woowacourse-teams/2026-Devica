@@ -26,3 +26,6 @@ Thumbs.db
 CLAUDE.local.md
 .claude/*
 !.claude/skills/
+
+# Python 바이트코드 캐시(recommendation-improvement/ 테스트 실행 시 생김)
+__pycache__/
