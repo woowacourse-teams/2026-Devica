@@ -121,7 +121,7 @@ k6 run -e BASE_URL=http://dev.devica.co.kr -e POST_PAGE=1000 \
 
 ## 판정과 기록
 
-측정 구간은 실행 시작 **1분 후부터 11분 후까지**다. 예를 들어 14:30에 시작하면 14:31~14:41이며, 마지막 요청을 기다리는 시간은 별도다. 서버 커밋과 측정 시작·종료 시각을 기록하고 Grafana·RDS도 같은 측정 구간과 시간대(KST 등)로 맞춘다.
+측정 구간은 실행 시작 **1분 후부터 11분 후까지**다. 예를 들어 14:30에 시작하면 14:31~14:41이며, 마지막 요청을 기다리는 시간은 별도다. 서버 커밋과 측정 시작·종료 시각을 기록하고 Grafana도 같은 측정 구간과 시간대(KST 등)로 맞춘다.
 
 [공통 기록 표](../../README.md#기록)의 모든 항목을 같은 측정 구간에서 확인한다. 오류율은 `http_req_failed{scenario:board_list_measure}`, k6 응답 시간은 `http_req_duration{scenario:board_list_measure}`에서 읽는다. 요청 RPS는 `http_reqs{scenario:board_list_measure}`의 count ÷ 600으로 계산한다. 정상 응답 RPS는 `board_requests_succeeded{scenario:board_list_measure}`의 count ÷ 600으로 별도 기록한다.
 
