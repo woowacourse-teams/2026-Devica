@@ -33,7 +33,7 @@ Bash 호출 사이에 셸 상태가 남지 않는다. 호출마다 맨 앞에 �
 
 ```bash
 export REPO=$(git rev-parse --show-toplevel) GH_REPO=woowacourse-teams/2026-Devica
-ST="$HOME/.devica-product-recommendation/metric-collector"; rec() { python3 "$ST/rec.py" "$@"; }
+ST="$HOME/.devica-product-recommendation/metric-collector"; rec() { python3 "$ST/signals.py" "$@"; }
 ```
 
 1. **잠금.** `mkdir -p "$ST/runs" && mkdir "$ST/lock"` 가 실패하면 다른 실행이 진행 중이므로 아무것도 하지 않고 끝낸다. 단 `find "$ST/lock" -maxdepth 0 -mmin +360` 이 결과를 내면(6시간 넘게 남은 잠금) 앞선 실행이 비정상으로 끝난 것으로 보고 `rm -rf "$ST/lock"` 뒤 다시 잡고, 실행 기록에 그렇다고 적는다. 잠금을 잡은 뒤에는 **어느 단계에서 끝나든** 마지막에 `rm -rf "$ST/lock"` 을 한다.
@@ -41,8 +41,8 @@ ST="$HOME/.devica-product-recommendation/metric-collector"; rec() { python3 "$ST
 3. **레포 갱신과 스크립트 준비.**
    ```bash
    git -C "$REPO" fetch -q origin
-   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/rec_common.py" > "$ST/rec_common.py"
-   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/metric-collector/rec.py" > "$ST/rec.py"
+   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/common.py" > "$ST/common.py"
+   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/metric-collector/signals.py" > "$ST/signals.py"
    for s in analysis-result improvement-instruction improvement-result; do git -C "$REPO" show "${SELF_REF}:recommendation-improvement/interface/artifacts/$s.schema.yml" > "$ST/$s.schema.yml"; done
    ```
    `fetch` 가 실패하면 멈춘다.

@@ -32,7 +32,7 @@ Bash 호출 사이에 셸 상태가 남지 않는다. 호출마다 맨 앞에 �
 
 ```bash
 export REPO=$(git rev-parse --show-toplevel) GH_REPO=woowacourse-teams/2026-Devica
-ST="$HOME/.devica-product-recommendation/recommendation-improver"; rec() { python3 "$ST/rec.py" "$@"; }; WT="$ST/worktree"
+ST="$HOME/.devica-product-recommendation/recommendation-improver"; rec() { python3 "$ST/snapshot.py" "$@"; }; WT="$ST/worktree"
 SNAP=src/test/resources/recommendation/backend-development-snapshot.json
 ```
 
@@ -41,8 +41,8 @@ SNAP=src/test/resources/recommendation/backend-development-snapshot.json
 3. **레포 갱신과 스크립트 준비.**
    ```bash
    git -C "$REPO" fetch -q --prune origin
-   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/rec_common.py" > "$ST/rec_common.py"
-   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/recommendation-improver/rec.py" > "$ST/rec.py"
+   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/common.py" > "$ST/common.py"
+   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/recommendation-improver/snapshot.py" > "$ST/snapshot.py"
    for s in analysis-result improvement-instruction improvement-result; do git -C "$REPO" show "${SELF_REF}:recommendation-improvement/interface/artifacts/$s.schema.yml" > "$ST/$s.schema.yml"; done
    ```
 4. **열린 개선 PR 확인.** 이 구성 요소가 올린 PR 은 본문 첫 줄에 `<!-- product-recommendation:improvement -->` 가 있다.

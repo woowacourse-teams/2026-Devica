@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# Metric Collector 예약 작업의 스크립트. 함께 쓰는 명령(rec_common.py 머리 주석)에 아래 전용 명령을 더한다.
-# rec_common.py 와 같은 디렉터리에 두고 실행한다.
-from rec_common import *  # noqa: F401,F403
-from rec_common import COMMANDS, json, sys
+# Metric Collector 예약 작업의 스크립트. 함께 쓰는 명령(common.py 머리 주석)에 아래 전용 명령을 더한다.
+# common.py 와 같은 디렉터리에 두고 실행한다.
+from common import *  # noqa: F401,F403
+from common import COMMANDS, json, sys
 
-#   rec.py signals SESSIONS_FILE PROD_BASE_URL LOOKBACK_DAYS   신호를 같은 신호끼리 묶은 결과(제목·본문 포함)
-#   rec.py issue   BODY_FILE                                    열린 지표 피드백의 신호 키와 배포를 기다리는 걸린 규칙
+#   signals.py signals SESSIONS_FILE PROD_BASE_URL LOOKBACK_DAYS   신호를 같은 신호끼리 묶은 결과(제목·본문 포함)
+#   signals.py issue   BODY_FILE                                    열린 지표 피드백의 신호 키와 배포를 기다리는 걸린 규칙
 # SESSIONS_FILE 은 prompt.md 의 HogQL 결과에서 세션마다 views 한 칸을 꺼내 모은 JSON 배열이다.
 # view = [유닉스 초, 이벤트, 경로, purpose, category, "질문.선택지&질문.선택지…"]
 from collections import Counter

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# Recommendation Improver 예약 작업의 스크립트. 함께 쓰는 명령(rec_common.py 머리 주석)에 아래 전용 명령을 더한다.
-# rec_common.py 와 같은 디렉터리에 두고 실행한다.
-from rec_common import *  # noqa: F401,F403
-from rec_common import COMMANDS, json, sys
+# Recommendation Improver 예약 작업의 스크립트. 함께 쓰는 명령(common.py 머리 주석)에 아래 전용 명령을 더한다.
+# common.py 와 같은 디렉터리에 두고 실행한다.
+from common import *  # noqa: F401,F403
+from common import COMMANDS, json, sys
 
-#   rec.py add-cases SNAPSHOT INSTRUCTION      지시의 재현 사례를 스냅숏에 더한다(이미 있는 이름은 건너뛴다). 더한 이름 목록
-#   rec.py compare   BEFORE AFTER INSTRUCTION  수정 전후 스냅숏 비교: 기대 결과 판정, 결과 변화, 영향 범위
+#   snapshot.py add-cases SNAPSHOT INSTRUCTION      지시의 재현 사례를 스냅숏에 더한다(이미 있는 이름은 건너뛴다). 더한 이름 목록
+#   snapshot.py compare   BEFORE AFTER INSTRUCTION  수정 전후 스냅숏 비교: 기대 결과 판정, 결과 변화, 영향 범위
 # INSTRUCTION 은 개선 지시 yaml 블록을 JSON 으로 바꾼 파일 경로다.
 from collections import Counter
 

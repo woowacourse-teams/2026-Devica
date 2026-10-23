@@ -32,7 +32,7 @@ properties:
         plan: { enum: [ MAC, WINDOWS ] }
         item: { enum: [ REQUIRED_CPU, MEMORY, STORAGE ] }
         value: { type: string }   # 결과 화면에 보이는 값 그대로. 예: 32GB
-        rank: { type: integer }   # rec_common.py values 의 rank. 클수록 높은 사양
+        rank: { type: integer }   # common.py values 의 rank. 클수록 높은 사양
 
 examples:
   - judgment: ON_HOLD

@@ -30,7 +30,7 @@ Bash 호출 사이에 셸 상태가 남지 않는다. 호출마다 맨 앞에 �
 
 ```bash
 export REPO=$(git rev-parse --show-toplevel) GH_REPO=woowacourse-teams/2026-Devica
-ST="$HOME/.devica-product-recommendation/feedback-analyzer"; rec() { python3 "$ST/rec_common.py" "$@"; }
+ST="$HOME/.devica-product-recommendation/feedback-analyzer"; rec() { python3 "$ST/common.py" "$@"; }
 DEV=http://dev.devica.co.kr PROD=https://api.devica.co.kr
 ```
 
@@ -39,7 +39,7 @@ DEV=http://dev.devica.co.kr PROD=https://api.devica.co.kr
 3. **레포 갱신과 스크립트 준비.**
    ```bash
    git -C "$REPO" fetch -q origin
-   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/rec_common.py" > "$ST/rec_common.py"
+   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/common.py" > "$ST/common.py"
    for s in analysis-result improvement-instruction improvement-result; do git -C "$REPO" show "${SELF_REF}:recommendation-improvement/interface/artifacts/$s.schema.yml" > "$ST/$s.schema.yml"; done
    ```
 4. **서버 확인.** 두 API 가 응답하는지 본다. 하나라도 200 이 아니면 아무것도 쓰지 않고 기록한 뒤 끝낸다.
@@ -47,7 +47,7 @@ DEV=http://dev.devica.co.kr PROD=https://api.devica.co.kr
    rec api "$DEV" BACKEND_DEVELOPMENT '{}' | head -c 200; rec api "$PROD" BACKEND_DEVELOPMENT '{}' | head -c 200
    ```
 
-스크립트 명령: `rec def|hits|visible|diff|history|api|url|values|fields|block` (사용법은 `rec_common.py` 머리 주석). `hits` 는 노출 조건을 적용한 답으로 걸린 규칙을 돌려준다.
+스크립트 명령: `rec def|hits|visible|diff|history|api|url|values|fields|block` (사용법은 `common.py` 머리 주석). `hits` 는 노출 조건을 적용한 답으로 걸린 규칙을 돌려준다.
 
 ## 1. 상태 읽기
 

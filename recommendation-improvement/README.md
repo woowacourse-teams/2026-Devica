@@ -116,10 +116,10 @@ recommendation-improvement/
     artifacts/               산출물의 형식
     components/              구성 요소의 명세
     binding.md               산출물과 저장 위치의 바인딩
-  metric-collector/          구현. 지금은 Claude 데스크톱 앱의 예약 작업(prompt.md, rec.py)
+  metric-collector/          구현. 지금은 Claude 데스크톱 앱의 예약 작업(prompt.md 와 스크립트)
   feedback-analyzer/
   recommendation-improver/
-  rec_common.py              세 구현이 함께 쓰는 스크립트
+  common.py                  세 구현이 함께 쓰는 스크립트
 ```
 
 구현은 `interface/` 에 의존하고 `interface/` 는 구현을 모른다.
@@ -173,7 +173,7 @@ recommendation-improvement/
 - Recommendation Improver 는 사용자의 작업과 분리된 작업 공간에서 실행된다.
 - 구성 요소마다 필요한 권한과 환경은 [`interface/components/`](interface/components/)의 "의존하는 외부 시스템"에 있다.
 
-지금의 구현은 Claude 데스크톱 앱의 예약 작업이다. 구성 요소마다 지시문(`<구성 요소>/prompt.md`)과 스크립트(`rec.py`, 공통 `rec_common.py`)가 있고, 예약 작업이 돌 때마다 `origin/develop` 에서 새로 읽어 온다. 리뷰를 거쳐 머지된 내용만 돌고, 지시문이 바뀌어도 작업을 다시 등록하지 않아도 된다. 구현을 바꾸면 이 절과 구성 요소 디렉터리를 새 구현의 것으로 바꾸고, 이전 작업은 끈다.
+지금의 구현은 Claude 데스크톱 앱의 예약 작업이다. 구성 요소마다 지시문(`<구성 요소>/prompt.md`)과 스크립트(`signals.py`·`snapshot.py`, 공통 `common.py`)가 있고, 예약 작업이 돌 때마다 `origin/develop` 에서 새로 읽어 온다. 리뷰를 거쳐 머지된 내용만 돌고, 지시문이 바뀌어도 작업을 다시 등록하지 않아도 된다. 구현을 바꾸면 이 절과 구성 요소 디렉터리를 새 구현의 것으로 바꾸고, 이전 작업은 끈다.
 
 ### 1. 준비하기
 

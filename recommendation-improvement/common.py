@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 # 제품 추천 개선 예약 작업이 함께 쓰는 스크립트. 정의서 읽기·규칙 적중·이력·제품 추천 API·피드백 칸 읽기를 맡는다.
-# 세 구성 요소의 예약 작업이 함께 쓴다. 구성 요소 전용 명령은 각 구성 요소 디렉터리의 rec.py 가 이 파일을 불러와 더한다.
+# 세 구성 요소의 예약 작업이 함께 쓴다. 구성 요소 전용 명령은 각 구성 요소 디렉터리의 스크립트(signals.py, snapshot.py) 가 이 파일을 불러와 더한다.
 #
 # 레포는 환경 변수 REPO(없으면 현재 디렉터리). REF 는 git ref(origin/main 등)이거나 정의서 파일 경로다.
 # ANSWERS 는 {"질문": ["선택지", ...]} JSON 이고, '-' 를 주면 표준 입력에서 읽는다.
 #
-#   rec_common.py def     REF PURPOSE                       정의서(JSON). 없으면 null
-#   rec_common.py hits    REF PURPOSE ANSWERS               답 조합에 걸린 규칙(노출 조건을 적용한 답 기준)
-#   rec_common.py visible REF PURPOSE ANSWERS               노출 조건을 적용한 답 조합
-#   rec_common.py diff    REF_A REF_B PURPOSE [CRITERION]   두 정의서 사이에 다른 규칙(before=A, after=B)
-#   rec_common.py history REF PURPOSE [SINCE_ISO]           first-parent 이력에서 규칙이 바뀐 커밋
-#   rec_common.py api     BASE_URL PURPOSE ANSWERS          제품 추천 API 결과 {status, body}
-#   rec_common.py url     RESULT_URL                        결과 화면 주소 → {category, purpose, answers}
-#   rec_common.py values  RESPONSE_JSON                     api 의 출력이나 그 body → 권장안별 항목 값·순위·근거
-#   rec_common.py fields  BODY_FILE                         피드백 이슈 본문 → 칸 제목별 값
-#   rec_common.py block   COMMENT_FILE                      산출물 댓글 → 표시(첫 줄), 첫 ```yaml 블록(JSON), 스키마 검증 오류(errors)
+#   common.py def     REF PURPOSE                       정의서(JSON). 없으면 null
+#   common.py hits    REF PURPOSE ANSWERS               답 조합에 걸린 규칙(노출 조건을 적용한 답 기준)
+#   common.py visible REF PURPOSE ANSWERS               노출 조건을 적용한 답 조합
+#   common.py diff    REF_A REF_B PURPOSE [CRITERION]   두 정의서 사이에 다른 규칙(before=A, after=B)
+#   common.py history REF PURPOSE [SINCE_ISO]           first-parent 이력에서 규칙이 바뀐 커밋
+#   common.py api     BASE_URL PURPOSE ANSWERS          제품 추천 API 결과 {status, body}
+#   common.py url     RESULT_URL                        결과 화면 주소 → {category, purpose, answers}
+#   common.py values  RESPONSE_JSON                     api 의 출력이나 그 body → 권장안별 항목 값·순위·근거
+#   common.py fields  BODY_FILE                         피드백 이슈 본문 → 칸 제목별 값
+#   common.py block   COMMENT_FILE                      산출물 댓글 → 표시(첫 줄), 첫 ```yaml 블록(JSON), 스키마 검증 오류(errors)
 #
 # 테스트는 test.py 에 있다.
 # 스키마(interface/artifacts/*.schema.yml)는 이 파일과 같은 디렉터리나 그 아래 interface/artifacts/ 에서 찾는다.

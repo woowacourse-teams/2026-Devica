@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# rec_common.py 와 구성 요소별 rec.py 의 테스트. 외부(git, API, PostHog)를 부르지 않는 함수만 본다.
+# common.py 와 구성 요소별 스크립트(signals.py, snapshot.py)의 테스트. 외부(git, API, PostHog)를 부르지 않는 함수만 본다.
 #
 #   python3 test.py
 import importlib.util
@@ -12,19 +12,19 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 os.sys.path.insert(0, HERE)
 
-from rec_common import ITEMS, block, diff, ev, fields, hits, parse_url, result_url, validate, values, visible  # noqa: E402
+from common import ITEMS, block, diff, ev, fields, hits, parse_url, result_url, validate, values, visible  # noqa: E402
 
 
-def load(component):
+def load(component, script):
     # metric-collector/ 처럼 하이픈이 든 디렉터리는 패키지가 못 되므로 경로로 읽는다
-    spec = importlib.util.spec_from_file_location(component, os.path.join(HERE, component, 'rec.py'))
+    spec = importlib.util.spec_from_file_location(component, os.path.join(HERE, component, script))
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
     return m
 
 
-collector = load('metric-collector')
-improver = load('recommendation-improver')
+collector = load('metric-collector', 'signals.py')
+improver = load('recommendation-improver', 'snapshot.py')
 
 
 def body(preferred='MAC', mac=('PRO', 16, 512), win=('P_HS', 16, 512), reasons=()):
