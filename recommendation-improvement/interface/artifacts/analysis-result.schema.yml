@@ -1,0 +1,39 @@
+# 분석 결과
+#
+# Feedback Analyzer 가 피드백마다 남기고, 다음 실행의 Feedback Analyzer 가 받는다.
+# 어디에 어떤 모양으로 놓이는지는 ../binding.md 에 있다.
+
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 분석 결과
+type: object
+additionalProperties: false
+required: [ judgment, seen ]
+properties:
+
+  # 판단
+  #   INSTRUCTED        개선 지시. 개선 PR 이 올라온다
+  #   ON_HOLD           보류. 근거가 더 모이기를 기다린다
+  #   TEAM_HANDLES      팀원이 직접 처리. 정의서로 고칠 수 없거나 개선이 반려됐다
+  #   ALREADY_CHANGED   이미 바뀜. 사용자가 본 뒤 다른 개선으로 고쳐졌다
+  #   NOT_REPRODUCIBLE  재현할 수 없음. 질문이 바뀌어 같은 결과를 볼 수 없다
+  judgment:
+    enum: [ INSTRUCTED, ON_HOLD, TEAM_HANDLES, ALREADY_CHANGED, NOT_REPRODUCIBLE ]
+
+  # 사용자가 본 값. 처음 분석할 때 받은 운영 결과에서 지적한 권장안·항목의 값이다.
+  # 다시 재현할 때 이 값과 비교해 이미 바뀌었는지 본다. 다시 판단할 때는 처음 값을 그대로 옮겨 적는다.
+  # 운영 결과를 받지 못한 주소는 적지 않는다.
+  seen:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [ plan, item, value ]
+      properties:
+        plan: { enum: [ MAC, WINDOWS ] }
+        item: { enum: [ REQUIRED_CPU, MEMORY, STORAGE ] }
+        value: { type: string }   # 결과 화면에 보이는 값 그대로. 예: 32GB
+
+examples:
+  - judgment: ON_HOLD
+    seen:
+      - { plan: MAC, item: MEMORY, value: 32GB }

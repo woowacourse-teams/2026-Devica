@@ -1,0 +1,37 @@
+# 개선 결과
+#
+# Recommendation Improver 가 개선 지시 하나를 처리한 뒤 남기고, Feedback Analyzer 가 받는다.
+# 어디에 어떤 모양으로 놓이는지는 ../binding.md 에 있다.
+
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 개선 결과
+type: object
+additionalProperties: false
+required: [ outcome ]
+properties:
+
+  # 처리 결과
+  #   PR_OPENED   PR 을 올렸다
+  #   NOT_OPENED  지시대로 고쳤지만 기대 결과나 테스트를 만족하지 못해 PR 을 올리지 않았다
+  outcome:
+    enum: [ PR_OPENED, NOT_OPENED ]
+
+  # 올린 PR 번호. PR_OPENED 일 때만 적는다.
+  pr:
+    type: [ integer, 'null' ]
+
+  # 무엇이 기대와 달랐는지. NOT_OPENED 일 때만 적는다.
+  reason:
+    type: [ string, 'null' ]
+
+oneOf:
+  - properties: { outcome: { const: PR_OPENED }, pr: { type: integer } }
+    required: [ pr ]
+  - properties: { outcome: { const: NOT_OPENED }, reason: { type: string, minLength: 1 } }
+    required: [ reason ]
+
+examples:
+  - outcome: PR_OPENED
+    pr: 263
+  - outcome: NOT_OPENED
+    reason: 2에서 DOWN 으로 상한 2까지 옮겨도 피드백 #251 · MAC · MEMORY 가 바뀌지 않았다

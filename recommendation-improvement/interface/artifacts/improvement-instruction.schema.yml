@@ -1,0 +1,164 @@
+# 개선 지시
+#
+# Feedback Analyzer 가 내고, Recommendation Improver 가 받는다.
+# Recommendation Improver 는 피드백 원문을 읽지 않는다. 이 산출물만 보고 고칠 수 있게 적는다.
+# 어디에 어떤 모양으로 놓이는지는 ../binding.md 에 있다.
+
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 개선 지시
+type: object
+additionalProperties: false
+required: [ issues, basis, purpose, rule, change, cases, reason ]
+properties:
+
+  # 근거가 된 피드백의 이슈 번호. 오름차순
+  issues:
+    type: array
+    minItems: 1
+    items: { type: integer }
+
+  # 근거의 종류
+  #   USER             사용자 피드백만 있다
+  #   METRIC_ESTIMATE  지표 피드백이 하나라도 있다. 개선 PR 에 지표 추정 표시가 붙는다
+  basis:
+    enum: [ USER, METRIC_ESTIMATE ]
+
+  # 고칠 정의서. 정의서 파일 이름의 사용 목적 코드다. 예: BACKEND_DEVELOPMENT
+  purpose:
+    type: string
+
+  # 고칠 규칙. 정의서 rules 에서 하나로 특정되도록 criterion 과 when 을 지금 정의서의 것 그대로 적는다.
+  # rules 밖(survey, mappings, 코드)은 대상이 아니다.
+  rule:
+    type: object
+    additionalProperties: false
+    required: [ criterion, when ]
+    properties:
+      criterion: { type: string }               # 정의서 rules 의 criterion. 예: MEMORY
+      when: { $ref: '#/$defs/condition' }
+
+  # 바꿀 내용. weight, when, delete 중 많아야 하나와 reason 을 적는다. reason 만 적어도 된다.
+  #   weight: { from: 2, to: 1 }           점수를 올리거나 내린다
+  #   weight: { from: 2, direction: DOWN } 점수를 UP 또는 DOWN 방향으로, 재현 사례의 결과가 바뀌는 만큼만 옮긴다
+  #   when: { from: …, to: … }             조건을 바꾼다. 값은 정의서 rules 의 when 과 같은 모양이다
+  #   delete: true                         규칙을 지운다
+  #   reason: { from: …, to: … }           근거 문장을 바꾼다. 결과 값은 바뀌지 않는다.
+  #                                        weight·when 변경으로 문장이 틀려질 때 함께 적는다
+  # from 은 지금 정의서의 값이다. Recommendation Improver 는 이 값이 지금과 다르면 고치지 않는다.
+  change:
+    type: object
+    additionalProperties: false
+    minProperties: 1
+    properties:
+      weight:
+        type: object
+        additionalProperties: false
+        required: [ from ]
+        properties:
+          from: { type: integer }
+          to: { type: integer }
+          direction: { enum: [ UP, DOWN ] }
+        oneOf:
+          - required: [ to ]
+          - required: [ direction ]
+      when:
+        type: object
+        additionalProperties: false
+        required: [ from, to ]
+        properties:
+          from: { $ref: '#/$defs/condition' }
+          to: { $ref: '#/$defs/condition' }
+      delete:
+        const: true
+      reason:
+        type: object
+        additionalProperties: false
+        required: [ from, to ]
+        properties:
+          from: { type: string }
+          to: { type: string }
+    # weight, when, delete 는 서로 함께 올 수 없다
+    allOf:
+      - not: { required: [ weight, when ] }
+      - not: { required: [ weight, delete ] }
+      - not: { required: [ when, delete ] }
+
+  # 재현 사례. 근거 피드백마다 하나씩 적는다.
+  #   answers   사용자의 답. 스냅숏 테스트의 answers 와 같은 모양이다
+  #   expected  고친 뒤 바뀔 것으로 기대하는 것. 정확한 값은 적지 않고 방향만 적는다.
+  #             지적한 권장안마다 하나. reason 만 바꾸는 지시면 적지 않는다
+  cases:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [ issue, answers ]
+      properties:
+        issue: { type: integer }
+        answers:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+        expected:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [ plan, item, direction ]
+            properties:
+              plan: { enum: [ MAC, WINDOWS ] }
+              item: { enum: [ REQUIRED_CPU, MEMORY, STORAGE ] }
+              direction: { enum: [ UP, DOWN ] }
+
+  # 지시를 낸 이유. 어느 조건에 해당하는지와 그 근거를 적는다. 조건은 ../components/feedback-analyzer.md 에 있다.
+  # basis 가 METRIC_ESTIMATE 면 지표 추정임을 밝힌다.
+  reason:
+    type: string
+
+$defs:
+  # 정의서 rules 의 when 과 같은 모양
+  condition:
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required: [ question, anyOf ]
+        properties:
+          question: { type: string }
+          anyOf: { type: array, minItems: 1, items: { type: string } }
+      - type: object
+        additionalProperties: false
+        required: [ all ]
+        properties:
+          all: { type: array, minItems: 1, items: { $ref: '#/$defs/condition' } }
+      - type: object
+        additionalProperties: false
+        required: [ any ]
+        properties:
+          any: { type: array, minItems: 1, items: { $ref: '#/$defs/condition' } }
+      - type: object
+        additionalProperties: false
+        required: [ not ]
+        properties:
+          not: { $ref: '#/$defs/condition' }
+
+examples:
+  - issues: [ 251, 257 ]
+    basis: USER
+    purpose: BACKEND_DEVELOPMENT
+    rule:
+      criterion: MEMORY
+      when: { question: SLOWDOWN, anyOf: [ OFTEN ] }
+    change:
+      weight: { from: 2, to: 1 }
+    cases:
+      - issue: 251
+        answers: { PROGRAMMING_LANGUAGE: [ JAVA_FAMILY ], SLOWDOWN: [ OFTEN ] }
+        expected:
+          - { plan: MAC, item: MEMORY, direction: DOWN }
+      - issue: 257
+        answers: { PROGRAMMING_LANGUAGE: [ JAVA_FAMILY ], IDE: [ JETBRAINS ], SLOWDOWN: [ OFTEN ] }
+        expected:
+          - { plan: MAC, item: MEMORY, direction: DOWN }
+    reason: 조건 2. 같은 규칙을 메모리가 과하다는 방향으로 가리키는 피드백이 2건이다.
