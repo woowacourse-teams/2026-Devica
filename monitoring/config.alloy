@@ -46,13 +46,15 @@ prometheus.relabel "alloy" {
 // RDS 지표는 CloudWatch 에만 있어 여기서 가져온다. 권한은 EC2 인스턴스 역할(IMDS)로 얻는다.
 // 인스턴스를 이름으로 지정해 태그 조회 권한 없이 읽는다. 이름 규칙은 db-devica-<env> 다.
 // RDS 지표는 1분 단위인데 CloudWatch 반영이 늦어, 최근 5분 중 마지막 값을 쓴다.
+// 값이 없을 때 0 으로 채우지 않는다. 남은 저장 공간·크레딧이 0 이면 고갈로 보이기 때문이다.
 prometheus.exporter.cloudwatch "rds" {
   sts_region = "ap-northeast-2"
 
   static "rds" {
-    regions    = ["ap-northeast-2"]
-    namespace  = "AWS/RDS"
-    dimensions = { "DBInstanceIdentifier" = "db-devica-" + sys.env("DEVICA_ENV") }
+    regions     = ["ap-northeast-2"]
+    namespace   = "AWS/RDS"
+    dimensions  = { "DBInstanceIdentifier" = "db-devica-" + sys.env("DEVICA_ENV") }
+    nil_to_zero = false
 
     metric {
       name       = "FreeStorageSpace"
