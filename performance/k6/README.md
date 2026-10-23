@@ -14,6 +14,7 @@ performance/
 └── k6/
     ├── README.md       # 이 문서
     ├── common/         # 팀 공통 모듈
+    ├── board-list/     # 질문 게시판 목록 조회
     └── product-list/   # 상품 목록 조회
 ```
 
