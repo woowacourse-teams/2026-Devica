@@ -30,7 +30,7 @@ Bash 호출 사이에 셸 상태가 남지 않는다. 호출마다 맨 앞에 �
 
 ```bash
 export REPO=$(git rev-parse --show-toplevel) GH_REPO=woowacourse-teams/2026-Devica
-ST="$HOME/.devica-product-recommendation/feedback-analyzer"; REC="python3 $ST/rec_common.py"
+ST="$HOME/.devica-product-recommendation/feedback-analyzer"; rec() { python3 "$ST/rec_common.py" "$@"; }
 DEV=http://dev.devica.co.kr PROD=https://api.devica.co.kr
 ```
 
@@ -39,15 +39,15 @@ DEV=http://dev.devica.co.kr PROD=https://api.devica.co.kr
 3. **레포 갱신과 스크립트 준비.**
    ```bash
    git -C "$REPO" fetch -q origin
-   git -C "$REPO" show "$SELF_REF:recommendation-improvement/rec_common.py" > "$ST/rec_common.py"
-   for s in analysis-result improvement-instruction improvement-result; do git -C "$REPO" show "$SELF_REF:recommendation-improvement/interface/artifacts/$s.schema.yml" > "$ST/$s.schema.yml"; done
+   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/rec_common.py" > "$ST/rec_common.py"
+   for s in analysis-result improvement-instruction improvement-result; do git -C "$REPO" show "${SELF_REF}:recommendation-improvement/interface/artifacts/$s.schema.yml" > "$ST/$s.schema.yml"; done
    ```
 4. **서버 확인.** 두 API 가 응답하는지 본다. 하나라도 200 이 아니면 아무것도 쓰지 않고 기록한 뒤 끝낸다.
    ```bash
-   $REC api "$DEV" BACKEND_DEVELOPMENT '{}' | head -c 200; $REC api "$PROD" BACKEND_DEVELOPMENT '{}' | head -c 200
+   rec api "$DEV" BACKEND_DEVELOPMENT '{}' | head -c 200; rec api "$PROD" BACKEND_DEVELOPMENT '{}' | head -c 200
    ```
 
-스크립트 명령: `$REC def|hits|visible|diff|history|api|url|values|fields|block` (사용법은 `rec_common.py` 머리 주석). `hits` 는 노출 조건을 적용한 답으로 걸린 규칙을 돌려준다.
+스크립트 명령: `rec def|hits|visible|diff|history|api|url|values|fields|block` (사용법은 `rec_common.py` 머리 주석). `hits` 는 노출 조건을 적용한 답으로 걸린 규칙을 돌려준다.
 
 ## 1. 상태 읽기
 
@@ -59,7 +59,7 @@ gh api --paginate "repos/$GH_REPO/issues?labels=product-recommendation-feedback&
 gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.[] | {id, created_at, author_association, body}'
 ```
 
-댓글이 있는 이슈만 댓글을 읽는다. 댓글 순서는 `created_at`, 같으면 `id` 로 정한다. 팀원 댓글의 첫 줄로 산출물을 가른다. 본문을 파일로 써서 `$REC block <파일>` 로 yaml 블록을 읽는다. `errors` 가 비어 있지 않으면 그 댓글은 산출물로 보지 않고 기록에 적는다.
+댓글이 있는 이슈만 댓글을 읽는다. 댓글 순서는 `created_at`, 같으면 `id` 로 정한다. 팀원 댓글의 첫 줄로 산출물을 가른다. 본문을 파일로 써서 `rec block <파일>` 로 yaml 블록을 읽는다. `errors` 가 비어 있지 않으면 그 댓글은 산출물로 보지 않고 기록에 적는다.
 
 | 첫 줄 | 산출물 |
 |---|---|
@@ -93,9 +93,9 @@ R 의 근거 피드백 중 열린 것은 R 에서만 다루고 A·H 에서 뺀�
 
 ### 3-1. 칸 읽기
 
-본문을 파일로 써서 `$REC fields <파일>` 로 칸을 읽는다.
+본문을 파일로 써서 `rec fields <파일>` 로 칸을 읽는다.
 
-- **주소**: `결과 화면 주소` 칸에서 `https://devica.co.kr/result` 또는 `https://2026-devica.vercel.app/result` 로 시작하는 줄만 쓴다. `$REC url <주소>` 의 `answers` 만 쓰고 `answer` 밖의 값은 버린다. 사용 목적은 `purpose`(없으면 `BACKEND_DEVELOPMENT`)다. 주소가 하나도 없으면 "재현할 수 없음".
+- **주소**: `결과 화면 주소` 칸에서 `https://devica.co.kr/result` 또는 `https://2026-devica.vercel.app/result` 로 시작하는 줄만 쓴다. `rec url <주소>` 의 `answers` 만 쓰고 `answer` 밖의 값은 버린다. 사용 목적은 `purpose`(없으면 `BACKEND_DEVELOPMENT`)다. 주소가 하나도 없으면 "재현할 수 없음".
 - **권장안**: `Mac` → [MAC], `Windows` → [WINDOWS], `둘 다` 또는 빈칸 → [MAC, WINDOWS].
 - **지적**: `어떤 점이 맞지 않았나요?` 를 `, ` 로 나눈다.
   - 값 지적: `CPU 가`·`메모리가`·`저장 공간이` + `과해요`(DOWN, 내려야 함) / `부족해요`(UP, 올려야 함). 항목 코드는 `REQUIRED_CPU`, `MEMORY`, `STORAGE`.
@@ -105,22 +105,22 @@ R 의 근거 피드백 중 열린 것은 R 에서만 다루고 A·H 에서 뺀�
 
 ### 3-2. 결과 받기
 
-주소마다 `$REC api "$DEV" <purpose> '<answers>'` 를 부른다. 400 이면 그 주소는 재현되지 않는다(질문이 바뀌어 예전 답이 맞지 않음). **모든 주소가 재현되지 않으면 "재현할 수 없음"**으로 판단하고 3-3 부터는 하지 않는다. 일부만 되면 된 주소만 쓰고 나머지를 분석 결과에 적는다.
+주소마다 `rec api "$DEV" <purpose> '<answers>'` 를 부른다. 400 이면 그 주소는 재현되지 않는다(질문이 바뀌어 예전 답이 맞지 않음). **모든 주소가 재현되지 않으면 "재현할 수 없음"**으로 판단하고 3-3 부터는 하지 않는다. 일부만 되면 된 주소만 쓰고 나머지를 분석 결과에 적는다.
 
-**사용자가 본 값**은 이 피드백의 직전 분석 결과 yaml 블록의 `seen` 을 쓴다. 첫 분석이면 지금 `$REC api "$PROD" …` 로 받은 값을 사용자가 본 값으로 삼아 `seen` 에 적는다. 다시 재현할 때 지금 운영 결과와 비교하면 그 사이 배포된 개선을 놓쳐 사용자가 본 적 없는 값에 지적을 다시 적용하기 때문이다. 운영 결과를 받지 못한 주소는 사용자가 본 값이 없고, 이미 바뀌었는지 비교하지 않는다(바뀌지 않은 것으로 본다).
+**사용자가 본 값**은 이 피드백의 직전 분석 결과 yaml 블록의 `seen` 을 쓴다. 첫 분석이면 지금 `rec api "$PROD" …` 로 받은 값을 사용자가 본 값으로 삼아 `seen` 에 적는다. 다시 재현할 때 지금 운영 결과와 비교하면 그 사이 배포된 개선을 놓쳐 사용자가 본 적 없는 값에 지적을 다시 적용하기 때문이다. 운영 결과를 받지 못한 주소는 사용자가 본 값이 없고, 이미 바뀌었는지 비교하지 않는다(바뀌지 않은 것으로 본다).
 
 ### 3-3. 지적마다 이미 바뀌었는지
 
-재현된 주소 **모두**와 지적한 권장안 **모두**에서 아래가 성립하면 그 지적은 이미 바뀌었다(`$REC values` 의 `rank` 로 비교한다).
+재현된 주소 **모두**와 지적한 권장안 **모두**에서 아래가 성립하면 그 지적은 이미 바뀌었다(`rec values` 의 `rank` 로 비교한다).
 
-- 값 지적: 개발 값이 사용자가 본 값보다 지적한 방향으로 옮겨 있다. 예: 메모리가 과해요인데 사용자가 본 값 32GB, 개발 24GB.
+- 값 지적: 개발 값의 `rank` 가 사용자가 본 값(`seen` 의 `rank`)보다 지적한 방향으로 옮겨 있다. 예: 메모리가 과해요인데 사용자가 본 값 32GB(rank 32), 개발 24GB(rank 24).
 - 문장 지적(짚은 문장이 있을 때만): 짚은 문장이 개발 결과의 그 권장안 근거에 더는 없다.
 
 질문 지적·기타·문장이 특정되지 않은 문장 지적은 이미 바뀔 수 없다. **모든 지적이 이미 바뀌었으면 "이미 바뀜"**으로 판단한다. 남은 지적이 있으면 남은 지적만으로 3-4 와 4 를 한다.
 
 ### 3-4. 근거 규칙과 가리키는 규칙
 
-재현된 주소마다 `H = $REC hits origin/develop <purpose> '<answers>'`.
+재현된 주소마다 `H = rec hits origin/develop <purpose> '<answers>'`.
 
 - 값 지적 `(항목, 방향)` 의 **근거 규칙** = `H` 중 `criterion == 항목`. 개발 결과의 그 항목 근거 문장 중 이 규칙들의 `reason` 이 아닌 것은 코드가 만든 문장이다(정의서 머리 주석의 목록).
 - 그 지적이 **가리키는 규칙** = 근거 규칙 중 DOWN 이면 `weight > 0`, UP 이면 `weight ≤ 0` 인 것. 주소가 여럿이면 모든 주소에서 가리키는 규칙의 교집합. 비었으면 값의 원인은 정의서 밖(점수 구간·보정 등 코드)이다.
@@ -143,7 +143,7 @@ R 의 근거 피드백 중 열린 것은 R 에서만 다루고 A·H 에서 뺀�
 **조건 3 — 지표 피드백의 바꾼 답이 가리키는 규칙이 하나다.** 지표 피드백에서만 본다. 남은 값 지적 `(항목, 방향)` 에 대해:
 1. 처음 답 조합 = 주소의 answers. 마지막 답 조합 = 처음 답 조합에서 `바꾼 답` 각 줄(`질문: 처음 → 마지막`)의 왼쪽 선택지를 빼고 오른쪽 선택지를 더한 것(`-` 는 없음).
 2. 버린 선택지에 걸린 규칙 = 처음 답 조합에 걸리고 마지막 답 조합에 걸리지 않는 `criterion == 항목` 규칙(`origin/develop`) 중 DOWN 이면 `weight > 0`, UP 이면 `weight ≤ 0` 인 것. 주소마다 구해 합집합.
-3. 2 가 비었으면 `$REC history origin/main <purpose> <근거 지표 기간 시작일>T00:00:00Z` 중 커밋 시각이 근거 지표 기간(시작일 00:00 ~ 끝일 24:00, UTC) 안이고, `criterion == 항목` 이며 처음 답 조합에 걸리고, `weight` 가 지적과 반대 방향으로 바뀐 규칙(DOWN 지적이면 올라간 것, UP 지적이면 내려간 것. 새로 생긴 규칙은 0 에서 바뀐 것으로 본다). 합집합. 그 규칙이 지금 `origin/develop` 에 없으면 쓰지 않는다.
+3. 2 가 비었으면 `rec history origin/main <purpose> <근거 지표 기간 시작일>T00:00:00Z` 중 커밋 시각이 근거 지표 기간(시작일 00:00 ~ 끝일 24:00, UTC) 안이고, `criterion == 항목` 이며 처음 답 조합에 걸리고, `weight` 가 지적과 반대 방향으로 바뀐 규칙(DOWN 지적이면 올라간 것, UP 지적이면 내려간 것. 새로 생긴 규칙은 0 에서 바뀐 것으로 본다). 합집합. 그 규칙이 지금 `origin/develop` 에 없으면 쓰지 않는다.
 4. 규칙이 정확히 하나면 후보: `weight: { from: <origin/develop 의 지금 값>, direction: <지적 방향> }`. 둘 이상이면 이 조건으로는 보류한다.
 
 **조건 2 — 같은 규칙을 같은 방향으로 가리키는 피드백이 2건 이상이다.** 조건 1·3 후보가 없는 피드백만, 이번 대상(A·H) 사이에서 함께 센다.
@@ -182,7 +182,7 @@ R 의 근거 피드백 중 열린 것은 R 에서만 다루고 A·H 에서 뺀�
 
 ## 6. 댓글
 
-댓글 본문을 파일로 쓰고, 남기기 전에 `$REC block <파일>` 의 `errors` 가 비어 있는지 확인한다. 있으면 고쳐서 다시 확인한다. 그 뒤 `gh issue comment <번호> --repo "$GH_REPO" --body-file <파일>` 로 남긴다. 표의 칸에 `|` 가 들어가면 `\|` 로 쓴다.
+댓글 본문을 파일로 쓰고, 남기기 전에 `rec block <파일>` 의 `errors` 가 비어 있는지 확인한다. 있으면 고쳐서 다시 확인한다. 그 뒤 `gh issue comment <번호> --repo "$GH_REPO" --body-file <파일>` 로 남긴다. 표의 칸에 `|` 가 들어가면 `\|` 로 쓴다.
 
 ### 6-1. 분석 결과
 
@@ -200,7 +200,7 @@ R 의 근거 피드백 중 열린 것은 R 에서만 다루고 A·H 에서 뺀�
 ```yaml
 judgment: <INSTRUCTED | ON_HOLD | TEAM_HANDLES | ALREADY_CHANGED | NOT_REPRODUCIBLE>
 seen:
-  - { plan: <MAC | WINDOWS>, item: <REQUIRED_CPU | MEMORY | STORAGE>, value: <값> }
+  - { plan: <MAC | WINDOWS>, item: <REQUIRED_CPU | MEMORY | STORAGE>, value: <values 의 display>, rank: <values 의 rank> }
 ```
 ````
 

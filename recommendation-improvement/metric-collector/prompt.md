@@ -33,7 +33,7 @@ Bash 호출 사이에 셸 상태가 남지 않는다. 호출마다 맨 앞에 �
 
 ```bash
 export REPO=$(git rev-parse --show-toplevel) GH_REPO=woowacourse-teams/2026-Devica
-ST="$HOME/.devica-product-recommendation/metric-collector"; REC="python3 $ST/rec.py"
+ST="$HOME/.devica-product-recommendation/metric-collector"; rec() { python3 "$ST/rec.py" "$@"; }
 ```
 
 1. **잠금.** `mkdir -p "$ST/runs" && mkdir "$ST/lock"` 가 실패하면 다른 실행이 진행 중이므로 아무것도 하지 않고 끝낸다. 단 `find "$ST/lock" -maxdepth 0 -mmin +360` 이 결과를 내면(6시간 넘게 남은 잠금) 앞선 실행이 비정상으로 끝난 것으로 보고 `rm -rf "$ST/lock"` 뒤 다시 잡고, 실행 기록에 그렇다고 적는다. 잠금을 잡은 뒤에는 **어느 단계에서 끝나든** 마지막에 `rm -rf "$ST/lock"` 을 한다.
@@ -41,12 +41,12 @@ ST="$HOME/.devica-product-recommendation/metric-collector"; REC="python3 $ST/rec
 3. **레포 갱신과 스크립트 준비.**
    ```bash
    git -C "$REPO" fetch -q origin
-   git -C "$REPO" show "$SELF_REF:recommendation-improvement/rec_common.py" > "$ST/rec_common.py"
-   git -C "$REPO" show "$SELF_REF:recommendation-improvement/metric-collector/rec.py" > "$ST/rec.py"
-   for s in analysis-result improvement-instruction improvement-result; do git -C "$REPO" show "$SELF_REF:recommendation-improvement/interface/artifacts/$s.schema.yml" > "$ST/$s.schema.yml"; done
+   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/rec_common.py" > "$ST/rec_common.py"
+   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/metric-collector/rec.py" > "$ST/rec.py"
+   for s in analysis-result improvement-instruction improvement-result; do git -C "$REPO" show "${SELF_REF}:recommendation-improvement/interface/artifacts/$s.schema.yml" > "$ST/$s.schema.yml"; done
    ```
    `fetch` 가 실패하면 멈춘다.
-4. **기준값.** `git -C "$REPO" show "$SELF_REF:recommendation-improvement/interface/components/metric-collector.md"` 의 "기준값" 표에서 읽는다.
+4. **기준값.** `git -C "$REPO" show "${SELF_REF}:recommendation-improvement/interface/components/metric-collector.md"` 의 "기준값" 표에서 읽는다.
    - `조회 기간`: `최근 N주` 면 `DAYS = N × 7`, `최근 N일` 이면 `DAYS = N`. 다른 모양이면 멈춘다.
    - `신호 최소 건수`: 1 이상의 정수면 `MIN`. 그 밖(`(정하지 않음)`, 빈칸 등)이면 `MIN` 은 비어 있다.
 
@@ -101,7 +101,7 @@ LIMIT 500 OFFSET 0
 ### 1-3. 신호 계산
 
 ```bash
-$REC signals "$ST/sessions.json" https://api.devica.co.kr "$DAYS" > "$ST/signals.json"
+rec signals "$ST/sessions.json" https://api.devica.co.kr "$DAYS" > "$ST/signals.json"
 ```
 
 스크립트가 명세의 "신호의 뜻"과 "만들지 않는 것"을 그대로 계산한다.
@@ -127,7 +127,7 @@ gh api --paginate "repos/$GH_REPO/issues?labels=product-recommendation-feedback&
 제목이 `[제품 추천 지표]` 로 시작하고 작성자가 팀원인 이슈가 Metric Collector 의 열린 지표 피드백이다. 이슈마다 본문을 파일로 써서 키를 만든다.
 
 ```bash
-$REC issue "$ST/issue-<번호>.md"
+rec issue "$ST/issue-<번호>.md"
 ```
 
 결과의 `key` 가 신호 키, `pending` 이 그 이슈의 세션(처음 답 조합과, 바꾼 답을 적용한 마지막 답 조합)에 걸린 배포 대기 규칙이다.
@@ -152,7 +152,7 @@ $REC issue "$ST/issue-<번호>.md"
    gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" \
      --jq '.[] | {id, created_at, author_association, body}'
    ```
-   팀원 댓글 중 첫 줄이 `<!-- product-recommendation:decision -->` 인 것이 개선 지시, `<!-- product-recommendation:result -->` 인 것이 개선 결과다. 댓글 본문을 파일로 써서 `$REC block <파일>` 로 yaml 블록을 읽는다. `errors` 가 비어 있지 않으면 그 댓글은 산출물로 보지 않고 기록에 적는다. 개선 결과는 같은 이슈에서 그보다 앞선 개선 지시 중 가장 최근 것의 결과다(순서는 `created_at`, 같으면 `id`). 개선 지시의 `issues` 에 이 이슈 번호가 있고, 개선 결과가 없거나 결과가 `PR_OPENED` 인데 그 PR 이 열려 있으면(`gh pr view <pr> --repo "$GH_REPO" --json state`) 처리 중이다.
+   팀원 댓글 중 첫 줄이 `<!-- product-recommendation:decision -->` 인 것이 개선 지시, `<!-- product-recommendation:result -->` 인 것이 개선 결과다. 댓글 본문을 파일로 써서 `rec block <파일>` 로 yaml 블록을 읽는다. `errors` 가 비어 있지 않으면 그 댓글은 산출물로 보지 않고 기록에 적는다. 개선 결과는 같은 이슈에서 그보다 앞선 개선 지시 중 가장 최근 것의 결과다(순서는 `created_at`, 같으면 `id`). 개선 지시의 `issues` 에 이 이슈 번호가 있고, 개선 결과가 없거나 결과가 `PR_OPENED` 인데 그 PR 이 열려 있으면(`gh pr view <pr> --repo "$GH_REPO" --json state`) 처리 중이다.
 2. **세션에 걸린 규칙이 배포를 기다리면 열어 둔다.** `pending` 이 비어 있지 않다.
 3. **지금 건수를 센다.** `c` = `signals.json` 에서 `key` 가 같은 묶음의 `count`(없으면 0). `c ≥ MIN` 이면 열어 둔다.
 4. `c < MIN` 이면 댓글을 남기고 닫는다.

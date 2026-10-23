@@ -32,7 +32,7 @@ Bash 호출 사이에 셸 상태가 남지 않는다. 호출마다 맨 앞에 �
 
 ```bash
 export REPO=$(git rev-parse --show-toplevel) GH_REPO=woowacourse-teams/2026-Devica
-ST="$HOME/.devica-product-recommendation/recommendation-improver"; REC="python3 $ST/rec.py"; WT="$ST/worktree"
+ST="$HOME/.devica-product-recommendation/recommendation-improver"; rec() { python3 "$ST/rec.py" "$@"; }; WT="$ST/worktree"
 SNAP=src/test/resources/recommendation/backend-development-snapshot.json
 ```
 
@@ -41,9 +41,9 @@ SNAP=src/test/resources/recommendation/backend-development-snapshot.json
 3. **레포 갱신과 스크립트 준비.**
    ```bash
    git -C "$REPO" fetch -q --prune origin
-   git -C "$REPO" show "$SELF_REF:recommendation-improvement/rec_common.py" > "$ST/rec_common.py"
-   git -C "$REPO" show "$SELF_REF:recommendation-improvement/recommendation-improver/rec.py" > "$ST/rec.py"
-   for s in analysis-result improvement-instruction improvement-result; do git -C "$REPO" show "$SELF_REF:recommendation-improvement/interface/artifacts/$s.schema.yml" > "$ST/$s.schema.yml"; done
+   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/rec_common.py" > "$ST/rec_common.py"
+   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/recommendation-improver/rec.py" > "$ST/rec.py"
+   for s in analysis-result improvement-instruction improvement-result; do git -C "$REPO" show "${SELF_REF}:recommendation-improvement/interface/artifacts/$s.schema.yml" > "$ST/$s.schema.yml"; done
    ```
 4. **열린 개선 PR 확인.** 이 구성 요소가 올린 PR 은 본문 첫 줄에 `<!-- product-recommendation:improvement -->` 가 있다.
    ```bash
@@ -67,7 +67,7 @@ gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.
 
 댓글 순서는 `created_at`, 같으면 `id` 다. 개선 지시 I 의 결과는 같은 이슈에서 I 뒤, 다음 개선 지시 앞에 있는 첫 개선 결과다. **결과가 없는 개선 지시 중 가장 오래된 것 하나**가 대상이다. 없으면 기록하고 끝낸다. 팀원이 이슈를 닫아 처리를 멈춘 지시는 열린 이슈만 읽으므로 대상이 되지 않는다.
 
-지시가 달린 이슈 번호를 `ISSUE`, 댓글 주소를 `INS_URL` 로 둔다. 댓글 본문을 파일로 써서 `$REC block <파일>` 의 `data` 를 `$ST/instruction.json` 에 쓴다. `errors` 가 비어 있지 않으면 그 지시는 처리하지 않고 기록에 적은 뒤, 다음으로 오래된 지시를 대상으로 한다.
+지시가 달린 이슈 번호를 `ISSUE`, 댓글 주소를 `INS_URL` 로 둔다. 댓글 본문을 파일로 써서 `rec block <파일>` 의 `data` 를 `$ST/instruction.json` 에 쓴다. `errors` 가 비어 있지 않으면 그 지시는 처리하지 않고 기록에 적은 뒤, 다음으로 오래된 지시를 대상으로 한다.
 
 이 아래에서 "PR 을 올리지 않는다"고 하면 7 로 가 `NOT_OPENED` 를 남긴다. 사유는 무엇이 기대와 달랐는지 한 문장이다.
 
@@ -91,14 +91,14 @@ gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.
 하나라도 어긋나면 PR 을 올리지 않는다.
 
 - 정의서 `DEF=src/main/resources/recommendation/purposes/<purpose>.yml` 이 `$WT` 에 있다. 스냅숏 테스트는 `BACKEND_DEVELOPMENT` 만 다루므로 다른 `purpose` 면 "스냅숏 테스트가 없는 사용 목적이다".
-- `$REC def "$WT/$DEF" <purpose>` 의 `rules` 중 `criterion` 과 `when` 이 지시의 `rule` 과 같은(키 순서 무관) 규칙이 **정확히 하나**다.
+- `rec def "$WT/$DEF" <purpose>` 의 `rules` 중 `criterion` 과 `when` 이 지시의 `rule` 과 같은(키 순서 무관) 규칙이 **정확히 하나**다.
 - `change.weight.from`, `change.when.from`, `change.reason.from` 이 있으면 그 규칙의 지금 값과 같다. 다르면 "지시 뒤에 develop 의 규칙이 바뀌었다(지시 <from>, 지금 <값>)".
 - `change.when.to` 의 질문·선택지가 그 정의서 `survey` 에 있다.
 
 ## 4. 재현 사례 추가
 
 1. ```bash
-   $REC add-cases "$WT/$SNAP" "$ST/instruction.json"
+   rec add-cases "$WT/$SNAP" "$ST/instruction.json"
    ```
    `cases` 마다 `피드백 #<issue>` 사례를 대표 사용자와 앞선 피드백 사례 뒤에 한 줄 더한다(같은 이슈의 두 번째 사례부터 `피드백 #<issue> (2)`). 같은 이름이 이미 있으면 더하지 않는다. 더한 이름 목록이 나온다.
 2. 지금 정의서로 응답을 채운다.
@@ -131,14 +131,14 @@ gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.
 고칠 때마다 확인한다.
 
 - `git -C "$WT" diff --name-only "$BASE"` 에 `$DEF` 와 `$SNAP` 밖의 파일이 없다.
-- `$REC diff origin/develop "$WT/$DEF" <purpose>` 가 지시한 규칙의 변경만 보인다(`when` 변경은 옛 키 삭제와 새 키 추가 두 항목). `$REC def` 로 읽은 `survey`·`mappings` 가 `origin/develop` 과 같다.
+- `rec diff origin/develop "$WT/$DEF" <purpose>` 가 지시한 규칙의 변경만 보인다(`when` 변경은 옛 키 삭제와 새 키 추가 두 항목). `rec def` 로 읽은 `survey`·`mappings` 가 `origin/develop` 과 같다.
 
 고친 뒤 4-2 의 명령으로 스냅숏을 다시 채운다.
 
 ### 5-2. 기대 결과 판정
 
 ```bash
-$REC compare "$ST/before.json" "$WT/$SNAP" "$ST/instruction.json" > "$ST/compare.json"
+rec compare "$ST/before.json" "$WT/$SNAP" "$ST/instruction.json" > "$ST/compare.json"
 ```
 
 `ok` 가 참이어야 한다. `checks` 가 사례마다 아래를 본다.
@@ -179,8 +179,8 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
 2. **본문 값 모으기.**
    - 결과 변화: `compare.json` 의 `rows`(지시의 사례)와 `other_feedback_rows`(결과가 바뀐 앞선 `피드백 #` 사례).
    - 영향 범위: `compare.json` 의 `impact`.
-   - 배포되지 않은 변경: `$REC diff origin/main origin/develop <purpose> <criterion>`. `origin/main` 에 정의서가 없으면 "운영에 정의서가 아직 배포되지 않았다"고 적는다.
-   - 같은 규칙의 최근 변경: `$REC history origin/develop <purpose>` 중 `changes` 에 이 규칙의 키(새 `when` 이면 새 키도)가 있는 커밋 최근 5개의 시각, 커밋 앞 8자리, 제목, 전 → 후 weight·reason.
+   - 배포되지 않은 변경: `rec diff origin/main origin/develop <purpose> <criterion>`. `origin/main` 에 정의서가 없으면 "운영에 정의서가 아직 배포되지 않았다"고 적는다.
+   - 같은 규칙의 최근 변경: `rec history origin/develop <purpose>` 중 `changes` 에 이 규칙의 키(새 `when` 이면 새 키도)가 있는 커밋 최근 5개의 시각, 커밋 앞 8자리, 제목, 전 → 후 weight·reason.
 3. **본문.** 파일로 쓴다.
    ```markdown
    <!-- product-recommendation:improvement -->
@@ -236,7 +236,7 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
 
 ## 7. 개선 결과 남기기
 
-[improvement-result.schema.yml](../interface/artifacts/improvement-result.schema.yml)의 형식으로 `ISSUE` 에 댓글을 남긴다(`gh issue comment "$ISSUE" --repo "$GH_REPO" --body-file <파일>`). 남기기 전에 `$REC block <파일>` 의 `errors` 가 비어 있는지 확인한다.
+[improvement-result.schema.yml](../interface/artifacts/improvement-result.schema.yml)의 형식으로 `ISSUE` 에 댓글을 남긴다(`gh issue comment "$ISSUE" --repo "$GH_REPO" --body-file <파일>`). 남기기 전에 `rec block <파일>` 의 `errors` 가 비어 있는지 확인한다.
 
 ````markdown
 <!-- product-recommendation:result -->

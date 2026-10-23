@@ -12,7 +12,7 @@
 #   rec_common.py history REF PURPOSE [SINCE_ISO]           first-parent 이력에서 규칙이 바뀐 커밋
 #   rec_common.py api     BASE_URL PURPOSE ANSWERS          제품 추천 API 결과 {status, body}
 #   rec_common.py url     RESULT_URL                        결과 화면 주소 → {category, purpose, answers}
-#   rec_common.py values  RESPONSE_JSON                     API 응답 → 권장안별 항목 값·순위·근거
+#   rec_common.py values  RESPONSE_JSON                     api 의 출력이나 그 body → 권장안별 항목 값·순위·근거
 #   rec_common.py fields  BODY_FILE                         피드백 이슈 본문 → 칸 제목별 값
 #   rec_common.py block   COMMENT_FILE                      산출물 댓글 → 표시(첫 줄), 첫 ```yaml 블록(JSON), 스키마 검증 오류(errors)
 #
@@ -156,6 +156,7 @@ def result_url(category, purpose, answers):
 
 
 def values(body):
+    body = body.get('body', body) if 'specs' not in body else body
     out = {}
     for spec in body['specs']:
         items = {i['code']: i for i in spec['items']}
