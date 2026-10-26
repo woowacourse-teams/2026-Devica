@@ -486,7 +486,12 @@ function ResultPage({ params }: PageProps) {
         track('recommended_spec_edited', { category, purpose, ...properties });
       }
     }
-    go(`${PATHS.matched}?${withOs(os)}`, { searching: true });
+    // 고친 값은 이 화면의 것이다. 맞춤 목록에는 검색 조건으로 바꿔 넘기고 edit 는 넘기지 않는다.
+    // 그래야 맞춤 목록이 검색 조건 하나만 보고, 같은 사양이 주소 두 곳에 있다가 어긋나지 않는다.
+    const next = new URLSearchParams(withOs(os));
+    next.delete('edit');
+    const edited = specs.map((spec) => editedSpec(spec, edits, tiers.data));
+    go(`${PATHS.matched}?${withSpecCondition(next, edited)}`, { searching: true });
   };
   return (
     <ResultView
@@ -557,40 +562,38 @@ const finishSearching = (failed: boolean) => {
   });
 };
 
+/**
+ * 맞춤 목록은 제품 추천 결과를 검색 조건으로 채운 목록이다. 볼 OS 의 제품 추천 결과로 검색 조건을 채운 주소를 만든다.
+ * 주소의 OS 에 맞는 제품 추천 결과가 없으면(주소를 고쳤을 때) 첫 제품 추천 결과로 채운다.
+ */
+function withSpecCondition(params: URLSearchParams, specs: Spec[]): URLSearchParams {
+  const os = matchedOsOf(params, specs);
+  const spec = specs.find((each) => osValueOf(each) === os) ?? specs[0];
+  const next = new URLSearchParams(params);
+  if (spec === undefined) {
+    return next;
+  }
+  for (const [key, value] of Object.entries(specCondition(spec))) {
+    if (value === null) {
+      next.delete(key);
+    } else {
+      next.set(key, String(value));
+    }
+  }
+  return next;
+}
+
 function MatchedListPage({ params, search }: PageProps & { search: string }) {
   const recommendation = useRecommendation(params);
-  const tiers = useFetched('cpu-tiers', fetchCpuTiers);
-  const edits = editsOf(params);
-  // 고친 CPU 는 등급을 받아야 이름을 보여 줄 수 있다. 받는 동안은 기다리고, 받지 못하면 코드 그대로 채운다(editedSpec).
-  const waitingForTiers =
-    Object.values(edits).some((items) => 'REQUIRED_CPU' in items) && tiers.data === null && !tiers.failed;
-  const specs = waitingForTiers ? [] : (recommendation.data ?? []).map((spec) => editedSpec(spec, edits, tiers.data));
-  // 맞춤 목록은 권장 사양(고쳤으면 고친 값)을 검색 조건으로 채운 목록이다. 들어올 때 한 번 주소에 채우고, 이후로는 필터로 고친다.
-  // 맞춤 목록의 OS 는 탭이라 늘 있다. 주소에 OS 가 없으면 아직 채우지 않은 것이다.
-  const ready = recommendation.data !== null && !waitingForTiers;
-  // 권장안이 하나도 없으면 채울 것이 없다. 기다리지 않고 목록을 그린다.
-  const filled = params.has('os') || (ready && recommendation.data?.length === 0);
+  const specs = recommendation.data ?? [];
+  // 제품 추천 결과 화면에서 오면 검색 조건이 채워져 있다. 맞춤 목록의 OS 는 탭이라 늘 있으니, OS 가 없으면
+  // 채우지 않고 바로 들어온 주소(예전 공유 링크 등)다. 한 번 채운 뒤 그린다. 제품 추천 결과가 없으면 채울 것이 없다.
+  const filled = params.has('os') || recommendation.data?.length === 0;
   useEffect(() => {
-    if (filled || !ready || recommendation.data === null) {
-      return;
+    if (!filled && recommendation.data !== null) {
+      replace(`${PATHS.matched}?${withSpecCondition(new URLSearchParams(search), recommendation.data)}`);
     }
-    const current = new URLSearchParams(search);
-    const edited = recommendation.data.map((spec) => editedSpec(spec, editsOf(current), tiers.data));
-    const os = matchedOsOf(current, edited);
-    // 주소의 OS 에 맞는 권장안이 없으면(주소를 고쳤을 때) 첫 권장안으로 채운다. 채우지 않으면 불러오는 중에 머문다.
-    const spec = edited.find((each) => osValueOf(each) === os) ?? edited[0];
-    if (spec === undefined) {
-      return;
-    }
-    for (const [key, value] of Object.entries(specCondition(spec))) {
-      if (value === null) {
-        current.delete(key);
-      } else {
-        current.set(key, String(value));
-      }
-    }
-    replace(`${PATHS.matched}?${current}`);
-  }, [filled, ready, search, recommendation.data, tiers.data]);
+  }, [filled, search, recommendation.data]);
   const { state, onChangeState, navState } = useListState(
     search,
     'RECOMMENDED',
