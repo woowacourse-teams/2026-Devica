@@ -11,7 +11,15 @@ import { IntroView } from './IntroView';
 import { LandingPage } from './LandingPage';
 import { ProductDetailView } from './ProductDetailView';
 import { type ProductListState, ProductListView } from './ProductListView';
-import type { SearchCondition, SortType } from './products';
+import {
+  editedSpec,
+  editProperties,
+  fetchCpuTiers,
+  type SearchCondition,
+  type SortType,
+  type SpecEdits,
+  specCondition,
+} from './products';
 import { QuestionView } from './QuestionView';
 import { type Answers, fetchSurvey, pruneHiddenAnswers, resolveScreens, toSearchParams } from './questions';
 import { type ResultOs, ResultView } from './ResultView';
@@ -23,6 +31,8 @@ import {
   boardEntryUrl,
   conditionOf,
   currentNavState,
+  editEntries,
+  editsOf,
   flowEntries,
   flowOf,
   go,
@@ -406,14 +416,14 @@ function RecommendationStatus({ failed, error, onRetry, restartTo, purpose }: Re
       {failed ? (
         <>
           <p className="notice" role="alert">
-            권장 사양을 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.
+            제품 추천 결과를 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.
           </p>
           <button className="button button--primary button--wide" type="button" onClick={onRetry}>
             다시 시도
           </button>
         </>
       ) : (
-        <p className="section-description">권장 사양을 불러오는 중입니다…</p>
+        <p className="section-description">제품 추천 결과를 불러오는 중입니다…</p>
       )}
     </section>
   );
@@ -421,6 +431,8 @@ function RecommendationStatus({ failed, error, onRetry, restartTo, purpose }: Re
 
 function ResultPage({ params }: PageProps) {
   const recommendation = useRecommendation(params);
+  // 맞춤 목록과 같은 key 라 한 번만 받는다. CPU 를 고칠 때 선택지로 쓴다.
+  const tiers = useFetched('cpu-tiers', fetchCpuTiers);
   const specs = recommendation.data;
   const { category, purpose } = flowOf(params);
   const loaded = specs !== null;
@@ -447,17 +459,55 @@ function ResultPage({ params }: PageProps) {
     );
   }
   const os = resultOsOf(params, specs);
+  const edits = editsOf(params);
   const withOs = (next: ResultOs) => {
     const copy = new URLSearchParams(params);
     copy.set('specOs', next);
     return copy.toString();
   };
+  // 고친 사양은 방문 기록을 쌓지 않고 주소에만 남긴다. 새로고침해도, 맞춤 목록에 다녀와도 그대로다.
+  const withEdits = (next: SpecEdits) => {
+    const copy = new URLSearchParams(params);
+    copy.delete('edit');
+    for (const [key, value] of editEntries(next)) {
+      copy.append(key, value);
+    }
+    replace(`${PATHS.result}?${copy}`);
+  };
+  const onEdit = (specOs: string, code: string, value: string | null) => {
+    const { [code]: _, ...rest } = edits[specOs] ?? {};
+    withEdits({ ...edits, [specOs]: value === null ? rest : { ...rest, [code]: value } });
+  };
+  const onSearch = () => {
+    // 보이는 권장안 중 고친 것만 센다. 제품 추천 개선 루프가 이 기록으로 맞지 않은 항목과 원한 값을 안다.
+    for (const spec of specs) {
+      const properties = editProperties(spec, editedSpec(spec, edits, tiers.data));
+      if (properties !== null && (os === 'BOTH' || os === properties.os)) {
+        track('recommended_spec_edited', { category, purpose, ...properties });
+      }
+    }
+    // 고친 값은 이 화면의 것이다. 맞춤 목록에는 검색 조건으로 바꿔 넘기고 edit 는 넘기지 않는다.
+    // 그래야 맞춤 목록이 검색 조건 하나만 보고, 같은 사양이 주소 두 곳에 있다가 어긋나지 않는다.
+    const next = new URLSearchParams(withOs(os));
+    next.delete('edit');
+    const edited = specs.map((spec) => editedSpec(spec, edits, tiers.data));
+    go(`${PATHS.matched}?${withSpecCondition(next, edited)}`, { searching: true });
+  };
   return (
     <ResultView
       specs={specs}
       os={os}
+      edits={edits}
+      tiers={tiers.data}
+      tiersFailed={tiers.failed}
+      onRetryTiers={tiers.retry}
       onChangeOs={(next) => replace(`${PATHS.result}?${withOs(next)}`)}
-      onSearch={() => go(`${PATHS.matched}?${withOs(os)}`, { searching: true })}
+      onEdit={onEdit}
+      onResetEdits={(specOs) => {
+        const { [specOs]: _, ...rest } = edits;
+        withEdits(rest);
+      }}
+      onSearch={onSearch}
     />
   );
 }
@@ -515,10 +565,43 @@ const finishSearching = (failed: boolean) => {
   });
 };
 
+/**
+ * 맞춤 목록은 제품 추천 결과를 검색 조건으로 채운 목록이다. 볼 OS 의 제품 추천 결과로 검색 조건을 채운 주소를 만든다.
+ * 주소의 OS 에 맞는 제품 추천 결과가 없으면(주소를 고쳤을 때) 첫 제품 추천 결과로 채운다.
+ */
+function withSpecCondition(params: URLSearchParams, specs: Spec[]): URLSearchParams {
+  const os = matchedOsOf(params, specs);
+  const spec = specs.find((each) => osValueOf(each) === os) ?? specs[0];
+  const next = new URLSearchParams(params);
+  if (spec === undefined) {
+    return next;
+  }
+  for (const [key, value] of Object.entries(specCondition(spec))) {
+    if (value === null) {
+      next.delete(key);
+    } else {
+      next.set(key, String(value));
+    }
+  }
+  return next;
+}
+
 function MatchedListPage({ params, search }: PageProps & { search: string }) {
   const recommendation = useRecommendation(params);
   const specs = recommendation.data ?? [];
-  const { state, onChangeState, navState } = useListState(search, 'RECOMMENDED', matchedOsOf(params, specs));
+  // 제품 추천 결과 화면에서 오면 검색 조건이 채워져 있다. 맞춤 목록의 OS 는 탭이라 늘 있으니, OS 가 없으면
+  // 채우지 않고 바로 들어온 주소(예전 공유 링크 등)다. 한 번 채운 뒤 그린다. 제품 추천 결과가 없으면 채울 것이 없다.
+  const filled = params.has('os') || recommendation.data?.length === 0;
+  useEffect(() => {
+    if (!filled && recommendation.data !== null) {
+      replace(`${PATHS.matched}?${withSpecCondition(new URLSearchParams(search), recommendation.data)}`);
+    }
+  }, [filled, search, recommendation.data]);
+  const { state, onChangeState, navState } = useListState(
+    search,
+    'RECOMMENDED',
+    matchedOsOf(params, recommendation.data ?? []),
+  );
   const { category, purpose } = flowOf(params);
 
   if (category === null || purpose === null) {
@@ -529,6 +612,18 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
       <RecommendationStatus
         failed={recommendation.failed}
         error={recommendation.error}
+        onRetry={recommendation.retry}
+        restartTo={`${PATHS.intro}${query(flowEntries(flowOf(params)))}`}
+        purpose={purpose}
+      />
+    );
+  }
+
+  if (!filled) {
+    return (
+      <RecommendationStatus
+        failed={false}
+        error={null}
         onRetry={recommendation.retry}
         restartTo={`${PATHS.intro}${query(flowEntries(flowOf(params)))}`}
         purpose={purpose}

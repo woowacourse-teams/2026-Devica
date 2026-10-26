@@ -1,5 +1,5 @@
 import { navigate } from 'wouter/use-browser-location';
-import { EMPTY_CONDITION, OSES, type SearchCondition, type SortType } from './products';
+import { EMPTY_CONDITION, OSES, type SearchCondition, type SortType, type SpecEdits } from './products';
 import type { Answers } from './questions';
 import type { ResultOs } from './ResultView';
 
@@ -28,7 +28,7 @@ const SCREEN_NAMES: Record<Screen, string> = {
   purpose: '사용 목적 선택',
   intro: '기본 권장 사양',
   question: '질문',
-  result: '권장 사양',
+  result: '제품 추천 결과',
   matched: '맞춤 목록',
   products: '제품 목록',
   detail: '제품 상세',
@@ -45,7 +45,7 @@ const BACK_LABELS: Record<Screen, string> = {
   purpose: '← 사용 목적 선택으로',
   intro: '← 기본 권장 사양으로',
   question: '← 질문으로',
-  result: '← 권장 사양으로',
+  result: '← 제품 추천 결과로',
   matched: '← 맞춤 목록으로',
   products: '← 제품 목록으로',
   detail: '← 제품 상세로',
@@ -80,7 +80,7 @@ export function isBoardScreen(screen: Screen | null): boolean {
 export function titleOf(pathname: string): string {
   const screen = screenOf(pathname);
   return screen === null || screen === 'home'
-    ? 'Devica — 백엔드 개발용 노트북 사양'
+    ? 'Devica — 나에게 맞는 개발용 노트북 추천받기'
     : `${SCREEN_NAMES[screen]} — Devica`;
 }
 
@@ -193,6 +193,25 @@ export function answersOf(params: URLSearchParams): Answers {
 export function answerEntries(answers: Answers): [string, string][] {
   return Object.entries(answers).flatMap(([code, values]) =>
     values.map((value): [string, string] => ['answer', `${code}.${value}`]),
+  );
+}
+
+// 고친 사양은 "OS.항목코드.값" 으로 이어 edit 에 반복해 담는다. 맞춤 목록으로 넘어가도, 돌아와도 그대로다.
+// 고를 수 없는 값은 권장 사양에 덮을 때 버린다(editedSpec).
+export function editsOf(params: URLSearchParams): SpecEdits {
+  const edits: SpecEdits = {};
+  for (const entry of params.getAll('edit')) {
+    const [os, code, value, ...rest] = entry.split('.');
+    if (os && code && value && rest.length === 0) {
+      edits[os] = { ...edits[os], [code]: value };
+    }
+  }
+  return edits;
+}
+
+export function editEntries(edits: SpecEdits): [string, string][] {
+  return Object.entries(edits).flatMap(([os, items]) =>
+    Object.entries(items).map(([code, value]): [string, string] => ['edit', `${os}.${code}.${value}`]),
   );
 }
 

@@ -2,10 +2,10 @@
 export const LANDING_GUIDES = [
   {
     id: 'find-specs',
-    eyebrow: '내 목적에 맞는 사양이 궁금하다면',
-    title: '내 사양 찾기',
-    description: '제품과 사용 목적을 선택하고, 내 환경에 맞는 사양과 제품을 확인해요.',
-    linkText: '내 사양 찾기 시작',
+    eyebrow: '내 목적에 맞는 제품이 궁금하다면',
+    title: '제품 추천받기',
+    description: '제품과 사용 목적을 선택하고, 내 환경에 맞는 제품 추천 결과를 확인해요.',
+    linkText: '제품 추천 시작',
     href: '/category',
     cards: [
       {
@@ -57,13 +57,13 @@ export const LANDING_GUIDES = [
         },
       },
       {
-        step: '04 / 추천 사양 확인',
-        title: '필요한 사양을,\n이유와 함께.',
-        description: '추천 이유를 읽고,\n내 환경에 맞는 사양을 확인해요.',
+        step: '04 / 제품 추천 결과 확인',
+        title: '필요한 것을,\n이유와 함께.',
+        description: '추천 이유를 읽고,\n내 환경에 맞는 추천 결과를 확인해요.',
         note: 'CPU · RAM · SSD와 추천 근거',
         capture: {
           src: '/landing/actual-result-mac.jpg',
-          alt: '실제 Mac 권장 사양과 추천 이유',
+          alt: '실제 Mac 제품 추천 결과와 추천 이유',
           ratio: '1025/534',
           style: {
             width: '123.41463%',
@@ -74,12 +74,12 @@ export const LANDING_GUIDES = [
       },
       {
         step: '05 / 제품 확인',
-        title: '사양에 맞는\n제품을 살펴봐요.',
-        description: '확정한 사양을 충족하는\n제품을 살펴보세요.',
+        title: '추천 결과에 맞는\n제품을 살펴봐요.',
+        description: '제품 추천 결과에 맞는\n제품을 살펴보세요.',
         note: '더 궁금한 점이 있다면 질문 게시판에서도 나눠요.',
         capture: {
           src: '/landing/actual-products.jpg',
-          alt: '확정한 사양을 충족하는 실제 제품 목록',
+          alt: '제품 추천 결과에 맞는 실제 제품 목록',
           ratio: '1044/389',
           style: {
             width: '121.16858%',
@@ -94,15 +94,15 @@ export const LANDING_GUIDES = [
     id: 'use-board',
     eyebrow: '나와 비슷한 고민이 궁금하다면',
     title: '질문 게시판 이용',
-    description: '사양 추천 전에도, 추천받은 뒤에도.\n궁금한 질문과 다른 개발자들의 경험을 바로 둘러볼 수 있어요.',
+    description: '제품 추천 전에도, 추천받은 뒤에도.\n궁금한 질문과 다른 개발자들의 경험을 바로 둘러볼 수 있어요.',
     linkText: '질문 게시판 둘러보기',
     href: '/board',
     cards: [
       {
         step: '01 / 비슷한 고민 둘러보기',
         title: '누군가 나와 같은\n고민을 했을까요?',
-        description: '사양 추천을 받기 전에도 바로 들어와,\n제품과 사용 목적에 맞는 질문을 둘러봐요.',
-        note: '사양 추천을 받지 않아도 바로 이용할 수 있어요.',
+        description: '제품 추천을 받기 전에도 바로 들어와,\n제품과 사용 목적에 맞는 질문을 둘러봐요.',
+        note: '제품 추천을 받지 않아도 바로 이용할 수 있어요.',
         capture: {
           src: '/landing/actual-board.jpg',
           alt: '실제 질문 게시판의 제품 및 사용 목적 분류와 질문 목록',
@@ -133,7 +133,7 @@ export const LANDING_GUIDES = [
       {
         step: '03 / 직접 질문하기',
         title: '남은 궁금증은\n직접 나눠요.',
-        description: '비슷한 질문을 찾지 못했거나,\n추천받은 사양이 고민된다면 질문해 보세요.',
+        description: '비슷한 질문을 찾지 못했거나,\n제품 추천 결과가 고민된다면 질문해 보세요.',
         note: '사용 환경과 궁금한 내용을 함께 적어주세요.',
         capture: {
           src: '/landing/actual-board-write.jpg',
