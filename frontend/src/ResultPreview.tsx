@@ -68,7 +68,7 @@ export function ResultPreview() {
         </span>
       </button>
       <div className="result-preview__panel" id={panelId} hidden={!open}>
-        <p className="result-preview__title">질문에 답하면 내 작업에 맞춘 권장 사양을 알려드려요</p>
+        <p className="result-preview__title">질문에 답하면 내 작업에 맞춘 제품 추천 결과를 알려드려요</p>
         <dl className="result-preview__items">
           {ITEMS.map((item) => (
             <div key={item.label}>

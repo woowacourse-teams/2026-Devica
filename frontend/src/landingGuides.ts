@@ -57,13 +57,13 @@ export const LANDING_GUIDES = [
         },
       },
       {
-        step: '04 / 추천 사양 확인',
+        step: '04 / 제품 추천 결과 확인',
         title: '필요한 사양을,\n이유와 함께.',
         description: '추천 이유를 읽고,\n내 환경에 맞는 사양을 확인해요.',
         note: 'CPU · RAM · SSD와 추천 근거',
         capture: {
           src: '/landing/actual-result-mac.jpg',
-          alt: '실제 Mac 권장 사양과 추천 이유',
+          alt: '실제 Mac 제품 추천 결과와 추천 이유',
           ratio: '1025/534',
           style: {
             width: '123.41463%',

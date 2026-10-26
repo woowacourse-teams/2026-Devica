@@ -68,9 +68,9 @@ export function ResultView({
 
   return (
     <section className="view-panel result-view" id="result-view" aria-labelledby="result-title">
-      <p className="eyebrow">내 권장 사양</p>
-      <h2 id="result-title">권장 사양을 확인해 보세요</h2>
-      <p className="section-description">권장 사양을 확인하고 필요에 따라 직접 수정할 수 있습니다.</p>
+      <p className="eyebrow">내 제품 추천 결과</p>
+      <h2 id="result-title">제품 추천 결과를 확인해 보세요</h2>
+      <p className="section-description">제품 추천 결과를 확인하고 필요에 따라 직접 수정할 수 있습니다.</p>
 
       <div className="result-os-control">
         <span>표시할 OS</span>
@@ -109,12 +109,12 @@ export function ResultView({
 
       {edited && (
         <button className="button button--secondary" id="reset-spec-button" type="button" onClick={onResetEdits}>
-          권장 사양으로 되돌리기
+          제품 추천 결과로 되돌리기
         </button>
       )}
 
       <p className="result-feedback">
-        권장 사양이 나와 맞지 않나요?{' '}
+        제품 추천 결과가 나와 맞지 않나요?{' '}
         <a href={feedbackUrl()} target="_blank" rel="noopener noreferrer">
           의견 남기기 ↗
         </a>
@@ -155,7 +155,7 @@ function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, editing, onE
 
   return (
     <article className="bordered-panel spec-card">
-      <h3>{OS_LABEL[osValueOf(spec)] ?? osValueOf(spec)} 권장 사양</h3>
+      <h3>{OS_LABEL[osValueOf(spec)] ?? osValueOf(spec)} 제품 추천 결과</h3>
       {ROWS.map(({ code, label }) => {
         const recommended = itemOf(spec, code);
         const item = itemOf(edited, code);
@@ -176,7 +176,7 @@ function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, editing, onE
                   )}
                   {choices.map((choice) => (
                     <option value={choice.value} key={choice.value}>
-                      {choice.value === recommended.value ? `${choice.label} (권장)` : choice.label}
+                      {choice.value === recommended.value ? `${choice.label} (추천)` : choice.label}
                     </option>
                   ))}
                 </select>
@@ -188,7 +188,7 @@ function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, editing, onE
               </>
             )}
             {item !== recommended && (
-              <p className="spec-row__reason">직접 고친 값이에요. (권장 사양: {recommended.displayValue})</p>
+              <p className="spec-row__reason">직접 고친 값이에요. (제품 추천 결과: {recommended.displayValue})</p>
             )}
             {/* CPU 선택지와 고친 등급의 이름은 등급을 받아야 알 수 있다. 고치려 하거나 고친 값이 있을 때만 알린다. */}
             {code === 'REQUIRED_CPU' && tiers === null && (editing || item !== recommended) && (

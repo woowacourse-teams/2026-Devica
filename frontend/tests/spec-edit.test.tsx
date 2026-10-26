@@ -89,7 +89,7 @@ test('사양 직접 수정을 누르면 항목을 고를 수 있고, 권장 값�
       onSearch={() => {}}
     />,
   );
-  expect(screen.getByText('직접 고친 값이에요. (권장 사양: 24GB)')).toBeTruthy();
+  expect(screen.getByText('직접 고친 값이에요. (제품 추천 결과: 24GB)')).toBeTruthy();
 
   fireEvent.click(screen.getByRole('button', { name: '사양 직접 수정' }));
   const memory = screen.getByLabelText('MEMORY') as HTMLSelectElement;
@@ -127,7 +127,7 @@ test('등급을 받지 못하면 CPU 칸에 실패를 알리고 다시 시도할
       onSearch={() => {}}
     />,
   );
-  expect(screen.getByText('직접 고친 값이에요. (권장 사양: M Pro 칩)')).toBeTruthy();
+  expect(screen.getByText('직접 고친 값이에요. (제품 추천 결과: M Pro 칩)')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: '다시 시도' }));
   expect(onRetryTiers).toHaveBeenCalled();
 });

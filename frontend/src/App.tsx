@@ -416,14 +416,14 @@ function RecommendationStatus({ failed, error, onRetry, restartTo, purpose }: Re
       {failed ? (
         <>
           <p className="notice" role="alert">
-            권장 사양을 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.
+            제품 추천 결과를 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.
           </p>
           <button className="button button--primary button--wide" type="button" onClick={onRetry}>
             다시 시도
           </button>
         </>
       ) : (
-        <p className="section-description">권장 사양을 불러오는 중입니다…</p>
+        <p className="section-description">제품 추천 결과를 불러오는 중입니다…</p>
       )}
     </section>
   );
