@@ -50,6 +50,7 @@ class RecommendationServiceTest {
     private static final long SNAPSHOT_SEED = 242L;
     private static final int SNAPSHOT_ATTEMPTS = 20_000;
     private static final int CASES_PER_SPECS = 3;
+    private static final String FEEDBACK_CASE_PREFIX = "피드백 #";
 
     /**
      * 규칙을 고칠 때 먼저 확인할 대표 사용자다. 스냅숏 맨 앞에 이름과 함께 고정된다.
@@ -194,6 +195,7 @@ class RecommendationServiceTest {
      * <p>
      * 화면에서 만들 수 있는 조합만 만든다 — 노출 조건을 지키고, 현재 사양 단계만 건너뛸 수 있다.
      * 결과 사양이 같은 조합은 몇 건만 남겨 파일 크기를 유지한다.
+     * 제품 추천 피드백으로 더한 사례("피드백 #번호")는 회귀 테스트이므로 답변 조합을 그대로 남긴다.
      * <pre>
      * REGENERATE_SNAPSHOT=true ./gradlew test --tests '*RecommendationServiceTest.스냅숏의_답변_조합을*'
      * </pre>
@@ -208,8 +210,14 @@ class RecommendationServiceTest {
         // when
         List<SnapshotCase> cases = new ArrayList<>();
         PERSONAS.forEach((name, answers) -> cases.add(new SnapshotCase(name, answers, recommend(answers))));
+        List<SnapshotCase> feedbackCases = readSnapshot().stream()
+            .filter(snapshotCase -> snapshotCase.name() != null && snapshotCase.name().startsWith(FEEDBACK_CASE_PREFIX))
+            .map(snapshotCase -> new SnapshotCase(snapshotCase.name(), snapshotCase.answers(), recommend(snapshotCase.answers())))
+            .toList();
+        cases.addAll(feedbackCases);
 
         Set<Map<String, List<String>>> seen = new HashSet<>(PERSONAS.values());
+        feedbackCases.forEach(snapshotCase -> seen.add(snapshotCase.answers()));
         Map<List<?>, Integer> countBySpecs = new HashMap<>();
         for (int i = 0; i < SNAPSHOT_ATTEMPTS; i++) {
             Map<String, List<String>> answers = randomAnswers(survey, random);
