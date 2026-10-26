@@ -247,10 +247,10 @@ describe('ServiceEntryLink의 실제 클릭 연결', () => {
   function renderLink(props: { onNavigate?: () => void; target?: string; measure?: boolean } = {}) {
     render(
       <ServiceEntryLink href="/category" destination="spec_finder" entryPoint="landing_hero" {...props}>
-        내 사양 찾기 시작
+        제품 추천 시작
       </ServiceEntryLink>,
     );
-    return screen.getByRole('link', { name: '내 사양 찾기 시작' });
+    return screen.getByRole('link', { name: '제품 추천 시작' });
   }
 
   test('관찰 시간 전에 클릭해도 노출·클릭 순서로 기록하고 실제 경로로 이동한다', () => {

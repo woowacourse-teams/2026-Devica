@@ -63,7 +63,7 @@ const HEADINGS: Record<ListMode, { eyebrow: string; title: string; description: 
   MATCHED: {
     eyebrow: '조건에 맞는 제품',
     title: '추천 노트북',
-    description: '확정한 사양을 검색 조건으로 채워 두었어요. 조건을 바꿔 더 찾아볼 수 있어요.',
+    description: '제품 추천 결과를 검색 조건으로 채워 두었어요. 조건을 바꿔 더 찾아볼 수 있어요.',
   },
   ALL: {
     eyebrow: '제품 목록',
@@ -491,7 +491,7 @@ function EmptyResult({ condition, tiers, hasCondition, showsAll, onReset, onShow
   // 조건 없이 0건이면 사양이 높은 것이다. 목록을 넓혀 볼 길을 준다.
   return (
     <div className="empty-result">
-      <p>조건에 맞는 제품이 없습니다. 사양을 직접 조정해 다시 확인해 주세요.</p>
+      <p>조건에 맞는 제품이 없습니다. 검색 조건을 직접 조정해 다시 확인해 주세요.</p>
       {!showsAll && (
         <button className="button button--secondary" type="button" onClick={onShowAll}>
           전체 제품 보기

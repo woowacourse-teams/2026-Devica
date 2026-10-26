@@ -73,7 +73,7 @@ test('이벤트 속성은 항목마다 권장 값과 고친 값을 담고, 고�
   });
 });
 
-test('사양 직접 수정을 누르면 항목을 고를 수 있고, 권장 값으로 고르면 되돌린다', () => {
+test('추천 결과 직접 수정을 누르면 항목을 고를 수 있고, 권장 값으로 고르면 되돌린다', () => {
   const onEdit = vi.fn();
   render(
     <ResultView
@@ -91,7 +91,7 @@ test('사양 직접 수정을 누르면 항목을 고를 수 있고, 권장 값�
   );
   expect(screen.getByText('직접 고친 값이에요. (제품 추천 결과: 24GB)')).toBeTruthy();
 
-  fireEvent.click(screen.getByRole('button', { name: '사양 직접 수정' }));
+  fireEvent.click(screen.getByRole('button', { name: '추천 결과 직접 수정' }));
   const memory = screen.getByLabelText('MEMORY') as HTMLSelectElement;
   expect(memory.value).toBe('32');
   fireEvent.change(memory, { target: { value: '24' } });

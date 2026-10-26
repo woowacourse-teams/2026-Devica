@@ -80,7 +80,7 @@ export function isBoardScreen(screen: Screen | null): boolean {
 export function titleOf(pathname: string): string {
   const screen = screenOf(pathname);
   return screen === null || screen === 'home'
-    ? 'Devica — 백엔드 개발용 노트북 사양'
+    ? 'Devica — 나에게 맞는 개발용 노트북 추천받기'
     : `${SCREEN_NAMES[screen]} — Devica`;
 }
 

@@ -129,10 +129,10 @@ export function ResultView({
           aria-pressed={editing}
           onClick={() => setEditing(!editing)}
         >
-          {editing ? '수정 마치기' : '사양 직접 수정'}
+          {editing ? '수정 마치기' : '추천 결과 직접 수정'}
         </button>
         <button className="button button--primary button--wide" id="product-button" type="button" onClick={onSearch}>
-          확정한 사양으로 제품 검색
+          추천 결과로 제품 검색
         </button>
       </div>
     </section>

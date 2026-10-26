@@ -14,7 +14,7 @@ export function SearchLoadingView({ specs }: Props) {
       <div className="bordered-panel search-loading" aria-live="polite" aria-busy="true">
         <span className="spinner" aria-hidden="true" />
         <h2 id="search-loading-title">조건에 맞는 제품을 찾고 있습니다</h2>
-        <p className="eyebrow">사양 대조 중</p>
+        <p className="eyebrow">추천 결과로 찾는 중</p>
         <div className="search-loading__specs" id="search-loading-specs">
           {specs.map((spec) => (
             <p className="search-loading__spec" key={spec.items.find((item) => item.code === 'OS')?.value ?? ''}>
