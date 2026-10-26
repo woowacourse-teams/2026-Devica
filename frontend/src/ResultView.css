@@ -21,10 +21,6 @@
     grid-column: 1 / -1;
 }
 
-.spec-card > h3 {
-    margin-bottom: var(--gutter);
-}
-
 .spec-row {
     padding: var(--density-med);
 }
@@ -89,25 +85,53 @@
     }
 }
 
-/* 고칠 때는 값 자리에 선택 칸이 온다. 값과 같은 크기로 보여 무엇을 고르는지 바로 알 수 있게 한다. */
-.spec-row__edit {
-    display: grid;
+/* 되돌리기는 그 OS 카드의 것이라 카드 제목 옆에 둔다. 버튼이 생기고 사라져도 아래 칸이 움직이지 않게 높이를 버튼에 맞춰 둔다. */
+.spec-card__head {
+    display: flex;
+    min-height: 40px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--density-med);
+    margin-bottom: var(--gutter);
+}
+
+.spec-card__head > h3 {
+    margin: 0;
+}
+
+/* 카드 안의 작은 동작이라 칩 모양으로 두고, 강조색은 테두리와 글자에만 쓴다. 채우면 아래 제품 검색 버튼과 무게가 같아진다. */
+.spec-card__reset {
+    margin: 0;
+    border-color: var(--accent);
+    color: var(--accent);
+    font-size: var(--body-sm-font-size);
+}
+
+.spec-card__reset:hover:not(:disabled),
+.spec-card__reset:focus-visible {
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* 배지도 생기고 사라지므로 라벨 줄 높이를 배지에 맞춰 둔다. */
+.spec-row__head {
+    display: flex;
+    min-height: 24px;
+    flex-wrap: wrap;
+    align-items: center;
     gap: var(--density-high);
 }
 
-.spec-row__edit select {
-    width: 100%;
-    border: 1px solid var(--on-surface);
+/* 고친 항목은 라벨 옆 배지로 드러내고, 추천 값을 함께 적어 무엇에서 바꿨는지 보이게 한다. */
+.spec-row__badge {
     border-radius: var(--radius-control);
-    padding: var(--density-high) var(--density-med);
-    color: var(--on-surface);
-    background: var(--surface-container-lowest);
-    font: inherit;
-    font-size: var(--headline-sm-font-size);
+    padding: 0 var(--density-high);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    font-size: var(--body-sm-font-size);
     font-weight: 600;
-    cursor: pointer;
 }
 
-#reset-spec-button {
-    margin-bottom: var(--gutter);
+/* 고칠 때는 값 자리에 칩이 온다. 설문과 같은 칩이라 고르는 방법이 같다. */
+.spec-row .choice-group {
+    margin-top: var(--density-high);
 }

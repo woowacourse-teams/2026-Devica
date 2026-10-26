@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vitest';
 import {
   type CpuTier,
@@ -89,14 +89,14 @@ test('추천 결과 직접 수정을 누르면 항목을 고를 수 있고, 권�
       onSearch={() => {}}
     />,
   );
-  expect(screen.getByText('직접 고친 값이에요. (제품 추천 결과: 24GB)')).toBeTruthy();
+  expect(screen.getByText('직접 수정 · 추천 24GB')).toBeTruthy();
 
   fireEvent.click(screen.getByRole('button', { name: '추천 결과 직접 수정' }));
-  const memory = screen.getByLabelText('MEMORY') as HTMLSelectElement;
-  expect(memory.value).toBe('32');
-  fireEvent.change(memory, { target: { value: '24' } });
+  const memory = within(screen.getByRole('group', { name: 'MEMORY' }));
+  expect(memory.getByRole('button', { name: '32GB' }).getAttribute('aria-pressed')).toBe('true');
+  fireEvent.click(memory.getByRole('button', { name: '24GB · 추천' }));
   expect(onEdit).toHaveBeenLastCalledWith('MAC', 'MEMORY', null);
-  fireEvent.change(screen.getByLabelText('PROCESSOR'), { target: { value: 'BASIC' } });
+  fireEvent.click(within(screen.getByRole('group', { name: 'PROCESSOR' })).getByRole('button', { name: 'M 칩' }));
   expect(onEdit).toHaveBeenLastCalledWith('MAC', 'REQUIRED_CPU', 'BASIC');
 });
 
@@ -127,7 +127,40 @@ test('등급을 받지 못하면 CPU 칸에 실패를 알리고 다시 시도할
       onSearch={() => {}}
     />,
   );
-  expect(screen.getByText('직접 고친 값이에요. (제품 추천 결과: M Pro 칩)')).toBeTruthy();
+  expect(screen.getByText('직접 수정 · 추천 M Pro 칩')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: '다시 시도' }));
   expect(onRetryTiers).toHaveBeenCalled();
+});
+
+test('되돌리기는 고친 OS 카드에만 보이고, 그 OS 의 고친 값만 지운다', () => {
+  const WINDOWS: Spec = {
+    preferred: false,
+    items: [
+      item('OS', 'WINDOWS', 'Windows'),
+      item('REQUIRED_CPU', 'U', '저전력 Core Ultra 5 / Ryzen 5'),
+      item('MEMORY', '24', '24GB'),
+      item('STORAGE', '512', '512GB'),
+    ],
+  };
+  const onResetEdits = vi.fn();
+  const view = (os: 'MAC' | 'WINDOWS') => (
+    <ResultView
+      specs={[MAC, WINDOWS]}
+      os={os}
+      edits={{ MAC: { MEMORY: '32' } }}
+      tiers={TIERS}
+      tiersFailed={false}
+      onRetryTiers={() => {}}
+      onChangeOs={() => {}}
+      onEdit={() => {}}
+      onResetEdits={onResetEdits}
+      onSearch={() => {}}
+    />
+  );
+  const { rerender } = render(view('WINDOWS'));
+  expect(screen.queryByRole('button', { name: '추천 결과로 되돌리기' })).toBeNull();
+
+  rerender(view('MAC'));
+  fireEvent.click(screen.getByRole('button', { name: '추천 결과로 되돌리기' }));
+  expect(onResetEdits).toHaveBeenCalledWith('MAC');
 });

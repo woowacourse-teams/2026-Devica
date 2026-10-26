@@ -503,7 +503,10 @@ function ResultPage({ params }: PageProps) {
       onRetryTiers={tiers.retry}
       onChangeOs={(next) => replace(`${PATHS.result}?${withOs(next)}`)}
       onEdit={onEdit}
-      onResetEdits={() => withEdits({})}
+      onResetEdits={(specOs) => {
+        const { [specOs]: _, ...rest } = edits;
+        withEdits(rest);
+      }}
       onSearch={onSearch}
     />
   );
