@@ -67,6 +67,22 @@
     letter-spacing: var(--label-md-letter-spacing);
 }
 
+.result-feedback {
+    margin: 0 0 var(--gutter);
+    color: var(--on-surface-variant);
+    font-size: var(--body-md-font-size);
+}
+
+.result-feedback a {
+    font-weight: 600;
+}
+
+.result-feedback__hint {
+    display: block;
+    margin-top: var(--density-high);
+    font-size: var(--body-sm-font-size);
+}
+
 @media (min-width: 768px) {
     .spec-list {
         grid-template-columns: repeat(2, minmax(0, 1fr));

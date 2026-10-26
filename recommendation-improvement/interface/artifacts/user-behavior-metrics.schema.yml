@@ -1,0 +1,42 @@
+# 사용자 행동 지표
+#
+# PostHog 가 수집하고, Metric Collector 가 받는다. PostHog 이벤트 중 쓰는 필드만 적었다.
+# 어디서 읽는지는 ../binding.md 에 있다.
+#
+# 이벤트 이름이나 주소 형식이 바뀌면 이 파일과 ../components/metric-collector.md 를 함께 고친다.
+
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 사용자 행동 지표
+type: object
+required: [ event, timestamp, properties ]
+properties:
+
+  # 이벤트 이름. 결과 화면을 본 이벤트만 쓴다.
+  event:
+    const: recommendation_result_viewed
+
+  # 이벤트가 일어난 시각
+  timestamp:
+    type: string
+    format: date-time
+
+  properties:
+    type: object
+    required: [ $current_url, $session_id ]
+    properties:
+
+      # 이벤트가 일어난 화면의 주소. 고른 선택지마다 answer=질문.선택지 가 하나씩 붙는다.
+      $current_url:
+        type: string
+        pattern: '^https://(www\.)?devica\.co\.kr/result\?'
+
+      # PostHog 세션 ID. 세션 단위로 묶는 데만 쓰고 산출물에는 남기지 않는다.
+      $session_id:
+        type: string
+
+examples:
+  - event: recommendation_result_viewed
+    timestamp: 2026-10-20T13:05:12Z
+    properties:
+      $current_url: https://devica.co.kr/result?category=LAPTOP&purpose=BACKEND_DEVELOPMENT&answer=PROGRAMMING_LANGUAGE.JAVA_FAMILY&answer=SLOWDOWN.OFTEN
+      $session_id: 0192a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b

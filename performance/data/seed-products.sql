@@ -150,6 +150,15 @@ BEGIN
         CROSS JOIN (SELECT 1 AS store_no UNION ALL SELECT 2 UNION ALL SELECT 3) stores
         WHERE s.n < v_batch_count;
 
+        -- 제품 목록은 product_offer를 직접 읽지 않고, product_offer로 계산해 둔 product_min_price를 읽으므로 함께 채운다
+        INSERT INTO product_min_price (product_id, min_price)
+        SELECT p.id, MIN(o.price)
+        FROM perf_seed_numbers s
+        JOIN product p ON p.code = CONCAT(v_prefix, LPAD(v_start + s.n, 6, '0'))
+        JOIN product_offer o ON o.product_id = p.id AND o.status = 'ON_SALE'
+        WHERE s.n < v_batch_count
+        GROUP BY p.id;
+
         COMMIT;
         SET v_start = v_start + v_batch_count;
     END WHILE;
@@ -158,10 +167,11 @@ BEGIN
     DROP TEMPORARY TABLE perf_seed_cpus;
 
     SELECT COUNT(DISTINCT p.id) AS products, COUNT(DISTINCT l.id) AS laptops,
-           COUNT(o.id) AS on_sale_offers
+           COUNT(o.id) AS on_sale_offers, COUNT(DISTINCT m.product_id) AS min_prices
     FROM product p
     LEFT JOIN laptop l ON l.id = p.id
     LEFT JOIN product_offer o ON o.product_id = p.id AND o.status = 'ON_SALE'
+    LEFT JOIN product_min_price m ON m.product_id = p.id
     WHERE p.code LIKE CONCAT(v_prefix, '%') AND CHAR_LENGTH(p.code) = CHAR_LENGTH(v_prefix) + 6;
 
     SELECT COUNT(*) AS products_without_three_on_sale_offers

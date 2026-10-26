@@ -12,6 +12,20 @@ const ROWS: { code: string; label: string }[] = [
 
 const OS_LABEL: Record<string, string> = { MAC: 'Mac', WINDOWS: 'Windows' };
 
+// 의견은 GitHub 이슈 양식으로 받는다. result_url 은 양식의 필드 id 라, 바꾸면 양식 파일도 함께 고친다.
+const FEEDBACK_FORM_URL = 'https://github.com/woowacourse-teams/2026-Devica/issues/new';
+
+// 결과 화면 주소에 답이 모두 담겨 있어, 이 주소로 같은 결과를 재현한다.
+// 사용자가 제목에서 망설이지 않게 제목도 채운다.
+function feedbackUrl(): string {
+  const params = new URLSearchParams({
+    template: 'product-recommendation-feedback.yml',
+    title: '[제품 추천 의견] 결과 화면에서 남긴 의견',
+    result_url: window.location.href,
+  });
+  return `${FEEDBACK_FORM_URL}?${params}`;
+}
+
 export type ResultOs = 'MAC' | 'WINDOWS' | 'BOTH';
 
 type Props = {
@@ -54,6 +68,14 @@ export function ResultView({ specs, os, onChangeOs, onSearch }: Props) {
           <SpecCard key={osValueOf(spec)} spec={spec} />
         ))}
       </div>
+
+      <p className="result-feedback">
+        권장 사양이 나와 맞지 않나요?{' '}
+        <a href={feedbackUrl()} target="_blank" rel="noopener noreferrer">
+          의견 남기기 ↗
+        </a>
+        <span className="result-feedback__hint">GitHub 계정이 필요해요.</span>
+      </p>
 
       <div className="sticky-actions">
         {/* 사양 직접 수정은 아직 갈 곳이 없어 눌리지 않는다. */}

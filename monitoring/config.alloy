@@ -43,6 +43,110 @@ prometheus.relabel "alloy" {
   forward_to = [prometheus.remote_write.grafana_cloud.receiver]
 }
 
+// RDS 지표는 CloudWatch 에만 있어 여기서 가져온다. 권한은 EC2 인스턴스 역할(IMDS)로 얻는다.
+// 인스턴스를 이름으로 지정해 태그 조회 권한 없이 읽는다. 이름 규칙은 db-devica-<env> 다.
+// RDS 지표는 1분 단위인데 CloudWatch 반영이 늦어, 최근 5분 중 마지막 값을 쓴다.
+// 가져온 시각이 아니라 CloudWatch 가 잰 시각으로 기록해, 같은 시각의 앱 지표와 나란히 비교할 수 있게 한다.
+// 값이 없을 때 0 으로 채우지 않는다. 남은 저장 공간·크레딧이 0 이면 고갈로 보이기 때문이다.
+prometheus.exporter.cloudwatch "rds" {
+  sts_region = "ap-northeast-2"
+
+  static "rds" {
+    regions     = ["ap-northeast-2"]
+    namespace   = "AWS/RDS"
+    dimensions  = { "DBInstanceIdentifier" = "db-devica-" + sys.env("DEVICA_ENV") }
+    nil_to_zero = false
+
+    metric {
+      name                     = "FreeStorageSpace"
+      statistics               = ["Minimum"]
+      period                   = "1m"
+      length                   = "5m"
+      add_cloudwatch_timestamp = true
+    }
+
+    metric {
+      name                     = "FreeableMemory"
+      statistics               = ["Minimum"]
+      period                   = "1m"
+      length                   = "5m"
+      add_cloudwatch_timestamp = true
+    }
+
+    metric {
+      name                     = "DatabaseConnections"
+      statistics               = ["Maximum"]
+      period                   = "1m"
+      length                   = "5m"
+      add_cloudwatch_timestamp = true
+    }
+
+    metric {
+      name                     = "CPUUtilization"
+      statistics               = ["Average"]
+      period                   = "1m"
+      length                   = "5m"
+      add_cloudwatch_timestamp = true
+    }
+
+    metric {
+      name                     = "ReadIOPS"
+      statistics               = ["Average"]
+      period                   = "1m"
+      length                   = "5m"
+      add_cloudwatch_timestamp = true
+    }
+
+    metric {
+      name                     = "WriteIOPS"
+      statistics               = ["Average"]
+      period                   = "1m"
+      length                   = "5m"
+      add_cloudwatch_timestamp = true
+    }
+
+    metric {
+      name                     = "ReadLatency"
+      statistics               = ["Average"]
+      period                   = "1m"
+      length                   = "5m"
+      add_cloudwatch_timestamp = true
+    }
+
+    metric {
+      name                     = "WriteLatency"
+      statistics               = ["Average"]
+      period                   = "1m"
+      length                   = "5m"
+      add_cloudwatch_timestamp = true
+    }
+
+    metric {
+      name                     = "DiskQueueDepth"
+      statistics               = ["Average"]
+      period                   = "1m"
+      length                   = "5m"
+      add_cloudwatch_timestamp = true
+    }
+
+    // RDS 의 t4g 는 Unlimited 모드라 크레딧이 바닥나도 느려지지 않고, 기준을 넘는 사용분에 요금이 붙는다.
+    // 크레딧만 가져온 시각으로 기록한다. 5분 단위라 CloudWatch 시각은 5분 넘게 지난 값이 되어,
+    // 최근 5분 안의 값을 보는 알림이 값을 찾지 못한다. 천천히 움직이는 값이라 시각이 조금 어긋나도 된다.
+    metric {
+      name       = "CPUCreditBalance"
+      statistics = ["Minimum"]
+      period     = "5m"
+      length     = "10m"
+    }
+  }
+}
+
+prometheus.scrape "rds" {
+  targets         = prometheus.exporter.cloudwatch.rds.targets
+  scrape_interval = "60s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
 prometheus.remote_write "grafana_cloud" {
   endpoint {
     url = sys.env("GRAFANA_CLOUD_PROM_URL")

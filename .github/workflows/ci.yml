@@ -96,6 +96,16 @@ jobs:
       - name: 빌드
         run: npm run build
 
+  recommendation-improvement:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 테스트
+        run: python3 recommendation-improvement/test.py
+
   # pre-push 와 같은 검사다. --no-verify 로 훅을 건너뛴 push 를 PR 단계에서 막는다.
   # git 만 쓰므로 Node 설치 없이 frontend 잡과 따로 돌린다.
   # develop → main 배포 PR 과 main push 에서는 돌리지 않는다.
@@ -123,3 +133,18 @@ jobs:
         env:
           # 기록에 적힌 기준 브랜치 대신 실제 PR 의 base 로 해시를 계산한다. push 이벤트에서는 비워 두어 기록을 따른다.
           REVIEW_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+
+  # 서버와 같은 버전의 Alloy 로 문법과 속성 이름을 검사한다. 서버 권한이나 실제 전송은 확인하지 못한다.
+  # 필수 검사로 걸기 때문에 config.alloy 가 바뀌지 않은 PR 에서도 돈다. 건너뛰면 결과가 없어 머지가 막힌다.
+  alloy-config:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Alloy 설정 검사
+        run: |
+          # 버전을 따로 적지 않고 서버 compose 파일에서 읽어, 서버를 올릴 때 함께 바뀌게 한다.
+          IMAGE=$(grep -oE 'grafana/alloy:[^[:space:]]+' docker-compose.server.yml)
+          docker run --rm -v "$PWD/monitoring:/etc/alloy:ro" "$IMAGE" validate /etc/alloy/config.alloy

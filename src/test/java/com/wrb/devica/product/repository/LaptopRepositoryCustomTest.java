@@ -12,6 +12,7 @@ import com.wrb.devica.category.domain.ProductCategory;
 import com.wrb.devica.category.domain.ProductCategoryCode;
 import com.wrb.devica.category.repository.ProductCategoryRepository;
 import com.wrb.devica.common.JpaSliceTest;
+import com.wrb.devica.common.MinPriceRefresher;
 import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
 import com.wrb.devica.product.domain.Cpu;
 import com.wrb.devica.product.domain.CpuTier;
@@ -30,10 +31,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 
 @JpaSliceTest
+@Import(MinPriceRefresher.class)
 class LaptopRepositoryCustomTest {
 
     private static final long DEFAULT_PRICE = 1_000_000L;
@@ -46,6 +49,9 @@ class LaptopRepositoryCustomTest {
 
     @Autowired
     private ProductOfferRepository productOfferRepository;
+
+    @Autowired
+    private MinPriceRefresher minPriceRefresher;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -192,22 +198,6 @@ class LaptopRepositoryCustomTest {
     }
 
     @Test
-    void 가격_조건은_판매_중인_오퍼의_최저가를_기준으로_한다() {
-        // given
-        Laptop laptop = laptopOf(laptop().name("노트북"));
-        productOfferRepository.save(offer().product(laptop).price(3_000_000L).status(OfferStatus.ON_SALE).build());
-        productOfferRepository.save(offer().product(laptop).price(2_000_000L).status(OfferStatus.ON_SALE).build());
-        productOfferRepository.save(offer().product(laptop).price(1_000_000L).status(OfferStatus.SOLD_OUT).build());
-
-        // when
-        Slice<ProductSummaryRow> found = findLaptops(
-            condition().maxPrice(1_500_000L).build());
-
-        // then
-        assertThat(found.getContent()).isEmpty();
-    }
-
-    @Test
     void 조건을_여러_개_지정할_때_조회하면_모두_만족하는_것만_반환한다() {
         // given
         int enough = CpuTier.BASIC.getMinScore();
@@ -279,6 +269,7 @@ class LaptopRepositoryCustomTest {
         productOfferRepository.save(offer().product(soldOut).price(1_000_000L).status(OfferStatus.SOLD_OUT).build());
         productOfferRepository.save(
             offer().product(soldOut).price(1_000_000L).status(OfferStatus.DISCONTINUED).build());
+        minPriceRefresher.refresh(soldOut.getId());
 
         // when
         Slice<ProductSummaryRow> found = findLaptops(0, 10);
@@ -336,23 +327,6 @@ class LaptopRepositoryCustomTest {
     }
 
     @Test
-    void 가격순은_판매_중인_오퍼의_최저가를_기준으로_한다() {
-        // given
-        Laptop soldOutCheaper = laptopOf(laptop().name("품절이더쌈"));
-        productOfferRepository.save(
-            offer().product(soldOutCheaper).price(3_000_000L).status(OfferStatus.ON_SALE).build());
-        productOfferRepository.save(
-            offer().product(soldOutCheaper).price(500_000L).status(OfferStatus.SOLD_OUT).build());
-        onSaleLaptop(laptop().name("판매중"), 2_000_000L);
-
-        // when
-        Slice<ProductSummaryRow> found = findLaptops(SortType.PRICE_ASC);
-
-        // then
-        assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("판매중", "품절이더쌈");
-    }
-
-    @Test
     void 추천순으로_조회하면_CPU_메모리_저장_공간_순으로_사양이_높은_노트북을_먼저_반환한다() {
         // given
         onSaleLaptop(laptop().name("저장_공간만_큼").memoryGb(16).storageGb(4096), saveCpu(21_000), DEFAULT_PRICE);
@@ -369,7 +343,7 @@ class LaptopRepositoryCustomTest {
     }
 
     @ParameterizedTest
-    @EnumSource(SortType.class)
+    @EnumSource(value = SortType.class, names = {"RECOMMENDED", "PRICE_ASC"})
     void 정렬_기준을_지정할_때_정렬_값이_같으면_id_오름차순으로_반환한다(SortType sort) {
         // given
         onSaleLaptop(laptop().name("먼저"), 1_000_000L);
@@ -380,6 +354,44 @@ class LaptopRepositoryCustomTest {
 
         // then
         assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("먼저", "나중");
+    }
+
+    // 최저가 인덱스를 거꾸로 읽기 때문에 같은 가격 안에서도 id 를 거꾸로 읽는다
+    @Test
+    void 가격_높은_순으로_조회할_때_최저가가_같으면_id_내림차순으로_반환한다() {
+        // given
+        onSaleLaptop(laptop().name("먼저"), 1_000_000L);
+        onSaleLaptop(laptop().name("나중"), 1_000_000L);
+
+        // when
+        Slice<ProductSummaryRow> found = findLaptops(SortType.PRICE_DESC);
+
+        // then
+        assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("나중", "먼저");
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = SortType.class, names = {"PRICE_ASC", "PRICE_DESC"})
+    void 가격순으로_페이지를_넘기면_최저가가_있는_노트북_뒤에_없는_노트북이_이어진다(SortType sort) {
+        // given
+        onSaleLaptop(laptop().name("판매중1"), 1_000_000L);
+        onSaleLaptop(laptop().name("판매중2"), 1_000_000L);
+        onSaleLaptop(laptop().name("판매중3"), 1_000_000L);
+        laptopOf(laptop().name("오퍼없음1"));
+        laptopOf(laptop().name("오퍼없음2"));
+
+        // when
+        Slice<ProductSummaryRow> first = findLaptops(condition().build(), sort, 0, 2);
+        Slice<ProductSummaryRow> boundary = findLaptops(condition().build(), sort, 1, 2);
+        Slice<ProductSummaryRow> last = findLaptops(condition().build(), sort, 2, 2);
+
+        // then
+        assertThat(first.getContent()).extracting(ProductSummaryRow::minPrice).doesNotContainNull();
+        assertThat(first.hasNext()).isTrue();
+        assertThat(boundary.getContent()).extracting(ProductSummaryRow::name).last().isEqualTo("오퍼없음1");
+        assertThat(boundary.hasNext()).isTrue();
+        assertThat(last.getContent()).extracting(ProductSummaryRow::name).containsExactly("오퍼없음2");
+        assertThat(last.hasNext()).isFalse();
     }
 
     @ParameterizedTest
@@ -448,6 +460,7 @@ class LaptopRepositoryCustomTest {
     private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, long price) {
         Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
         productOfferRepository.save(onSaleOffer(laptop, price));
+        minPriceRefresher.refresh(laptop.getId());
         return laptop;
     }
 

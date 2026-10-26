@@ -9,7 +9,7 @@ const PAGE_SIZE = 10;
 const PAGES = [0, 1, 2];
 const SEED = 199;
 
-// 추천 알고리즘(LaptopBackendAlgorithm)이 낼 수 있는 사양 조합
+// 추천(BackendDevelopmentRecommender)이 낼 수 있는 사양 조합
 // Mac은 CPU 등급마다 살 수 있는 메모리가 정해져 있고, MAX는 PRO로 제한된다
 const MAC_CPU_MEMORY = [
   ['BASIC', 16], ['BASIC', 24], ['BASIC', 32],

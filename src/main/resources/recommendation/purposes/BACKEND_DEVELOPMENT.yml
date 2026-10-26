@@ -1,0 +1,321 @@
+# 결과 화면의 근거 문장 중 아래 8종은 이 파일이 아니라 BackendDevelopmentRecommender 가 만든다.
+# 피드백 받은 문장이 여기서 검색되지 않으면 그 클래스를 본다.
+#
+# 모든 결과에 붙는 안내
+#   - "<OS> 권장안입니다."
+#   - "권장 CPU 는 <CPU> 입니다."
+#   - "권장 메모리는 <N>GB 입니다."
+#   - "권장 저장 공간은 <용량> 입니다."
+# 점수로 고른 사양을 바꾸는 보정
+#   - "지금 쓰는 <CPU> 에서 불편을 겪어 그보다 위를 권합니다."      CURRENT_CPU_TIER 매핑이 있으면 CPU 를 한 단계 위로
+#   - "예산을 고려해 Mac 권장 CPU 는 M Pro 칩으로 제한했습니다."     Mac CPU 는 M Max 칩 대신 M Pro 칩
+#   - "<N>GB 를 쓰려면 <CPU> 이상이어야 합니다."                     Mac 은 CPU 마다 고를 수 있는 메모리가 달라 CPU 를 올림
+#   - "<CPU> 에서 고를 수 있는 가장 가까운 용량은 <N>GB 입니다."     Mac 메모리를 고를 수 있는 용량으로 맞춤
+#
+# 규칙을 고친 뒤에는 RecommendationServiceTest 의 설명대로 스냅숏을 다시 만들어 결과 변화를 diff 로 확인한다.
+
+survey:
+  steps:
+    # 모름·미입력은 답을 보내지 않는 것으로 표현한다. UNKNOWN 선택지를 두지 않는다
+    - title: 현재 사용하는 노트북 사양을 알려주세요
+      layout: CURRENT_SPEC
+      questions:
+        - code: CURRENT_OS
+          title: 지금 쓰는 노트북의 OS는 무엇인가요?
+          description: 모든 항목은 선택 사항입니다. 입력하지 않아도 다음으로 넘어갈 수 있어요.
+          label: OS
+          options:
+            - { code: MACOS, content: Mac }
+            - { code: WINDOWS, content: Windows }
+        - code: CURRENT_MAC_CPU
+          title: 지금 쓰는 Mac 의 프로세서는 무엇인가요?
+          label: PROCESSOR
+          showWhen: { question: CURRENT_OS, anyOf: [ MACOS ] }
+          options:
+            - { code: BASIC, content: M 칩 }
+            - { code: PRO, content: M Pro 칩 }
+            - { code: MAX, content: M Max 칩 }
+        - code: CURRENT_WINDOWS_CPU
+          title: 지금 쓰는 노트북의 프로세서는 무엇인가요?
+          label: PROCESSOR
+          showWhen: { question: CURRENT_OS, anyOf: [ WINDOWS ] }
+          options:
+            - { code: U, content: Core Ultra 5 235U / Ryzen AI 5 340급 }
+            - { code: P_HS, content: Core Ultra 7 258V / Ryzen AI 7 445급 }
+            - { code: H, content: Core Ultra 7 255H / Ryzen 7 H 260급 }
+            - { code: HX, content: Core Ultra 9 275HX / Ryzen 9 8940HX급 }
+        - code: CURRENT_MEMORY
+          title: 지금 쓰는 노트북의 메모리는 얼마인가요?
+          label: MEMORY
+          options:
+            - { code: GB_8_OR_LESS, content: 8GB 이하 }
+            - { code: GB_16, content: 16GB }
+            - { code: GB_24, content: 24GB }
+            - { code: GB_32, content: 32GB }
+            - { code: GB_48, content: 48GB }
+            - { code: GB_64_OR_MORE, content: 64GB 이상 }
+        - code: CURRENT_STORAGE
+          title: 지금 쓰는 노트북의 저장 공간은 얼마인가요?
+          label: STORAGE
+          options:
+            - { code: GB_256_OR_LESS, content: 256GB 이하 }
+            - { code: UNDER_1TB, content: 256GB 초과 1TB 미만 }
+            - { code: TB_1_OR_MORE, content: 1TB 이상 }
+
+    - questions:
+        - code: PREFERRED_OS
+          title: 어떤 노트북을 생각하고 계신가요?
+          options:
+            - { code: MACOS, content: 맥 }
+            - { code: WINDOWS, content: 윈도우 }
+            - { code: UNDECIDED, content: 아직 안 정했다, description: 결과에서 Mac 과 Windows 권장안을 함께 보여드려요. }
+
+    - questions:
+        - code: PROGRAMMING_LANGUAGE
+          title: 주로 다루는 언어는 무엇인가요?
+          description: 여러 개를 선택할 수 있어요.
+          input: MULTI
+          exclusive: UNDECIDED
+          options:
+            - { code: JAVA_FAMILY, content: "Java, Kotlin, C# 등" }
+            - { code: NODE_TYPESCRIPT, content: "Node.js, TypeScript" }
+            - { code: OTHERS, content: "Python, Go, PHP 등" }
+            - { code: UNDECIDED, content: 아직 정하지 않았다 }
+
+    - title: 개발 도구를 알려주세요
+      questions:
+        - code: IDE
+          title: 어떤 IDE 를 쓰나요?
+          options:
+            - { code: JETBRAINS, content: "IntelliJ, PyCharm 등 JetBrains 제품" }
+            - { code: LIGHT_EDITOR, content: "VS Code, Vim, Neovim 등" }
+            - { code: MULTIPLE, content: 여러 개를 동시에 함께 쓴다 }
+            - { code: UNKNOWN, content: 아직 모르겠다 }
+        - code: AI_CODING_TOOL
+          title: AI 코딩 도구를 쓰나요?
+          options:
+            - { code: AI_EDITOR, content: Cursor 같은 AI 전용 에디터를 쓴다 }
+            - { code: IDE_EXTENSION, content: 기존 IDE 에 확장으로 붙여 쓴다 }
+            - { code: NONE, content: 안 쓴다 }
+
+    - questions:
+        - code: DEV_ENVIRONMENT_SETUP
+          title: 개발 환경을 어떻게 띄우나요?
+          options:
+            - { code: LOCAL_MANY, content: 로컬에 직접 설치해서 여러 개 띄운다 }
+            - { code: LOCAL_FEW, content: 로컬에 직접 설치해서 한두 개 띄운다 }
+            - { code: DOCKER_MANY, content: 도커로 여러 개를 한 번에 띄운다 }
+            - { code: DOCKER_FEW, content: 도커로 한두 개 띄운다 }
+            - { code: REMOTE, content: 원격 서버에 접속해서 쓴다 }
+            - { code: NO_EXPERIENCE, content: 아직 다뤄본 적이 없다 }
+
+    - questions:
+        - code: SLOWDOWN
+          title: 프로그램을 여러 개 켜두면 멈추거나 껐다 켜야 했나요?
+          options:
+            - { code: OFTEN, content: 자주 그렇다 }
+            - { code: SOMETIMES, content: 가끔 느려진다 }
+            - { code: FINE, content: 괜찮다 }
+            - { code: UNKNOWN, content: 잘 모르겠다 }
+
+    - questions:
+        - code: STORAGE_SHORTAGE
+          title: 용량이 부족해서 뭔가를 지우거나 옮긴 적이 있나요?
+          options:
+            - { code: OFTEN, content: 자주 있다 }
+            - { code: ONCE_OR_TWICE, content: 한두 번 있다 }
+            - { code: NEVER, content: 없다 }
+
+    - questions:
+        - code: BUILD_WAIT
+          title: 빌드나 테스트가 끝나기를 기다리는 게 답답했나요?
+          showWhen: { question: PROGRAMMING_LANGUAGE, anyOf: [ JAVA_FAMILY ] }
+          options:
+            - { code: OFTEN, content: 자주 답답했다 }
+            - { code: FINE, content: 참을 만했다 / 신경 안 쓰였다 }
+            - { code: UNKNOWN, content: 잘 모르겠다 }
+
+    - questions:
+        - code: OVERHEATING
+          title: 개발할 때 노트북이 뜨거워지거나 팬이 크게 도나요?
+          options:
+            - { code: OFTEN, content: 자주 그렇다 }
+            - { code: FINE, content: 가끔 / 별로 없다 }
+            - { code: UNKNOWN, content: 잘 모르겠다 }
+
+    - questions:
+        - code: USAGE_PERIOD
+          title: 이 노트북을 얼마나 쓸 생각인가요?
+          options:
+            - { code: TWO_YEARS, content: 2년 정도 (곧 바꿀 수 있다) }
+            - { code: THREE_TO_FOUR_YEARS, content: 3~4년 }
+            - { code: FIVE_PLUS_YEARS, content: 5년 이상 / 오래 쓰고 싶다 }
+            - { code: UNDECIDED, content: 아직 안 정했다 }
+
+# 조건 하나로는 크게 오르지 않게 가중치를 나눈다 — 하나만 걸려도 최대로 올리면 답할수록 결과가 달라지지 않아
+# 설문이 무의미해지고, 필요보다 높은 사양이 나온다.
+rules:
+  - criterion: MEMORY
+    weight: 1
+    when: { question: PROGRAMMING_LANGUAGE, anyOf: [ JAVA_FAMILY ] }
+    reason: Java·Kotlin·C# 계열은 빌드와 실행에 메모리를 더 씁니다.
+  - criterion: MEMORY
+    weight: 1
+    when: { question: IDE, anyOf: [ JETBRAINS ] }
+    reason: JetBrains IDE 는 인덱싱과 코드 분석에 메모리를 많이 씁니다.
+  - criterion: MEMORY
+    weight: 2
+    when: { question: IDE, anyOf: [ MULTIPLE ] }
+    reason: 여러 IDE 를 함께 띄우면 그만큼 더 듭니다.
+  - criterion: MEMORY
+    weight: 1
+    when: { question: AI_CODING_TOOL, anyOf: [ AI_EDITOR ] }
+    reason: AI 전용 에디터는 모델 연동으로 메모리를 더 씁니다.
+  - criterion: MEMORY
+    weight: 2
+    when: { question: DEV_ENVIRONMENT_SETUP, anyOf: [ LOCAL_MANY, DOCKER_MANY ] }
+    reason: 개발 환경을 여러 개 띄우는 방식이라 여유가 필요합니다.
+  - criterion: MEMORY
+    weight: 1
+    when: { question: DEV_ENVIRONMENT_SETUP, anyOf: [ LOCAL_FEW, DOCKER_FEW ] }
+    reason: 개발 환경을 띄워 두면 그만큼 메모리를 차지합니다.
+  - criterion: MEMORY
+    weight: 2
+    when: { question: SLOWDOWN, anyOf: [ OFTEN ] }
+    reason: 자주 느려진 경험은 메모리가 부족하다는 가장 직접적인 신호입니다.
+  - criterion: MEMORY
+    weight: 1
+    when: { question: SLOWDOWN, anyOf: [ SOMETIMES ] }
+    reason: 가끔 느려진 경험을 반영했습니다.
+  - criterion: MEMORY
+    weight: 1
+    when: { question: USAGE_PERIOD, anyOf: [ FIVE_PLUS_YEARS ] }
+    reason: 오래 쓸 계획이라 여유를 두었습니다.
+  - criterion: MEMORY
+    weight: -2
+    when: { question: DEV_ENVIRONMENT_SETUP, anyOf: [ REMOTE ] }
+    reason: 원격 서버에서 개발하면 로컬 메모리 부담이 적습니다.
+  - criterion: MEMORY
+    weight: -1
+    when: { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }
+    reason: 짧게 쓸 계획이라 과한 용량을 피했습니다.
+
+  - criterion: STORAGE
+    weight: 3
+    when: { question: DEV_ENVIRONMENT_SETUP, anyOf: [ DOCKER_MANY ] }
+    reason: 컨테이너 이미지가 쌓이면 저장 공간을 크게 씁니다.
+  - criterion: STORAGE
+    weight: 1
+    when: { question: DEV_ENVIRONMENT_SETUP, anyOf: [ LOCAL_FEW, DOCKER_FEW, LOCAL_MANY ] }
+    reason: 개발 환경과 이미지가 자리를 차지합니다.
+  - criterion: STORAGE
+    weight: 1
+    when: { question: PROGRAMMING_LANGUAGE, anyOf: [ NODE_TYPESCRIPT ] }
+    reason: Node·TypeScript 프로젝트는 의존성이 많아 자리를 차지합니다.
+  # 지금 쓰는 SSD 가 작다는 걸 아는 경우의 용량 부족은 디스크 크기 탓이라 상향 근거로 쓰지 않는다.
+  # 미입력은 작다는 근거가 없으므로 사용자의 자기 보고를 그대로 인정한다
+  - criterion: STORAGE
+    weight: 2
+    when:
+      all:
+        - { not: { question: CURRENT_STORAGE, anyOf: [ GB_256_OR_LESS ] } }
+        - { question: STORAGE_SHORTAGE, anyOf: [ OFTEN ] }
+    reason: 용량이 자주 부족했던 경험을 반영했습니다.
+  - criterion: STORAGE
+    weight: 1
+    when:
+      all:
+        - { not: { question: CURRENT_STORAGE, anyOf: [ GB_256_OR_LESS ] } }
+        - { question: STORAGE_SHORTAGE, anyOf: [ ONCE_OR_TWICE ] }
+    reason: 용량이 부족했던 경험을 반영했습니다.
+  - criterion: STORAGE
+    weight: 1
+    when: { question: USAGE_PERIOD, anyOf: [ FIVE_PLUS_YEARS ] }
+    reason: 오래 쓸 계획이라 여유를 두었습니다.
+  - criterion: STORAGE
+    weight: -1
+    when:
+      all:
+        - { question: CURRENT_STORAGE, anyOf: [ TB_1_OR_MORE ] }
+        - { question: STORAGE_SHORTAGE, anyOf: [ NEVER ] }
+    reason: 지금 1TB 를 쓰면서 용량이 부족한 적이 없었습니다.
+  - criterion: STORAGE
+    weight: -2
+    when: { question: DEV_ENVIRONMENT_SETUP, anyOf: [ REMOTE ] }
+    reason: 원격 서버에서 개발하면 로컬 저장 공간 부담이 적습니다.
+  - criterion: STORAGE
+    weight: -1
+    when: { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }
+    reason: 짧게 쓸 계획이라 과한 용량을 피했습니다.
+  - criterion: STORAGE
+    weight: 0
+    when:
+      all:
+        - { question: CURRENT_STORAGE, anyOf: [ GB_256_OR_LESS ] }
+        - { question: STORAGE_SHORTAGE, anyOf: [ OFTEN, ONCE_OR_TWICE, NEVER ] }
+    reason: 지금 쓰는 SSD 가 작아 용량 부족은 디스크 크기 탓으로 보고 수치에 반영하지 않았습니다.
+
+  - criterion: REQUIRED_CPU
+    weight: 1
+    when: { question: PROGRAMMING_LANGUAGE, anyOf: [ JAVA_FAMILY ] }
+    reason: Java·Kotlin·C# 계열은 빌드에 CPU 를 많이 씁니다.
+  - criterion: REQUIRED_CPU
+    weight: 2
+    when: { question: BUILD_WAIT, anyOf: [ OFTEN ] }
+    reason: 빌드·테스트 대기가 답답했던 경험을 반영했습니다.
+  - criterion: REQUIRED_CPU
+    weight: 2
+    when: { question: OVERHEATING, anyOf: [ OFTEN ] }
+    reason: 지속 부하에서 발열로 성능이 떨어진 경험을 반영했습니다.
+  - criterion: REQUIRED_CPU
+    weight: 1
+    when: { question: DEV_ENVIRONMENT_SETUP, anyOf: [ DOCKER_MANY ] }
+    reason: 여러 컨테이너를 동시에 띄우면 코어가 더 필요합니다.
+  - criterion: REQUIRED_CPU
+    weight: 1
+    when: { question: IDE, anyOf: [ MULTIPLE ] }
+    reason: 여러 IDE 를 함께 쓰면 백그라운드 작업이 겹칩니다.
+  - criterion: REQUIRED_CPU
+    weight: 1
+    when: { question: USAGE_PERIOD, anyOf: [ FIVE_PLUS_YEARS ] }
+    reason: 오래 쓸 계획이라 여유를 두었습니다.
+  - criterion: REQUIRED_CPU
+    weight: -2
+    when: { question: DEV_ENVIRONMENT_SETUP, anyOf: [ REMOTE ] }
+    reason: 원격 서버에서 빌드하면 로컬 CPU 부담이 적습니다.
+  - criterion: REQUIRED_CPU
+    weight: -1
+    when: { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }
+    reason: 짧게 쓸 계획이라 과한 사양을 피했습니다.
+
+mappings:
+  - { criterion: PREFERRED_OS, value: MAC, when: { question: PREFERRED_OS, anyOf: [ MACOS ] } }
+  - { criterion: PREFERRED_OS, value: WINDOWS, when: { question: PREFERRED_OS, anyOf: [ WINDOWS ] } }
+
+  - criterion: CURRENT_CPU_TIER
+    value: BASIC
+    when:
+      all:
+        - { question: CURRENT_MAC_CPU, anyOf: [ BASIC ] }
+        - &discomfort
+          any:
+            - { question: BUILD_WAIT, anyOf: [ OFTEN ] }
+            - { question: OVERHEATING, anyOf: [ OFTEN ] }
+  - criterion: CURRENT_CPU_TIER
+    value: PRO
+    when: { all: [ { question: CURRENT_MAC_CPU, anyOf: [ PRO ] }, *discomfort ] }
+  - criterion: CURRENT_CPU_TIER
+    value: MAX
+    when: { all: [ { question: CURRENT_MAC_CPU, anyOf: [ MAX ] }, *discomfort ] }
+  - criterion: CURRENT_CPU_TIER
+    value: U
+    when: { all: [ { question: CURRENT_WINDOWS_CPU, anyOf: [ U ] }, *discomfort ] }
+  - criterion: CURRENT_CPU_TIER
+    value: P_HS
+    when: { all: [ { question: CURRENT_WINDOWS_CPU, anyOf: [ P_HS ] }, *discomfort ] }
+  - criterion: CURRENT_CPU_TIER
+    value: H
+    when: { all: [ { question: CURRENT_WINDOWS_CPU, anyOf: [ H ] }, *discomfort ] }
+  - criterion: CURRENT_CPU_TIER
+    value: HX
+    when: { all: [ { question: CURRENT_WINDOWS_CPU, anyOf: [ HX ] }, *discomfort ] }

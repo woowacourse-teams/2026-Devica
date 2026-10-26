@@ -1,0 +1,66 @@
+# 제품 추천 의견 양식
+#
+# 사용자가 제품 추천 결과에 대한 의견을 남기는 양식이다.
+# 결과 화면의 "의견 남기기" 버튼이 이 양식을 연다. 이때 주소의 title·result_url 쿼리로 제목과 결과 화면 주소를 미리 채운다.
+# 필드 id 를 바꾸면 버튼의 쿼리도 함께 고친다.
+#
+# 필수 칸은 결과 화면 주소와 맞지 않은 점 둘뿐이다. 클릭 몇 번으로 끝낼 수 있게 하기 위해서다.
+# 원인은 선택 입력이므로, 원인이 없는 피드백 한 건만으로는 규칙을 고치지 않는다.
+#
+# 이 양식이 Feedback Analyzer 가 받는 피드백의 칸을 정한다. Metric Collector 가 만드는 지표 피드백도 같은 칸을 쓴다.
+# 양식이 정하지 않는 것(지표 피드백에만 있는 칸)은 recommendation-improvement/interface/artifacts/feedback.md 에, 라벨과 제목 머리말은 recommendation-improvement/interface/binding.md 에 있다.
+# 칸의 제목이나 선택지를 바꾸면 recommendation-improvement/interface/components/ 의 Feedback Analyzer 와 Metric Collector 명세를 확인한다.
+name: 💬 제품 추천 의견
+description: 제품 추천 결과가 나와 맞지 않았다면 알려 주세요.
+title: "[제품 추천 의견] 결과 화면에서 남긴 의견"
+labels: [ "product-recommendation-feedback" ]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        남겨 주신 의견은 제품 추천 질문과 기준을 고치는 데 씁니다.
+        이 페이지는 누구나 볼 수 있으니 이름·연락처 같은 개인정보는 적지 말아 주세요.
+
+  - type: input
+    id: result_url
+    attributes:
+      label: 결과 화면 주소
+      description: 결과 화면의 의견 남기기 버튼으로 오셨다면 이미 채워져 있어요. 주소에 고르신 답이 담겨 있어 같은 결과를 다시 볼 수 있습니다.
+      placeholder: https://devica.co.kr/result?answer=...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: plan
+    attributes:
+      label: 어느 권장안인가요?
+      options:
+        - Mac
+        - Windows
+        - 둘 다
+
+  - type: dropdown
+    id: problems
+    attributes:
+      label: 어떤 점이 맞지 않았나요?
+      description: 여러 개를 고를 수 있어요.
+      multiple: true
+      options:
+        - CPU 가 과해요
+        - CPU 가 부족해요
+        - 메모리가 과해요
+        - 메모리가 부족해요
+        - 저장 공간이 과해요
+        - 저장 공간이 부족해요
+        - 근거 설명이 제 상황과 달라요
+        - 질문이 이해하기 어려웠어요
+        - 기타
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: 더 알려 주실 내용
+      description: |
+        결과에 나온 근거 중 내 상황과 다른 문장이 있었나요? 지금 노트북에서 실제로 겪은 일이나 예산을 알려 주시면 더 정확히 고칠 수 있어요.
