@@ -345,6 +345,50 @@ class SignalsTest(unittest.TestCase):
         self.deployed = [{'time': collector.iso(now - 7200), 'changes': [change]}]
         self.assertEqual(len(self.run_signals(self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES'))['groups']), 1)
 
+    def edit(self, answers, plan='MAC', cpu=('PRO', None), memory=(32, None), storage=(512, None), at=None):
+        t = at or int(time.time()) - 3600
+        return [str(t), 'DEV', 'LAPTOP', answers, plan, cpu[0], cpu[1], memory[0], memory[1], storage[0], storage[1]]
+
+    def run_edits(self, *edits, sessions=()):
+        return collector.signals(tmp(json.dumps(list(sessions))), 'https://api', 28, tmp(json.dumps(list(edits))))
+
+    def test_직접_고친_기록은_항목별로_나눠_답_조합마다_묶는다(self):
+        out = self.run_edits(self.edit('SLOWDOWN.OFTEN', memory=(32, 16), storage=(512, 1024)),
+                             self.edit('SLOWDOWN.OFTEN', memory=(32, 24)),
+                             self.edit('SLOWDOWN.NEVER', memory=(32, 16)))
+        memory = next(g for g in out['groups'] if g['item'] == 'MEMORY' and 'OFTEN' in g['urls'][0])
+        self.assertEqual((memory['count'], memory['problem'], memory['title']),
+                         (2, '메모리가 과해요', '[제품 추천 지표] Mac 권장안에서 메모리가 과해요 (직접 수정)'))
+        self.assertIn('메모리: 32GB → 16GB (1건)\n메모리: 32GB → 24GB (1건)', memory['body'])
+        self.assertIn('- 신호: 추천 결과를 직접 고친 세션', memory['body'])
+        storage = next(g for g in out['groups'] if g['item'] == 'STORAGE')
+        self.assertEqual((storage['direction'], storage['count']), ('UP', 1))
+        self.assertIn('저장 공간: 512GB → 1TB (1건)', storage['body'])
+        self.assertEqual(len(out['groups']), 3)  # OFTEN 의 메모리·저장 공간, NEVER 의 메모리
+
+    def test_직접_고친_신호와_답을_바꾼_신호는_키가_섞이지_않는다(self):
+        out = self.run_edits(self.edit('SLOWDOWN.NEVER', memory=(32, 16)),
+                             sessions=[self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES')])
+        self.assertEqual(len({g['key'] for g in out['groups']}), 2)
+
+    def test_직접_고친_기록_중_버리는_것(self):
+        now = int(time.time())
+        self.develop = json.loads(json.dumps(DEF))
+        self.develop['rules'][0]['weight'] = 5  # SLOWDOWN.OFTEN 규칙
+        change = {'key': 'k', 'before': None, 'after': {'criterion': 'MEMORY', 'when': {'question': 'SLOWDOWN', 'anyOf': ['SOMETIMES']}}}
+        self.deployed = [{'time': collector.iso(now - 60), 'changes': [change]}]
+        out = self.run_edits(self.edit('SLOWDOWN.NEVER', memory=(32, 16), at=now - 40 * 86400),
+                             self.edit('SLOWDOWN.NEVER', memory=(32, 32)),
+                             self.edit('SLOWDOWN.OFTEN', memory=(16, 8)),
+                             self.edit('SLOWDOWN.SOMETIMES', memory=(16, 8)))
+        self.assertEqual(out['groups'], [])
+        self.assertEqual(out['dropped'], {'직접 수정: 조회 기간 전에 고침': 1, '직접 수정: 사용 목적·OS·고친 항목이 없음': 1,
+                                          '직접 수정: 배포를 기다리는 규칙에 걸림': 1, '직접 수정: 배포 전에 본 바뀐 규칙에 걸림': 1})
+
+    def test_직접_고친_지표_피드백은_만든_신호와_같은_키를_낸다(self):
+        g = self.run_edits(self.edit('SLOWDOWN.NEVER', memory=(32, 16)))['groups'][0]
+        self.assertEqual(collector.issue(tmp(g['body'])), {'key': g['key'], 'purpose': 'DEV', 'pending': []})
+
     def test_열린_지표_피드백의_신호_키와_배포를_기다리는_규칙(self):
         self.develop = json.loads(json.dumps(DEF))
         self.develop['rules'][0]['weight'] = 5  # SLOWDOWN.OFTEN 규칙

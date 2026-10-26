@@ -4,16 +4,20 @@
 from common import *  # noqa: F401,F403
 from common import COMMANDS, json, sys
 
-#   signals.py signals SESSIONS_FILE PROD_BASE_URL LOOKBACK_DAYS   신호를 같은 신호끼리 묶은 결과(제목·본문 포함)
+#   signals.py signals SESSIONS_FILE PROD_BASE_URL LOOKBACK_DAYS [EDITS_FILE]   신호를 같은 신호끼리 묶은 결과(제목·본문 포함)
 #   signals.py issue   BODY_FILE                                    열린 지표 피드백의 신호 키와 배포를 기다리는 걸린 규칙
 # SESSIONS_FILE 은 prompt.md 의 HogQL 결과에서 세션마다 views 한 칸을 꺼내 모은 JSON 배열이다.
 # view = [유닉스 초, 이벤트, 경로, purpose, category, "질문.선택지&질문.선택지…"]
+# EDITS_FILE 은 추천 결과를 직접 고친 기록이다. 세션·답 조합·OS 마다 마지막 기록 하나를 쿼리가 골라 둔 JSON 배열이다.
+# edit = [유닉스 초, purpose, category, "질문.선택지&…", OS, CPU 추천, CPU 고친 값, 메모리 추천, 메모리 고친 값, 저장 공간 추천, 저장 공간 고친 값]
 from collections import Counter
 from datetime import timedelta
 
 MAIN = os.environ.get('MAIN_REF', 'origin/main')
 DEVELOP = os.environ.get('DEVELOP_REF', 'origin/develop')
 RESULT_EVENT = 'recommendation_result_viewed'
+EDIT_SIGNAL = '추천 결과를 직접 고친 세션'
+ITEM_LABEL = {'REQUIRED_CPU': 'CPU', 'MEMORY': '메모리', 'STORAGE': '저장 공간'}
 PLAN_LABEL = {'MAC': 'Mac', 'WINDOWS': 'Windows', 'BOTH': '둘 다'}
 SUBJECT = {'REQUIRED_CPU': 'CPU 가', 'MEMORY': '메모리가', 'STORAGE': '저장 공간이'}
 
@@ -118,7 +122,30 @@ def signal_key(purpose, plan_label, problem_text, lines):
     return json.dumps([purpose, plan_label, problem_text, lines], ensure_ascii=False)
 
 
-def signals(path, prod, days):
+def edit_key(purpose, plan_label, problem_text, answers):
+    # 답을 바꾼 신호는 바꾼 답으로, 직접 고친 신호는 답 조합으로 묶는다. 앞의 표시로 두 신호의 키가 섞이지 않는다
+    return json.dumps(['EDIT', purpose, plan_label, problem_text, answers], ensure_ascii=False, sort_keys=True)
+
+
+def parse_edit(row):
+    ts, purpose, category, pairs, plan, *pairs_of_values = row
+    view = parse_view([ts, 'recommended_spec_edited', '/result', purpose, category, pairs])
+    # 고치지 않은 항목은 고친 값이 비어 있다
+    view['plan'] = plan
+    view['items'] = {item: (rec, ed) for item, rec, ed in zip(ITEMS, pairs_of_values[0::2], pairs_of_values[1::2])
+                     if ed not in (None, '') and ed != rec}
+    return view
+
+
+def display(item, value):
+    if item == 'MEMORY':
+        return f'{value}GB'
+    if item == 'STORAGE':
+        return f'{int(value) // 1024}TB' if int(value) >= 1024 else f'{value}GB'
+    return value  # 등급 이름은 서버에 있다. 등급 코드로 적는다
+
+
+def signals(path, prod, days, edits_path=None):
     now = datetime.now(timezone.utc)
     start = now - timedelta(days=int(days))
     start_iso, start_ts = start.strftime('%Y-%m-%dT%H:%M:%SZ'), int(start.timestamp())
@@ -131,6 +158,24 @@ def signals(path, prod, days):
             r = api(prod, purpose, answers)
             cache[k] = values(r['body']) if r['status'] == 200 else None if r['status'] == 400 else 'error'
         return cache[k]
+
+    def rule_drop(purpose, seen, at):
+        # 지금 운영 중인 규칙에 대한 반응이 아니면 버린 이유를, 맞으면 None 을 준다. seen 은 사용자가 본 답 조합들이다
+        if purpose not in defs:
+            dm, dd = definition(MAIN, purpose), definition(DEVELOP, purpose)
+            defs[purpose] = dm
+            rule_state[purpose] = (diff(dm, dd), history(MAIN, purpose, start_iso)) if dm else None
+        dm = defs[purpose]
+        if dm is None:
+            return 'main 에 정의서가 없음(정의서 전체가 배포를 기다림)'
+        pending, deployed = rule_state[purpose]
+        hit_any = lambda ch: any(hit(dm, ch['before'], a) or hit(dm, ch['after'], a) for a in seen)
+        if any(hit_any(ch) for ch in pending):
+            return '배포를 기다리는 규칙에 걸림'
+        if any(at < int(datetime.fromisoformat(c['time'].replace('Z', '+00:00')).timestamp())
+               and any(hit_any(ch) for ch in c['changes']) for c in deployed):
+            return '배포 전에 본 바뀐 규칙에 걸림'
+        return None
 
     for views in load_sessions(path):
         if not views or views[0]['ts'] < start_ts:
@@ -148,23 +193,9 @@ def signals(path, prod, days):
         if first['answers'] == last['answers']:
             dropped['처음과 마지막 답이 같음'] += 1
             continue
-        if purpose not in defs:
-            dm, dd = definition(MAIN, purpose), definition(DEVELOP, purpose)
-            defs[purpose] = dm
-            rule_state[purpose] = (diff(dm, dd), history(MAIN, purpose, start_iso)) if dm else None
-        dm = defs[purpose]
-        if dm is None:
-            dropped['main 에 정의서가 없음(정의서 전체가 배포를 기다림)'] += 1
-            continue
-        pending, deployed = rule_state[purpose]
-        seen = [v['answers'] for v in results]
-        hit_any = lambda ch: any(hit(dm, ch['before'], a) or hit(dm, ch['after'], a) for a in seen)
-        if any(hit_any(ch) for ch in pending):
-            dropped['배포를 기다리는 규칙에 걸림'] += 1
-            continue
-        if any(first['ts'] < int(datetime.fromisoformat(c['time'].replace('Z', '+00:00')).timestamp())
-               and any(hit_any(ch) for ch in c['changes']) for c in deployed):
-            dropped['배포 전에 본 바뀐 규칙에 걸림'] += 1
+        reason = rule_drop(purpose, [v['answers'] for v in results], first['ts'])
+        if reason:
+            dropped[reason] += 1
             continue
         v1, v2 = prod_values(purpose, first['answers']), prod_values(purpose, last['answers'])
         if 'error' in (v1, v2):
@@ -186,10 +217,54 @@ def signals(path, prod, days):
             g['count'] += 1
             g['urls'].add(result_url(first['category'], purpose, first['answers']))
 
+    # 직접 고친 신호는 사용자가 본 값과 원한 값이 기록에 있어 운영 결과를 다시 받지 않는다
+    for e in (parse_edit(row) for row in (json.loads(read(edits_path)) if edits_path else [])):
+        if e['ts'] < start_ts:
+            dropped['직접 수정: 조회 기간 전에 고침'] += 1
+            continue
+        if not e['purpose'] or e['plan'] not in ('MAC', 'WINDOWS') or not e['items']:
+            dropped['직접 수정: 사용 목적·OS·고친 항목이 없음'] += 1
+            continue
+        reason = rule_drop(e['purpose'], [e['answers']], e['ts'])
+        if reason:
+            dropped[f'직접 수정: {reason}'] += 1
+            continue
+        for item, (rec, ed) in e['items'].items():
+            rank = lambda v: CPU_RANK.get(v, -1) if item == 'REQUIRED_CPU' else int(v)
+            direction = 'DOWN' if rank(ed) < rank(rec) else 'UP'
+            k = edit_key(e['purpose'], PLAN_LABEL[e['plan']], problem(item, direction), e['answers'])
+            g = groups.setdefault(k, {'key': k, 'kind': 'EDIT', 'purpose': e['purpose'], 'plan': PLAN_LABEL[e['plan']],
+                                      'item': item, 'direction': direction, 'problem': problem(item, direction),
+                                      'edits': Counter(), 'count': 0,
+                                      'urls': {result_url(e['category'], e['purpose'], e['answers'])}})
+            g['count'] += 1
+            g['edits'][(rec, ed)] += 1
+
     period = f"{start_iso[:10]} ~ {now.strftime('%Y-%m-%d')}"
     out = []
     for g in sorted(groups.values(), key=lambda g: (-g['count'], g['key'])):
         g['urls'] = sorted(g['urls'])
+        if g.get('kind') == 'EDIT':
+            item = g['item']
+            g['edits'] = [{'recommended': rec, 'edited': ed, 'count': n}
+                          for (rec, ed), n in sorted(g['edits'].items(), key=lambda x: (-x[1], x[0]))]
+            g['title'] = f"[제품 추천 지표] {g['plan']} 권장안에서 {g['problem']} (직접 수정)"
+            g['body'] = '\n'.join([
+                '### 결과 화면 주소', '', *g['urls'], '',
+                '### 어느 권장안인가요?', '', g['plan'], '',
+                '### 어떤 점이 맞지 않았나요?', '', g['problem'], '',
+                '### 더 알려 주실 내용', '', '_No response_', '',
+                '### 고친 값', '',
+                *[f"{ITEM_LABEL[item]}: {display(item, x['recommended'])} → {display(item, x['edited'])} ({x['count']}건)"
+                  for x in g['edits']], '',
+                '### 근거 지표', '',
+                f'- 기간: {period}',
+                f'- 신호: {EDIT_SIGNAL}',
+                f"- 건수: {g['count']}",
+                f"- 사용자가 제품 추천 결과의 {ITEM_LABEL[item]} 값을 직접 {'낮춰' if g['direction'] == 'DOWN' else '높여'} 제품을 검색했다.",
+                ''])
+            out.append(g)
+            continue
         plan_title = 'Mac·Windows' if g['plan'] == '둘 다' else g['plan']
         moved = '내려간' if g['direction'] == 'DOWN' else '올라간'
         g['title'] = f"[제품 추천 지표] {plan_title} 권장안에서 {g['problem']}"
@@ -217,9 +292,12 @@ def issue(body_path):
     lines = [l.strip() for l in f.get('바꾼 답', '').splitlines() if l.strip()]
     if not urls:
         return {'key': None, 'error': '결과 화면 주소가 없다'}
-    purpose = parse_url(urls[0])['purpose']
-    out = {'key': signal_key(purpose, f.get('어느 권장안인가요?', ''), f.get('어떤 점이 맞지 않았나요?', ''), lines),
-           'purpose': purpose, 'pending': []}
+    url = parse_url(urls[0])
+    purpose = url['purpose']
+    plan, problem_text = f.get('어느 권장안인가요?', ''), f.get('어떤 점이 맞지 않았나요?', '')
+    edited = bool(f.get('고친 값'))
+    key = edit_key(purpose, plan, problem_text, url['answers']) if edited else signal_key(purpose, plan, problem_text, lines)
+    out = {'key': key, 'purpose': purpose, 'pending': []}
     dm, dd = definition(MAIN, purpose), definition(DEVELOP, purpose)
     if dm is None:
         out['pending'].append('main 에 정의서가 없음')
@@ -227,7 +305,8 @@ def issue(body_path):
     combos = []
     for u in urls:
         a = parse_url(u)['answers']
-        combos += [a, apply_lines(a, lines)]
+        # 직접 고친 신호는 답을 바꾸지 않았다. 본 답 조합은 주소의 것 하나다
+        combos += [a] if edited else [a, apply_lines(a, lines)]
     hit_any = lambda ch: any(hit(dm, ch['before'], a) or hit(dm, ch['after'], a) for a in combos)
     out['pending'] = [ch['key'] for ch in diff(dm, dd) if hit_any(ch)]
     return out
