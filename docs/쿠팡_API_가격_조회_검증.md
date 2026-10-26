@@ -118,7 +118,8 @@ ID가 없으면 `INSUFFICIENT_IDENTIFIERS`, 다르면 `DIFFERENT_OPTION`, 해석
 `CoupangPriceRefreshJob`은 DB에 등록된 쿠팡 판매상품을 검색하고, 저장된 `externalItemId`와
 응답 URL의 `vendorItemId`가 같은 상품의 `productPrice`를 반영한다.
 제품 코드로 검색한 최대 10개 후보 중에서 찾는 방식이다. `vendorItemId` 직접 조회 API가 아니므로
-기존 20개 모두를 매일 재조회할 수 있다는 보장은 없다. 결과가 없으면 기존 정보를 유지한다.
+기존 20개 모두를 매일 재조회할 수 있다는 보장은 없다. 검색 결과 없음과 식별 실패는 보류하며,
+모든 후보의 ID를 확인했지만 저장된 ID가 없으면 해당 판매상품을 숨긴다. 판매 종료 확정은 아니다.
 
 ### 구조와 저장 규칙
 
@@ -129,16 +130,19 @@ sequenceDiagram
     participant API as 쿠팡 검색 API
     participant DB as DB
     Job->>Service: 갱신할 쿠팡 판매상품 조회
-    Service->>DB: 판매 중이며 기준 ID가 있는 상품 + 제품 코드
+    Service->>DB: 판매 중이거나 숨긴 상품 + 기준 ID·제품 코드
     DB-->>Job: 조회 대상 목록
     loop 등록된 판매상품마다 (호출 간격 2.1초)
         Job->>API: 제품 코드로 검색
         API-->>Job: 후보 상품과 가격, URL
         alt 같은 vendorItemId + 유효한 단일 가격
             Job->>Service: 가격과 한국 기준 확인 날짜 저장
-            Service->>DB: 현재 연결 재확인 후 가격·확인 날짜·최저가 갱신
+            Service->>DB: 현재 연결 재확인 후 가격·확인 날짜·최저가 갱신, 숨김 복구
             Note over Service,DB: 상품별 하나의 트랜잭션
-        else 미조회 / 다른 ID / 가격 누락·충돌 / 조회 실패
+        else 후보가 있고 모든 ID를 읽었으나 일치 ID 없음
+            Job->>Service: 판매상품 숨김
+            Service->>DB: HIDDEN 저장 및 최저가 재계산
+        else 검색 결과 없음 / ID 추출 불가 / 가격 누락·충돌 / 조회 실패
             Note over Job,DB: 갱신 보류, 기존 가격·날짜·상태 유지
         end
     end
@@ -152,17 +156,24 @@ sequenceDiagram
 | `ProductMinPriceRepository` | 기존 `product_min_price`에 판매 중인 오퍼의 최저가 재계산 |
 | `PriceRefreshTarget` | 조회에 필요한 내부 ID·제품 코드·vendorItemId를 전달하는 값 |
 
-- 대상은 판매처 이름이 `쿠팡`이고 상태가 `ON_SALE`이며 기준 ID가 있는 기존 상품이다.
+- 대상은 판매처 이름이 `쿠팡`이고 상태가 `ON_SALE` 또는 `HIDDEN`이며 기준 ID가 있는 기존 상품이다.
+  숨긴 상품도 매일 재확인하며 동일 ID와 유효한 가격이 발견되면 `ON_SALE`로 복구한다.
 - 자동 갱신은 **vendorItemId만** 비교한다. API의 `productId`, URL의 페이지 ID·`itemId`, 상품명은 일치 조건이 아니다.
   수동 probe의 `compareOption`은 여전히 두 옵션 ID를 비교하며, 자동 갱신과 목적이 다르다.
 - 같은 ID의 가격이 양수여야 한다. 중복 후보의 가격이 모두 같으면 사용하고, 누락·0 이하·서로 다른 가격이면 보류한다.
 - 가격이 달라지면 `price`와 `checkedAt`을 갱신한다. 가격이 같아도 마지막 확인 날짜인 `checkedAt`은 갱신한다.
-- API 요청 중 판매처·상태·연결 ID가 바뀌었거나 더 최근 확인 날짜가 저장되었으면 보류한다.
+- API 요청 중 판매처·상태·연결 ID·구매 URL·가격이 바뀌었거나 더 최근 확인 날짜가 저장되었으면 보류한다.
 - 가격 변경 시 상세 화면의 `product_offer`와 목록의 `product_min_price`를 같은 트랜잭션에서 갱신한다.
   다른 판매처의 판매 중인 오퍼가 더 저렴하면 그 가격이 목록 최저가로 유지된다.
 - 외부 API 호출과 대기는 트랜잭션 밖에서 진행한다. 저장에 실패한 상품은 롤백하고 다음 상품을 처리한다.
 - 인증 실패·HTTP 429는 남은 호출을 중단한다. 개별 연결·HTTP 오류는 해당 상품을 보류하고 다음 상품을 처리한다.
-- 보류 시 가격·확인 날짜·판매 상태·구매 URL·기준 ID를 바꾸지 않는다. 상품 숨김·삭제·판매 재개 판정은 구현하지 않는다.
+- `NO_MATCH`일 때는 가격·확인 날짜·구매 URL·기준 ID를 유지하고 판매 상태만 `HIDDEN`으로 바꾼다.
+  다른 보류 사유는 판매 상태도 유지한다. 숨김·복구 시 최저가도 같은 트랜잭션에서 재계산한다.
+- 숨긴 오퍼가 있고 판매 중인 다른 오퍼가 없으면 목록·추천순·가격순·브랜드 필터·상세 조회에서 제외한다.
+  상세 API는 404다. 다른 판매처가 `ON_SALE`이면 제품과 그 판매처는 계속 노출한다.
+  기존의 오퍼 미등록·품절 상품 노출 규칙은 유지한다.
+- 별도 테이블이나 컬럼은 추가하지 않는다. 기존 VARCHAR 상태에 `HIDDEN` 값을 사용한다.
+  숨김 값을 기록한 DB에는 이 상태를 모르는 이전 앱 버전을 바로 실행하지 않는다.
 
 기준 ID에 연결된 최초 사양과 API 가격의 의미는 운영자가 확인한 것으로 전제한다.
 이 작업은 상품명에서 사양이나 카드·회원·쿠폰 조건을 다시 검증하지 않는다.
@@ -179,7 +190,7 @@ docker compose up -d mysql
 
 `CoupangPriceRefreshLocal`은 웹 서버와 예약 작업을 끈 상태에서 Spring의 DB 저장 서비스를 시작하고,
 같은 `CoupangPriceRefreshJob`을 한 번 호출한 뒤 DB 연결과 HTTP 클라이언트를 닫고 종료한다.
-이 명령은 조회 도구와 달리 **로컬 DB의 실제 가격을 변경한다**.
+이 명령은 조회 도구와 달리 **로컬 DB의 가격과 판매 상태(숨김·복구)를 변경한다**.
 `local` 프로파일과 `localhost:3306/devica`의 `root/root` 접속을 사용하며, 포트만 `DB_PORT`로 바꿀 수 있다.
 처음 실행하면 기존 앱과 마찬가지로 Flyway가 로컬 DB에 시드와 마이그레이션을 적용한다.
 
@@ -218,7 +229,7 @@ docker compose up -d mysql
 상품 후보의 최대 개수다. 후보 10개를 받더라도 API 요청은 1회로 계산한다.
 
 로컬 1회 실행과 서버 일일 작업은 같은 `CoupangPriceRefreshJob`을 사용한다.
-대상인 쿠팡 오퍼마다 제품 코드로 검색을 1회 호출한다. 시드의 20개가 모두 `ON_SALE`이고
+대상인 쿠팡 오퍼마다 제품 코드로 검색을 1회 호출한다. 시드의 20개가 모두 `ON_SALE` 또는 `HIDDEN`이고
 `external_item_id`가 채워져 있으면 실행당 최대 20회이며, 대기 시간만 최소 19 × 2.1초 = 39.9초다.
 실제 시간에는 API 응답과 DB 처리가 더해진다. 현재 DB에서 예상 호출 횟수는 실행 전에 조회할 수 있다.
 
@@ -226,7 +237,7 @@ docker compose up -d mysql
 SELECT COUNT(*) AS expected_api_calls
 FROM product_offer
 WHERE name = '쿠팡'
-  AND status = 'ON_SALE'
+  AND status IN ('ON_SALE', 'HIDDEN')
   AND external_item_id IS NOT NULL
   AND TRIM(external_item_id) <> '';
 ```
@@ -239,7 +250,7 @@ WHERE name = '쿠팡'
 | 인증 실패(401·403) | 남은 호출을 중단한다. 키와 계정 상태를 확인한다. |
 | 개별 연결·HTTP 오류 | 해당 상품을 보류하고 다음 상품은 계속 조회한다. 연결 제한은 5초, 응답 대기는 10초다. |
 | 바로 재실행 | 성공한 상품도 처음부터 다시 조회한다. 실패한 상품부터 이어서 실행하는 기능이나 실행 간 횟수 기록은 없다. |
-| `NO_MATCH` | 검색 결과 최대 10개 안에서 같은 `vendorItemId`를 찾지 못했다는 뜻이다. 반복 호출 전에 검색 결과와 기준 ID를 확인한다. |
+| `NO_MATCH` | 후보가 있고 모든 후보의 ID를 읽었지만 같은 ID가 없어 숨김 처리한다. 정상 판매 상품도 검색 후보에서 빠지면 숨겨질 수 있다. |
 
 따라서 실제 키로 처음 확인할 때는 **한 번 실행하고 결과 로그를 읽은 뒤** 필요할 때 다시 실행한다.
 429가 발생하면 즉시 반복 호출하지 않는다. 정확한 제한 해제 시각은 이 코드에서 알 수 없으므로
@@ -267,12 +278,44 @@ COUPANG_PRICE_REFRESH_CRON="0 0 4 * * *"
 
 ### 결과 확인과 테스트
 
-상품별 `price_refresh.result` 로그에는 `UPDATED`, `UNCHANGED`, `SKIPPED`, `NO_MATCH`,
-`INVALID_PRICE`, `CONFLICTING_PRICES`, `NOT_ATTEMPTED`가 남는다. API 실패는 `error.code`로 구분한다.
-시작과 종료 로그를 남기고 마지막 로그에 전체 결과, 변경·가격 동일·보류·미시도 건수, 소요 시간을 집계한다.
-가격이 바뀌지 않아도 확인에 성공했으면 성공으로 집계한다. 키와 인증 헤더, 전체 응답은 기록하지 않는다.
-로그 외에 이력 테이블이나 추가 JSON 보고서는 만들지 않는다.
-서버에서의 조회와 알림 기준은 [모니터링 구성](모니터링_구성.md#가격-최신화-작업)을 참고한다.
+| `price_refresh.result` | 의미와 처리 |
+|---|---|
+| `UPDATED` / `UNCHANGED` | 동일 ID의 가격 변경 / 가격 동일. 둘 다 확인 날짜 갱신 |
+| `RESTORED` | 숨긴 판매상품의 동일 ID와 유효한 가격 확인 후 노출 복구 |
+| `NO_MATCH` | 후보가 있고 모든 ID 추출 성공, 일치 ID 없음. 최초에는 `action=HIDDEN`, 재확인에서도 불일치면 `ALREADY_HIDDEN` |
+| `NO_SEARCH_RESULTS` | 후보 0개. 현재 상태 유지 |
+| `IDENTIFIER_UNAVAILABLE` | 일치 후보가 없고 URL 해석 실패·ID 누락 후보가 하나 이상 있음. 현재 상태 유지 |
+| `INVALID_PRICE` / `CONFLICTING_PRICES` | 일치 후보의 가격 누락·0 이하 / 서로 다른 가격. 현재 상태 유지 |
+| `SKIPPED` | 조회 중 저장 대상이 변경되거나 더 최근 확인 날짜가 있어 저장 생략 |
+| `API_FAILURE` | 외부 조회 실패. `error.code`로 인증·호출 제한·연결·응답 오류 구분 |
+| `DB_FAILURE` | DB 저장 실패. 트랜잭션 롤백, 변경 알림 없음 |
+| `NOT_ATTEMPTED` | 앞선 인증·호출 제한 또는 실행 중단으로 미시도 |
+
+일치 후보가 하나라도 있으면 다른 후보의 URL 해석 실패 때문에 숨기지 않는다.
+일치 후보들의 가격을 검증한 뒤 갱신한다. 가격이 같아도 확인에 성공하면 성공으로 집계한다.
+
+각 상품 로그에는 다음 확인 정보가 함께 남는다.
+
+- `offer.vendor_item_id`: DB의 비교 기준 ID
+- `search.keyword`, `search.candidate_count`, `search.vendor_item_ids`: 검색어·후보 수·읽은 후보 ID 목록
+- `search.invalid_url_count`, `search.missing_id_count`: URL 해석 실패 수·ID 누락 수
+- `offer.url`: 기존 쿠팡 구매 링크. 숨김 제품 확인에도 사용
+- `product.url`: Devica 제품 링크. 숨김 상태에서는 상세 조회가 404이므로 쿠팡 링크로 확인
+- `price_refresh.action`: `HIDDEN`, `ALREADY_HIDDEN`, `RESTORED`, `UPDATED`, `UNCHANGED`, `SKIPPED`, `NONE`
+- `price_refresh.price_changed`, `previous_price`, `current_price`: 저장 성공 시 실제 가격 변경 여부와 전후 가격
+
+전후 가격 필드의 전체 이름은 `price_refresh.previous_price`, `price_refresh.current_price`다.
+로그는 서비스 트랜잭션의 커밋 후 남기므로 저장 실패를 가격 변경·숨김 성공으로 알리지 않는다.
+서버 제품 링크는 `DEVICA_PUBLIC_BASE_URL`로 설정한다(prod 기본 `https://devica.co.kr`, dev는
+`https://2026-devica.vercel.app`). 로컬 명령은 셸 환경변수가 없으면 `http://localhost:5173`을 사용한다.
+
+종료 로그에는 기존 집계와 `hidden`, `restored`가 추가된다.
+`hidden`은 `deferred`에, `restored`는 `updated + unchanged`에 포함된 건수이므로 합산하지 않는다.
+모두 숨김이어도 가격 확인 성공이 없으면 `FAILED`로 종료한다. 키·인증 헤더·전체 API 응답은 기록하지 않는다.
+
+[Grafana 알림 설정 안내](../monitoring/coupang-price-refresh/README.md)에 가격 변경, 숨김·복구,
+확인 필요 알림의 쿼리·메시지·설정 순서를 정리했다. 코드 변경만으로 이메일이 발송되지는 않는다.
+
 
 ```bash
 ./gradlew test --tests 'com.wrb.devica.product.*' --tests 'com.wrb.devica.common.FlywayMigrationTest' bootJar
