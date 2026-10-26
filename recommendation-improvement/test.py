@@ -96,6 +96,14 @@ class CommonTest(unittest.TestCase):
         self.assertEqual(v['MAC']['REQUIRED_CPU']['rank'], 2)
         self.assertEqual(v['WIN' 'DOWS']['MEMORY'], {'value': '8', 'display': '8GB', 'rank': 8, 'reasons': []})
 
+    def test_고친_값_칸은_항목과_rank_로_읽는다(self):
+        text = '### 고친 값\n\n메모리: 24GB → 16GB (2건)\n저장 공간: 512GB → 1TB (1건)\nCPU: PRO → BASIC (1건)\n이상한 줄\n'
+        self.assertEqual(common.edited(text), [
+            {'item': 'MEMORY', 'recommended': {'value': '24GB', 'rank': 24}, 'edited': {'value': '16GB', 'rank': 16}, 'count': 2},
+            {'item': 'STORAGE', 'recommended': {'value': '512GB', 'rank': 512}, 'edited': {'value': '1TB', 'rank': 1024}, 'count': 1},
+            {'item': 'REQUIRED_CPU', 'recommended': {'value': 'PRO', 'rank': 1}, 'edited': {'value': 'BASIC', 'rank': 0}, 'count': 1}])
+        self.assertEqual(common.edited('### 바꾼 답\n\nA: x → y\n'), [])
+
     def test_이슈_본문_칸(self):
         f = fields('### 결과 화면 주소\n\nhttps://a\nhttps://b\n\n### 더 알려 주실 내용\n\n_No response_\n\n### 바꾼 답\n\nSLOWDOWN: NEVER → OFTEN\n')
         self.assertEqual(f, {'결과 화면 주소': 'https://a\nhttps://b', '더 알려 주실 내용': '', '바꾼 답': 'SLOWDOWN: NEVER → OFTEN'})
@@ -387,6 +395,7 @@ class SignalsTest(unittest.TestCase):
 
     def test_직접_고친_지표_피드백은_만든_신호와_같은_키를_낸다(self):
         g = self.run_edits(self.edit('SLOWDOWN.NEVER', memory=(32, 16)))['groups'][0]
+        self.assertEqual([(e['item'], e['recommended']['rank'], e['edited']['rank']) for e in common.edited(g['body'])], [('MEMORY', 32, 16)])
         self.assertEqual(collector.issue(tmp(g['body'])), {'key': g['key'], 'purpose': 'DEV', 'pending': []})
 
     def test_열린_지표_피드백의_신호_키와_배포를_기다리는_규칙(self):
