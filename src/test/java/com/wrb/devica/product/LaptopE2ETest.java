@@ -20,6 +20,9 @@ import com.wrb.devica.product.domain.Laptop;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.domain.Product;
+import com.wrb.devica.product.domain.ProductOffer;
+import com.wrb.devica.product.dto.PriceRefreshTarget;
+import com.wrb.devica.product.service.ProductOfferService;
 import com.wrb.devica.product.repository.CpuRepository;
 import com.wrb.devica.product.repository.LaptopRepository;
 import com.wrb.devica.product.repository.ProductOfferRepository;
@@ -48,6 +51,9 @@ class LaptopE2ETest extends E2ETest {
 
     @Autowired
     private MinPriceRefresher minPriceRefresher;
+
+    @Autowired
+    private ProductOfferService productOfferService;
 
     private ProductCategory category;
 
@@ -262,6 +268,31 @@ class LaptopE2ETest extends E2ETest {
             .then().statusCode(200)
             .body("content.name", contains("판매중", "오퍼없음", "품절"))
             .body("content.minPrice", contains(1_000_000, null, null));
+    }
+
+    @Test
+    void 숨김과_복구가_실제_목록과_상세_API에_반영된다() {
+        Laptop laptop = laptopOf(laptop().name("재확인대상"));
+        ProductOffer offer = productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).name("쿠팡")
+            .externalItemId("56").price(1_000_000L).checkedAt(LocalDate.of(2026, 10, 25))
+            .purchaseUrl("https://www.coupang.com/vp/products/999?vendorItemId=56")
+            .status(OfferStatus.ON_SALE).build());
+        minPriceRefresher.refresh(laptop.getId());
+        PriceRefreshTarget target = new PriceRefreshTarget(offer.getId(), laptop.getId(), laptop.getCode(), "56",
+            offer.getPurchaseUrl(), offer.getPrice(), offer.getStatus());
+
+        productOfferService.hideCoupangOffer(target, LocalDate.of(2026, 10, 26));
+
+        given().when().get(PATH).then().statusCode(200).body("content.size()", is(0));
+        given().when().get("/api/products/" + laptop.getId()).then().statusCode(404);
+
+        PriceRefreshTarget hidden = productOfferService.findCoupangPriceRefreshTargets().getFirst();
+        productOfferService.refreshCoupangPrice(hidden, 900_000L, LocalDate.of(2026, 10, 27));
+
+        given().when().get(PATH).then().statusCode(200)
+            .body("content[0].name", is("재확인대상")).body("content[0].minPrice", is(900_000));
+        given().when().get("/api/products/" + laptop.getId()).then().statusCode(200)
+            .body("offers[0].price", is(900_000)).body("offers[0].checkedAt", is("2026-10-27"));
     }
 
     // UC-11: 가격을 확인하고 외부 구매처로 이동할 수 있다
