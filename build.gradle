@@ -66,6 +66,17 @@ tasks.register('coupangPriceProbe', JavaExec) {
     }
 }
 
+// 기존 키 파일을 읽어 로컬 DB 가격을 한 번 갱신한 뒤 종료한다.
+tasks.register('coupangPriceRefresh', JavaExec) {
+    group = 'application'
+    description = '기존 쿠팡 판매상품 가격을 로컬 DB에 1회 갱신한다.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wrb.devica.product.infra.coupang.CoupangPriceRefreshLocal'
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 // 라이브러리로 배포하지 않으므로 plain jar 는 만들지 않는다.
 // build 시 jar 가 두 개 생기면 Dockerfile 의 COPY build/libs/*.jar 가 실패한다.
 tasks.named('jar') {
