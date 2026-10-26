@@ -51,6 +51,21 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
+springBoot {
+    mainClass = 'com.wrb.devica.DevicaApplication'
+}
+
+// Spring 서버와 DB 없이 파트너스 검색 응답의 옵션 식별자를 검증한다.
+tasks.register('coupangPriceProbe', JavaExec) {
+    group = 'verification'
+    description = '쿠팡 대표 상품의 검색 응답을 조회하고 검토용 JSON 보고서를 생성한다.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'com.wrb.devica.product.infra.coupang.CoupangPriceProbe'
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 // 라이브러리로 배포하지 않으므로 plain jar 는 만들지 않는다.
 // build 시 jar 가 두 개 생기면 Dockerfile 의 COPY build/libs/*.jar 가 실패한다.
 tasks.named('jar') {
