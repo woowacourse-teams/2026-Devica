@@ -37,6 +37,7 @@ management:
         http.server.requests: 100ms, 300ms, 500ms, 1s, 2s, 5s
 
 app:
+  public-base-url: ${DEVICA_PUBLIC_BASE_URL:https://devica.co.kr}
   product-image-base-url: ${PRODUCT_IMAGE_BASE_URL}
 
 coupang:
