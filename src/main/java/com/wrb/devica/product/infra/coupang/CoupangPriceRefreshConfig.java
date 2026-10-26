@@ -39,7 +39,8 @@ public class CoupangPriceRefreshConfig {
     }
 
     @Bean
-    CoupangPriceRefreshJob coupangPriceRefreshJob(CoupangProductSearchClient client, ProductOfferService offers) {
-        return new CoupangPriceRefreshJob(client, offers, Clock.system(ZoneId.of("Asia/Seoul")));
+    CoupangPriceRefreshJob coupangPriceRefreshJob(CoupangProductSearchClient client, ProductOfferService offers,
+        @Value("${app.public-base-url:https://devica.co.kr}") String publicBaseUrl) {
+        return new CoupangPriceRefreshJob(client, offers, Clock.system(ZoneId.of("Asia/Seoul")), publicBaseUrl);
     }
 }

@@ -57,7 +57,8 @@ public final class CoupangPriceRefreshLocal {
             CoupangProductSearchClient client = new CoupangProductSearchClient(
                 RestClient.builder().requestFactory(requests).build(), signer);
             CoupangPriceRefreshJob job = new CoupangPriceRefreshJob(client,
-                context.getBean(ProductOfferService.class), CLOCK);
+                context.getBean(ProductOfferService.class), CLOCK,
+                System.getenv().getOrDefault("DEVICA_PUBLIC_BASE_URL", "http://localhost:5173"));
             return job.refreshPrices().exitCode();
         }
     }
