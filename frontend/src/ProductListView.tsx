@@ -20,6 +20,7 @@ import {
   type SearchCondition,
   type SortType,
   STORAGE_STEPS,
+  searchingLine,
   specCondition,
   validTier,
 } from './products';
@@ -257,7 +258,7 @@ export function ProductListView({
   };
 
   if (matching) {
-    return <SearchLoadingView specs={spec === undefined ? specs : [spec]} />;
+    return <SearchLoadingView lines={[searchingLine(condition, tiers, spec, OS_GROUP_LABELS)]} />;
   }
 
   return (

@@ -6,6 +6,7 @@ import {
   editedSpec,
   editProperties,
   productListQuery,
+  searchingLine,
   specCondition,
 } from '../src/products';
 import { ResultView } from '../src/ResultView';
@@ -163,4 +164,12 @@ test('되돌리기는 고친 OS 카드에만 보이고, 그 OS 의 고친 값만
   rerender(view('MAC'));
   fireEvent.click(screen.getByRole('button', { name: '추천 결과로 되돌리기' }));
   expect(onResetEdits).toHaveBeenCalledWith('MAC');
+});
+
+test('검색 중 화면은 실제 검색 조건을 보여 줘, 고친 값이 보인다', () => {
+  const condition = { ...EMPTY_CONDITION, os: 'MAC', cpuTier: 'PRO', memoryGb: 16, storageGb: 1024 };
+  expect(searchingLine(condition, TIERS, MAC, {})).toBe('M Pro 칩 · 16GB · 1TB · Mac');
+  // 등급을 받기 전이면 제품 추천 결과의 이름을 빌리고, 다른 등급이면 코드를 그대로 쓴다.
+  expect(searchingLine(condition, null, MAC, {})).toBe('M Pro 칩 · 16GB · 1TB · Mac');
+  expect(searchingLine({ ...condition, cpuTier: 'BASIC' }, null, MAC, {})).toBe('BASIC · 16GB · 1TB · Mac');
 });

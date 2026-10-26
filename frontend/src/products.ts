@@ -266,3 +266,28 @@ export function editProperties(spec: Spec, edited: Spec): Properties | null {
   }
   return changed ? properties : null;
 }
+
+/**
+ * 검색 중 화면에 보여 줄 조건이다. 실제로 요청하는 검색 조건으로 만들어, 제품 추천 결과를 고쳤으면 고친 값이 보인다.
+ * CPU 라벨 안에 "/" 가 들어가는 경우가 있어("… 258V / … 445급") 구분자는 "·" 를 쓴다.
+ */
+export function searchingLine(
+  { os, cpuTier, memoryGb, storageGb }: SearchCondition,
+  tiers: CpuTier[] | null,
+  spec: Spec | undefined,
+  osLabels: Record<string, string>,
+): string {
+  // 등급을 아직 받지 못했으면 제품 추천 결과의 이름을 빌리고, 그것과도 다르면 코드를 그대로 쓴다.
+  const recommended = spec?.items.find((item) => item.code === 'REQUIRED_CPU');
+  const cpu =
+    tiers?.find((tier) => tier.code === cpuTier)?.name ??
+    (recommended?.value === cpuTier ? recommended?.displayValue : cpuTier);
+  return [
+    cpu,
+    memoryGb === null ? null : `${memoryGb}GB`,
+    storageGb === null ? null : formatStorage(storageGb),
+    os === null ? null : (spec?.items.find((item) => item.code === 'OS')?.displayValue ?? osLabels[os] ?? os),
+  ]
+    .filter((text) => text !== null && text !== undefined)
+    .join(' · ');
+}
