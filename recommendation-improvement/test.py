@@ -12,6 +12,7 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 os.sys.path.insert(0, HERE)
 
+import common  # noqa: E402
 from common import ITEMS, block, diff, ev, fields, hits, parse_url, result_url, schema, validate, values, visible  # noqa: E402
 
 
@@ -149,6 +150,46 @@ INVALID = [
     ({'kind': 'A', 'n': 1, 'w': {'from': 1, 'to': 2, 'direction': 'UP'}}, ['$.w: oneOf']),
     ({'kind': 'A', 'n': 1, 'x': 1, 'y': 1}, ['$: 함께 올 수 없는 키']),
 ]
+
+
+class ApiTest(unittest.TestCase):
+    # 연결을 가짜로 바꿔, 끊기면 다시 보내는지만 본다(#259)
+    def setUp(self):
+        self.saved = (common.http.client.HTTPConnection, common.sleep)
+        common.sleep = lambda s: None
+        self.fails, self.sent = 0, []
+        test = self
+
+        class Conn:
+            def __init__(self, host, timeout):
+                pass
+
+            def request(self, method, path, headers):
+                test.sent.append(path)
+
+            def getresponse(self):
+                if len(test.sent) <= test.fails:
+                    raise ConnectionResetError
+                return type('R', (), {'status': 400, 'read': lambda r: b'{"code": "QUESTION_NOT_FOUND"}'})()
+
+            def close(self):
+                pass
+        common.http.client.HTTPConnection = Conn
+
+    def tearDown(self):
+        common.http.client.HTTPConnection, common.sleep = self.saved
+
+    def test_끊기면_다시_보내고_응답은_상태와_본문이다(self):
+        self.fails = 2
+        r = common.api('http://dev/', 'DEV', {'B': ['y'], 'A': ['x']})
+        self.assertEqual(r, {'status': 400, 'body': {'code': 'QUESTION_NOT_FOUND'}})
+        self.assertEqual(self.sent, ['/api/usage-purposes/DEV/recommendation?A=x&B=y'] * 3)
+
+    def test_계속_끊기면_오류를_낸다(self):
+        self.fails = common.API_TRIES
+        with self.assertRaises(ConnectionResetError):
+            common.api('http://dev', 'DEV', {})
+        self.assertEqual(len(self.sent), common.API_TRIES)
 
 
 class ValidateTest(unittest.TestCase):

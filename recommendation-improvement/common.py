@@ -18,8 +18,9 @@
 #
 # 테스트는 test.py 에 있다.
 # 스키마(interface/artifacts/*.schema.yml)는 이 파일과 같은 디렉터리나 그 아래 interface/artifacts/ 에서 찾는다.
-import json, os, re, subprocess, sys, urllib.error, urllib.parse, urllib.request
+import http.client, json, os, re, subprocess, sys, urllib.parse
 from datetime import datetime, timezone
+from time import sleep
 
 DEF_PATH = 'src/main/resources/recommendation/purposes/{}.yml'
 Y2J = ('f=lambda{|o| case o when Hash then o.map{|k,v|[k.to_s,f.(v)]}.to_h when Array then o.map{|v|f.(v)} '
@@ -29,6 +30,7 @@ CPU_RANK = {'BASIC': 0, 'PRO': 1, 'MAX': 2, 'U': 0, 'P_HS': 1, 'H': 2, 'HX': 3}
 ITEMS = ('REQUIRED_CPU', 'MEMORY', 'STORAGE')
 RESULT_PREFIXES = ('https://devica.co.kr/result', 'https://2026-devica.vercel.app/result')
 MARKER_PREFIX = '<!-- product-recommendation:'
+API_TRIES = 5  # 끊김(#259) 때 api 가 보내는 최대 횟수
 # 댓글 표시 → 그 블록이 따라야 하는 스키마 (interface/binding.md)
 MARKER_SCHEMAS = {'analysis': 'analysis-result', 'decision': 'improvement-instruction', 'result': 'improvement-result'}
 TYPES = {'object': dict, 'array': list, 'string': str, 'integer': int, 'number': (int, float), 'boolean': bool, 'null': type(None)}
@@ -123,18 +125,31 @@ def history(ref, purpose, since=None):
 
 
 def api(base, purpose, a):
+    # urllib 은 요청마다 Connection: close 를 보내는데, 사내망에서는 http 응답이 도중에 자주 끊긴다(#259).
+    # 연결을 유지하는 http.client 로 보내고, 끊기면 다시 보낸다
     q = urllib.parse.urlencode([(k, o) for k in sorted(a) for o in a[k]])
-    url = f'{base.rstrip("/")}/api/usage-purposes/{purpose}/recommendation?{q}'
-    req = urllib.request.Request(url, headers={'Accept': 'application/json'})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return {'status': r.status, 'body': json.load(r)}
-    except urllib.error.HTTPError as e:
+    u = urllib.parse.urlsplit(base.rstrip('/'))
+    path = f'{u.path}/api/usage-purposes/{purpose}/recommendation?{q}'
+    Conn = http.client.HTTPSConnection if u.scheme == 'https' else http.client.HTTPConnection
+    for attempt in range(API_TRIES):
+        c = Conn(u.netloc, timeout=30)
         try:
-            body = json.load(e)
-        except Exception:
+            c.request('GET', path, headers={'Accept': 'application/json'})
+            r = c.getresponse()
+            raw = r.read()
+        except (ConnectionResetError, http.client.IncompleteRead):  # RemoteDisconnected 는 ConnectionResetError 다
+            if attempt == API_TRIES - 1:
+                raise
+            print(f'api: 연결이 끊겨 다시 보낸다 ({attempt + 1}/{API_TRIES - 1})', file=sys.stderr)
+            sleep(1)
+            continue
+        finally:
+            c.close()
+        try:
+            body = json.loads(raw)
+        except ValueError:
             body = None
-        return {'status': e.code, 'body': body}
+        return {'status': r.status, 'body': body}
 
 
 def parse_url(u):
