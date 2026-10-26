@@ -1,5 +1,5 @@
 import { navigate } from 'wouter/use-browser-location';
-import { EMPTY_CONDITION, OSES, type SearchCondition, type SortType } from './products';
+import { EMPTY_CONDITION, OSES, type SearchCondition, type SortType, type SpecEdits } from './products';
 import type { Answers } from './questions';
 import type { ResultOs } from './ResultView';
 
@@ -193,6 +193,25 @@ export function answersOf(params: URLSearchParams): Answers {
 export function answerEntries(answers: Answers): [string, string][] {
   return Object.entries(answers).flatMap(([code, values]) =>
     values.map((value): [string, string] => ['answer', `${code}.${value}`]),
+  );
+}
+
+// 고친 사양은 "OS.항목코드.값" 으로 이어 edit 에 반복해 담는다. 맞춤 목록으로 넘어가도, 돌아와도 그대로다.
+// 고를 수 없는 값은 권장 사양에 덮을 때 버린다(editedSpec).
+export function editsOf(params: URLSearchParams): SpecEdits {
+  const edits: SpecEdits = {};
+  for (const entry of params.getAll('edit')) {
+    const [os, code, value, ...rest] = entry.split('.');
+    if (os && code && value && rest.length === 0) {
+      edits[os] = { ...edits[os], [code]: value };
+    }
+  }
+  return edits;
+}
+
+export function editEntries(edits: SpecEdits): [string, string][] {
+  return Object.entries(edits).flatMap(([os, items]) =>
+    Object.entries(items).map(([code, value]): [string, string] => ['edit', `${os}.${code}.${value}`]),
   );
 }
 

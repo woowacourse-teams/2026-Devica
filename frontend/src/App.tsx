@@ -11,7 +11,15 @@ import { IntroView } from './IntroView';
 import { LandingPage } from './LandingPage';
 import { ProductDetailView } from './ProductDetailView';
 import { type ProductListState, ProductListView } from './ProductListView';
-import type { SearchCondition, SortType } from './products';
+import {
+  editedSpec,
+  editProperties,
+  fetchCpuTiers,
+  type SearchCondition,
+  type SortType,
+  type SpecEdits,
+  specCondition,
+} from './products';
 import { QuestionView } from './QuestionView';
 import { type Answers, fetchSurvey, pruneHiddenAnswers, resolveScreens, toSearchParams } from './questions';
 import { type ResultOs, ResultView } from './ResultView';
@@ -23,6 +31,8 @@ import {
   boardEntryUrl,
   conditionOf,
   currentNavState,
+  editEntries,
+  editsOf,
   flowEntries,
   flowOf,
   go,
@@ -421,6 +431,8 @@ function RecommendationStatus({ failed, error, onRetry, restartTo, purpose }: Re
 
 function ResultPage({ params }: PageProps) {
   const recommendation = useRecommendation(params);
+  // 맞춤 목록과 같은 key 라 한 번만 받는다. CPU 를 고칠 때 선택지로 쓴다.
+  const tiers = useFetched('cpu-tiers', fetchCpuTiers);
   const specs = recommendation.data;
   const { category, purpose } = flowOf(params);
   const loaded = specs !== null;
@@ -447,17 +459,47 @@ function ResultPage({ params }: PageProps) {
     );
   }
   const os = resultOsOf(params, specs);
+  const edits = editsOf(params);
   const withOs = (next: ResultOs) => {
     const copy = new URLSearchParams(params);
     copy.set('specOs', next);
     return copy.toString();
   };
+  // 고친 사양은 방문 기록을 쌓지 않고 주소에만 남긴다. 새로고침해도, 맞춤 목록에 다녀와도 그대로다.
+  const withEdits = (next: SpecEdits) => {
+    const copy = new URLSearchParams(params);
+    copy.delete('edit');
+    for (const [key, value] of editEntries(next)) {
+      copy.append(key, value);
+    }
+    replace(`${PATHS.result}?${copy}`);
+  };
+  const onEdit = (specOs: string, code: string, value: string | null) => {
+    const { [code]: _, ...rest } = edits[specOs] ?? {};
+    withEdits({ ...edits, [specOs]: value === null ? rest : { ...rest, [code]: value } });
+  };
+  const onSearch = () => {
+    // 보이는 권장안 중 고친 것만 센다. 제품 추천 개선 루프가 이 기록으로 맞지 않은 항목과 원한 값을 안다.
+    for (const spec of specs) {
+      const properties = editProperties(spec, editedSpec(spec, edits, tiers.data));
+      if (properties !== null && (os === 'BOTH' || os === properties.os)) {
+        track('recommended_spec_edited', { category, purpose, ...properties });
+      }
+    }
+    go(`${PATHS.matched}?${withOs(os)}`, { searching: true });
+  };
   return (
     <ResultView
       specs={specs}
       os={os}
+      edits={edits}
+      tiers={tiers.data}
+      tiersFailed={tiers.failed}
+      onRetryTiers={tiers.retry}
       onChangeOs={(next) => replace(`${PATHS.result}?${withOs(next)}`)}
-      onSearch={() => go(`${PATHS.matched}?${withOs(os)}`, { searching: true })}
+      onEdit={onEdit}
+      onResetEdits={() => withEdits({})}
+      onSearch={onSearch}
     />
   );
 }
@@ -517,8 +559,43 @@ const finishSearching = (failed: boolean) => {
 
 function MatchedListPage({ params, search }: PageProps & { search: string }) {
   const recommendation = useRecommendation(params);
-  const specs = recommendation.data ?? [];
-  const { state, onChangeState, navState } = useListState(search, 'RECOMMENDED', matchedOsOf(params, specs));
+  const tiers = useFetched('cpu-tiers', fetchCpuTiers);
+  const edits = editsOf(params);
+  // 고친 CPU 는 등급을 받아야 이름을 보여 줄 수 있다. 받는 동안은 기다리고, 받지 못하면 코드 그대로 채운다(editedSpec).
+  const waitingForTiers =
+    Object.values(edits).some((items) => 'REQUIRED_CPU' in items) && tiers.data === null && !tiers.failed;
+  const specs = waitingForTiers ? [] : (recommendation.data ?? []).map((spec) => editedSpec(spec, edits, tiers.data));
+  // 맞춤 목록은 권장 사양(고쳤으면 고친 값)을 검색 조건으로 채운 목록이다. 들어올 때 한 번 주소에 채우고, 이후로는 필터로 고친다.
+  // 맞춤 목록의 OS 는 탭이라 늘 있다. 주소에 OS 가 없으면 아직 채우지 않은 것이다.
+  const ready = recommendation.data !== null && !waitingForTiers;
+  // 권장안이 하나도 없으면 채울 것이 없다. 기다리지 않고 목록을 그린다.
+  const filled = params.has('os') || (ready && recommendation.data?.length === 0);
+  useEffect(() => {
+    if (filled || !ready || recommendation.data === null) {
+      return;
+    }
+    const current = new URLSearchParams(search);
+    const edited = recommendation.data.map((spec) => editedSpec(spec, editsOf(current), tiers.data));
+    const os = matchedOsOf(current, edited);
+    // 주소의 OS 에 맞는 권장안이 없으면(주소를 고쳤을 때) 첫 권장안으로 채운다. 채우지 않으면 불러오는 중에 머문다.
+    const spec = edited.find((each) => osValueOf(each) === os) ?? edited[0];
+    if (spec === undefined) {
+      return;
+    }
+    for (const [key, value] of Object.entries(specCondition(spec))) {
+      if (value === null) {
+        current.delete(key);
+      } else {
+        current.set(key, String(value));
+      }
+    }
+    replace(`${PATHS.matched}?${current}`);
+  }, [filled, ready, search, recommendation.data, tiers.data]);
+  const { state, onChangeState, navState } = useListState(
+    search,
+    'RECOMMENDED',
+    matchedOsOf(params, recommendation.data ?? []),
+  );
   const { category, purpose } = flowOf(params);
 
   if (category === null || purpose === null) {
@@ -529,6 +606,18 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
       <RecommendationStatus
         failed={recommendation.failed}
         error={recommendation.error}
+        onRetry={recommendation.retry}
+        restartTo={`${PATHS.intro}${query(flowEntries(flowOf(params)))}`}
+        purpose={purpose}
+      />
+    );
+  }
+
+  if (!filled) {
+    return (
+      <RecommendationStatus
+        failed={false}
+        error={null}
         onRetry={recommendation.retry}
         restartTo={`${PATHS.intro}${query(flowEntries(flowOf(params)))}`}
         purpose={purpose}

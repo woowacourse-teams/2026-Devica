@@ -88,3 +88,26 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
+
+/* 고칠 때는 값 자리에 선택 칸이 온다. 값과 같은 크기로 보여 무엇을 고르는지 바로 알 수 있게 한다. */
+.spec-row__edit {
+    display: grid;
+    gap: var(--density-high);
+}
+
+.spec-row__edit select {
+    width: 100%;
+    border: 1px solid var(--on-surface);
+    border-radius: var(--radius-control);
+    padding: var(--density-high) var(--density-med);
+    color: var(--on-surface);
+    background: var(--surface-container-lowest);
+    font: inherit;
+    font-size: var(--headline-sm-font-size);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#reset-spec-button {
+    margin-bottom: var(--gutter);
+}

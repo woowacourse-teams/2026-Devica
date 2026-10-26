@@ -10,6 +10,8 @@ import {
   fetchCpuTiers,
   fetchProductPage,
   formatPrice,
+  formatStorage,
+  MEMORY_STEPS,
   OSES,
   osOfTier,
   type Product,
@@ -17,6 +19,8 @@ import {
   productListQuery,
   type SearchCondition,
   type SortType,
+  STORAGE_STEPS,
+  specCondition,
   validTier,
 } from './products';
 import { osValueOf, type Spec } from './recommendation';
@@ -36,9 +40,6 @@ const PREFETCH_MARGIN = '0px 0px 600px 0px';
 // 선택지는 고정한다. 목록 API 는 전체 집합을 주지 않는다.
 // 원본은 제품 가격 분포와 무관하게 눈에 익은 눈금을 쓴다.
 const PRICE_STEPS = [1500000, 2000000, 2500000, 3000000, 4000000, 5000000];
-// 추천 알고리즘이 내는 값이다. 알고리즘이 바뀌면 여기도 함께 바뀐다.
-const MEMORY_STEPS = [16, 24, 32, 48];
-const STORAGE_STEPS = [256, 512, 1024];
 
 const SORT_LABELS: { value: SortType; label: string }[] = [
   { value: 'RECOMMENDED', label: '추천순' },
@@ -62,7 +63,7 @@ const HEADINGS: Record<ListMode, { eyebrow: string; title: string; description: 
   MATCHED: {
     eyebrow: '조건에 맞는 제품',
     title: '추천 노트북',
-    description: '확정한 사양을 모두 충족하는 제품만 보여드려요.',
+    description: '확정한 사양을 검색 조건으로 채워 두었어요. 조건을 바꿔 더 찾아볼 수 있어요.',
   },
   ALL: {
     eyebrow: '제품 목록',
@@ -119,6 +120,7 @@ export function ProductListView({
     tiers === null ? state.condition : { ...state.condition, cpuTier: validTier(tiers, state.condition) };
   const matchedMode = mode === 'MATCHED';
   // 맞춤 목록은 OS 탭 하나씩 서버 목록 하나를 본다. 두 OS 를 섞지 않으니 추천순을 늘 쓸 수 있다.
+  // 사양 대조 화면이 보고 있는 OS 의 권장안을 보여 준다.
   const spec = specs.find((each) => osValueOf(each) === condition.os);
 
   const [typed, setTyped] = useState(condition.keyword ?? '');
@@ -171,12 +173,10 @@ export function ProductListView({
     );
   }, [brands.data, condition.os, condition.brand, onChangeState]);
 
-  // 권장안을 받기 전에는 맞춤 목록의 조건을 알 수 없어 요청하지 않는다.
-  const listQuery = productListQuery(spec, sort, condition, tiers ?? []);
+  // 맞춤 목록의 사양 조건은 부모가 주소에 채운 뒤 그린다. 여기서는 전체 목록과 같은 조건으로 요청한다.
+  const listQuery = productListQuery(sort, condition);
   const products = usePaged(
-    waitingForTiers || waitingForBrands || (matchedMode && spec === undefined)
-      ? null
-      : `products:${categoryCode}?${listQuery}`,
+    waitingForTiers || waitingForBrands ? null : `products:${categoryCode}?${listQuery}`,
     (page) => fetchProductPage(categoryCode, listQuery, page),
   );
   const items = products.data;
@@ -243,8 +243,13 @@ export function ProductListView({
   };
 
   // 등급과 브랜드는 OS 마다 다르다. OS 를 바꾸면 그 OS 에 없는 조건은 함께 지운다.
+  // 맞춤 목록의 OS 탭은 그 OS 의 권장안을 보는 것이라, 사양 조건을 그 권장안으로 다시 채운다.
   const changeOs = (os: string | null) => {
+    const next = specs.find((each) => osValueOf(each) === os);
     onChangeState((previous) => {
+      if (matchedMode && next !== undefined) {
+        return { ...previous, condition: { ...previous.condition, ...specCondition(next) } };
+      }
       const tier = previous.condition.cpuTier;
       const kept = tier !== null && (os === null || osOfTier(tiers ?? [], tier) === os) ? tier : null;
       return { ...previous, condition: { ...previous.condition, os, cpuTier: kept } };
@@ -597,8 +602,4 @@ function specItem(product: Product, code: string): ProductSpecItem | undefined {
 
 function specValue(product: Product, code: string): string {
   return specItem(product, code)?.displayValue ?? '';
-}
-
-function formatStorage(value: number): string {
-  return value >= 1024 ? `${value / 1024}TB` : `${value}GB`;
 }
