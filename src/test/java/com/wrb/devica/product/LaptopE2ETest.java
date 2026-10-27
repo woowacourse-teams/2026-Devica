@@ -314,6 +314,7 @@ class LaptopE2ETest extends E2ETest {
 
     @Test
     void 숨김과_복구가_실제_목록과_상세_API에_반영된다() {
+        // given
         Laptop laptop = laptopOf(laptop().name("재확인대상"));
         ProductOffer offer = productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).name("쿠팡")
             .externalItemId("56").price(1_000_000L).checkedAt(LocalDate.of(2026, 10, 25))
@@ -323,14 +324,20 @@ class LaptopE2ETest extends E2ETest {
         PriceRefreshTarget target = new PriceRefreshTarget(offer.getId(), laptop.getId(), laptop.getCode(), "56",
             offer.getPurchaseUrl(), offer.getPrice(), offer.getStatus());
 
+        // when
         productOfferService.hideCoupangOffer(target, LocalDate.of(2026, 10, 26));
 
+        // then
         given().when().get(PATH).then().statusCode(200).body("content.size()", is(0));
         given().when().get("/api/products/" + laptop.getId()).then().statusCode(404);
 
+        // given
         PriceRefreshTarget hidden = productOfferService.findCoupangPriceRefreshTargets().getFirst();
+
+        // when
         productOfferService.refreshCoupangPrice(hidden, 900_000L, LocalDate.of(2026, 10, 27));
 
+        // then
         given().when().get(PATH).then().statusCode(200)
             .body("content[0].name", is("재확인대상")).body("content[0].minPrice", is(900_000));
         given().when().get("/api/products/" + laptop.getId()).then().statusCode(200)

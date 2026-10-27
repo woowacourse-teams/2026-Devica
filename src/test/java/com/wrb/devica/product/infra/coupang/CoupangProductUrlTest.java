@@ -12,37 +12,46 @@ class CoupangProductUrlTest {
 
     @Test
     void 파트너스_링크의_페이지와_옵션_ID를_분리한다() {
+        // when
         var parsed = CoupangProductUrl.parse("https://link.coupang.com/re/AFFSDP?lptag=AF123"
             + "&pageKey=9410641464&itemId=27961674147&vendorItemId=94919713475&traceid=ignored");
 
+        // then
         assertThat(parsed).contains(expected);
     }
 
     @Test
     void 같은_페이지의_다른_RAM_SSD_옵션을_같은_판매상품으로_판단하지_않는다() {
+        // given
         var other = CoupangProductUrl.parse("https://www.coupang.com/vp/products/9410641464"
             + "?itemId=27961674159&vendorItemId=94919713484").orElseThrow();
 
+        // when & then
         assertThat(expected.compareOption(other)).isEqualTo(CoupangProductUrl.OptionMatch.DIFFERENT_OPTION);
     }
 
     @Test
     void 페이지가_변해도_옵션_ID_일치_여부는_별도로_판단한다() {
+        // given
         var other = new CoupangProductUrl("123", "27961674147", "94919713475");
 
+        // when & then
         assertThat(expected.compareOption(other)).isEqualTo(CoupangProductUrl.OptionMatch.MATCHED_OPTION_IDS);
     }
 
     @Test
     void vendorItemId가_같아도_itemId가_충돌하면_자동으로_일치시키지_않는다() {
+        // when & then
         assertThat(expected.compareOption(new CoupangProductUrl("9410641464", "999", "94919713475")))
             .isEqualTo(CoupangProductUrl.OptionMatch.DIFFERENT_OPTION);
     }
 
     @Test
     void 옵션_ID가_누락되면_페이지가_같아도_확정하지_않는다() {
+        // given
         var other = CoupangProductUrl.parse("https://www.coupang.com/vp/products/9410641464").orElseThrow();
 
+        // when & then
         assertThat(expected.compareOption(other)).isEqualTo(CoupangProductUrl.OptionMatch.INSUFFICIENT_IDENTIFIERS);
     }
 
@@ -61,6 +70,7 @@ class CoupangProductUrlTest {
         "not a url"
     })
     void 잘못되거나_모호한_상품_URL을_거절한다(String url) {
+        // when & then
         assertThat(CoupangProductUrl.parse(url)).isEmpty();
     }
 }

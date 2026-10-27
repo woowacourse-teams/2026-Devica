@@ -43,6 +43,7 @@ class CoupangProductSearchClientTest {
 
     @Test
     void 한글과_예약문자를_인코딩한_URI와_동일한_서명을_전송한다() {
+        // given
         server.expect(requestTo(SEARCH_URL + "?keyword=%EB%85%B8%ED%8A%B8%EB%B6%81+%2B+16GB&limit=10"))
             .andExpect(method(HttpMethod.GET))
             .andExpect(header("Authorization", "CEA algorithm=HmacSHA256, access-key=test-access, "
@@ -55,8 +56,10 @@ class CoupangProductSearchClientTest {
                 }]}}
                 """, MediaType.APPLICATION_JSON));
 
+        // when
         var results = client.search("노트북 + 16GB");
 
+        // then
         assertThat(results).hasSize(1);
         assertThat(results.getFirst().productId()).isEqualTo("9410641464");
         assertThat(results.getFirst().productPrice()).isEqualTo(2080500L);
@@ -66,9 +69,11 @@ class CoupangProductSearchClientTest {
 
     @Test
     void 검색_결과가_없는_정상_응답은_오류와_구분한다() {
+        // given
         server.expect(requestTo(SEARCH_URL + "?keyword=laptop&limit=10"))
             .andRespond(withSuccess("{\"rCode\":\"0\",\"data\":{\"productData\":[]}}", MediaType.APPLICATION_JSON));
 
+        // when & then
         assertThat(client.search("laptop")).isEmpty();
         server.verify();
     }
@@ -77,9 +82,11 @@ class CoupangProductSearchClientTest {
     @CsvSource({"302, HTTP_ERROR", "401, AUTHENTICATION_FAILED", "403, AUTHENTICATION_FAILED",
         "429, RATE_LIMITED", "500, HTTP_ERROR"})
     void HTTP_오류는_응답_원문을_노출하지_않고_구분한다(int status, CoupangApiException.Reason reason) {
+        // given
         server.expect(requestTo(SEARCH_URL + "?keyword=laptop&limit=10"))
             .andRespond(withStatus(HttpStatusCode.valueOf(status)).body("sensitive-server-body"));
 
+        // when & then
         assertThatThrownBy(() -> client.search("laptop"))
             .isInstanceOfSatisfying(CoupangApiException.class,
                 exception -> assertThat(exception.getReason()).isEqualTo(reason))
@@ -90,10 +97,12 @@ class CoupangProductSearchClientTest {
 
     @Test
     void HTTP_성공이어도_rCode가_실패이면_거절로_처리한다() {
+        // given
         server.expect(requestTo(SEARCH_URL + "?keyword=laptop&limit=10"))
             .andRespond(
                 withSuccess("{\"rCode\":\"1\",\"rMessage\":\"sensitive-server-body\"}", MediaType.APPLICATION_JSON));
 
+        // when & then
         assertThatThrownBy(() -> client.search("laptop"))
             .isInstanceOf(CoupangApiException.class).hasMessage("API_REJECTED");
         server.verify();
@@ -103,9 +112,11 @@ class CoupangProductSearchClientTest {
     @ValueSource(strings = {"", "not-json", "{}", "{\"rCode\":\"0\"}", "{\"rCode\":\"0\",\"data\":{}}",
         "{\"rCode\":\"0\",\"data\":{\"productData\":[null]}}"})
     void 누락되거나_깨진_응답을_빈_검색_결과로_취급하지_않는다(String response) {
+        // given
         server.expect(requestTo(SEARCH_URL + "?keyword=laptop&limit=10"))
             .andRespond(withSuccess(response, MediaType.APPLICATION_JSON));
 
+        // when & then
         assertThatThrownBy(() -> client.search("laptop"))
             .isInstanceOf(CoupangApiException.class).hasMessage("INVALID_RESPONSE");
         server.verify();
@@ -113,9 +124,11 @@ class CoupangProductSearchClientTest {
 
     @Test
     void 타임아웃을_구분하고_즉시_반복_요청하지_않는다() {
+        // given
         server.expect(requestTo(SEARCH_URL + "?keyword=laptop&limit=10"))
             .andRespond(withException(new SocketTimeoutException("timeout")));
 
+        // when & then
         assertThatThrownBy(() -> client.search("laptop"))
             .isInstanceOf(CoupangApiException.class).hasMessage("CONNECTION_FAILED");
         server.verify();
@@ -123,6 +136,7 @@ class CoupangProductSearchClientTest {
 
     @Test
     void 빈_검색어는_외부에_전송하지_않는다() {
+        // when & then
         assertThatThrownBy(() -> client.search(" ")).isInstanceOf(IllegalArgumentException.class);
         server.verify();
     }

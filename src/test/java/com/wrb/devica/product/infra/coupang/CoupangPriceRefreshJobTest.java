@@ -93,9 +93,11 @@ class CoupangPriceRefreshJobTest {
         "https://www.coupang.com/vp/products/999?vendorItemId=56"
     })
     void vendorItemId가_같으면_페이지와_itemId에_의존하지_않고_한국_날짜로_저장한다(String url) {
+        // given
         respond(FIRST, product(url, 2_100_000L));
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
 
+        // when & then
         assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 0, 0, 0, 0, 0));
         verify(offers).refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT);
         assertThat(pauses).isEmpty();
@@ -110,15 +112,19 @@ class CoupangPriceRefreshJobTest {
         "https://www.coupang.com/vp/products/56?vendorItemId=56&vendorItemId=57"
     })
     void 응답_productId가_같아도_URL에서_같은_vendorItemId를_확인하지_못하면_저장하지_않는다(String url) {
+        // given
         respond(FIRST, product(url, 2_100_000L));
 
+        // when & then
         assertDeferred();
     }
 
     @Test
     void 검색_결과가_없으면_기존_가격과_확인_날짜를_저장하지_않는다() {
+        // given
         respond(FIRST);
 
+        // when & then
         assertDeferred();
     }
 
@@ -126,61 +132,75 @@ class CoupangPriceRefreshJobTest {
     @NullSource
     @ValueSource(longs = {0L, -1L})
     void ID가_같아도_유효한_양수_가격이_없으면_저장하지_않는다(Long price) {
+        // given
         respond(FIRST, product(MATCHING_URL, price));
 
+        // when & then
         assertDeferred();
     }
 
     @Test
     void 같은_ID의_후보가_서로_다른_가격을_주면_임의로_선택하지_않는다() {
+        // given
         respond(FIRST, product(MATCHING_URL, 2_000_000L), product(MATCHING_URL, 2_100_000L));
 
+        // when & then
         assertDeferred();
     }
 
     @Test
     void 같은_ID에_유효한_가격과_누락된_가격이_섞여도_보류한다() {
+        // given
         respond(FIRST, product(MATCHING_URL, 2_000_000L), product(MATCHING_URL, null));
 
+        // when & then
         assertDeferred();
     }
 
     @Test
     void 중복_후보의_가격이_같으면_한_번만_저장한다() {
+        // given
         respond(FIRST, product(MATCHING_URL, 2_100_000L), product(MATCHING_URL, 2_100_000L));
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
 
+        // when & then
         assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 0, 0, 0, 0, 0));
         verify(offers).refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT);
     }
 
     @Test
     void 다른_판매옵션의_가격은_일치하는_옵션의_가격_선택에_영향을_주지_않는다() {
+        // given
         respond(FIRST,
             product("https://www.coupang.com/vp/products/999?vendorItemId=57", 1L),
             product(MATCHING_URL, 1_000_000L));
         when(offers.refreshCoupangPrice(FIRST, 1_000_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UNCHANGED);
 
+        // when & then
         assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 1, 0, 0, 0, 0, 0));
         verify(offers).refreshCoupangPrice(FIRST, 1_000_000L, CHECKED_AT);
     }
 
     @Test
     void 조회_중_DB의_상품_연결이_변경되면_저장_보류로_집계한다() {
+        // given
         respond(FIRST, product(MATCHING_URL, 2_100_000L));
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.SKIPPED);
 
+        // when & then
         assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 1, 0, 0, 0, 0));
     }
 
     @ParameterizedTest
     @ValueSource(ints = {401, 403, 429})
     void 인증_실패나_호출_제한이면_완료한_상품은_유지하고_남은_호출을_중단한다(int status) {
+        // given
         when(offers.findCoupangPriceRefreshTargets()).thenReturn(List.of(FIRST, SECOND, THIRD));
         respond(FIRST, product(MATCHING_URL, 2_100_000L));
         server.expect(requestTo(searchUrl(SECOND))).andRespond(withStatus(HttpStatusCode.valueOf(status)));
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
 
+        // when & then
         assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 1, 1, 0, 0, 0));
         verify(offers).refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT);
         verify(offers, never()).refreshCoupangPrice(eq(SECOND), anyLong(), any());
@@ -190,11 +210,13 @@ class CoupangPriceRefreshJobTest {
 
     @Test
     void 개별_조회_오류는_즉시_재시도하지_않고_간격을_둔_뒤_다음_상품을_조회한다() {
+        // given
         when(offers.findCoupangPriceRefreshTargets()).thenReturn(List.of(FIRST, SECOND));
         server.expect(requestTo(searchUrl(FIRST))).andRespond(withStatus(HttpStatusCode.valueOf(500)));
         respond(SECOND, product(MATCHING_URL, 2_100_000L));
         when(offers.refreshCoupangPrice(SECOND, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
 
+        // when & then
         assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 1, 0, 0, 0, 0));
         verify(offers, never()).refreshCoupangPrice(eq(FIRST), anyLong(), any());
         verify(offers).refreshCoupangPrice(SECOND, 2_100_000L, CHECKED_AT);
@@ -203,6 +225,7 @@ class CoupangPriceRefreshJobTest {
 
     @Test
     void DB_저장이_실패한_상품은_보류하고_다음_상품은_계속_처리한다() {
+        // given
         when(offers.findCoupangPriceRefreshTargets()).thenReturn(List.of(FIRST, SECOND));
         respond(FIRST, product(MATCHING_URL, 2_100_000L));
         respond(SECOND, product(MATCHING_URL, 1_000_000L));
@@ -210,6 +233,7 @@ class CoupangPriceRefreshJobTest {
             .thenThrow(new DataAccessResourceFailureException("test database failure"));
         when(offers.refreshCoupangPrice(SECOND, 1_000_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UNCHANGED);
 
+        // when & then
         assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 1, 1, 0, 0, 0, 0));
         verify(offers).refreshCoupangPrice(SECOND, 1_000_000L, CHECKED_AT);
     }
@@ -289,6 +313,7 @@ class CoupangPriceRefreshJobTest {
 
     @Test
     void 호출_간격_대기_중_중단되면_인터럽트를_복원하고_남은_상품을_호출하지_않는다() {
+        // given
         when(offers.findCoupangPriceRefreshTargets()).thenReturn(List.of(FIRST, SECOND));
         respond(FIRST, product(MATCHING_URL, 2_100_000L));
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
@@ -297,6 +322,7 @@ class CoupangPriceRefreshJobTest {
         });
 
         try {
+            // when & then
             assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 0, 1, 0, 0, 0));
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
             verify(offers, never()).refreshCoupangPrice(eq(SECOND), anyLong(), any());
@@ -329,8 +355,10 @@ class CoupangPriceRefreshJobTest {
 
     @Test
     void 갱신_대상이_없으면_API를_호출하지_않는다() {
+        // given
         when(offers.findCoupangPriceRefreshTargets()).thenReturn(List.of());
 
+        // when & then
         assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 0, 0, 0, 0, 0));
         verify(offers, never()).refreshCoupangPrice(any(), anyLong(), any());
         assertThat(pauses).isEmpty();
@@ -355,9 +383,11 @@ class CoupangPriceRefreshJobTest {
     void 확인_성공과_숨김_유지를_구분해_전체_결과와_종료_코드를_판정한다(
         int updated, int unchanged, int deferred, int notAttempted, int hiddenUnchanged, String outcome, int exitCode
     ) {
+        // given
         var summary = new CoupangPriceRefreshJob.Summary(updated, unchanged, deferred, notAttempted, 0, 0,
             hiddenUnchanged);
 
+        // when & then
         assertThat(summary.outcome()).isEqualTo(outcome);
         assertThat(summary.exitCode()).isEqualTo(exitCode);
         assertThat(summary.success()).isEqualTo(updated + unchanged);
@@ -366,6 +396,7 @@ class CoupangPriceRefreshJobTest {
 
     @Test
     void 판매처별_성공과_대상_수를_남기고_보류와_복구를_중복_집계하지_않는다() {
+        // given
         when(offers.findCoupangPriceRefreshTargets()).thenReturn(List.of(FIRST, SECOND, THIRD));
         respond(FIRST, product(MATCHING_URL, 2_100_000L));
         respond(SECOND, product(MATCHING_URL, SECOND.price()));
@@ -373,8 +404,10 @@ class CoupangPriceRefreshJobTest {
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.RESTORED);
         when(offers.refreshCoupangPrice(SECOND, SECOND.price(), CHECKED_AT)).thenReturn(PriceRefreshResult.UNCHANGED);
 
+        // when
         List<ILoggingEvent> events = capture(() -> {
             var summary = job.refreshPrices();
+            // then
             assertThat(summary.success()).isEqualTo(2);
             assertThat(summary.total()).isEqualTo(3);
             assertThat(summary.hidden()).isZero();
@@ -395,6 +428,7 @@ class CoupangPriceRefreshJobTest {
 
     @Test
     void 조회_대상부터_읽지_못해도_시작과_실패_로그를_같은_실행_ID로_남긴다() {
+        // given
         Logger logger = (Logger) LoggerFactory.getLogger(CoupangPriceRefreshJob.class);
         ListAppender<ILoggingEvent> appender = new ListAppender<>() {
             @Override
@@ -407,6 +441,7 @@ class CoupangPriceRefreshJobTest {
         logger.addAppender(appender);
         when(offers.findCoupangPriceRefreshTargets()).thenThrow(new DataAccessResourceFailureException("DB unavailable"));
         try {
+            // when & then
             assertThatThrownBy(() -> job.refreshPrices()).isInstanceOf(DataAccessResourceFailureException.class);
 
             assertThat(appender.list).hasSize(2);
@@ -432,8 +467,10 @@ class CoupangPriceRefreshJobTest {
 
     @Test
     void 모든_후보의_ID가_달라도_저장하지_않고_비교_근거와_확인_링크를_남긴다() {
+        // given
         respond(FIRST, product("https://www.coupang.com/vp/products/999?vendorItemId=57", 1L));
 
+        // when & then
         List<ILoggingEvent> events = capture(() -> assertThat(job.refreshPrices())
             .isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 1, 0, 0, 0, 0)));
 
@@ -665,8 +702,10 @@ class CoupangPriceRefreshJobTest {
 
     @Test
     void 검색_결과가_비면_NO_MATCH와_구분하고_숨기지_않는다() {
+        // given
         respond(FIRST);
 
+        // when & then
         List<ILoggingEvent> events = capture(this::assertDeferred);
 
         assertField(resultEvent(events), "price_refresh.result", "NO_SEARCH_RESULTS");
@@ -675,10 +714,12 @@ class CoupangPriceRefreshJobTest {
 
     @Test
     void 다른_ID와_ID_누락과_잘못된_URL이_섞이면_불일치로_확정하지_않는다() {
+        // given
         respond(FIRST,
             product("https://www.coupang.com/vp/products/999?vendorItemId=57", 1L),
             product("https://www.coupang.com/vp/products/999?itemId=777", 1L), product(null, 1L));
 
+        // when & then
         List<ILoggingEvent> events = capture(this::assertDeferred);
 
         ILoggingEvent event = resultEvent(events);
@@ -690,9 +731,11 @@ class CoupangPriceRefreshJobTest {
 
     @Test
     void 일치한_상품이_있으면_다른_후보의_URL_문제는_갱신을_막지_않는다() {
+        // given
         respond(FIRST, product(null, 1L), product(MATCHING_URL, 2_100_000L));
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
 
+        // when & then
         List<ILoggingEvent> events = capture(() -> assertThat(job.refreshPrices())
             .isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 0, 0, 0, 0, 0)));
 
@@ -706,11 +749,14 @@ class CoupangPriceRefreshJobTest {
     @ParameterizedTest
     @ValueSource(longs = {1_000_000L, 2_100_000L})
     void 노출_복구와_가격_변경을_각각_집계하고_알림_필드에_남긴다(long price) {
+        // given
         respond(FIRST, product(MATCHING_URL, price));
         when(offers.refreshCoupangPrice(FIRST, price, CHECKED_AT)).thenReturn(PriceRefreshResult.RESTORED);
 
+        // when
         List<ILoggingEvent> events = capture(() -> {
             var summary = job.refreshPrices();
+            // then
             assertThat(summary.restored()).isEqualTo(1);
             assertThat(summary.updated()).isEqualTo(price == FIRST.price() ? 0 : 1);
             assertThat(summary.unchanged()).isEqualTo(price == FIRST.price() ? 1 : 0);
@@ -721,10 +767,12 @@ class CoupangPriceRefreshJobTest {
 
     @Test
     void 가격_저장이_실패하면_변경_알림을_남기지_않고_보류를_한_번만_집계한다() {
+        // given
         respond(FIRST, product(MATCHING_URL, 2_100_000L));
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT))
             .thenThrow(new DataAccessResourceFailureException("DB unavailable"));
 
+        // when & then
         List<ILoggingEvent> events = capture(() -> assertThat(job.refreshPrices())
             .isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 1, 0, 0, 0, 0)));
 
@@ -736,8 +784,10 @@ class CoupangPriceRefreshJobTest {
 
     @Test
     void API_오류도_에러_종류와_확인_링크를_같이_남긴다() {
+        // given
         server.expect(requestTo(searchUrl(FIRST))).andRespond(withStatus(HttpStatusCode.valueOf(429)));
 
+        // when & then
         List<ILoggingEvent> events = capture(this::assertDeferred);
 
         assertField(resultEvent(events), "price_refresh.result", "API_FAILURE");

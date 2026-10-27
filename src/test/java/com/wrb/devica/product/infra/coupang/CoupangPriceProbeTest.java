@@ -37,6 +37,7 @@ class CoupangPriceProbeTest {
 
     @Test
     void ID가_일치해도_제품_사양과_가격의_검증이_완료된_것으로_표시하지_않는다() {
+        // given
         server.expect(requestTo(SEARCH_URL)).andRespond(withSuccess("""
             {"rCode":"0","data":{"productData":[{
               "productId":999,"productName":"노트북","productPrice":2000000,
@@ -44,8 +45,10 @@ class CoupangPriceProbeTest {
             }]}}
             """, MediaType.APPLICATION_JSON));
 
+        // when
         var result = CoupangPriceProbe.inspect(target, client, clock);
 
+        // then
         assertThat(result.outcome()).isEqualTo("RETRIEVED");
         assertThat(result.candidates().getFirst().response().productId()).isEqualTo("999");
         assertThat(result.candidates().getFirst().urlIdentifiers().pageId()).isEqualTo("123");
@@ -61,6 +64,7 @@ class CoupangPriceProbeTest {
 
     @Test
     void 상품명이_같아도_옵션_ID가_없거나_가격이_유효하지_않으면_확인_대상으로_남긴다() {
+        // given
         server.expect(requestTo(SEARCH_URL)).andRespond(withSuccess("""
             {"rCode":"0","data":{"productData":[{
               "productId":123,"productName":"MODEL-A RAM 16GB SSD 512GB Windows","productPrice":0,
@@ -68,8 +72,10 @@ class CoupangPriceProbeTest {
             }]}}
             """, MediaType.APPLICATION_JSON));
 
+        // when
         var result = CoupangPriceProbe.inspect(target, client, clock);
 
+        // then
         assertThat(result.candidates().getFirst().optionMatch())
             .isEqualTo(CoupangProductUrl.OptionMatch.INSUFFICIENT_IDENTIFIERS);
         assertThat(result.candidates().getFirst().priceCheck()).isEqualTo("MISSING_OR_INVALID_PRICE");
@@ -78,10 +84,13 @@ class CoupangPriceProbeTest {
 
     @Test
     void 호출_제한은_품절이나_빈_검색_결과로_기록하지_않는다() {
+        // given
         server.expect(requestTo(SEARCH_URL)).andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
 
+        // when
         var result = CoupangPriceProbe.inspect(target, client, clock);
 
+        // then
         assertThat(result.outcome()).isEqualTo("API_FAILURE");
         assertThat(result.failureReason()).isEqualTo("RATE_LIMITED");
         assertThat(result.candidates()).isEmpty();

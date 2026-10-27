@@ -87,6 +87,7 @@ class ProductOfferServiceTest {
 
     @Test
     void 판매_중이거나_숨겨진_기준_ID가_있는_쿠팡_오퍼를_조회한다() {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer target = productOfferRepository.save(coupangOffer(laptop).build());
         ProductOffer hidden = productOfferRepository.save(coupangOffer(laptop).status(OfferStatus.HIDDEN).build());
@@ -95,19 +96,23 @@ class ProductOfferServiceTest {
         productOfferRepository.save(coupangOffer(laptop).externalItemId(null).build());
         productOfferRepository.save(coupangOffer(laptop).externalItemId("   ").build());
 
+        // when & then
         assertThat(productOfferService.findCoupangPriceRefreshTargets()).containsExactly(target(laptop, target), target(laptop, hidden));
     }
 
     @ParameterizedTest
     @ValueSource(longs = {800_000L, 1_300_000L})
     void 가격이_오르거나_내리면_오퍼와_목록_최저가를_함께_갱신한다(long newPrice) {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).build());
         initializeMinPrice(laptop);
 
+        // when
         PriceRefreshResult result = productOfferService.refreshCoupangPrice(target(laptop, offer), newPrice, CHECKED_ON);
         flushAndClear();
 
+        // then
         assertThat(result).isEqualTo(PriceRefreshResult.UPDATED);
         ProductOffer refreshed = productOfferRepository.findById(offer.getId()).orElseThrow();
         assertThat(refreshed.getPrice()).isEqualTo(newPrice);
@@ -117,27 +122,33 @@ class ProductOfferServiceTest {
 
     @Test
     void 다른_판매처가_더_저렴하면_그_가격을_최저가로_유지하고_품절_가격은_제외한다() {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).build());
         productOfferRepository.save(coupangOffer(laptop).name("다른 판매처").price(900_000L).build());
         productOfferRepository.save(coupangOffer(laptop).status(OfferStatus.SOLD_OUT).price(500_000L).build());
         initializeMinPrice(laptop);
 
+        // when
         productOfferService.refreshCoupangPrice(target(laptop, offer), 1_200_000L, CHECKED_ON);
         flushAndClear();
 
+        // then
         assertThat(productMinPriceRepository.findById(laptop.getId()).orElseThrow().getMinPrice()).isEqualTo(900_000L);
     }
 
     @Test
     void 가격이_같아도_확인_날짜는_갱신한다() {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).build());
         initializeMinPrice(laptop);
 
+        // when
         PriceRefreshResult result = productOfferService.refreshCoupangPrice(target(laptop, offer), 1_000_000L, CHECKED_ON);
         flushAndClear();
 
+        // then
         assertThat(result).isEqualTo(PriceRefreshResult.UNCHANGED);
         ProductOffer refreshed = productOfferRepository.findById(offer.getId()).orElseThrow();
         assertThat(refreshed.getPrice()).isEqualTo(1_000_000L);
@@ -147,11 +158,14 @@ class ProductOfferServiceTest {
 
     @Test
     void 같은_날_다시_확인한_가격도_갱신할_수_있다() {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).checkedAt(CHECKED_ON).build());
 
+        // when
         PriceRefreshResult result = productOfferService.refreshCoupangPrice(target(laptop, offer), 900_000L, CHECKED_ON);
 
+        // then
         assertThat(result).isEqualTo(PriceRefreshResult.UPDATED);
         assertThat(offer.getPrice()).isEqualTo(900_000L);
     }
@@ -160,13 +174,16 @@ class ProductOfferServiceTest {
     @NullAndEmptySource
     @ValueSource(strings = {" ", "99999"})
     void 기준_ID가_없거나_조회_이후_연결이_바뀌면_갱신하지_않는다(String vendorItemId) {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).build());
         PriceRefreshTarget staleTarget = new PriceRefreshTarget(offer.getId(), laptop.getId(), laptop.getCode(), vendorItemId,
             offer.getPurchaseUrl(), offer.getPrice(), offer.getStatus());
 
+        // when
         PriceRefreshResult result = productOfferService.refreshCoupangPrice(staleTarget, 900_000L, CHECKED_ON);
 
+        // then
         assertThat(result).isEqualTo(PriceRefreshResult.SKIPPED);
         assertUnchanged(offer);
     }
@@ -174,23 +191,28 @@ class ProductOfferServiceTest {
     @ParameterizedTest
     @CsvSource({"다른 판매처, ON_SALE", "쿠팡, SOLD_OUT", "쿠팡, DISCONTINUED"})
     void 판매처나_판매_상태가_바뀌면_갱신하지_않는다(String seller, OfferStatus status) {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).name(seller).status(status).build());
 
+        // when
         PriceRefreshResult result = productOfferService.refreshCoupangPrice(target(laptop, offer), 900_000L, CHECKED_ON);
 
+        // then
         assertThat(result).isEqualTo(PriceRefreshResult.SKIPPED);
         assertUnchanged(offer);
     }
 
     @Test
     void 오퍼가_삭제되면_갱신하지_않는다() {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).build());
         PriceRefreshTarget target = target(laptop, offer);
         productOfferRepository.delete(offer);
         productOfferRepository.flush();
 
+        // when & then
         assertThat(productOfferService.refreshCoupangPrice(target, 900_000L, CHECKED_ON))
             .isEqualTo(PriceRefreshResult.SKIPPED);
         assertThat(productMinPriceRepository.findById(laptop.getId())).isEmpty();
@@ -198,9 +220,11 @@ class ProductOfferServiceTest {
 
     @Test
     void 이미_더_최근에_확인한_가격은_이전_날짜의_결과로_덮어쓰지_않는다() {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).checkedAt(CHECKED_ON.plusDays(1)).build());
 
+        // when & then
         assertThat(productOfferService.refreshCoupangPrice(target(laptop, offer), 900_000L, CHECKED_ON))
             .isEqualTo(PriceRefreshResult.SKIPPED);
         assertThat(offer.getPrice()).isEqualTo(1_000_000L);
@@ -210,9 +234,11 @@ class ProductOfferServiceTest {
     @ParameterizedTest
     @ValueSource(longs = {0, -1})
     void 유효하지_않은_가격은_저장하지_않는다(long price) {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).build());
 
+        // when & then
         assertThatThrownBy(() -> productOfferService.refreshCoupangPrice(target(laptop, offer), price, CHECKED_ON))
             .isInstanceOf(IllegalArgumentException.class);
         assertUnchanged(offer);
@@ -220,9 +246,11 @@ class ProductOfferServiceTest {
 
     @Test
     void 확인_날짜가_없으면_저장하지_않는다() {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).build());
 
+        // when & then
         assertThatThrownBy(() -> productOfferService.refreshCoupangPrice(target(laptop, offer), 900_000L, null))
             .isInstanceOf(IllegalArgumentException.class);
         assertUnchanged(offer);
@@ -232,6 +260,7 @@ class ProductOfferServiceTest {
     @ValueSource(booleans = {false, true})
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void 최저가_저장이_실패하면_가격과_숨김_변경도_함께_롤백한다(boolean hide) {
+        // given
         TransactionTemplate transaction = new TransactionTemplate(transactionManager);
         Laptop laptop = transaction.execute(status -> saveLaptop());
         ProductOffer offer = transaction.execute(status -> {
@@ -245,6 +274,7 @@ class ProductOfferServiceTest {
                 throw new DataIntegrityViolationException("최저가 저장 실패");
             }).when(productMinPriceRepository).refresh(laptop.getId());
 
+            // when & then
             assertThatThrownBy(() -> {
                 if (hide) {
                     productOfferService.hideCoupangOffer(target(laptop, offer), CHECKED_ON);
@@ -270,10 +300,12 @@ class ProductOfferServiceTest {
 
     @Test
     void 숨김은_가격과_확인일을_보존하고_판매_최저가를_제거한다() {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).build());
         initializeMinPrice(laptop);
 
+        // when & then
         assertThat(productOfferService.hideCoupangOffer(target(laptop, offer), CHECKED_ON))
             .isEqualTo(PriceRefreshResult.HIDDEN);
         flushAndClear();
@@ -290,23 +322,28 @@ class ProductOfferServiceTest {
 
     @Test
     void 쿠팡을_숨겨도_다른_판매처의_최저가는_유지한다() {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).build());
         productOfferRepository.save(coupangOffer(laptop).name("다른 판매처").price(1_200_000L).build());
         initializeMinPrice(laptop);
 
+        // when
         productOfferService.hideCoupangOffer(target(laptop, offer), CHECKED_ON);
         flushAndClear();
 
+        // then
         assertThat(productMinPriceRepository.findById(laptop.getId()).orElseThrow().getMinPrice()).isEqualTo(1_200_000L);
     }
 
     @ParameterizedTest
     @ValueSource(longs = {1_000_000L, 900_000L})
     void 숨긴_상품의_가격을_다시_확인하면_노출과_최저가를_복구한다(long price) {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).status(OfferStatus.HIDDEN).build());
 
+        // when & then
         assertThat(productOfferService.refreshCoupangPrice(target(laptop, offer), price, CHECKED_ON))
             .isEqualTo(PriceRefreshResult.RESTORED);
         flushAndClear();
@@ -319,11 +356,13 @@ class ProductOfferServiceTest {
 
     @Test
     void 조회_중_가격이_바뀐_상품은_이전_결과로_숨기거나_갱신하지_않는다() {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).build());
         PriceRefreshTarget snapshot = target(laptop, offer);
         offer.refreshPrice(900_000L, CHECKED_ON);
 
+        // when & then
         assertThat(productOfferService.hideCoupangOffer(snapshot, CHECKED_ON)).isEqualTo(PriceRefreshResult.SKIPPED);
         assertThat(productOfferService.refreshCoupangPrice(snapshot, 800_000L, CHECKED_ON))
             .isEqualTo(PriceRefreshResult.SKIPPED);
@@ -333,11 +372,13 @@ class ProductOfferServiceTest {
 
     @Test
     void 조회_중_숨김_상태가_바뀌면_이전_결과로_복구하지_않는다() {
+        // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).build());
         PriceRefreshTarget snapshot = target(laptop, offer);
         offer.hide();
 
+        // when & then
         assertThat(productOfferService.refreshCoupangPrice(snapshot, 800_000L, CHECKED_ON))
             .isEqualTo(PriceRefreshResult.SKIPPED);
         assertThat(offer.getStatus()).isEqualTo(OfferStatus.HIDDEN);
@@ -377,6 +418,7 @@ class ProductOfferServiceTest {
     }
 
     private void assertUnchanged(ProductOffer offer) {
+        // when & then
         assertThat(offer.getPrice()).isEqualTo(1_000_000L);
         assertThat(offer.getCheckedAt()).isEqualTo(CHECKED_ON.minusDays(1));
     }
