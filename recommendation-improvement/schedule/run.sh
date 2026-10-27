@@ -33,4 +33,8 @@ echo "== $(date -u +%FT%TZ) $C"
 claude -p "$PROMPT" --add-dir "$ST" --permission-mode acceptEdits \
   --allowedTools "${TOOLS[@]}" --disallowedTools 'Edit(/**)' --output-format json < /dev/null \
   | python3 -c 'import json,sys; r=json.load(sys.stdin); print(r.get("result","")); [print("막힘:", d["tool_name"], json.dumps(d["tool_input"], ensure_ascii=False)) for d in r.get("permission_denials",[])]'
-echo "== $(date -u +%FT%TZ) 끝 (종료 코드 ${PIPESTATUS[0]})"
+CODES=("${PIPESTATUS[@]}")
+# 에이전트가 성공해도 결과를 읽지 못했으면 실패로 끝낸다
+RC=${CODES[0]}; [ "$RC" -eq 0 ] && RC=${CODES[1]}
+echo "== $(date -u +%FT%TZ) 끝 (종료 코드 $RC)"
+exit "$RC"

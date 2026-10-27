@@ -37,7 +37,7 @@ for job in "${JOBS[@]}"; do
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string><string>-c</string>
-    <string>git fetch -q origin &amp;&amp; git show origin/develop:recommendation-improvement/schedule/run.sh | bash -s $C</string>
+    <string>set -o pipefail; git fetch -q origin &amp;&amp; git show origin/develop:recommendation-improvement/schedule/run.sh | bash -s $C</string>
   </array>
   <key>WorkingDirectory</key><string>$REPO</string>
   <key>EnvironmentVariables</key><dict><key>PATH</key><string>$RUN_PATH</string></dict>
