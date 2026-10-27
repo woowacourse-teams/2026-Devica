@@ -116,7 +116,7 @@ recommendation-improvement/
     artifacts/               산출물의 형식
     components/              구성 요소의 명세
     binding.md               산출물과 저장 위치의 바인딩
-  metric-collector/          구현. 지금은 Claude 데스크톱 앱의 예약 작업(prompt.md 와 스크립트)
+  metric-collector/          구현. 지금은 에이전트가 예약 실행으로 따르는 지시문(prompt.md)과 스크립트
   feedback-analyzer/
   recommendation-improver/
   common.py                  세 구현이 함께 쓰는 스크립트
@@ -129,20 +129,20 @@ recommendation-improvement/
 
 피드백은 `product-recommendation-feedback` 라벨이 붙은 이슈다. 종류는 제목 머리말로 구분한다.
 
-| 머리말 | 종류 |
-|---|---|
-| `[제품 추천 의견]` | 사용자가 남긴 피드백 |
+| 머리말          | 종류                             |
+|--------------|--------------------------------|
+| `[제품 추천 의견]` | 사용자가 남긴 피드백                    |
 | `[제품 추천 지표]` | Metric Collector 가 지표에서 찾은 피드백 |
 
 각 피드백의 상태는 Feedback Analyzer 가 남긴 분석 결과의 판단에 드러난다.
 
-| 판단        | 뜻                     | 팀원이 할 일   |
-|-----------|-----------------------|-----------|
-| 개선 지시     | 개선 PR 이 올라온다          | PR 을 검토한다 |
-| 보류        | 근거가 더 모이기를 기다린다       | 없다        |
-| 팀원이 직접 처리 | 정의서로 고칠 수 없거나, 개선이 반려됐다 | 직접 고치거나 닫는다 |
-| 이미 바뀜     | 사용자가 본 뒤 다른 개선으로 이미 고쳐졌다 | 확인하고 닫는다  |
-| 재현할 수 없음  | 질문이 바뀌어 같은 결과를 볼 수 없다 | 확인하고 닫는다  |
+| 판단        | 뜻                        | 팀원이 할 일     |
+|-----------|--------------------------|-------------|
+| 개선 지시     | 개선 PR 이 올라온다             | PR 을 검토한다   |
+| 보류        | 근거가 더 모이기를 기다린다          | 없다          |
+| 팀원이 직접 처리 | 정의서로 고칠 수 없거나, 개선이 반려됐다  | 직접 고치거나 닫는다 |
+| 이미 바뀜     | 사용자가 본 뒤 다른 개선으로 이미 고쳐졌다 | 확인하고 닫는다    |
+| 재현할 수 없음  | 질문이 바뀌어 같은 결과를 볼 수 없다    | 확인하고 닫는다    |
 
 처리를 멈추고 싶은 피드백은 이슈를 닫는다. 닫힌 이슈의 개선 지시는 Recommendation Improver 가 처리하지 않고, Feedback Analyzer 도 다시 보지 않는다.
 
@@ -173,55 +173,76 @@ recommendation-improvement/
 - Recommendation Improver 는 사용자의 작업과 분리된 작업 공간에서 실행된다.
 - 구성 요소마다 필요한 권한과 환경은 [`interface/components/`](interface/components/)의 "의존하는 외부 시스템"에 있다.
 
-지금의 구현은 Claude 데스크톱 앱의 예약 작업이다. 구성 요소마다 지시문(`<구성 요소>/prompt.md`)과 스크립트(`signals.py`·`snapshot.py`, 공통 `common.py`)가 있고, 예약 작업이 돌 때마다 `origin/develop` 에서 새로 읽어 온다. 리뷰를 거쳐 머지된 내용만 돌고, 지시문이 바뀌어도 작업을 다시 등록하지 않아도 된다. 구현을 바꾸면 이 절과 구성 요소 디렉터리를 새 구현의 것으로 바꾸고, 이전 작업은 끈다.
+지금은 에이전트가 정해진 주기마다 지시문을 따라 실행된다. 구성 요소마다 지시문(`<구성 요소>/prompt.md`)과 스크립트(`signals.py`·`snapshot.py`, 공통 `common.py`)가 있고, 실행될 때마다 `origin/develop` 에서 새로 읽어 온다. 리뷰를 거쳐 머지된 내용만 실행되고, 지시문이 바뀌어도 작업을 다시 등록하지 않아도 된다. 구현을 바꾸면 이 절과 구성 요소 디렉터리를 새 구현의 것으로 바꾸고, 이전 작업은 끈다.
 
 ### 1. 준비하기
 
-하나라도 빠지면 작업이 중간에 멈춘다.
+실행 방식과 상관없이 필요하다. 하나라도 빠지면 작업이 중간에 멈춘다.
 
-1. **Claude 데스크톱 앱**: 개인 구독 계정으로 로그인한다. 예약 작업은 앱과 PC 가 켜져 있을 때만 돌고, 돌 때마다 구독 사용량이 든다.
-2. **GitHub CLI**: 레포 멤버 계정으로 로그인한다. 이슈·댓글·PR 이 모두 이 계정 이름으로 남고, 구성 요소는 팀원이 쓴 산출물만 믿으므로 멤버가 아니면 산출물이 무시된다. Recommendation Improver 를 돌리는 계정은 개선 PR 의 작성자가 되므로 본인은 승인할 수 없다.
+1. **GitHub CLI**: 레포 멤버 계정으로 로그인하고, 아래 두 번째 줄이 `true` 를 출력하는지 본다.
    ```bash
-   gh auth status                                                          # 로그인한 계정
-   gh api repos/woowacourse-teams/2026-Devica --jq .permissions.push       # true 가 나와야 한다
+   gh auth status
+   gh api repos/woowacourse-teams/2026-Devica --jq .permissions.push
    ```
-3. **`python3`, `ruby`**: 스크립트를 돌릴 때 쓴다. `python3` 가 없으면 `xcode-select --install` 로 명령줄 도구를 깐다.
-4. **레포 clone**: 작업이 쓸 clone 디렉터리를 정한다. Metric Collector 와 Feedback Analyzer 는 `git fetch` 와 읽기만 하고, Recommendation Improver 는 `~/.devica-product-recommendation/recommendation-improver/worktree` 에 작업 공간을 따로 만들어 거기서만 고친다. 평소 쓰는 clone 이어도 내 작업 트리와 로컬 브랜치는 그대로다.
-5. 구성 요소별로 더 필요한 것:
-
-| 구성 요소 | 더 필요한 것 |
-|---|---|
-| Metric Collector | PostHog 커넥터. 활성 프로젝트를 팀 프로젝트 `638813` 으로 맞춘다. 다른 프로젝트면 작업은 바꾸지 않고 멈춘다 |
-| Feedback Analyzer | 개발 서버(`http://dev.devica.co.kr`)와 운영 서버(`https://api.devica.co.kr`)에 접속할 수 있어야 한다 |
-| Recommendation Improver | JDK 와 Docker Desktop([백엔드 개발 환경 가이드](../docs/백엔드_개발_환경_가이드.md)). 테스트 DB(3307)를 띄워 테스트를 돌리므로 작업이 도는 동안 Docker Desktop 이 켜져 있어야 한다 |
+2. **`python3`, `ruby`**: `python3 --version` 이 실패하면 `xcode-select --install` 을 실행한다.
+3. **레포 clone**: 이 레포의 clone 하나를 작업 폴더로 정한다. 평소 쓰는 clone 이어도 된다.
+4. **Feedback Analyzer**: 아래 두 줄이 모두 `200` 을 출력하는지 본다.
+   ```bash
+   curl -s -o /dev/null -w '%{http_code}\n' http://dev.devica.co.kr/api/usage-purposes/BACKEND_DEVELOPMENT/recommendation
+   curl -s -o /dev/null -w '%{http_code}\n' https://api.devica.co.kr/api/usage-purposes/BACKEND_DEVELOPMENT/recommendation
+   ```
+5. **Recommendation Improver**: JDK 와 Docker Desktop 을 설치하고([백엔드 개발 환경 가이드](../docs/백엔드_개발_환경_가이드.md)), 작업이 실행되는 동안 Docker Desktop 을 켜 둔다.
 
 ### 2. 예약 작업 등록하기
 
-Claude 앱의 예약 작업 화면에서 구성 요소마다 작업을 하나씩 만든다. 작업 폴더는 1-4 의 clone 디렉터리, 프롬프트는 아래에서 `<구성 요소>` 만 바꿔 그대로 붙여 넣는다.
+팀원 한 명만 등록한다. 여러 명이 등록하면 같은 작업이 겹쳐 실행된다. Mac 이면 [Mac 에 등록하기](#mac-에-등록하기), 아니면 [다른 방법으로 등록하기](#다른-방법으로-등록하기)를 따른다.
 
-```
-작업 폴더의 git 레포에서 `git fetch -q origin` 을 실행한 뒤,
-`git show origin/develop:recommendation-improvement/<구성 요소>/prompt.md` 의 출력을
-이번 실행의 지시문으로 삼아 끝까지 따른다. 지시문의 SELF_REF 는 origin/develop 이다.
-```
+#### Mac 에 등록하기
 
-| 구성 요소 | 주기 | 처음 돌 때 허용할 권한 |
+1. **에이전트 확인**: 아래가 버전을 출력하는지 본다. 실패하면 Claude Code 를 설치하고 개인 구독 계정으로 로그인한다.
+   ```bash
+   claude --version
+   ```
+2. **PostHog 연결**: claude.ai 의 설정 → 커넥터에서 PostHog 를 팀 PostHog 계정으로 연결한다. 그 뒤 `claude` 를 열고 아래 두 줄을 차례로 보낸다. 두 번째 답에 `638813` 이 나오면 된다.
+   ```
+   PostHog 활성 프로젝트를 638813 으로 바꿔줘
+   PostHog 활성 프로젝트 확인해줘
+   ```
+3. **등록**: 작업 폴더에서 아래를 실행한다. `등록: <구성 요소>` 가 세 줄 나오면 된다.
+   ```bash
+   recommendation-improvement/schedule/install.sh
+   ```
+4. **켜 두기**: 작업이 실행되는 동안 Mac 을 켜 두고 로그인해 둔다. `metric-collector` 는 매일 09:00, `feedback-analyzer` 는 매일 10:00, `recommendation-improver` 는 4시간마다 실행된다.
+
+#### 다른 방법으로 등록하기
+
+1. **PostHog 연결**: 에이전트에 PostHog MCP 를 팀 PostHog 계정으로 연결하고, [Mac 에 등록하기](#mac-에-등록하기)의 2 처럼 활성 프로젝트를 `638813` 으로 맞춘다.
+2. **작업 만들기**: 아래 표의 구성 요소마다 예약 작업을 하나씩 만든다. 작업 폴더는 1-3 의 clone, 주기는 표대로 정한다.
+3. **프롬프트**: `<구성 요소>` 를 바꿔 넣는다.
+   ```
+   작업 폴더의 git 레포에서 `git fetch -q origin` 을 실행한 뒤,
+   `git show origin/develop:recommendation-improvement/<구성 요소>/prompt.md` 의 출력을
+   이번 실행의 지시문으로 삼아 끝까지 따른다. 지시문의 SELF_REF 는 origin/develop 이다.
+   ```
+4. **권한**: 표의 권한을 실행 중에 묻지 않도록 미리 허용한다.
+
+| `<구성 요소>` | 주기 | 허용할 권한 |
 |---|---|---|
-| `metric-collector` | 하루 한 번. 지표를 4주치씩 보므로 더 자주 돌려도 결과가 거의 같다 | Bash `git` `gh` `python3` `ruby`. `~/.devica-product-recommendation/metric-collector` 쓰기. PostHog 커넥터 `project-get`, `execute-sql` |
-| `feedback-analyzer` | 하루 한 번. Metric Collector 보다 늦은 시각이면 그날 올라온 지표 피드백까지 본다 | Bash `git` `gh` `python3` `ruby`. `~/.devica-product-recommendation/feedback-analyzer` 쓰기 |
-| `recommendation-improver` | 몇 시간마다. 한 번에 개선 지시 하나만 처리하고, 열린 개선 PR 이 있으면 바로 끝난다 | Bash `git` `gh` `python3` `ruby` `docker` `./gradlew`. `~/.devica-product-recommendation/recommendation-improver` 쓰기와 그 안의 작업 공간 파일 편집 |
+| `metric-collector` | 하루 한 번 | Bash `git` `gh` `python3` `ruby`. `~/.devica-product-recommendation/metric-collector` 쓰기. PostHog `project-get`, `execute-sql` |
+| `feedback-analyzer` | 하루 한 번, `metric-collector` 보다 늦은 시각 | Bash `git` `gh` `python3` `ruby`. `~/.devica-product-recommendation/feedback-analyzer` 쓰기 |
+| `recommendation-improver` | 몇 시간마다 | Bash `git` `gh` `python3` `ruby` `docker` `./gradlew`. `~/.devica-product-recommendation/recommendation-improver` 쓰기와 그 안의 작업 공간 파일 편집 |
 
 ### 3. 첫 실행 확인하기
 
-작업을 한 번 바로 돌려 보고, 끝나면 가장 최근 실행 기록을 연다.
+작업 폴더에서 구성 요소마다 한 번 바로 실행하고, 끝나면 가장 최근 실행 기록을 연다.
 
 ```bash
+recommendation-improvement/schedule/run.sh <구성 요소>
 ls -t ~/.devica-product-recommendation/<구성 요소>/runs | head -1
 ```
 
-- **Metric Collector**: 실행 기록에 찾은 신호와 건수가 남는다. [기준값](interface/components/metric-collector.md#기준값)의 신호 최소 건수 이상 모인 신호가 있으면 `[제품 추천 지표]` 이슈가 올라오고, 없으면 기록만 남는다. 트래픽이 적어 한동안 이슈가 없는 것이 정상이다.
-- **Feedback Analyzer**: 열린 피드백 이슈마다 분석 결과 댓글이 달린다. 판단별로 팀원이 할 일은 [피드백 현황 보기](#피드백-현황-보기)에 있다.
-- **Recommendation Improver**: 처리할 개선 지시가 없으면 기록만 남기고 끝난다. 지시가 있었으면 본문 첫 줄이 `<!-- product-recommendation:improvement -->` 인 PR 이 올라오거나([개선 PR 검토하기](#개선-pr-검토하기)), 기대와 달라 개선 결과 댓글만 남는다.
+기록에 오류가 있으면 아래 문제 해결을 본다. 이슈·댓글·PR 없이 기록만 남아도 정상이다.
+피드백 이슈에 분석 결과 댓글이 달리면 [피드백 현황 보기](#피드백-현황-보기)대로 처리한다.
 
 ### 문제 해결
 
@@ -236,7 +257,7 @@ ls -t ~/.devica-product-recommendation/<구성 요소>/runs | head -1
 
 ### 설정값
 
-GitHub 레포, API 주소, PostHog 프로젝트, 상태 디렉터리, 개선 브랜치 이름은 각 `prompt.md` 의 설정 표에 있다. 조회 기간과 신호 최소 건수는 [기준값](interface/components/metric-collector.md#기준값)에 있다. 고쳐서 머지하면 다음 실행부터 바뀐 값으로 돈다.
+GitHub 레포, API 주소, PostHog 프로젝트, 상태 디렉터리, 개선 브랜치 이름은 각 `prompt.md` 의 설정 표에 있다. 조회 기간과 신호 최소 건수는 [기준값](interface/components/metric-collector.md#기준값)에 있다. 고쳐서 머지하면 다음 실행부터 바뀐 값으로 실행된다.
 
 ### 머지 전에 시험하기
 
@@ -244,7 +265,7 @@ GitHub 레포, API 주소, PostHog 프로젝트, 상태 디렉터리, 개선 브
 
 ### 멈추기
 
-앱에서 작업을 끄거나 지운다. Recommendation Improver 를 더 쓰지 않을 거면 작업 공간도 지운다.
+등록한 방식에서 작업을 끄거나 지운다. Mac 의 launchd 로 등록했다면 `recommendation-improvement/schedule/install.sh uninstall` 을 실행한다. Recommendation Improver 를 더 쓰지 않을 거면 작업 공간도 지운다.
 
 ```bash
 git worktree remove --force ~/.devica-product-recommendation/recommendation-improver/worktree
