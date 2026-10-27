@@ -1,21 +1,24 @@
 # Offers 대시보드 설정
 
-`Devica Overview`에 **Offers** 행을 추가한다. 앱 로그 → Alloy → Grafana Cloud Loki 경로를 그대로 사용한다.
+`Devica Overview`에 **Offers** 행을 직접 추가한다. 앱 로그 → Alloy → Grafana Cloud Loki 경로를 그대로 사용한다.
 대시보드를 보는 데 이메일 알림 규칙이나 새로운 Prometheus 메트릭은 필요하지 않다.
-가져올 파일은 [monitoring/dashboard.json](../dashboard.json)이다. `alert-rules.json`은 이메일 알림용으로 별개다.
+대시보드 설정은 Grafana Cloud에서 관리하고, 저장소에는 필요한 쿼리와 설정 방법만 둔다.
+이메일 알림 설정은 [알림 설정 가이드](README.md)에서 별도로 다룬다.
 
 ## 표시 기준
 
 | 화면 | 보여 주는 내용 |
 |---|---|
 | 판매처별 가격 확인 성공 | 선택한 기간 안에서 가장 최근에 종료된 실행의 `성공 / 전체 대상`. 예: `10 / 20` |
-| 실행 기록 | 실행 시각, 판매처, 성공/대상, 가격 변경·동일·보류·미시도·숨김·복구 건수, 실행 ID |
+| 실행 기록 | 실행 시각, 판매처, 가격 확인 성공/대상, 가격 변경·동일·숨김 유지·보류·미시도·숨김·복구 건수, 실행 ID |
 | 상품별 상세 로그 | 날짜순 제품별 결과, 처리, 전후 가격, 제품 코드, 확인 링크 |
-| 실패·보류 제품 | 가격 확인을 완료하지 못한 제품만 표시. 미시도도 포함 |
+| 실패·보류 제품 | 보류·미시도 제품 표시. 정상 처리한 숨김 유지는 제외 |
 
 성공은 **가격 변경(`UPDATED`) + 가격 동일(`UNCHANGED`)**이다.
 숨김에서 복구된 `RESTORED`도 가격 변화 여부에 따라 둘 중 하나에 이미 포함된다.
-따라서 `UPDATED 8 + UNCHANGED 2 + 보류 10`이면 `10 / 20`이고, 숨김·복구 수를 다시 더하지 않는다.
+따라서 `UPDATED 8 + UNCHANGED 2 + 숨김 유지 4 + 보류 6`이면 `10 / 20`이고, 숨김 유지·복구 수를 성공에 더하지 않는다.
+전체 대상은 `success + hiddenUnchanged + deferred + notAttempted`다. 숨김 유지는 정상 처리지만 가격 확인 성공은 아니다.
+모든 대상이 숨김 유지라면 종료 결과는 `SUCCESS`, 가격 확인 성공 카드는 `0 / 전체 대상`이며 실행 기록에서 숨김 유지 수를 확인한다.
 
 분모는 DB의 모든 제품 수가 아니라 **그 실행에서 선택한 갱신 대상 판매상품 수**다.
 현재는 쿠팡의 `ON_SALE` 또는 `HIDDEN` 상태이며 `vendorItemId`가 채워진 판매상품이다.
@@ -29,12 +32,17 @@ ID가 없거나 다른 상태라 조회 대상에서 제외된 제품은 이 분
 
 ## 코드에서 추가한 내용
 
-기존 가격 확인·숨김·복구 로직은 그대로 두고 관찰용 필드만 추가했다.
+후보가 있고 모든 ID를 읽었지만 기준 ID가 없으면, 기존 `HIDDEN` 상품은 `HIDDEN_UNCHANGED`,
+판매 중인 상품은 `NO_MATCH`로 기록한다. 둘 다 `action=NONE`으로 기존 상태·가격·확인 날짜를 유지한다.
+빈 검색 결과, ID 해석 실패, 가격 오류, API·DB 오류는 숨김 상품이어도 보류한다.
+이전 버전에서 이미 숨긴 상품의 재확인·복구는 유지하며, 신규 자동 숨김은 하지 않는다.
+호환용 `price_refresh.hidden` 집계는 항상 0이다.
 
 | 원본 JSON 필드 | Loki의 `\| json` 이후 이름 | 내용 |
 |---|---|---|
 | `price_refresh.seller` | `price_refresh_seller` | 모든 실행 로그의 판매처. 현재 `COUPANG` |
 | `price_refresh.success` | `price_refresh_success` | 정상 종료 집계의 가격 확인 성공 수 |
+| `price_refresh.hidden_unchanged` | `price_refresh_hidden_unchanged` | 기존 숨김 상태를 유지한 정상 처리 수. 가격 확인 성공·보류와 별도 |
 | `price_refresh.total` | `price_refresh_total` | 정상 종료 집계의 전체 대상 수 |
 
 기존 `price_refresh.run_id`, `price_refresh.outcome`, `price_refresh.result`, `product.code`,
@@ -57,34 +65,13 @@ ID가 없거나 다른 상태라 조회 대상에서 제외된 제품은 이 분
 | price_refresh_seller="COUPANG"
 ```
 
-종료 로그를 펼쳐 `price_refresh.success`, `price_refresh.total`, `price_refresh.run_id`를 확인한다.
+종료 로그를 펼쳐 `price_refresh.success`, `price_refresh.hidden_unchanged`, `price_refresh.total`, `price_refresh.run_id`를 확인한다.
 키가 있는 이전 로그를 바꾸는 작업은 하지 않으므로 **배포 전 로그에는 새 필드가 없다**.
 로컬 `./gradlew coupangPriceRefresh`가 만든 `build/reports/*.log`는 현재 서버 Alloy가 수집하지 않는다.
 따라서 로컬 명령만 실행한 상태라면 Cloud에서 데이터가 안 보이는 것이 정상이다.
 패널 새로고침은 Loki 로그만 조회하며 쿠팡 API를 다시 호출하지 않는다.
 
-## 2. 준비한 JSON으로 가져오기
-
-1. Grafana **Dashboards → New → Import**를 연다.
-2. [dashboard.json](../dashboard.json)을 업로드하거나 파일 내용을 붙여 넣고 **Load**를 누른다.
-3. 현재 Cloud 대시보드에 별도로 수정한 내용이 있을 수 있으므로 처음에는
-   이름을 `Devica Overview - Offers 확인`, UID를 `devica-overview-offers-preview`로 바꿔 가져온다.
-   기존 UID `devica-overview`로 덮어쓰면 그 대시보드 전체가 이 파일 내용으로 바뀐다.
-4. **Import** 후 상단 변수를 고른다.
-   - `Datasource`: 기존 `grafanacloud-…-prom`
-   - `Logs Datasource`: 기존 `grafanacloud-…-logs`
-   - `Env`: `dev` (확인 후 `prod`)
-   - `Offer Seller`: `COUPANG`
-5. 시간 범위를 **Last 2 days**로 바꾼다. 기존 전체 대시보드 기본값은 Last 6 hours이므로,
-   하루 한 번 실행하는 작업은 기본 범위에 없을 수 있다.
-6. 대시보드 설정의 **Time zone**을 **Asia/Seoul**로 지정하고 저장한다.
-   아래쪽 **Offers** 행에서 수치와 실행 기록을 확인한다.
-7. 기존 대시보드로 합칠 때는 확인한 패널을 복사하고 `offer_seller` 변수도 추가하거나,
-   기존 대시보드를 내보내 보관한 뒤 업데이트된 전체 JSON을 반영한다.
-
-파일 가져오기는 알림을 생성하거나 이메일을 보내지 않는다.
-
-## 3. 기존 대시보드에 직접 만드는 경우
+## 2. Grafana에서 Offers 행과 패널 추가
 
 ### 변수와 행
 
@@ -146,10 +133,11 @@ Show time **On**, Wrap lines **On**, Log details **On**, Newest first, Deduplica
 | price_refresh_seller=~"${offer_seller:regex}"
 | price_refresh_outcome!=""
 | __error__=""
-| line_format `{{ .price_refresh_seller }} | {{ .price_refresh_outcome }} | {{ if .price_refresh_total }}성공={{ .price_refresh_success }}/{{ .price_refresh_total }} 변경={{ .price_refresh_updated }} 동일={{ .price_refresh_unchanged }} 보류={{ .price_refresh_deferred }} 미시도={{ .price_refresh_not_attempted }} 숨김={{ .price_refresh_hidden }} 복구={{ .price_refresh_restored }}{{ else }}집계 실패 오류={{ .error_type }}{{ end }} | run={{ .price_refresh_run_id }}`
+| line_format `{{ .price_refresh_seller }} | {{ .price_refresh_outcome }} | {{ if .price_refresh_total }}가격확인성공={{ .price_refresh_success }}/{{ .price_refresh_total }} 변경={{ .price_refresh_updated }} 동일={{ .price_refresh_unchanged }} 숨김유지={{ if .price_refresh_hidden_unchanged }}{{ .price_refresh_hidden_unchanged }}{{ else }}기록 없음{{ end }} 보류={{ .price_refresh_deferred }} 미시도={{ .price_refresh_not_attempted }} 숨김={{ .price_refresh_hidden }} 복구={{ .price_refresh_restored }}{{ else }}집계 실패 오류={{ .error_type }}{{ end }} | run={{ .price_refresh_run_id }}`
 ```
 
 하루의 여러 실행을 각각 한 줄로 보여 준다. 전체 실행이 실패해 제품 결과가 하나도 없는 경우도 여기에 나타난다.
+이전 로그에 `price_refresh.hidden_unchanged`가 없으면 `기록 없음`으로 표시하며 0건으로 추정하지 않는다.
 
 ### 상품별 상세 로그
 
@@ -169,13 +157,16 @@ Show time **On**, Wrap lines **On**, Log details **On**, Newest first, Deduplica
 상세 로그 패널을 복제하고 `price_refresh_result!=""` 바로 다음에 아래 필터를 추가한다.
 
 ```logql
-| price_refresh_result!~"UPDATED|UNCHANGED|RESTORED"
+| price_refresh_result!~"UPDATED|UNCHANGED|RESTORED|HIDDEN_UNCHANGED"
 ```
 
 `NO_MATCH`, `NO_SEARCH_RESULTS`, `IDENTIFIER_UNAVAILABLE`, `INVALID_PRICE`, `CONFLICTING_PRICES`,
 `API_FAILURE`, `DB_FAILURE`, `SKIPPED`, `NOT_ATTEMPTED`가 남는다.
 `NO_MATCH` 등은 INFO로 남기므로 **ERROR 등급만 필터링하면 안 된다**.
-NO_MATCH는 반환된 후보의 ID를 모두 읽었지만 저장 ID가 없다는 뜻이며 쿠팡 판매 종료를 입증하는 값은 아니다.
+`NO_MATCH`는 판매 중인 상품의 최대 10개 검색 후보에 저장 ID가 없다는 뜻이다. 판매 종료나 실제 상품 변경을 입증하지 못하므로
+`action=NONE`으로 보류하고 기존 노출·가격·확인 날짜를 유지한다. 판매처 링크로 직접 확인한다.
+기존 숨김 상품에서 같은 조건이면 `HIDDEN_UNCHANGED`로 정상 처리하여 실패·보류 목록에서 제외한다.
+해당 상품은 상세 로그에 `| price_refresh_result="HIDDEN_UNCHANGED"`를 추가해 확인한다.
 
 | 결과 | 확인할 부분 |
 |---|---|
@@ -192,7 +183,15 @@ NO_MATCH는 반환된 후보의 ID를 모두 읽었지만 저장 ID가 없다는
 원본 후보 ID 배열까지 보려면 Explore에서 `line_format`을 제거하고
 `| price_refresh_run_id="실행 ID" | product_code="제품 코드"`로 좁혀 원본 JSON을 읽는다.
 
-## 4. 날짜를 바꿔 확인하기
+### 저장하고 확인하기
+
+1. 상단 `Env`는 `dev`, `Logs Datasource`는 기존 `grafanacloud-…-logs`, `Offer Seller`는 `COUPANG`으로 선택한다.
+2. 시간 범위는 **Last 2 days**로 설정한다. 기존 대시보드가 Last 6 hours라면 일일 실행 기록이 범위 밖에 있을 수 있다.
+3. 대시보드 설정의 **Time zone**을 **Asia/Seoul**로 지정하고 저장한다.
+4. Offers 행에서 성공 카드와 실행 기록·상품별 상세 로그·실패 및 보류 제품 로그를 확인한다.
+   패널을 추가하고 저장하는 것만으로 이메일 알림이 생성되지는 않는다.
+
+## 3. 날짜를 바꿔 확인하기
 
 - 우측 상단 시간 선택기에서 특정 날짜의 **00:00:00 ~ 다음 날 00:00:00**으로 범위를 잡는다.
   한국 날짜를 기준으로 하려면 Time zone이 Asia/Seoul인지 확인한다.
@@ -210,10 +209,9 @@ All 선택 시 로그 패널에서 여러 판매처를 함께 볼 수 있다.
 
 ## 검증 범위와 참고 문서
 
-앱의 집계·로그 필드는 모의 API 응답 테스트로 검증한다. JSON 구문과 쿼리·필드 구성은 로컬에서 확인하지만,
-실제 Cloud 데이터 조회·화면 렌더링은 가져온 뒤 확인해야 한다.
+앱의 집계·로그 필드는 모의 API 응답 테스트로 검증한다.
+가이드의 쿼리를 입력한 뒤 실제 Cloud 데이터 조회와 화면 표시를 확인한다.
 
-- [Grafana 대시보드 가져오기](https://grafana.com/docs/grafana/latest/visualizations/dashboards/build-dashboards/import-dashboards/)
 - [Loki query editor: Range, line limit, direction](https://grafana.com/docs/grafana/latest/datasources/loki/query-editor/)
 - [Stat: 문자열 값과 Fields 선택](https://grafana.com/docs/grafana/latest/visualizations/panels-visualizations/visualizations/stat/)
 - [Logs 시각화](https://grafana.com/docs/grafana/latest/visualizations/panels-visualizations/visualizations/logs/)
