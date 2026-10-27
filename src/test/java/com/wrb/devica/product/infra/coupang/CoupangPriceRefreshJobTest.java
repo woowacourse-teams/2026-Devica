@@ -44,6 +44,7 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.transaction.CannotCreateTransactionException;
 import org.springframework.web.client.RestClient;
 
 class CoupangPriceRefreshJobTest {
@@ -209,6 +210,79 @@ class CoupangPriceRefreshJobTest {
     }
 
     @Test
+    void 첫_상품의_트랜잭션을_시작하지_못하면_현재_실패와_남은_미시도_및_종료_집계를_남긴다() {
+        // given
+        when(offers.findCoupangPriceRefreshTargets()).thenReturn(List.of(FIRST, SECOND, THIRD));
+        respond(FIRST, product(MATCHING_URL, 2_100_000L));
+        when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT))
+            .thenThrow(new CannotCreateTransactionException("test transaction start failure"));
+
+        // when & then
+        List<ILoggingEvent> events = capture(() -> assertThat(job.refreshPrices())
+            .isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 1, 2, 0, 0, 0)));
+
+        assertThat(events).hasSize(5);
+        assertField(events.get(1), "offer.id", FIRST.offerId());
+        assertField(events.get(1), "price_refresh.result", "DB_FAILURE");
+        assertField(events.get(1), "price_refresh.action", "NONE");
+        assertField(events.get(1), "error.type", CannotCreateTransactionException.class.getName());
+        assertField(events.get(1), "offer.url", FIRST.purchaseUrl());
+        assertThat(events.get(1).getKeyValuePairs())
+            .noneSatisfy(pair -> assertThat(pair.key).isEqualTo("price_refresh.price_changed"));
+        assertField(events.get(2), "offer.id", SECOND.offerId());
+        assertField(events.get(2), "price_refresh.result", "NOT_ATTEMPTED");
+        assertField(events.get(3), "offer.id", THIRD.offerId());
+        assertField(events.get(3), "price_refresh.result", "NOT_ATTEMPTED");
+        assertField(events.getLast(), "price_refresh.success", 0);
+        assertField(events.getLast(), "price_refresh.total", 3);
+        assertField(events.getLast(), "price_refresh.deferred", 1);
+        assertField(events.getLast(), "price_refresh.not_attempted", 2);
+        assertField(events.getLast(), "price_refresh.outcome", "FAILED");
+        String runId = events.getFirst().getMDCPropertyMap().get("price_refresh.run_id");
+        assertThat(runId).isNotBlank();
+        assertThat(events).allSatisfy(event -> assertThat(event.getMDCPropertyMap())
+            .containsEntry("price_refresh.run_id", runId).containsEntry("price_refresh.seller", "COUPANG"));
+        verify(offers).findCoupangPriceRefreshTargets();
+        verify(offers).refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT);
+        verifyNoMoreInteractions(offers);
+        assertThat(pauses).isEmpty();
+    }
+
+    @Test
+    void 일부_성공_후_트랜잭션_시작이_실패해도_성공_집계를_유지하고_남은_호출을_중단한다() {
+        // given
+        when(offers.findCoupangPriceRefreshTargets()).thenReturn(List.of(FIRST, SECOND, THIRD));
+        respond(FIRST, product(MATCHING_URL, 2_100_000L));
+        respond(SECOND, product(MATCHING_URL, SECOND.price()));
+        when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
+        when(offers.refreshCoupangPrice(SECOND, SECOND.price(), CHECKED_AT))
+            .thenThrow(new CannotCreateTransactionException("test transaction start failure"));
+
+        // when & then
+        List<ILoggingEvent> events = capture(() -> assertThat(job.refreshPrices())
+            .isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 1, 1, 0, 0, 0)));
+
+        assertThat(events).hasSize(5);
+        assertField(events.get(1), "price_refresh.result", "UPDATED");
+        assertField(events.get(2), "offer.id", SECOND.offerId());
+        assertField(events.get(2), "price_refresh.result", "DB_FAILURE");
+        assertField(events.get(3), "offer.id", THIRD.offerId());
+        assertField(events.get(3), "price_refresh.result", "NOT_ATTEMPTED");
+        assertField(events.getLast(), "price_refresh.success", 1);
+        assertField(events.getLast(), "price_refresh.total", 3);
+        assertField(events.getLast(), "price_refresh.updated", 1);
+        assertField(events.getLast(), "price_refresh.unchanged", 0);
+        assertField(events.getLast(), "price_refresh.deferred", 1);
+        assertField(events.getLast(), "price_refresh.not_attempted", 1);
+        assertField(events.getLast(), "price_refresh.outcome", "PARTIAL");
+        verify(offers).findCoupangPriceRefreshTargets();
+        verify(offers).refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT);
+        verify(offers).refreshCoupangPrice(SECOND, SECOND.price(), CHECKED_AT);
+        verifyNoMoreInteractions(offers);
+        assertThat(pauses).containsExactly(2100L);
+    }
+
+    @Test
     void 호출_간격_대기_중_중단되면_인터럽트를_복원하고_남은_상품을_호출하지_않는다() {
         when(offers.findCoupangPriceRefreshTargets()).thenReturn(List.of(FIRST, SECOND));
         respond(FIRST, product(MATCHING_URL, 2_100_000L));
@@ -219,6 +293,28 @@ class CoupangPriceRefreshJobTest {
 
         try {
             assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 0, 1, 0, 0, 0));
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+            verify(offers, never()).refreshCoupangPrice(eq(SECOND), anyLong(), any());
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    void 대기_직후_인터럽트가_설정되어도_다음_API를_호출하지_않는다() {
+        // given
+        when(offers.findCoupangPriceRefreshTargets()).thenReturn(List.of(FIRST, SECOND));
+        respond(FIRST, product(MATCHING_URL, 2_100_000L));
+        when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
+        job = new CoupangPriceRefreshJob(client, offers, clock, "https://devica.example",
+            millis -> Thread.currentThread().interrupt());
+
+        try {
+            // when
+            var summary = job.refreshPrices();
+
+            // then
+            assertThat(summary).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 0, 1, 0, 0, 0));
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
             verify(offers, never()).refreshCoupangPrice(eq(SECOND), anyLong(), any());
         } finally {
