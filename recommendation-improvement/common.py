@@ -200,21 +200,24 @@ EDIT_ITEM = {'CPU': 'REQUIRED_CPU', '메모리': 'MEMORY', '저장 공간': 'STO
 
 
 def edit_value(item, text):
-    # signals.py 가 적은 값: CPU 는 등급 코드, 메모리·저장 공간은 16GB·1TB. rank 는 values 와 같은 척도다
+    # signals.py 가 적은 값: CPU 는 등급 코드, 메모리·저장 공간은 16GB·1TB. rank 는 values 와 같은 척도다. 읽을 수 없으면 None
     if item == 'REQUIRED_CPU':
-        return {'value': text, 'rank': CPU_RANK[text]}
-    n, unit = re.fullmatch(r'(\d+)(GB|TB)', text).groups()
-    return {'value': text, 'rank': int(n) * (1024 if unit == 'TB' else 1)}
+        return {'value': text, 'rank': CPU_RANK[text]} if text in CPU_RANK else None
+    m = re.fullmatch(r'(\d+)(GB|TB)', text)
+    return {'value': text, 'rank': int(m[1]) * (1024 if m[2] == 'TB' else 1)} if m else None
 
 
 def edited(text):
     out = []
     for line in fields(text).get('고친 값', '').splitlines():
         m = EDIT_LINE.match(line.strip())
-        if m:
-            item = EDIT_ITEM[m[1]]
-            out.append({'item': item, 'recommended': edit_value(item, m[2]), 'edited': edit_value(item, m[3]),
-                        'count': int(m[4])})
+        if not m:
+            continue
+        item = EDIT_ITEM[m[1]]
+        recommended, changed = edit_value(item, m[2]), edit_value(item, m[3])
+        # 사람이 본문을 고쳐 읽을 수 없게 된 줄은 건너뛴다
+        if recommended and changed:
+            out.append({'item': item, 'recommended': recommended, 'edited': changed, 'count': int(m[4])})
     return out
 
 

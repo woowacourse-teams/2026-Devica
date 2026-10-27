@@ -18,6 +18,7 @@ DEVELOP = os.environ.get('DEVELOP_REF', 'origin/develop')
 RESULT_EVENT = 'recommendation_result_viewed'
 EDIT_SIGNAL = '추천 결과를 직접 고친 세션'
 ITEM_LABEL = {'REQUIRED_CPU': 'CPU', 'MEMORY': '메모리', 'STORAGE': '저장 공간'}
+CPU_TIERS = {'MAC': ('BASIC', 'PRO', 'MAX'), 'WINDOWS': ('U', 'P_HS', 'H', 'HX')}  # CPU_RANK 를 OS 별로 나눈 것
 PLAN_LABEL = {'MAC': 'Mac', 'WINDOWS': 'Windows', 'BOTH': '둘 다'}
 SUBJECT = {'REQUIRED_CPU': 'CPU 가', 'MEMORY': '메모리가', 'STORAGE': '저장 공간이'}
 
@@ -137,6 +138,13 @@ def parse_edit(row):
     return view
 
 
+def valid_value(plan, item, value):
+    # 기록은 브라우저가 보낸 값이라 그대로 믿지 않는다. 한 건이 틀려도 그 기록만 버리고 실행은 이어 간다
+    if item == 'REQUIRED_CPU':
+        return value in CPU_TIERS.get(plan, ())
+    return str(value).isdigit() and int(value) > 0
+
+
 def display(item, value):
     if item == 'MEMORY':
         return f'{value}GB'
@@ -222,8 +230,11 @@ def signals(path, prod, days, edits_path=None):
         if e['ts'] < start_ts:
             dropped['직접 수정: 조회 기간 전에 고침'] += 1
             continue
-        if not e['purpose'] or e['plan'] not in ('MAC', 'WINDOWS') or not e['items']:
+        if not e['purpose'] or e['plan'] not in CPU_TIERS or not e['items']:
             dropped['직접 수정: 사용 목적·OS·고친 항목이 없음'] += 1
+            continue
+        if not all(valid_value(e['plan'], item, v) for item, pair in e['items'].items() for v in pair):
+            dropped['직접 수정: 값이 올바르지 않음(OS 에 없는 CPU 등급, 숫자가 아닌 용량)'] += 1
             continue
         reason = rule_drop(e['purpose'], [e['answers']], e['ts'])
         if reason:

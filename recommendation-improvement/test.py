@@ -103,6 +103,7 @@ class CommonTest(unittest.TestCase):
             {'item': 'STORAGE', 'recommended': {'value': '512GB', 'rank': 512}, 'edited': {'value': '1TB', 'rank': 1024}, 'count': 1},
             {'item': 'REQUIRED_CPU', 'recommended': {'value': 'PRO', 'rank': 1}, 'edited': {'value': 'BASIC', 'rank': 0}, 'count': 1}])
         self.assertEqual(common.edited('### 바꾼 답\n\nA: x → y\n'), [])
+        self.assertEqual(common.edited('### 고친 값\n\nCPU: PRO → ULTRA (1건)\n메모리: 큰 → 16GB (1건)\n'), [])
 
     def test_이슈_본문_칸(self):
         f = fields('### 결과 화면 주소\n\nhttps://a\nhttps://b\n\n### 더 알려 주실 내용\n\n_No response_\n\n### 바꾼 답\n\nSLOWDOWN: NEVER → OFTEN\n')
@@ -392,6 +393,14 @@ class SignalsTest(unittest.TestCase):
         self.assertEqual(out['groups'], [])
         self.assertEqual(out['dropped'], {'직접 수정: 조회 기간 전에 고침': 1, '직접 수정: 사용 목적·OS·고친 항목이 없음': 1,
                                           '직접 수정: 배포를 기다리는 규칙에 걸림': 1, '직접 수정: 배포 전에 본 바뀐 규칙에 걸림': 1})
+
+    def test_올바르지_않은_값의_기록만_버리고_나머지는_센다(self):
+        out = self.run_edits(self.edit('SLOWDOWN.NEVER', memory=('32', 'abc')),
+                             self.edit('SLOWDOWN.NEVER', cpu=('PRO', 'P_HS')),  # Mac 에 없는 Windows 등급
+                             self.edit('SLOWDOWN.NEVER', cpu=('PRO', 'ULTRA')),
+                             self.edit('SLOWDOWN.NEVER', memory=('32', '16')))
+        self.assertEqual(out['dropped'], {'직접 수정: 값이 올바르지 않음(OS 에 없는 CPU 등급, 숫자가 아닌 용량)': 3})
+        self.assertEqual([g['count'] for g in out['groups']], [1])
 
     def test_직접_고친_지표_피드백은_만든_신호와_같은_키를_낸다(self):
         g = self.run_edits(self.edit('SLOWDOWN.NEVER', memory=(32, 16)))['groups'][0]
