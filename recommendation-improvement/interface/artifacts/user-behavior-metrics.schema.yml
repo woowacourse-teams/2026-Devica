@@ -11,9 +11,9 @@ type: object
 required: [ event, timestamp, properties ]
 properties:
 
-  # 이벤트 이름. 결과 화면을 본 이벤트만 쓴다.
+  # 이벤트 이름. 결과 화면을 본 이벤트와, 제품 추천 결과를 고친 뒤 제품을 검색한 이벤트만 쓴다.
   event:
-    const: recommendation_result_viewed
+    enum: [ recommendation_result_viewed, recommended_spec_edited ]
 
   # 이벤트가 일어난 시각
   timestamp:
@@ -34,9 +34,33 @@ properties:
       $session_id:
         type: string
 
+      # 아래는 recommended_spec_edited 에만 있다. 고친 제품 추천 결과의 OS 마다 한 건씩 온다.
+      os:
+        enum: [ MAC, WINDOWS ]
+
+      # 항목마다 제품 추천 결과의 값(_recommended)과 고친 값(_edited). 고치지 않은 항목의 _edited 는 비어 있다.
+      cpu_tier_recommended: { type: string }
+      cpu_tier_edited: { type: [ string, 'null' ] }
+      memory_gb_recommended: { type: string }
+      memory_gb_edited: { type: [ string, 'null' ] }
+      storage_gb_recommended: { type: string }
+      storage_gb_edited: { type: [ string, 'null' ] }
+
 examples:
   - event: recommendation_result_viewed
     timestamp: 2026-10-20T13:05:12Z
     properties:
       $current_url: https://devica.co.kr/result?category=LAPTOP&purpose=BACKEND_DEVELOPMENT&answer=PROGRAMMING_LANGUAGE.JAVA_FAMILY&answer=SLOWDOWN.OFTEN
       $session_id: 0192a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b
+  - event: recommended_spec_edited
+    timestamp: 2026-10-20T13:06:40Z
+    properties:
+      $current_url: https://devica.co.kr/result?category=LAPTOP&purpose=BACKEND_DEVELOPMENT&answer=PROGRAMMING_LANGUAGE.JAVA_FAMILY&answer=SLOWDOWN.OFTEN&edit=MAC.MEMORY.16
+      $session_id: 0192a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b
+      os: MAC
+      cpu_tier_recommended: PRO
+      cpu_tier_edited: null
+      memory_gb_recommended: '24'
+      memory_gb_edited: '16'
+      storage_gb_recommended: '512'
+      storage_gb_edited: null
