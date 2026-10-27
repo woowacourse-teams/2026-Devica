@@ -14,6 +14,7 @@ export type EventName =
   | 'onboarding_completed'
   | 'recommendation_result_viewed'
   | 'recommended_products_viewed'
+  | 'recommended_spec_edited'
   | 'board_entry_viewed'
   | 'board_entered'
   | 'post_viewed'

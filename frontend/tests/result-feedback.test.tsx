@@ -10,7 +10,20 @@ test('의견 남기기는 지금 결과 화면 주소를 채운 이슈 양식을
     '/result?category=LAPTOP&answer=PROGRAMMING_LANGUAGE.JAVA_FAMILY&answer=PROGRAMMING_LANGUAGE.OTHERS';
   window.history.pushState({}, '', resultUrl);
 
-  render(<ResultView specs={[]} os="BOTH" onChangeOs={() => {}} onSearch={() => {}} />);
+  render(
+    <ResultView
+      specs={[]}
+      os="BOTH"
+      edits={{}}
+      tiers={null}
+      tiersFailed={false}
+      onRetryTiers={() => {}}
+      onChangeOs={() => {}}
+      onEdit={() => {}}
+      onResetEdits={() => {}}
+      onSearch={() => {}}
+    />,
+  );
 
   const link = screen.getByRole('link', { name: '의견 남기기 ↗' });
   const url = new URL(link.getAttribute('href') ?? '');

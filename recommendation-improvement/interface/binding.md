@@ -8,7 +8,7 @@
 
 | 산출물 | 저장 위치 | 식별 | 유효 조건 |
 |---|---|---|---|
-| [사용자 행동 지표](artifacts/user-behavior-metrics.schema.yml) | PostHog 프로젝트 `638813` 의 이벤트 | `event = recommendation_result_viewed`, `$current_url` 이 운영 사이트 | — |
+| [사용자 행동 지표](artifacts/user-behavior-metrics.schema.yml) | PostHog 프로젝트 `638813` 의 이벤트 | `event` 가 `recommendation_result_viewed` 또는 `recommended_spec_edited`, `$current_url` 이 운영 사이트 | — |
 | [피드백](artifacts/feedback.md) | `product-recommendation-feedback` 라벨이 붙은 이슈. PR 은 제외 | 제목 머리말. `[제품 추천 의견]` 은 사용자 피드백, `[제품 추천 지표]` 는 지표 피드백 | 지표 피드백은 팀원 작성. 아니면 사용자 피드백으로 본다 |
 | [분석 결과](artifacts/analysis-result.schema.yml) | 분석한 피드백 이슈의 댓글 | 첫 줄 `<!-- product-recommendation:analysis -->` | 팀원 작성. 여러 개면 가장 최근 것이 지금의 판단 |
 | [개선 지시](artifacts/improvement-instruction.schema.yml) | 근거 피드백 중 번호가 가장 작은 이슈의 댓글 | 첫 줄 `<!-- product-recommendation:decision -->` | 팀원 작성 |

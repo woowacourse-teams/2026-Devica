@@ -59,7 +59,7 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
         ← 이전
       </button>
       <p className="progress-meta">
-        <span id="progress-label">사양 맞추는 중</span>
+        <span id="progress-label">추천 결과 만드는 중</span>
         <span id="progress-count">
           {index + 1} / {screens.length}
         </span>

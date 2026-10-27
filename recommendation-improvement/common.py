@@ -14,6 +14,7 @@
 #   common.py url     RESULT_URL                        결과 화면 주소 → {category, purpose, answers}
 #   common.py values  RESPONSE_JSON                     api 의 출력이나 그 body → 권장안별 항목 값·순위·근거
 #   common.py fields  BODY_FILE                         피드백 이슈 본문 → 칸 제목별 값
+#   common.py edited  BODY_FILE                         지표 피드백의 "고친 값" 칸 → 줄마다 항목·제품 추천 결과 값·고친 값(rank 포함)·건수
 #   common.py block   COMMENT_FILE                      산출물 댓글 → 표시(첫 줄), 첫 ```yaml 블록(JSON), 스키마 검증 오류(errors)
 #
 # 테스트는 test.py 에 있다.
@@ -194,6 +195,32 @@ def fields(text):
     return out
 
 
+EDIT_LINE = re.compile(r'^(CPU|메모리|저장 공간): (\S+) → (\S+) \((\d+)건\)$')
+EDIT_ITEM = {'CPU': 'REQUIRED_CPU', '메모리': 'MEMORY', '저장 공간': 'STORAGE'}
+
+
+def edit_value(item, text):
+    # signals.py 가 적은 값: CPU 는 등급 코드, 메모리·저장 공간은 16GB·1TB. rank 는 values 와 같은 척도다. 읽을 수 없으면 None
+    if item == 'REQUIRED_CPU':
+        return {'value': text, 'rank': CPU_RANK[text]} if text in CPU_RANK else None
+    m = re.fullmatch(r'(\d+)(GB|TB)', text)
+    return {'value': text, 'rank': int(m[1]) * (1024 if m[2] == 'TB' else 1)} if m else None
+
+
+def edited(text):
+    out = []
+    for line in fields(text).get('고친 값', '').splitlines():
+        m = EDIT_LINE.match(line.strip())
+        if not m:
+            continue
+        item = EDIT_ITEM[m[1]]
+        recommended, changed = edit_value(item, m[2]), edit_value(item, m[3])
+        # 사람이 본문을 고쳐 읽을 수 없게 된 줄은 건너뛴다
+        if recommended and changed:
+            out.append({'item': item, 'recommended': recommended, 'edited': changed, 'count': int(m[4])})
+    return out
+
+
 def schema_dir():
     here = os.path.dirname(os.path.abspath(__file__))
     under = os.path.join(here, 'interface', 'artifacts')
@@ -295,6 +322,7 @@ COMMANDS = {
     'url': lambda r: parse_url(r[0]),
     'values': lambda r: values(arg(r[0])),
     'fields': lambda r: fields(read(r[0])),
+    'edited': lambda r: edited(read(r[0])),
     'block': lambda r: block(read(r[0])),
 }
 

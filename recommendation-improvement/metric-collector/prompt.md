@@ -98,10 +98,49 @@ LIMIT 500 OFFSET 0
 
 모든 행의 `views` 값(세션마다 하나, `[유닉스 초, 이벤트, 경로, purpose, category, 답]` 의 배열)을 하나의 JSON 배열로 `$ST/sessions.json` 에 쓴다. 다른 값은 넣지 않는다.
 
-### 1-3. 신호 계산
+### 1-3. 추천 결과를 고친 기록 가져오기
+
+같은 방법으로 아래 쿼리를 부른다. 세션·사용 목적·답 조합·OS 마다 마지막 기록 하나만 남긴다. 세션 ID 는 묶는 데만 쓰고 꺼내지 않는다.
+
+```sql
+SELECT edit
+FROM (
+  SELECT
+    min(timestamp) AS at,
+    argMax(tuple(
+      toUnixTimestamp(timestamp),
+      extract(properties.$current_url, '[?&]purpose=([^&#]+)'),
+      extract(properties.$current_url, '[?&]category=([^&#]+)'),
+      arrayStringConcat(arraySort(extractAll(properties.$current_url, '[?&]answer=([^&#]+)')), '&'),
+      toString(properties.os),
+      toString(properties.cpu_tier_recommended), toString(properties.cpu_tier_edited),
+      toString(properties.memory_gb_recommended), toString(properties.memory_gb_edited),
+      toString(properties.storage_gb_recommended), toString(properties.storage_gb_edited)
+    ), timestamp) AS edit
+  FROM events
+  WHERE event = 'recommended_spec_edited'
+    AND timestamp >= now() - INTERVAL {DAYS} DAY
+    AND timestamp < now()
+    AND match(properties.$current_url, '^https://(www[.])?devica[.]co[.]kr/')
+    AND notEmpty(coalesce(properties.$session_id, ''))
+  GROUP BY properties.$session_id,
+           extract(properties.$current_url, '[?&]purpose=([^&#]+)'),
+           arrayStringConcat(arraySort(extractAll(properties.$current_url, '[?&]answer=([^&#]+)')), '&'),
+           toString(properties.os)
+)
+ORDER BY at
+LIMIT 500 OFFSET 0
+```
+
+- 고치지 않은 항목의 `_edited` 는 비어 있다(빈 문자열이나 `null`). 스크립트가 고친 항목만 신호로 쓴다.
+- 500행이면 1-2 와 같이 `OFFSET` 을 늘려 끝까지 읽고, 실패하면 1-2 와 같이 한 번 고쳐 다시 시도한다.
+
+모든 행의 `edit` 값(`[유닉스 초, purpose, category, 답, OS, CPU 추천, CPU 고친 값, 메모리 추천, 메모리 고친 값, 저장 공간 추천, 저장 공간 고친 값]`)을 하나의 JSON 배열로 `$ST/edits.json` 에 쓴다.
+
+### 1-4. 신호 계산
 
 ```bash
-rec signals "$ST/sessions.json" https://api.devica.co.kr "$DAYS" > "$ST/signals.json"
+rec signals "$ST/sessions.json" https://api.devica.co.kr "$DAYS" "$ST/edits.json" > "$ST/signals.json"
 ```
 
 스크립트가 명세의 "신호의 뜻"과 "만들지 않는 것"을 그대로 계산한다.
@@ -112,6 +151,8 @@ rec signals "$ST/sessions.json" https://api.devica.co.kr "$DAYS" > "$ST/signals.
 - 처음·마지막 답 조합의 운영 결과를 다시 받아 권장안이 같으면 항목별로 비교한다. 마지막 결과에서 내려간 항목은 처음 결과가 "과해요"(DOWN), 올라간 항목은 "부족해요"(UP)로 추정한다. 바뀐 항목이 없거나 여러 항목이 반대로 바뀌었거나 권장안이 달라졌으면(`PREFERRED_OS` 만 바꾼 경우) 버린다. 생각하는 노트북을 정하지 않은 세션은 두 권장안을 함께 보고, 두 권장안에서 같은 방향이면 `둘 다` 로 묶는다.
 - 바꾼 답은 처음 답 조합에만 있는 선택지와 마지막 답 조합에만 있는 선택지다. 예: `SLOWDOWN: OFTEN → FINE`.
 - 권장안·항목·방향·바꾼 답이 같은 신호를 묶고, 묶음마다 제목·본문([feedback.md](../interface/artifacts/feedback.md) 형식)을 만든다. 주소는 처음 본 결과의 `category`, `purpose`, `answer` 로만 새로 만든다. 맞지 않은 점은 추정한 항목·방향에 맞는 선택지 하나(예: `메모리가 과해요`), 근거 지표는 기간·"답을 바꿔 다시 본 세션"·건수와 항목·방향이 추정임을 밝히는 문장이다.
+
+- 추천 결과를 고친 기록은 항목별로 나눠, 사용 목적·답 조합·OS·항목·방향이 같은 것을 묶는다. 고친 값이 제품 추천 결과보다 낮으면 DOWN, 높으면 UP 이다. 배포를 기다리는 규칙과 배포 전에 본 바뀐 규칙은 위와 같이 거르되, 견주는 시각은 고친 시각이다. 운영 결과는 다시 받지 않는다. 사용자가 본 값과 고친 값이 기록에 있다. 본문은 `### 바꾼 답` 대신 `### 고친 값` 에 값별 건수를 적고, 신호를 "추천 결과를 직접 고친 세션"으로 적는다.
 
 - 운영 결과가 400 이면 질문이 바뀐 것으로 보고 버린다. 그 밖의 오류(500, 429 등)는 `운영 서버 오류` 로 따로 세고 `incomplete` 를 참으로 둔다.
 
@@ -169,4 +210,4 @@ rec issue "$ST/issue-<번호>.md"
 
 ## 5. 마치기
 
-실행 기록에 만든 이슈, 열어 둔 이슈와 이유, 닫은 이슈와 건수를 적는다. `$ST/sessions.json`, `$ST/issue-*.md` 등 이번 실행의 임시 파일을 지우고(`signals.json` 과 실행 기록은 남긴다) `rm -rf "$ST/lock"` 으로 끝낸다.
+실행 기록에 만든 이슈, 열어 둔 이슈와 이유, 닫은 이슈와 건수를 적는다. `$ST/sessions.json`, `$ST/edits.json`, `$ST/issue-*.md` 등 이번 실행의 임시 파일을 지우고(`signals.json` 과 실행 기록은 남긴다) `rm -rf "$ST/lock"` 으로 끝낸다.

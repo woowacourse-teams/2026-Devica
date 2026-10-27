@@ -26,7 +26,7 @@ export function LandingPage() {
           <p className="landing-hero__lead" data-landing-reveal="">
             전자제품 정보는 많은데, 무엇을 골라야 할지 막막한가요?
             <br />
-            <strong>DEVICA가 사용 목적에 맞는 사양을 정리해 어려운 구매 고민을 덜어드려요.</strong>
+            <strong>DEVICA가 사용 목적에 맞는 제품을 추천해 어려운 구매 고민을 덜어드려요.</strong>
           </p>
           <div className="landing-hero__actions" data-landing-reveal="">
             <div className="landing-hero__buttons">
@@ -36,7 +36,7 @@ export function LandingPage() {
                 destination="spec_finder"
                 entryPoint="landing_hero"
               >
-                내 사양 찾기 시작 <span aria-hidden="true">→</span>
+                제품 추천 시작 <span aria-hidden="true">→</span>
               </ServiceEntryLink>
               <ServiceEntryLink
                 className="landing-cta landing-cta--outline"
@@ -71,8 +71,8 @@ export function LandingPage() {
         <nav className="landing-routes" aria-label="두 가지 서비스 사용법" data-landing-reveal="">
           {/* biome-ignore lint/a11y/useValidAnchor: 클릭은 측정만 하고 href의 기본 앵커 이동을 유지한다. */}
           <a href="#find-specs" onClick={() => track('landing_guide_link_clicked', { guide: 'find-specs' })}>
-            <b>내 사양 찾기</b>
-            <span>내 사용 목적에 맞는 사양과 제품 알아보기</span>
+            <b>제품 추천받기</b>
+            <span>내 사용 목적에 맞는 제품 추천받기</span>
           </a>
           {/* biome-ignore lint/a11y/useValidAnchor: 클릭은 측정만 하고 href의 기본 앵커 이동을 유지한다. */}
           <a href="#use-board" onClick={() => track('landing_guide_link_clicked', { guide: 'use-board' })}>
@@ -89,8 +89,8 @@ export function LandingPage() {
         <details open>
           <summary>어떤 제품과 용도를 지원하나요?</summary>
           <p>
-            현재는 노트북과 백엔드 개발 용도를 지원합니다. 내 사용 환경에 맞는 사양을 찾고, 제품과 질문 게시판을 이어서
-            살펴볼 수 있어요.
+            현재는 노트북과 백엔드 개발 용도를 지원합니다. 내 사용 환경에 맞는 제품 추천을 받고, 제품과 질문 게시판을
+            이어서 살펴볼 수 있어요.
           </p>
         </details>
         <details>
@@ -101,7 +101,7 @@ export function LandingPage() {
           </p>
         </details>
         <details>
-          <summary>추천받은 사양으로 결정하기 어렵다면요?</summary>
+          <summary>제품 추천 결과로 결정하기 어렵다면요?</summary>
           <p>질문 게시판에서 다른 개발자들의 고민과 답변을 살펴보거나, 궁금한 점을 직접 질문할 수 있어요.</p>
         </details>
       </section>
@@ -125,7 +125,7 @@ export function LandingPage() {
             destination="spec_finder"
             entryPoint="landing_closing"
           >
-            내 사양 찾기 시작 <span aria-hidden="true">→</span>
+            제품 추천 시작 <span aria-hidden="true">→</span>
           </ServiceEntryLink>
           <p className="landing-meta">약 2분 · 질문 9~10개</p>
           <ServiceEntryLink className="landing-cta" href={PATHS.board} destination="board" entryPoint="landing_closing">
