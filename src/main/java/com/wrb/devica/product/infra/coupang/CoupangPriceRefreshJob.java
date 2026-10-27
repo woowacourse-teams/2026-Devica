@@ -1,5 +1,6 @@
 package com.wrb.devica.product.infra.coupang;
 
+import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.dto.PriceRefreshTarget;
 import com.wrb.devica.product.service.ProductOfferService;
 import com.wrb.devica.product.service.ProductOfferService.PriceRefreshResult;
@@ -7,12 +8,14 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.slf4j.spi.LoggingEventBuilder;
 import org.springframework.dao.DataAccessException;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.CannotCreateTransactionException;
 
 /**
  * API 호출과 호출 간격 대기 중에는 DB 트랜잭션을 열지 않는다.
@@ -42,155 +45,148 @@ public class CoupangPriceRefreshJob {
 
     @Scheduled(cron = "${coupang.price-refresh.cron:0 0 4 * * *}", zone = "Asia/Seoul")
     public Summary refreshPrices() {
-        long started = System.nanoTime();
         try (MDC.MDCCloseable ignored = MDC.putCloseable("price_refresh.run_id", UUID.randomUUID().toString());
              MDC.MDCCloseable ignoredSeller = MDC.putCloseable("price_refresh.seller", "COUPANG")) {
-            log.info("쿠팡 가격 최신화 시작");
-            try {
-                Summary summary = refreshTargets();
-                log.atInfo().addKeyValue("price_refresh.outcome", summary.outcome())
-                    .addKeyValue("price_refresh.success", summary.success())
-                    .addKeyValue("price_refresh.total", summary.total())
-                    .addKeyValue("price_refresh.updated", summary.updated())
-                    .addKeyValue("price_refresh.unchanged", summary.unchanged())
-                    .addKeyValue("price_refresh.deferred", summary.deferred())
-                    .addKeyValue("price_refresh.not_attempted", summary.notAttempted())
-                    .addKeyValue("price_refresh.hidden", summary.hidden())
-                    .addKeyValue("price_refresh.restored", summary.restored())
-                    .addKeyValue("event.duration", System.nanoTime() - started)
-                    .log("쿠팡 가격 최신화 종료");
-                return summary;
-            } catch (RuntimeException exception) {
-                log.atError().addKeyValue("price_refresh.outcome", "FAILED")
-                    .addKeyValue("event.duration", System.nanoTime() - started).setCause(exception)
-                    .log("쿠팡 가격 최신화 실행 실패");
-                throw exception;
-            }
+            return refreshRun(System.nanoTime());
+        }
+    }
+
+    private Summary refreshRun(long started) {
+        log.info("쿠팡 가격 최신화 시작");
+        try {
+            Summary summary = refreshTargets();
+            logSummary(summary, started);
+            return summary;
+        } catch (RuntimeException exception) {
+            logFailure(exception, started);
+            throw exception;
         }
     }
 
     private Summary refreshTargets() {
         List<PriceRefreshTarget> targets = offers.findCoupangPriceRefreshTargets();
-        int updated = 0;
-        int unchanged = 0;
-        int deferred = 0;
-        int attempted = 0;
-        int hidden = 0;
-        int restored = 0;
-        for (PriceRefreshTarget target : targets) {
-            if (attempted > 0 && !waitForNextRequest()) {
-                break;
-            }
-            if (Thread.currentThread().isInterrupted()) {
-                break;
-            }
-            attempted++;
-            long started = System.nanoTime();
-            try {
-                SearchInspection inspection = inspect(client.search(target.productCode()), target.vendorItemId());
-                if (inspection.matches().isEmpty()) {
-                    String reason = inspection.noMatchReason();
-                    String action = "NONE";
-                    if ("NO_MATCH".equals(reason)) {
-                        PriceRefreshResult result = offers.hideCoupangOffer(target, LocalDate.now(clock));
-                        action = result.name();
-                        if (result == PriceRefreshResult.HIDDEN) {
-                            hidden++;
-                        } else if (result == PriceRefreshResult.SKIPPED) {
-                            reason = "SKIPPED";
-                        }
-                    }
-                    deferred++;
-                    resultLog(target, reason, action, started, inspection).log("쿠팡 가격 갱신 보류");
-                    continue;
-                }
-                List<Long> prices = inspection.matches().stream()
-                    .map(CoupangProductSearchClient.Product::productPrice).toList();
-                if (prices.stream().anyMatch(price -> price == null || price <= 0)) {
-                    deferred++;
-                    resultLog(target, "INVALID_PRICE", "NONE", started, inspection).log("쿠팡 가격 갱신 보류");
-                    continue;
-                }
-                if (prices.stream().distinct().count() != 1) {
-                    deferred++;
-                    resultLog(target, "CONFLICTING_PRICES", "NONE", started, inspection).log("쿠팡 가격 갱신 보류");
-                    continue;
-                }
-                long price = prices.getFirst();
-                PriceRefreshResult result = offers.refreshCoupangPrice(target, price, LocalDate.now(clock));
-                if (result == PriceRefreshResult.SKIPPED) {
-                    deferred++;
-                    resultLog(target, "SKIPPED", "NONE", started, inspection).log("쿠팡 저장 대상 변경으로 갱신 보류");
-                    continue;
-                }
-                boolean priceChanged = target.price() != price;
-                if (priceChanged) {
-                    updated++;
-                } else {
-                    unchanged++;
-                }
-                if (result == PriceRefreshResult.RESTORED) {
-                    restored++;
-                }
-                // 서비스 트랜잭션이 커밋된 뒤에만 변경 알림의 근거를 남긴다.
-                resultLog(target, result.name(), result.name(), started, inspection)
-                    .addKeyValue("price_refresh.price_changed", priceChanged)
-                    .addKeyValue("price_refresh.previous_price", target.price())
-                    .addKeyValue("price_refresh.current_price", price)
-                    .log("쿠팡 판매상품 가격 확인");
-            } catch (CoupangApiException exception) {
-                deferred++;
-                targetLog(log.atWarn(), target, "API_FAILURE", "NONE", started)
-                    .addKeyValue("error.code", exception.getReason().name())
-                    .log("쿠팡 가격 조회 실패로 갱신 보류");
-                if (exception.getReason() == CoupangApiException.Reason.AUTHENTICATION_FAILED
-                    || exception.getReason() == CoupangApiException.Reason.RATE_LIMITED) {
-                    break;
-                }
-            } catch (DataAccessException exception) {
-                deferred++;
-                targetLog(log.atError(), target, "DB_FAILURE", "NONE", started)
-                    .addKeyValue("error.type", exception.getClass().getName())
-                    .log("쿠팡 가격 저장 실패로 해당 상품 갱신 취소");
-            }
+        List<Attempt> attempts = new ArrayList<>();
+        while (canContinue(targets.size(), attempts)) {
+            attempts.add(refreshTarget(targets.get(attempts.size())));
         }
-        for (PriceRefreshTarget target : targets.subList(attempted, targets.size())) {
-            targetLog(log.atInfo(), target, "NOT_ATTEMPTED", "NONE", System.nanoTime())
-                .log("쿠팡 가격 최신화 중단으로 미시도");
-        }
-        return new Summary(updated, unchanged, deferred, targets.size() - attempted, hidden, restored);
+        targets.subList(attempts.size(), targets.size()).forEach(this::logNotAttempted);
+        return summarize(attempts, targets.size());
     }
 
-    private SearchInspection inspect(List<CoupangProductSearchClient.Product> candidates, String expectedId) {
-        List<CoupangProductSearchClient.Product> matches = new ArrayList<>();
-        List<String> ids = new ArrayList<>();
-        int invalidUrls = 0;
-        int missingIds = 0;
-        for (CoupangProductSearchClient.Product candidate : candidates) {
-            CoupangProductUrl identifiers = CoupangProductUrl.parse(candidate.productUrl()).orElse(null);
-            if (identifiers == null) {
-                invalidUrls++;
-            } else if (identifiers.vendorItemId() == null) {
-                missingIds++;
-            } else {
-                ids.add(identifiers.vendorItemId());
-                if (identifiers.vendorItemId().equals(expectedId)) {
-                    matches.add(candidate);
-                }
-            }
+    private boolean canContinue(int total, List<Attempt> attempts) {
+        if (attempts.size() == total || Thread.currentThread().isInterrupted()) {
+            return false;
         }
-        return new SearchInspection(candidates.size(), invalidUrls, missingIds, ids, matches);
+        if (!attempts.isEmpty() && attempts.getLast().stop()) {
+            return false;
+        }
+        return (attempts.isEmpty() || waitForNextRequest()) && !Thread.currentThread().isInterrupted();
     }
 
-    private record SearchInspection(int candidateCount, int invalidUrls, int missingIds, List<String> vendorItemIds,
-                                    List<CoupangProductSearchClient.Product> matches) {
-
-        String noMatchReason() {
-            if (candidateCount == 0) {
-                return "NO_SEARCH_RESULTS";
-            }
-            return invalidUrls + missingIds > 0 ? "IDENTIFIER_UNAVAILABLE" : "NO_MATCH";
+    private Attempt refreshTarget(PriceRefreshTarget target) {
+        long started = System.nanoTime();
+        try {
+            return refreshInspected(target, SearchInspection.inspect(client.search(target.productCode()),
+                target.vendorItemId()), started);
+        } catch (CoupangApiException exception) {
+            return apiFailure(target, exception, started);
+        } catch (DataAccessException | CannotCreateTransactionException exception) {
+            return databaseFailure(target, exception, started);
         }
+    }
+
+    private Attempt refreshInspected(PriceRefreshTarget target, SearchInspection inspection, long started) {
+        String reason = inspection.deferralReason();
+        if (reason != null) {
+            return defer(target, reason, started, inspection);
+        }
+        long price = inspection.matches().getFirst().productPrice();
+        PriceRefreshResult result = offers.refreshCoupangPrice(target, price, LocalDate.now(clock));
+        return recordSaved(target, result, price, started, inspection);
+    }
+
+    private Attempt defer(PriceRefreshTarget target, String reason, long started, SearchInspection inspection) {
+        if (target.status() == OfferStatus.HIDDEN && "NO_MATCH".equals(reason)) {
+            resultLog(target, "HIDDEN_UNCHANGED", "NONE", started, inspection)
+                .log("쿠팡 숨김 상품 유지: 검색 후보에 기준 ID 없음");
+            return Attempt.HIDDEN_UNCHANGED;
+        }
+        // 검색 상위 후보에 없다는 사실만으로 판매 종료나 다른 상품이라고 판단할 수 없다.
+        resultLog(target, reason, "NONE", started, inspection).log("쿠팡 가격 갱신 보류: 판매처 링크 확인 필요");
+        return Attempt.DEFERRED;
+    }
+
+    private Attempt recordSaved(PriceRefreshTarget target, PriceRefreshResult result, long price, long started,
+                                SearchInspection inspection) {
+        if (result == PriceRefreshResult.SKIPPED) {
+            return defer(target, "SKIPPED", started, inspection);
+        }
+        boolean priceChanged = target.price() != price;
+        logSaved(target, result, price, started, inspection);
+        return new Attempt(priceChanged, !priceChanged, result == PriceRefreshResult.RESTORED, false, false);
+    }
+
+    private void logSaved(PriceRefreshTarget target, PriceRefreshResult result, long price, long started,
+                          SearchInspection inspection) {
+        // 서비스 트랜잭션이 커밋된 뒤에만 변경 알림의 근거를 남긴다.
+        resultLog(target, result.name(), result.name(), started, inspection)
+            .addKeyValue("price_refresh.price_changed", target.price() != price)
+            .addKeyValue("price_refresh.previous_price", target.price())
+            .addKeyValue("price_refresh.current_price", price)
+            .log("쿠팡 판매상품 가격 확인");
+    }
+
+    private Attempt apiFailure(PriceRefreshTarget target, CoupangApiException exception, long started) {
+        targetLog(log.atWarn(), target, "API_FAILURE", "NONE", started)
+            .addKeyValue("error.code", exception.getReason().name()).log("쿠팡 가격 조회 실패로 갱신 보류");
+        boolean stop = exception.getReason() == CoupangApiException.Reason.AUTHENTICATION_FAILED
+            || exception.getReason() == CoupangApiException.Reason.RATE_LIMITED;
+        return new Attempt(false, false, false, stop, false);
+    }
+
+    private Attempt databaseFailure(PriceRefreshTarget target, RuntimeException exception, long started) {
+        targetLog(log.atError(), target, "DB_FAILURE", "NONE", started)
+            .addKeyValue("error.type", exception.getClass().getName())
+            .log("쿠팡 가격 저장 실패로 해당 상품 갱신 취소");
+        return new Attempt(false, false, false, exception instanceof CannotCreateTransactionException, false);
+    }
+
+    private Summary summarize(List<Attempt> attempts, int total) {
+        int updated = (int) attempts.stream().filter(Attempt::updated).count();
+        int unchanged = (int) attempts.stream().filter(Attempt::unchanged).count();
+        int restored = (int) attempts.stream().filter(Attempt::restored).count();
+        int hiddenUnchanged = (int) attempts.stream().filter(Attempt::hiddenUnchanged).count();
+        return new Summary(updated, unchanged, attempts.size() - updated - unchanged - hiddenUnchanged,
+            total - attempts.size(), 0, restored, hiddenUnchanged);
+    }
+
+    private void logNotAttempted(PriceRefreshTarget target) {
+        targetLog(log.atInfo(), target, "NOT_ATTEMPTED", "NONE", System.nanoTime())
+            .log("쿠팡 가격 최신화 중단으로 미시도");
+    }
+
+    private void logSummary(Summary summary, long started) {
+        summaryCounts(summary).addKeyValue("price_refresh.outcome", summary.outcome())
+            .addKeyValue("price_refresh.success", summary.success())
+            .addKeyValue("price_refresh.total", summary.total())
+            .addKeyValue("event.duration", System.nanoTime() - started)
+            .log("쿠팡 가격 최신화 종료");
+    }
+
+    private LoggingEventBuilder summaryCounts(Summary summary) {
+        return log.atInfo().addKeyValue("price_refresh.updated", summary.updated())
+            .addKeyValue("price_refresh.unchanged", summary.unchanged())
+            .addKeyValue("price_refresh.deferred", summary.deferred())
+            .addKeyValue("price_refresh.not_attempted", summary.notAttempted())
+            .addKeyValue("price_refresh.hidden", summary.hidden())
+            .addKeyValue("price_refresh.restored", summary.restored())
+            .addKeyValue("price_refresh.hidden_unchanged", summary.hiddenUnchanged());
+    }
+
+    private void logFailure(RuntimeException exception, long started) {
+        log.atError().addKeyValue("price_refresh.outcome", "FAILED")
+            .addKeyValue("event.duration", System.nanoTime() - started).setCause(exception)
+            .log("쿠팡 가격 최신화 실행 실패");
     }
 
     private boolean waitForNextRequest() {
@@ -204,7 +200,7 @@ public class CoupangPriceRefreshJob {
     }
 
     private LoggingEventBuilder resultLog(PriceRefreshTarget target, String result, String action, long started,
-                                           SearchInspection inspection) {
+                                          SearchInspection inspection) {
         return targetLog(log.atInfo(), target, result, action, started)
             .addKeyValue("search.candidate_count", inspection.candidateCount())
             .addKeyValue("search.invalid_url_count", inspection.invalidUrls())
@@ -213,36 +209,99 @@ public class CoupangPriceRefreshJob {
     }
 
     private LoggingEventBuilder targetLog(LoggingEventBuilder event, PriceRefreshTarget target,
-                                           String result, String action, long started) {
-        return event.addKeyValue("offer.id", target.offerId())
-            .addKeyValue("offer.url", target.purchaseUrl())
-            .addKeyValue("offer.vendor_item_id", target.vendorItemId())
-            .addKeyValue("product.id", target.productId())
-            .addKeyValue("product.code", target.productCode())
-            .addKeyValue("product.url", publicBaseUrl + "/products/" + target.productId())
-            .addKeyValue("search.keyword", target.productCode())
+                                          String result, String action, long started) {
+        return offerLog(event, target).addKeyValue("search.keyword", target.productCode())
             .addKeyValue("server.address", "api-gateway.coupang.com")
             .addKeyValue("event.duration", System.nanoTime() - started)
             .addKeyValue("price_refresh.result", result)
             .addKeyValue("price_refresh.action", action);
     }
 
-    // hidden은 deferred에, restored는 updated + unchanged에 포함된다.
-    public record Summary(int updated, int unchanged, int deferred, int notAttempted, int hidden, int restored) {
+    private LoggingEventBuilder offerLog(LoggingEventBuilder event, PriceRefreshTarget target) {
+        return event.addKeyValue("offer.id", target.offerId())
+            .addKeyValue("offer.url", target.purchaseUrl())
+            .addKeyValue("offer.vendor_item_id", target.vendorItemId())
+            .addKeyValue("product.id", target.productId())
+            .addKeyValue("product.code", target.productCode())
+            .addKeyValue("product.url", publicBaseUrl + "/products/" + target.productId());
+    }
+
+    private record Attempt(boolean updated, boolean unchanged, boolean restored, boolean stop, boolean hiddenUnchanged) {
+
+        private static final Attempt DEFERRED = new Attempt(false, false, false, false, false);
+        private static final Attempt HIDDEN_UNCHANGED = new Attempt(false, false, false, false, true);
+    }
+
+    private record Candidate(CoupangProductSearchClient.Product product, CoupangProductUrl identifiers) {
+
+        static Candidate parse(CoupangProductSearchClient.Product product) {
+            return new Candidate(product, CoupangProductUrl.parse(product.productUrl()).orElse(null));
+        }
+
+        boolean invalidUrl() {
+            return identifiers == null;
+        }
+
+        boolean missingId() {
+            return identifiers != null && identifiers.vendorItemId() == null;
+        }
+
+        String vendorItemId() {
+            return identifiers == null ? null : identifiers.vendorItemId();
+        }
+    }
+
+    private record SearchInspection(int candidateCount, int invalidUrls, int missingIds, List<String> vendorItemIds,
+                                    List<CoupangProductSearchClient.Product> matches) {
+
+        static SearchInspection inspect(List<CoupangProductSearchClient.Product> products, String expectedId) {
+            List<Candidate> candidates = products.stream().map(Candidate::parse).toList();
+            List<String> ids = candidates.stream().map(Candidate::vendorItemId).filter(Objects::nonNull).toList();
+            List<CoupangProductSearchClient.Product> matches = candidates.stream()
+                .filter(candidate -> expectedId.equals(candidate.vendorItemId())).map(Candidate::product).toList();
+            return new SearchInspection(candidates.size(),
+                (int) candidates.stream().filter(Candidate::invalidUrl).count(),
+                (int) candidates.stream().filter(Candidate::missingId).count(), ids, matches);
+        }
+
+        String deferralReason() {
+            if (matches.isEmpty()) {
+                return noMatchReason();
+            }
+            if (matches.stream().anyMatch(product -> product.productPrice() == null || product.productPrice() <= 0)) {
+                return "INVALID_PRICE";
+            }
+            return matches.stream().map(CoupangProductSearchClient.Product::productPrice).distinct().count() == 1
+                ? null : "CONFLICTING_PRICES";
+        }
+
+        String noMatchReason() {
+            if (candidateCount == 0) {
+                return "NO_SEARCH_RESULTS";
+            }
+            return invalidUrls + missingIds > 0 ? "IDENTIFIER_UNAVAILABLE" : "NO_MATCH";
+        }
+    }
+
+    // hidden은 이전 로그와의 호환을 위해 유지하며, 자동 숨김을 하지 않으므로 항상 0이다.
+    // restored는 이미 숨겨진 상품을 다시 확인한 경우로 updated + unchanged에 포함된다.
+    // hiddenUnchanged는 정상적인 숨김 유지이며, 가격 확인 성공에는 포함하지 않는다.
+    public record Summary(int updated, int unchanged, int deferred, int notAttempted, int hidden, int restored,
+                          int hiddenUnchanged) {
 
         public int success() {
             return updated + unchanged;
         }
 
         public int total() {
-            return success() + deferred + notAttempted;
+            return success() + hiddenUnchanged + deferred + notAttempted;
         }
 
         public String outcome() {
             if (total() == 0) {
                 return "NO_TARGETS";
             }
-            if (success() == 0) {
+            if (success() + hiddenUnchanged == 0) {
                 return "FAILED";
             }
             return deferred + notAttempted == 0 ? "SUCCESS" : "PARTIAL";

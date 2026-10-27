@@ -88,7 +88,7 @@ class CoupangPriceRefreshJobTest {
         respond(FIRST, product(url, 2_100_000L));
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
 
-        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 0, 0, 0, 0));
+        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 0, 0, 0, 0, 0));
         verify(offers).refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT);
         assertThat(pauses).isEmpty();
     }
@@ -142,7 +142,7 @@ class CoupangPriceRefreshJobTest {
         respond(FIRST, product(MATCHING_URL, 2_100_000L), product(MATCHING_URL, 2_100_000L));
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
 
-        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 0, 0, 0, 0));
+        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 0, 0, 0, 0, 0));
         verify(offers).refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT);
     }
 
@@ -153,7 +153,7 @@ class CoupangPriceRefreshJobTest {
             product(MATCHING_URL, 1_000_000L));
         when(offers.refreshCoupangPrice(FIRST, 1_000_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UNCHANGED);
 
-        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 1, 0, 0, 0, 0));
+        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 1, 0, 0, 0, 0, 0));
         verify(offers).refreshCoupangPrice(FIRST, 1_000_000L, CHECKED_AT);
     }
 
@@ -162,7 +162,7 @@ class CoupangPriceRefreshJobTest {
         respond(FIRST, product(MATCHING_URL, 2_100_000L));
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.SKIPPED);
 
-        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 1, 0, 0, 0));
+        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 1, 0, 0, 0, 0));
     }
 
     @ParameterizedTest
@@ -173,7 +173,7 @@ class CoupangPriceRefreshJobTest {
         server.expect(requestTo(searchUrl(SECOND))).andRespond(withStatus(HttpStatusCode.valueOf(status)));
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
 
-        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 1, 1, 0, 0));
+        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 1, 1, 0, 0, 0));
         verify(offers).refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT);
         verify(offers, never()).refreshCoupangPrice(eq(SECOND), anyLong(), any());
         verify(offers, never()).refreshCoupangPrice(eq(THIRD), anyLong(), any());
@@ -187,7 +187,7 @@ class CoupangPriceRefreshJobTest {
         respond(SECOND, product(MATCHING_URL, 2_100_000L));
         when(offers.refreshCoupangPrice(SECOND, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
 
-        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 1, 0, 0, 0));
+        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 1, 0, 0, 0, 0));
         verify(offers, never()).refreshCoupangPrice(eq(FIRST), anyLong(), any());
         verify(offers).refreshCoupangPrice(SECOND, 2_100_000L, CHECKED_AT);
         assertThat(pauses).containsExactly(2100L);
@@ -202,7 +202,7 @@ class CoupangPriceRefreshJobTest {
             .thenThrow(new DataAccessResourceFailureException("test database failure"));
         when(offers.refreshCoupangPrice(SECOND, 1_000_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UNCHANGED);
 
-        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 1, 1, 0, 0, 0));
+        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 1, 1, 0, 0, 0, 0));
         verify(offers).refreshCoupangPrice(SECOND, 1_000_000L, CHECKED_AT);
     }
 
@@ -216,7 +216,7 @@ class CoupangPriceRefreshJobTest {
         });
 
         try {
-            assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 0, 1, 0, 0));
+            assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 0, 1, 0, 0, 0));
             assertThat(Thread.currentThread().isInterrupted()).isTrue();
             verify(offers, never()).refreshCoupangPrice(eq(SECOND), anyLong(), any());
         } finally {
@@ -228,48 +228,53 @@ class CoupangPriceRefreshJobTest {
     void 갱신_대상이_없으면_API를_호출하지_않는다() {
         when(offers.findCoupangPriceRefreshTargets()).thenReturn(List.of());
 
-        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 0, 0, 0, 0));
+        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 0, 0, 0, 0, 0));
         verify(offers, never()).refreshCoupangPrice(any(), anyLong(), any());
         assertThat(pauses).isEmpty();
     }
 
     @ParameterizedTest
     @CsvSource({
-        "0, 20, 0, 0, SUCCESS, 0",
-        "3, 17, 0, 0, SUCCESS, 0",
-        "3, 2, 15, 0, PARTIAL, 2",
-        "8, 2, 10, 0, PARTIAL, 2",
-        "1, 0, 1, 18, PARTIAL, 2",
-        "0, 0, 20, 0, FAILED, 2",
-        "0, 0, 0, 20, FAILED, 2",
-        "0, 0, 0, 0, NO_TARGETS, 2"
+        "0, 20, 0, 0, 0, SUCCESS, 0",
+        "3, 17, 0, 0, 0, SUCCESS, 0",
+        "3, 2, 15, 0, 0, PARTIAL, 2",
+        "8, 2, 10, 0, 0, PARTIAL, 2",
+        "1, 0, 1, 18, 0, PARTIAL, 2",
+        "0, 0, 20, 0, 0, FAILED, 2",
+        "0, 0, 0, 20, 0, FAILED, 2",
+        "0, 0, 0, 0, 0, NO_TARGETS, 2",
+        "0, 0, 0, 0, 2, SUCCESS, 0",
+        "1, 1, 0, 0, 2, SUCCESS, 0",
+        "0, 0, 1, 0, 2, PARTIAL, 2",
+        "0, 0, 0, 1, 2, PARTIAL, 2",
+        "1, 0, 1, 1, 2, PARTIAL, 2"
     })
-    void 가격_변경_건수가_아닌_확인_성공_여부로_전체_결과와_종료_코드를_판정한다(
-        int updated, int unchanged, int deferred, int notAttempted, String outcome, int exitCode
+    void 확인_성공과_숨김_유지를_구분해_전체_결과와_종료_코드를_판정한다(
+        int updated, int unchanged, int deferred, int notAttempted, int hiddenUnchanged, String outcome, int exitCode
     ) {
-        var summary = new CoupangPriceRefreshJob.Summary(updated, unchanged, deferred, notAttempted, 0, 0);
+        var summary = new CoupangPriceRefreshJob.Summary(updated, unchanged, deferred, notAttempted, 0, 0,
+            hiddenUnchanged);
 
         assertThat(summary.outcome()).isEqualTo(outcome);
         assertThat(summary.exitCode()).isEqualTo(exitCode);
         assertThat(summary.success()).isEqualTo(updated + unchanged);
-        assertThat(summary.total()).isEqualTo(updated + unchanged + deferred + notAttempted);
+        assertThat(summary.total()).isEqualTo(updated + unchanged + hiddenUnchanged + deferred + notAttempted);
     }
 
     @Test
-    void 판매처별_성공과_대상_수를_남기고_숨김과_복구를_중복_집계하지_않는다() {
+    void 판매처별_성공과_대상_수를_남기고_보류와_복구를_중복_집계하지_않는다() {
         when(offers.findCoupangPriceRefreshTargets()).thenReturn(List.of(FIRST, SECOND, THIRD));
         respond(FIRST, product(MATCHING_URL, 2_100_000L));
         respond(SECOND, product(MATCHING_URL, SECOND.price()));
         respond(THIRD, product("https://www.coupang.com/vp/products/999?vendorItemId=57", 1L));
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.RESTORED);
         when(offers.refreshCoupangPrice(SECOND, SECOND.price(), CHECKED_AT)).thenReturn(PriceRefreshResult.UNCHANGED);
-        when(offers.hideCoupangOffer(THIRD, CHECKED_AT)).thenReturn(PriceRefreshResult.HIDDEN);
 
         List<ILoggingEvent> events = capture(() -> {
             var summary = job.refreshPrices();
             assertThat(summary.success()).isEqualTo(2);
             assertThat(summary.total()).isEqualTo(3);
-            assertThat(summary.hidden()).isEqualTo(1);
+            assertThat(summary.hidden()).isZero();
             assertThat(summary.restored()).isEqualTo(1);
         });
 
@@ -323,34 +328,22 @@ class CoupangPriceRefreshJobTest {
     }
 
     @Test
-    void 모든_후보의_ID가_다르면_숨기고_비교_근거와_확인_링크를_남긴다() {
+    void 모든_후보의_ID가_달라도_저장하지_않고_비교_근거와_확인_링크를_남긴다() {
         respond(FIRST, product("https://www.coupang.com/vp/products/999?vendorItemId=57", 1L));
-        when(offers.hideCoupangOffer(FIRST, CHECKED_AT)).thenReturn(PriceRefreshResult.HIDDEN);
 
         List<ILoggingEvent> events = capture(() -> assertThat(job.refreshPrices())
-            .isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 1, 0, 1, 0)));
+            .isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 1, 0, 0, 0, 0)));
 
-        verify(offers).hideCoupangOffer(FIRST, CHECKED_AT);
+        verify(offers, never()).hideCoupangOffer(any(), any());
         verify(offers, never()).refreshCoupangPrice(any(), anyLong(), any());
         ILoggingEvent event = resultEvent(events);
         assertField(event, "price_refresh.result", "NO_MATCH");
-        assertField(event, "price_refresh.action", "HIDDEN");
+        assertField(event, "price_refresh.action", "NONE");
         assertField(event, "offer.vendor_item_id", "56");
         assertField(event, "search.vendor_item_ids", List.of("57"));
         assertField(event, "search.candidate_count", 1);
         assertField(event, "offer.url", FIRST.purchaseUrl());
         assertField(event, "product.url", "https://devica.example/products/10");
-    }
-
-    @Test
-    void 이미_숨긴_상품은_계속_확인하지만_새_숨김_변경으로_알리지_않는다() {
-        respond(FIRST, product("https://www.coupang.com/vp/products/999?vendorItemId=57", 1L));
-        when(offers.hideCoupangOffer(FIRST, CHECKED_AT)).thenReturn(PriceRefreshResult.ALREADY_HIDDEN);
-
-        List<ILoggingEvent> events = capture(() -> assertThat(job.refreshPrices())
-            .isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 1, 0, 0, 0)));
-
-        assertField(resultEvent(events), "price_refresh.action", "ALREADY_HIDDEN");
     }
 
     @Test
@@ -384,7 +377,7 @@ class CoupangPriceRefreshJobTest {
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
 
         List<ILoggingEvent> events = capture(() -> assertThat(job.refreshPrices())
-            .isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 0, 0, 0, 0)));
+            .isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 0, 0, 0, 0, 0)));
 
         ILoggingEvent event = resultEvent(events);
         assertField(event, "price_refresh.price_changed", true);
@@ -410,15 +403,18 @@ class CoupangPriceRefreshJobTest {
     }
 
     @Test
-    void 숨김_저장이_실패하면_변경_알림을_남기지_않고_보류를_한_번만_집계한다() {
-        respond(FIRST, product("https://www.coupang.com/vp/products/999?vendorItemId=57", 1L));
-        when(offers.hideCoupangOffer(FIRST, CHECKED_AT))
+    void 가격_저장이_실패하면_변경_알림을_남기지_않고_보류를_한_번만_집계한다() {
+        respond(FIRST, product(MATCHING_URL, 2_100_000L));
+        when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT))
             .thenThrow(new DataAccessResourceFailureException("DB unavailable"));
 
-        List<ILoggingEvent> events = capture(this::assertDeferred);
+        List<ILoggingEvent> events = capture(() -> assertThat(job.refreshPrices())
+            .isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 1, 0, 0, 0, 0)));
 
         assertField(resultEvent(events), "price_refresh.result", "DB_FAILURE");
         assertField(resultEvent(events), "price_refresh.action", "NONE");
+        assertThat(resultEvent(events).getKeyValuePairs())
+            .noneSatisfy(pair -> assertThat(pair.key).isEqualTo("price_refresh.price_changed"));
     }
 
     @Test
@@ -472,7 +468,7 @@ class CoupangPriceRefreshJobTest {
     }
 
     private void assertDeferred() {
-        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 1, 0, 0, 0));
+        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 1, 0, 0, 0, 0));
         verify(offers, never()).refreshCoupangPrice(any(), anyLong(), any());
     }
 
