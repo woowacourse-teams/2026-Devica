@@ -141,10 +141,10 @@ public class CoupangPriceRefreshJob {
             } catch (CoupangApiException exception) {
                 deferred++;
                 targetLog(log.atWarn(), target, "API_FAILURE", "NONE", started)
-                    .addKeyValue("error.code", exception.reason().name())
+                    .addKeyValue("error.code", exception.getReason().name())
                     .log("쿠팡 가격 조회 실패로 갱신 보류");
-                if (exception.reason() == CoupangApiException.Reason.AUTHENTICATION_FAILED
-                    || exception.reason() == CoupangApiException.Reason.RATE_LIMITED) {
+                if (exception.getReason() == CoupangApiException.Reason.AUTHENTICATION_FAILED
+                    || exception.getReason() == CoupangApiException.Reason.RATE_LIMITED) {
                     break;
                 }
             } catch (DataAccessException exception) {

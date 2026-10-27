@@ -108,7 +108,7 @@ public final class CoupangPriceProbe {
             return new Result(target, clock.instant(), candidates.isEmpty() ? "NO_SEARCH_RESULTS" : "RETRIEVED",
                 null, candidates);
         } catch (CoupangApiException exception) {
-            return new Result(target, clock.instant(), "API_FAILURE", exception.reason().name(), List.of());
+            return new Result(target, clock.instant(), "API_FAILURE", exception.getReason().name(), List.of());
         }
     }
 

@@ -82,7 +82,7 @@ class CoupangProductSearchClientTest {
 
         assertThatThrownBy(() -> client.search("laptop"))
             .isInstanceOfSatisfying(CoupangApiException.class,
-                exception -> assertThat(exception.reason()).isEqualTo(reason))
+                exception -> assertThat(exception.getReason()).isEqualTo(reason))
             .hasMessage(reason.name())
             .hasNoCause();
         server.verify();
