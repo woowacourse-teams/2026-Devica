@@ -184,7 +184,7 @@ recommendation-improvement/
    gh auth status
    gh api repos/woowacourse-teams/2026-Devica --jq .permissions.push
    ```
-2. **`python3`, `ruby`**: `python3 --version` 이 실패하면 `xcode-select --install` 을 실행한다.
+2. **`python3`, `ruby`**: `python3 --version` 과 `ruby --version` 이 버전을 출력하는지 본다. macOS 에서 실패하면 `xcode-select --install` 을 실행한다.
 3. **레포 clone**: 이 레포의 clone 하나를 작업 폴더로 정한다. 평소 쓰는 clone 이어도 된다.
 4. **Feedback Analyzer**: 아래 두 줄이 모두 `200` 을 출력하는지 본다.
    ```bash
@@ -195,11 +195,11 @@ recommendation-improvement/
 
 ### 2. 예약 작업 등록하기
 
-팀원 한 명만 등록한다. 여러 명이 등록하면 같은 작업이 겹쳐 실행된다. Mac 이면 [Mac 에 등록하기](#mac-에-등록하기), 아니면 [다른 방법으로 등록하기](#다른-방법으로-등록하기)를 따른다.
+팀원 한 명만 등록한다. 여러 명이 등록하면 같은 작업이 겹쳐 실행된다. macOS 에서 Claude Code 를 쓰면 [macOS 와 Claude Code 로 등록하기](#macos-와-claude-code-로-등록하기), 아니면 [다른 방법으로 등록하기](#다른-방법으로-등록하기)를 따른다.
 
-#### Mac 에 등록하기
+#### macOS 와 Claude Code 로 등록하기
 
-1. **에이전트 확인**: 아래가 버전을 출력하는지 본다. 실패하면 Claude Code 를 설치하고 개인 구독 계정으로 로그인한다.
+1. **Claude Code 확인**: 아래가 버전을 출력하는지 본다. 실패하면 Claude Code 를 설치하고 개인 구독 계정으로 로그인한다.
    ```bash
    claude --version
    ```
@@ -216,7 +216,7 @@ recommendation-improvement/
 
 #### 다른 방법으로 등록하기
 
-1. **PostHog 연결**: 에이전트에 PostHog MCP 를 팀 PostHog 계정으로 연결하고, [Mac 에 등록하기](#mac-에-등록하기)의 2 처럼 활성 프로젝트를 `638813` 으로 맞춘다.
+1. **PostHog 연결**: 에이전트에 PostHog MCP 서버를 팀 PostHog 계정으로 연결하고, 활성 프로젝트를 `638813` 으로 맞춘다. 에이전트에게 활성 프로젝트를 물어 `638813` 이 나오면 된다.
 2. **작업 만들기**: 아래 표의 구성 요소마다 예약 작업을 하나씩 만든다. 작업 폴더는 1-3 의 clone, 주기는 표대로 정한다.
 3. **프롬프트**: `<구성 요소>` 를 바꿔 넣는다.
    ```
@@ -228,13 +228,13 @@ recommendation-improvement/
 
 | `<구성 요소>` | 주기 | 허용할 권한 |
 |---|---|---|
-| `metric-collector` | 하루 한 번 | Bash `git` `gh` `python3` `ruby`. `~/.devica-product-recommendation/metric-collector` 쓰기. PostHog `project-get`, `execute-sql` |
-| `feedback-analyzer` | 하루 한 번, `metric-collector` 보다 늦은 시각 | Bash `git` `gh` `python3` `ruby`. `~/.devica-product-recommendation/feedback-analyzer` 쓰기 |
-| `recommendation-improver` | 몇 시간마다 | Bash `git` `gh` `python3` `ruby` `docker` `./gradlew`. `~/.devica-product-recommendation/recommendation-improver` 쓰기와 그 안의 작업 공간 파일 편집 |
+| `metric-collector` | 하루 한 번 | 셸 명령 `git` `gh` `python3` `ruby`. `~/.devica-product-recommendation/metric-collector` 쓰기. PostHog `project-get`, `execute-sql` |
+| `feedback-analyzer` | 하루 한 번, `metric-collector` 보다 늦은 시각 | 셸 명령 `git` `gh` `python3` `ruby`. `~/.devica-product-recommendation/feedback-analyzer` 쓰기 |
+| `recommendation-improver` | 몇 시간마다 | 셸 명령 `git` `gh` `python3` `ruby` `docker` `./gradlew`. `~/.devica-product-recommendation/recommendation-improver` 쓰기와 그 안의 작업 공간 파일 편집 |
 
 ### 3. 첫 실행 확인하기
 
-작업 폴더에서 구성 요소마다 한 번 바로 실행하고, 끝나면 가장 최근 실행 기록을 연다.
+구성 요소마다 한 번 바로 실행하고, 끝나면 가장 최근 실행 기록을 연다. macOS 와 Claude Code 로 등록했다면 작업 폴더에서 아래 첫 줄로 실행한다. 다른 방법으로 등록했다면 등록한 작업을 바로 실행한다.
 
 ```bash
 recommendation-improvement/schedule/run.sh <구성 요소>
@@ -253,7 +253,7 @@ ls -t ~/.devica-product-recommendation/<구성 요소>/runs | head -1
 | 기록에 API 호출 실패가 있다 | 개발·운영 서버가 떠 있는지, 지금 네트워크에서 접속되는지 본다 |
 | 기록에 테스트 DB 연결 실패가 있다 | Docker Desktop 을 켠다 |
 | 기록에 push 실패가 있다 | 로그인한 계정으로 `git push` 가 되는지 본다 |
-| 기록도 남기지 않고 바로 끝난다 | 앞 실행이 도중에 끊겨 잠금 디렉터리가 남은 것이다. `rm -rf ~/.devica-product-recommendation/<구성 요소>/lock` 으로 지운다. 그냥 두어도 6시간 뒤 다음 실행이 지운다 |
+| 기록도 남기지 않고 바로 끝난다 | 앞 실행이 도중에 끊겨 잠금 디렉터리가 남은 것이다. `rm -rf ~/.devica-product-recommendation/<구성 요소>/lock` 으로 지운다 |
 
 ### 설정값
 
@@ -265,7 +265,7 @@ GitHub 레포, API 주소, PostHog 프로젝트, 상태 디렉터리, 개선 브
 
 ### 멈추기
 
-등록한 방식에서 작업을 끄거나 지운다. Mac 의 launchd 로 등록했다면 `recommendation-improvement/schedule/install.sh uninstall` 을 실행한다. Recommendation Improver 를 더 쓰지 않을 거면 작업 공간도 지운다. 다른 방법으로 등록했다면 `-C` 뒤를 작업 폴더로 바꾼다.
+등록한 방식에서 작업을 끄거나 지운다. macOS 와 Claude Code 로 등록했다면 `recommendation-improvement/schedule/install.sh uninstall` 을 실행한다. Recommendation Improver 를 더 쓰지 않을 거면 작업 공간도 지운다. 다른 방법으로 등록했다면 `-C` 뒤를 작업 폴더로 바꾼다.
 
 ```bash
 git -C ~/.devica-product-recommendation/recommendation-improver/repo worktree remove --force ~/.devica-product-recommendation/recommendation-improver/worktree
