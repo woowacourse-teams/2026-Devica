@@ -9,8 +9,13 @@ C=${1:?구성 요소 이름이 필요하다}
 ST="$HOME/.devica-product-recommendation"
 mkdir -p "$ST/$C"
 
+# 에이전트는 이 구성 요소만 쓰는 clone 에서 실행한다. 평소 작업하는 clone 이 바뀔 가능성을 줄이려는 것이고, 막아 주지는 않는다(ADR 0049)
+CLONE="$ST/$C/repo"
+[ -d "$CLONE/.git" ] || git clone -q "$(git remote get-url origin)" "$CLONE" || exit 1
+cd "$CLONE" || exit 1
+
 # 비대화 실행이라 물어볼 수 없다. 지시문이 쓰는 것만 허용하고, 그 밖은 막힌다.
-# 상태 디렉터리 안의 파일 쓰기·지우기(리다이렉션, mkdir, rm 포함)는 acceptEdits 가 허용하고, 레포 쓰기는 막는다
+# 상태 디렉터리 안의 파일 쓰기·지우기(리다이렉션, mkdir, rm 포함)는 acceptEdits 가 허용한다. 레포 편집 거부는 에이전트의 편집 기능에만 걸리고, 허용한 명령의 쓰기는 막지 못한다
 TOOLS=(
   'Bash(git *)' 'Bash(gh *)' 'Bash(python3 *)' 'Bash(ruby *)'
   'Bash(export *)' 'Bash(mkdir *)' 'Bash(find *)' 'Bash(ls *)' 'Bash(cat *)' 'Bash(head *)' 'Bash(date *)'

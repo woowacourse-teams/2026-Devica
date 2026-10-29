@@ -265,10 +265,10 @@ GitHub 레포, API 주소, PostHog 프로젝트, 상태 디렉터리, 개선 브
 
 ### 멈추기
 
-등록한 방식에서 작업을 끄거나 지운다. Mac 의 launchd 로 등록했다면 `recommendation-improvement/schedule/install.sh uninstall` 을 실행한다. Recommendation Improver 를 더 쓰지 않을 거면 작업 공간도 지운다.
+등록한 방식에서 작업을 끄거나 지운다. Mac 의 launchd 로 등록했다면 `recommendation-improvement/schedule/install.sh uninstall` 을 실행한다. Recommendation Improver 를 더 쓰지 않을 거면 작업 공간도 지운다. 다른 방법으로 등록했다면 `-C` 뒤를 작업 폴더로 바꾼다.
 
 ```bash
-git worktree remove --force ~/.devica-product-recommendation/recommendation-improver/worktree
+git -C ~/.devica-product-recommendation/recommendation-improver/repo worktree remove --force ~/.devica-product-recommendation/recommendation-improver/worktree
 ```
 
 실행 기록은 `~/.devica-product-recommendation/<구성 요소>/runs/` 에 그대로 남는다.
