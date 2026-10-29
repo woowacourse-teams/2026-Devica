@@ -218,16 +218,31 @@ rules:
     weight: 2
     when:
       all:
-        - { not: { question: CURRENT_STORAGE, anyOf: [ GB_256_OR_LESS ] } }
+        - { not: { question: CURRENT_STORAGE, anyOf: [ GB_256_OR_LESS, TB_1_OR_MORE ] } }
         - { question: STORAGE_SHORTAGE, anyOf: [ OFTEN ] }
     reason: 용량이 자주 부족했던 경험을 반영했습니다.
   - criterion: STORAGE
     weight: 1
     when:
       all:
-        - { not: { question: CURRENT_STORAGE, anyOf: [ GB_256_OR_LESS ] } }
+        - { not: { question: CURRENT_STORAGE, anyOf: [ GB_256_OR_LESS, TB_1_OR_MORE ] } }
         - { question: STORAGE_SHORTAGE, anyOf: [ ONCE_OR_TWICE ] }
     reason: 용량이 부족했던 경험을 반영했습니다.
+  # 1TB 로도 부족했다면 1TB 를 넘는 용량이 필요하다는 근거라 더 크게 반영한다
+  - criterion: STORAGE
+    weight: 4
+    when:
+      all:
+        - { question: CURRENT_STORAGE, anyOf: [ TB_1_OR_MORE ] }
+        - { question: STORAGE_SHORTAGE, anyOf: [ OFTEN ] }
+    reason: 지금 1TB 를 쓰는데도 용량이 자주 부족했던 경험을 반영했습니다.
+  - criterion: STORAGE
+    weight: 2
+    when:
+      all:
+        - { question: CURRENT_STORAGE, anyOf: [ TB_1_OR_MORE ] }
+        - { question: STORAGE_SHORTAGE, anyOf: [ ONCE_OR_TWICE ] }
+    reason: 지금 1TB 를 쓰는데도 용량이 부족했던 경험을 반영했습니다.
   - criterion: STORAGE
     weight: 1
     when: { question: USAGE_PERIOD, anyOf: [ FIVE_PLUS_YEARS ] }

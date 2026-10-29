@@ -21,7 +21,7 @@ export type CpuTier = {
 
 // 추천 알고리즘이 내는 값이다. 알고리즘이 바뀌면 여기도 함께 바뀐다.
 export const MEMORY_STEPS = [16, 24, 32, 48];
-export const STORAGE_STEPS = [256, 512, 1024];
+export const STORAGE_STEPS = [256, 512, 1024, 2048];
 
 export type SortType = 'RECOMMENDED' | 'PRICE_ASC' | 'PRICE_DESC';
 
