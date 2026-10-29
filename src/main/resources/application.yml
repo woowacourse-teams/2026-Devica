@@ -41,6 +41,8 @@ app:
   product-image-base-url: ${PRODUCT_IMAGE_BASE_URL}
 
 coupang:
+  access-key: ${COUPANG_ACCESS_KEY:}
+  secret-key: ${COUPANG_SECRET_KEY:}
   price-refresh:
     enabled: ${COUPANG_PRICE_REFRESH_ENABLED:false}
     # 수동 1회 실행은 local 프로파일·웹 비기동·cron=- 설정에서만 허용한다.

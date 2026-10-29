@@ -41,8 +41,8 @@ public class CoupangPriceRefreshConfig {
     @Bean
     CoupangProductSearchClient coupangProductSearchClient(
         HttpClient coupangHttpClient,
-        @Value("${COUPANG_ACCESS_KEY:}") String accessKey,
-        @Value("${COUPANG_SECRET_KEY:}") String secretKey
+        @Value("${coupang.access-key:}") String accessKey,
+        @Value("${coupang.secret-key:}") String secretKey
     ) {
         JdkClientHttpRequestFactory requests = new JdkClientHttpRequestFactory(coupangHttpClient);
         requests.setReadTimeout(Duration.ofSeconds(10));
