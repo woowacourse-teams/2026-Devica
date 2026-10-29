@@ -6,6 +6,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.ZoneId;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,9 +15,20 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestClient;
 
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnProperty(prefix = "coupang.price-refresh", name = "enabled", havingValue = "true")
-@EnableScheduling
+@ConditionalOnExpression("${coupang.price-refresh.enabled:false} || ${coupang.price-refresh.run-once:false}")
 public class CoupangPriceRefreshConfig {
+
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnExpression("${coupang.price-refresh.enabled:false} && !${coupang.price-refresh.run-once:false}")
+    @EnableScheduling
+    static class ScheduledRefresh {
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "coupang.price-refresh", name = "run-once", havingValue = "true")
+    CoupangPriceRefreshOnce coupangPriceRefreshOnce(CoupangPriceRefreshJob job) {
+        return new CoupangPriceRefreshOnce(job);
+    }
 
     @Bean(destroyMethod = "close")
     HttpClient coupangHttpClient() {

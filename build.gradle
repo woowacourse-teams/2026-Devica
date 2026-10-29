@@ -55,25 +55,38 @@ springBoot {
     mainClass = 'com.wrb.devica.DevicaApplication'
 }
 
-// Spring 서버와 DB 없이 파트너스 검색 응답의 옵션 식별자를 검증한다.
-tasks.register('coupangPriceProbe', JavaExec) {
-    group = 'verification'
-    description = '쿠팡 대표 상품의 검색 응답을 조회하고 검토용 JSON 보고서를 생성한다.'
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wrb.devica.product.infra.coupang.CoupangPriceProbe'
-    javaLauncher = javaToolchains.launcherFor {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
-// 기존 키 파일을 읽어 로컬 DB 가격을 한 번 갱신한 뒤 종료한다.
+// 서버와 같은 Spring 빈으로 로컬 DB 가격을 한 번 갱신한 뒤 종료한다.
 tasks.register('coupangPriceRefresh', JavaExec) {
     group = 'application'
     description = '기존 쿠팡 판매상품 가격을 로컬 DB에 1회 갱신한다.'
     classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'com.wrb.devica.product.infra.coupang.CoupangPriceRefreshLocal'
+    mainClass = 'com.wrb.devica.DevicaApplication'
     javaLauncher = javaToolchains.launcherFor {
         languageVersion = JavaLanguageVersion.of(21)
+    }
+    doFirst {
+        def requested = new ArrayList(getArgs())
+        if (requested.size() > 1 || requested.any {
+            !it.startsWith('--spring.config.import=') || it == '--spring.config.import='
+        }) {
+            throw new GradleException('지원 옵션: --spring.config.import=로컬파일경로[.properties]')
+        }
+        def stamp = java.time.ZonedDateTime.now(java.time.ZoneId.of('Asia/Seoul'))
+            .format(java.time.format.DateTimeFormatter.ofPattern('yyyyMMdd-HHmmss-SSS'))
+        def logFile = layout.buildDirectory.file("reports/coupang-price-refresh-${stamp}.log").get().asFile
+        setArgs((requested ?: ['--spring.config.import=optional:file:./coupang.local.env[.properties]']) + [
+            '--spring.profiles.active=local',
+            '--spring.profiles.include=',
+            '--spring.main.web-application-type=none',
+            '--coupang.price-refresh.run-once=true',
+            '--coupang.price-refresh.cron=-',
+            '--spring.jpa.show-sql=false',
+            '--logging.level.org.hibernate.orm.jdbc.bind=info',
+            '--logging.pattern.correlation=[run:%X{price_refresh.run_id:-}] %kvp ',
+            '--logging.structured.format.file=ecs',
+            "--logging.file.name=${logFile.absolutePath}",
+            "--app.public-base-url=${System.getenv('DEVICA_PUBLIC_BASE_URL') ?: 'http://localhost:5173'}"
+        ])
     }
 }
 
