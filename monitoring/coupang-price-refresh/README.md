@@ -305,11 +305,14 @@ Loki의 해당 환경 로그 보관 기간도 26시간 이상이어야 한다. �
 `HIDDEN_UNCHANGED`는 정상적인 숨김 유지이므로 이 보류 필터에서 제외한다. 숨김 유지 상품은
 `| price_refresh_result="HIDDEN_UNCHANGED"`로 별도 확인한다.
 
-- `offer.url`: 쿠팡 구매 링크. 숨김 상품의 Devica 상세는 404이므로 이 링크에서 확인한다.
+- `offer.url`: 쿠팡 구매 링크. 숨김 상품의 제품 정보는 Devica 상세에서 볼 수 있으며, 실제 판매 상태는 이 링크에서 확인한다.
 - `product.url`: Devica 제품 링크.
 - `search.candidate_count`, `search.vendor_item_ids`, `offer.vendor_item_id`: 검색 후보와 기준 ID 비교.
 - `search.invalid_url_count`, `search.missing_id_count`: URL 해석 실패·ID 누락 수.
-- API 실패는 `error.code`, DB 실패는 `error.type`으로 구분한다.
+- API 실패는 `error.code`, DB 실패는 `error.type`으로 구분한다. `API_REJECTED`이면 `coupang.r_code`도 확인한다.
+  본문의 거절 코드는 한도 초과로 단정하지 않고 해당 상품만 보류한 뒤 다음 상품을 처리한다. 실제 HTTP 401·403·429는 기존대로 중단한다.
+  `coupang.r_code`는 앞 64자만 사용하고 영문·숫자·`.`·`_`·`-` 이외는 `?`로 바꾸며, 잘렸으면 `...`가 붙는다.
+  응답 코드가 없는 오류에는 필드가 없다. 같은 `run_id`의 `offer.id`·`product.id`로 보류·미시도 상품을 식별한다.
 - `CannotCreateTransactionException`이면 현재 상품은 `DB_FAILURE`, 남은 상품은 `NOT_ATTEMPTED`다.
   작업은 중단하지만 앞선 가격 확인 성공·숨김 유지·현재 보류·남은 미시도 건수는 종료 요약에 포함한다.
 - `SKIPPED`는 조회 시작과 저장 직전의 연결·상태·가격·날짜가 맞지 않아 저장을 생략한 것이다.

@@ -149,7 +149,7 @@ Show time **On**, Wrap lines **On**, Log details **On**, Newest first, Deduplica
 | price_refresh_seller=~"${offer_seller:regex}"
 | price_refresh_result!=""
 | __error__=""
-| line_format `{{ .price_refresh_seller }} | {{ .product_code }} | {{ .price_refresh_result }} / {{ .price_refresh_action }} | 가격={{ .price_refresh_previous_price }}→{{ .price_refresh_current_price }} | 오류={{ .error_code }} {{ .error_type }} | run={{ .price_refresh_run_id }} | Devica={{ .product_url }} | 판매처={{ .offer_url }}`
+| line_format `{{ .price_refresh_seller }} | {{ .product_code }} | {{ .price_refresh_result }} / {{ .price_refresh_action }} | 가격={{ .price_refresh_previous_price }}→{{ .price_refresh_current_price }} | 오류={{ .error_code }} {{ .error_type }}{{ if .coupang_r_code }} rCode={{ .coupang_r_code }}{{ end }} | run={{ .price_refresh_run_id }} | Devica={{ .product_url }} | 판매처={{ .offer_url }}`
 ```
 
 ### 실패·보류 제품 로그
@@ -174,12 +174,12 @@ Show time **On**, Wrap lines **On**, Log details **On**, Newest first, Deduplica
 | `NO_SEARCH_RESULTS` | 해당 검색어의 응답이 비어 있음. 상품의 판매처 페이지 확인 |
 | `IDENTIFIER_UNAVAILABLE` | URL 해석 실패 수·ID 누락 수 확인 |
 | `INVALID_PRICE` / `CONFLICTING_PRICES` | 가격 누락·0 이하·서로 다른 가격 여부 |
-| `API_FAILURE` | `error.code` 확인. 인증·호출 제한 등을 구분 |
+| `API_FAILURE` | `error.code` 확인. `API_REJECTED`는 정제된 `coupang.r_code`도 확인하며 다음 상품을 계속 처리. 실제 HTTP 401·403·429는 중단 |
 | `DB_FAILURE` | `error.type`, 같은 시각의 DB 상태 확인 |
 | `SKIPPED` | 조회 중 DB 가격·상태·연결이 바뀌어 저장을 보류했는지 확인 |
 | `NOT_ATTEMPTED` | 같은 run ID의 앞선 인증 실패·호출 제한·중단 원인 확인 |
 
-로그를 펼쳐 링크를 확인한다. 숨김 제품의 Devica 상세는 404이므로 저장된 판매처 링크를 사용한다.
+로그를 펼쳐 링크를 확인한다. 숨김 제품도 Devica 상세에서 제품 정보를 볼 수 있다. 실제 판매 상태는 저장된 판매처 링크로 확인한다.
 원본 후보 ID 배열까지 보려면 Explore에서 `line_format`을 제거하고
 `| price_refresh_run_id="실행 ID" | product_code="제품 코드"`로 좁혀 원본 JSON을 읽는다.
 
