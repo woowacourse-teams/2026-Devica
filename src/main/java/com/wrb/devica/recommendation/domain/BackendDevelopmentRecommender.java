@@ -43,7 +43,8 @@ public class BackendDevelopmentRecommender {
     private static final List<Band<Integer>> STORAGE_BANDS = List.of(
         new Band<>(-2, 256),
         new Band<>(2, 512),
-        new Band<>(Integer.MAX_VALUE, 1024));
+        new Band<>(6, 1024),
+        new Band<>(Integer.MAX_VALUE, 2048));
 
     private static final Map<CpuTier, List<Integer>> MAC_MEMORY_BY_CPU = Map.of(
         CpuTier.BASIC, List.of(16, 24, 32),

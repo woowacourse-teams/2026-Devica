@@ -94,6 +94,23 @@ class BackendDevelopmentRecommenderTest {
     }
 
     @Test
+    void 저장_공간_점수가_6에서_7이_되면_1TB_에서_2TB_로_오른다() {
+        // given
+        BackendDevelopmentRecommender recommender = new BackendDevelopmentRecommender();
+        Requirements six = new Requirements(Map.of("STORAGE", 6), Map.of());
+        Requirements seven = new Requirements(Map.of("STORAGE", 7), Map.of());
+
+        // when
+        RecommendedSpec atSix = recommender.recommend(six, Map.of()).get(0);
+        RecommendedSpec atSeven = recommender.recommend(seven, Map.of()).get(0);
+
+        // then
+        assertThat(((LaptopSpec) atSix.spec()).storageGb()).isEqualTo(1024);
+        assertThat(((LaptopSpec) atSeven.spec()).storageGb()).isEqualTo(2048);
+        assertThat(atSeven.itemReasons().get("STORAGE")).containsExactly("권장 저장 공간은 2TB 입니다.");
+    }
+
+    @Test
     void 요구_항목의_근거_뒤에_결과_문장을_붙인다() {
         // given
         BackendDevelopmentRecommender recommender = new BackendDevelopmentRecommender();
