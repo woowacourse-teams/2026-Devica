@@ -1,5 +1,6 @@
 #!/bin/bash
-# 구성 요소 하나를 에이전트 CLI 로 한 번 실행한다(ADR 0049). 에이전트를 부르는 곳은 이 파일의 마지막 호출 한 줄이다. 작업 폴더(레포)에서 실행한다.
+# 구성 요소 하나를 Claude Code CLI 로 한 번 실행한다(ADR 0049). 작업 폴더(레포)에서 실행한다.
+# 권한 규칙·실행 옵션·출력 형식이 모두 Claude Code 의 것이라, 다른 에이전트로 바꾸려면 이 파일을 그 에이전트에 맞게 다시 쓴다.
 # 예약 실행은 install.sh 가 등록한 launchd 작업이 origin/develop 의 이 파일을 읽어 실행한다.
 #
 #   run.sh <metric-collector | feedback-analyzer | recommendation-improver>
