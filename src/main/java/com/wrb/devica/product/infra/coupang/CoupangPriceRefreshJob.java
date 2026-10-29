@@ -157,10 +157,19 @@ public class CoupangPriceRefreshJob {
     }
 
     private Attempt databaseFailure(PriceRefreshTarget target, RuntimeException exception, long started) {
-        targetLog(log.atError(), target, "DB_FAILURE", "NONE", started)
-            .addKeyValue("error.type", exception.getClass().getName())
+        boolean stop = exception instanceof CannotCreateTransactionException;
+        LoggingEventBuilder event;
+        if (stop) {
+            // DB 예외의 메시지·원인에는 접속 정보가 섞일 수 있어, 안전한 메시지와 실패 위치만 남긴다.
+            CannotCreateTransactionException logged = new CannotCreateTransactionException("쿠팡 가격 저장 트랜잭션 시작 실패");
+            logged.setStackTrace(exception.getStackTrace());
+            event = log.atError().setCause(logged);
+        } else {
+            event = log.atWarn().addKeyValue("error.type", exception.getClass().getName());
+        }
+        targetLog(event, target, "DB_FAILURE", "NONE", started)
             .log("쿠팡 가격 저장 실패로 해당 상품 갱신 취소");
-        return new Attempt(false, false, false, exception instanceof CannotCreateTransactionException, false);
+        return new Attempt(false, false, false, stop, false);
     }
 
     private Summary summarize(List<Attempt> attempts, int total) {

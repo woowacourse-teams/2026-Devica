@@ -254,7 +254,9 @@ class CoupangPriceRefreshJobTest {
         assertField(events.get(1), "offer.id", FIRST.offerId());
         assertField(events.get(1), "price_refresh.result", "DB_FAILURE");
         assertField(events.get(1), "price_refresh.action", "NONE");
-        assertField(events.get(1), "error.type", CannotCreateTransactionException.class.getName());
+        ILoggingEvent failureEvent = events.get(1);
+        assertThat(failureEvent.getThrowableProxy().getClassName())
+            .isEqualTo(CannotCreateTransactionException.class.getName());
         assertField(events.get(1), "offer.url", FIRST.purchaseUrl());
         assertThat(events.get(1).getKeyValuePairs())
             .noneSatisfy(pair -> assertThat(pair.key).isEqualTo("price_refresh.price_changed"));
