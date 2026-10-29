@@ -1,6 +1,6 @@
 # Metric Collector 실행 지시문
 
-[Metric Collector 명세](../interface/components/metric-collector.md)을 Claude 데스크톱 앱의 예약 작업으로 구현한 지시문이다. 예약 작업이 실행될 때마다 이 지시문을 처음부터 끝까지 **한 번** 따르고 끝낸다. 판단이 필요한 곳은 명세의 "보장"을 기준으로 하고, 산출물의 형식은 [interface/artifacts/](../interface/artifacts/), 자리는 [interface/binding.md](../interface/binding.md)를 따른다.
+[Metric Collector 명세](../interface/components/metric-collector.md)를 구현한 지시문이다. 에이전트는 예약 실행될 때마다 이 지시문을 처음부터 끝까지 **한 번** 따르고 끝낸다. 판단이 필요한 곳은 명세의 "보장"을 기준으로 하고, 산출물의 형식은 [interface/artifacts/](../interface/artifacts/), 자리는 [interface/binding.md](../interface/binding.md)를 따른다.
 
 ## 설정
 
@@ -54,7 +54,7 @@ ST="$HOME/.devica-product-recommendation/metric-collector"; rec() { python3 "$ST
 
 ### 1-1. PostHog 프로젝트 확인
 
-PostHog 커넥터로 `call project-get {}` 를 실행해 `id` 가 `638813` 인지 본다. 다르거나 커넥터가 없으면 "PostHog 커넥터가 프로젝트 <id> 를 가리켜 멈춘다"를 기록하고 끝낸다. `switch-project` 로 바꾸지 않는다. 이 앱의 다른 대화도 같은 커넥터 설정을 쓰기 때문이다.
+PostHog 커넥터로 `call project-get {}` 를 실행해 `id` 가 `638813` 인지 본다. 다르거나 커넥터가 없으면 "PostHog 커넥터가 프로젝트 <id> 를 가리켜 멈춘다"를 기록하고 끝낸다. `switch-project` 로 바꾸지 않는다. 같은 PostHog 연결을 쓰는 다른 작업·대화의 프로젝트까지 바뀌기 때문이다.
 
 ### 1-2. 결과 화면 조회 가져오기
 

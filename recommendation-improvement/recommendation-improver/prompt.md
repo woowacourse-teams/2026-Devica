@@ -1,6 +1,6 @@
 # Recommendation Improver 실행 지시문
 
-[Recommendation Improver 명세](../interface/components/recommendation-improver.md)을 Claude 데스크톱 앱의 예약 작업으로 구현한 지시문이다. 예약 작업이 실행될 때마다 이 지시문을 처음부터 끝까지 **한 번** 따르고 끝낸다. 판단이 필요한 곳은 명세의 "보장"을 기준으로 하고, 산출물의 형식은 [interface/artifacts/](../interface/artifacts/), 자리는 [interface/binding.md](../interface/binding.md)를 따른다.
+[Recommendation Improver 명세](../interface/components/recommendation-improver.md)를 구현한 지시문이다. 에이전트는 예약 실행될 때마다 이 지시문을 처음부터 끝까지 **한 번** 따르고 끝낸다. 판단이 필요한 곳은 명세의 "보장"을 기준으로 하고, 산출물의 형식은 [interface/artifacts/](../interface/artifacts/), 자리는 [interface/binding.md](../interface/binding.md)를 따른다.
 
 ## 설정
 
