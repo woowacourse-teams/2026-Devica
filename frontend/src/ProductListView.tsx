@@ -64,7 +64,8 @@ const HEADINGS: Record<ListMode, { eyebrow: string; title: string; description: 
   MATCHED: {
     eyebrow: '조건에 맞는 제품',
     title: '추천 노트북',
-    description: '제품 추천 결과를 검색 조건으로 채워 두었어요. 조건을 바꿔 더 찾아볼 수 있어요.',
+    description:
+      '제품 추천 결과를 검색 조건으로 채워 두었어요. 아래 조건을 눌러 풀면 사양과 가격이 더 낮은 제품도 볼 수 있어요.',
   },
   ALL: {
     eyebrow: '제품 목록',
