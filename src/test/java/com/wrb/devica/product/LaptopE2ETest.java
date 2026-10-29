@@ -329,7 +329,8 @@ class LaptopE2ETest extends E2ETest {
 
         // then
         given().when().get(PATH).then().statusCode(200).body("content.size()", is(0));
-        given().when().get("/api/products/" + laptop.getId()).then().statusCode(404);
+        given().when().get("/api/products/" + laptop.getId()).then().statusCode(200)
+            .body("name", is("재확인대상")).body("offers", is(List.of()));
 
         // given
         PriceRefreshTarget hidden = productOfferService.findCoupangPriceRefreshTargets().getFirst();

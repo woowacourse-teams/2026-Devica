@@ -281,7 +281,7 @@ class LaptopRepositoryCustomTest {
         assertThat(first.hasNext()).isTrue();
         assertThat(second.getContent()).extracting(ProductSummaryRow::name).containsExactly("오퍼없음");
         assertThat(second.hasNext()).isFalse();
-        assertThat(laptopRepository.findWithCpuById(hidden.getId())).isEmpty();
+        assertThat(laptopRepository.findWithCpuById(hidden.getId())).isPresent();
         assertThat(laptopRepository.findWithCpuById(visible.getId())).isPresent();
         assertThat(laptopRepository.findWithCpuById(unpriced.getId())).isPresent();
         assertThat(laptopRepository.findBrands(null)).containsExactly("노출브랜드", "오퍼없는브랜드");
