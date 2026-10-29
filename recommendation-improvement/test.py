@@ -329,6 +329,12 @@ class SignalsTest(unittest.TestCase):
         self.assertEqual(out['dropped'], {'조회 기간 전에 시작한 세션': 1, '다른 답 조합의 결과를 두 번 이상 보지 않음': 1,
                                           '처음과 마지막의 사용 목적이 다르거나 없음': 1, '바뀐 항목 없음': 1})
 
+    def test_기본_권장_사양은_답_조합으로_보지_않는다(self):
+        out = self.run_signals(self.session('', 'SLOWDOWN.NEVER'))
+        self.assertEqual((out['groups'], out['dropped']), ([], {'다른 답 조합의 결과를 두 번 이상 보지 않음': 1}))
+        g, = self.run_signals(self.session('', 'SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES'))['groups']
+        self.assertEqual(g['changed'], ['SLOWDOWN: NEVER → SOMETIMES'])
+
     def test_운영_서버_오류는_질문이_바뀐_것과_구분하고_불완전으로_표시한다(self):
         session = self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES')
         self.assertFalse(self.run_signals(session)['incomplete'])
