@@ -88,7 +88,7 @@ survey:
           title: 어떤 IDE 를 쓰나요?
           options:
             - { code: JETBRAINS, content: "IntelliJ, PyCharm 등 JetBrains 제품" }
-            - { code: LIGHT_EDITOR, content: "VS Code, Vim, Neovim 등" }
+            - { code: LIGHT_EDITOR, content: "VS Code, Cursor, Vim 등" }
             - { code: MULTIPLE, content: 여러 개를 동시에 함께 쓴다 }
             - { code: UNKNOWN, content: 아직 모르겠다 }
         - code: AI_CODING_TOOL
@@ -101,6 +101,7 @@ survey:
     - questions:
         - code: DEV_ENVIRONMENT_SETUP
           title: 개발 환경을 어떻게 띄우나요?
+          description: DB·메시지 큐·서비스처럼 동시에 켜 두는 것의 수를 기준으로 골라 주세요.
           options:
             - { code: LOCAL_MANY, content: 로컬에 직접 설치해서 여러 개 띄운다 }
             - { code: LOCAL_FEW, content: 로컬에 직접 설치해서 한두 개 띄운다 }
@@ -190,7 +191,7 @@ rules:
   - criterion: MEMORY
     weight: 1
     when: { question: USAGE_PERIOD, anyOf: [ FIVE_PLUS_YEARS ] }
-    reason: 오래 쓸 계획이라 여유를 두었습니다.
+    reason: 오래 쓸 계획이라 여유를 두었습니다. 예산이 빠듯하면 이 여유부터 줄여도 됩니다.
   - criterion: MEMORY
     weight: -2
     when: { question: DEV_ENVIRONMENT_SETUP, anyOf: [ REMOTE ] }
@@ -246,7 +247,7 @@ rules:
   - criterion: STORAGE
     weight: 1
     when: { question: USAGE_PERIOD, anyOf: [ FIVE_PLUS_YEARS ] }
-    reason: 오래 쓸 계획이라 여유를 두었습니다.
+    reason: 오래 쓸 계획이라 여유를 두었습니다. 예산이 빠듯하면 이 여유부터 줄여도 됩니다.
   - criterion: STORAGE
     weight: -1
     when:
@@ -293,7 +294,7 @@ rules:
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: USAGE_PERIOD, anyOf: [ FIVE_PLUS_YEARS ] }
-    reason: 오래 쓸 계획이라 여유를 두었습니다.
+    reason: 오래 쓸 계획이라 여유를 두었습니다. 예산이 빠듯하면 이 여유부터 줄여도 됩니다.
   - criterion: REQUIRED_CPU
     weight: -2
     when: { question: DEV_ENVIRONMENT_SETUP, anyOf: [ REMOTE ] }
