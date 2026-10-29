@@ -89,27 +89,55 @@ class CoupangProductSearchClientTest {
         // when & then
         assertThatThrownBy(() -> client.search("laptop"))
             .isInstanceOfSatisfying(CoupangApiException.class,
-                exception -> assertThat(exception.getReason()).isEqualTo(reason))
+                exception -> {
+                    assertThat(exception.getReason()).isEqualTo(reason);
+                    assertThat(exception.getResponseCode()).isNull();
+                })
             .hasMessage(reason.name())
             .hasNoCause();
         server.verify();
     }
 
-    @Test
-    void HTTP_성공이어도_rCode가_실패이면_거절로_처리한다() {
+    @ParameterizedTest
+    @ValueSource(strings = {"1", "403", "429", "UNKNOWN_CODE", ""})
+    void HTTP_성공이어도_rCode가_실패이면_원래_코드와_함께_거절로_처리한다(String responseCode) {
         // given
         server.expect(requestTo(SEARCH_URL + "?keyword=laptop&limit=10"))
             .andRespond(
-                withSuccess("{\"rCode\":\"1\",\"rMessage\":\"sensitive-server-body\"}", MediaType.APPLICATION_JSON));
+                withSuccess("{\"rCode\":\"%s\",\"rMessage\":\"sensitive-server-body\"}".formatted(responseCode),
+                    MediaType.APPLICATION_JSON));
 
         // when & then
         assertThatThrownBy(() -> client.search("laptop"))
-            .isInstanceOf(CoupangApiException.class).hasMessage("API_REJECTED");
+            .isInstanceOfSatisfying(CoupangApiException.class, exception -> {
+                assertThat(exception.getReason()).isEqualTo(CoupangApiException.Reason.API_REJECTED);
+                assertThat(exception.getResponseCode()).isEqualTo(responseCode);
+            })
+            .hasMessage("API_REJECTED").hasNoCause();
+        server.verify();
+    }
+
+    @Test
+    void 응답_코드_원문은_예외에_보존하되_예외_문자열에는_노출하지_않는다() {
+        // given
+        String responseCode = "403\r\n\t" + "x".repeat(100);
+        String encodedCode = "403\\r\\n\\t" + "x".repeat(100);
+        server.expect(requestTo(SEARCH_URL + "?keyword=laptop&limit=10"))
+            .andRespond(withSuccess("{\"rCode\":\"%s\",\"rMessage\":\"sensitive-server-body\"}"
+                .formatted(encodedCode), MediaType.APPLICATION_JSON));
+
+        // when & then
+        assertThatThrownBy(() -> client.search("laptop"))
+            .isInstanceOfSatisfying(CoupangApiException.class, exception -> {
+                assertThat(exception.getResponseCode()).isEqualTo(responseCode);
+                assertThat(exception.toString()).doesNotContain(responseCode, "sensitive-server-body");
+            })
+            .hasMessage("API_REJECTED").hasNoCause();
         server.verify();
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "not-json", "{}", "{\"rCode\":\"0\"}", "{\"rCode\":\"0\",\"data\":{}}",
+    @ValueSource(strings = {"", "not-json", "{}", "{\"rCode\":null}", "{\"rCode\":\"0\"}", "{\"rCode\":\"0\",\"data\":{}}",
         "{\"rCode\":\"0\",\"data\":{\"productData\":[null]}}"})
     void 누락되거나_깨진_응답을_빈_검색_결과로_취급하지_않는다(String response) {
         // given
@@ -118,7 +146,9 @@ class CoupangProductSearchClientTest {
 
         // when & then
         assertThatThrownBy(() -> client.search("laptop"))
-            .isInstanceOf(CoupangApiException.class).hasMessage("INVALID_RESPONSE");
+            .isInstanceOfSatisfying(CoupangApiException.class,
+                exception -> assertThat(exception.getResponseCode()).isNull())
+            .hasMessage("INVALID_RESPONSE");
         server.verify();
     }
 
@@ -130,7 +160,9 @@ class CoupangProductSearchClientTest {
 
         // when & then
         assertThatThrownBy(() -> client.search("laptop"))
-            .isInstanceOf(CoupangApiException.class).hasMessage("CONNECTION_FAILED");
+            .isInstanceOfSatisfying(CoupangApiException.class,
+                exception -> assertThat(exception.getResponseCode()).isNull())
+            .hasMessage("CONNECTION_FAILED");
         server.verify();
     }
 

@@ -345,6 +345,12 @@ class LaptopE2ETest extends E2ETest {
             .body("offers[0].price", is(900_000)).body("offers[0].checkedAt", is("2026-10-27"));
     }
 
+    @Test
+    void 없는_제품의_상세를_조회하면_404를_반환한다() {
+        // when & then
+        given().when().get("/api/products/-1").then().statusCode(404);
+    }
+
     // UC-11: 가격을 확인하고 외부 구매처로 이동할 수 있다
     @Test
     void 상세를_조회하면_판매_중인_판매처를_싼_순으로_받는다() {
@@ -365,6 +371,10 @@ class LaptopE2ETest extends E2ETest {
         productOfferRepository.save(offer()
             .product(laptop)
             .price(2_500_000L).status(OfferStatus.SOLD_OUT)
+            .build());
+        productOfferRepository.save(offer()
+            .product(laptop)
+            .price(2_000_000L).status(OfferStatus.HIDDEN)
             .build());
 
         // when & then

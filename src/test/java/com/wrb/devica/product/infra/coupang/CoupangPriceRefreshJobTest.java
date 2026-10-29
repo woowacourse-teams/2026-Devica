@@ -14,6 +14,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
@@ -208,6 +209,114 @@ class CoupangPriceRefreshJobTest {
         assertThat(pauses).containsExactly(2100L);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"1", "403", "429"})
+    void API_거절_후에도_나머지_상품을_끝까지_처리하고_결과를_빠짐없이_기록한다(String responseCode) {
+        // given
+        List<PriceRefreshTarget> targets = List.of(FIRST, SECOND, HIDDEN, THIRD);
+        when(offers.findCoupangPriceRefreshTargets()).thenReturn(targets);
+        server.expect(requestTo(searchUrl(FIRST))).andRespond(withSuccess(
+            "{\"rCode\":\"%s\",\"rMessage\":\"sensitive-server-body\"}".formatted(responseCode),
+            MediaType.APPLICATION_JSON));
+        respond(SECOND, product(MATCHING_URL, 2_100_000L));
+        respond(HIDDEN, product("https://www.coupang.com/vp/products/999?vendorItemId=57", 1L));
+        respond(THIRD, product(MATCHING_URL, THIRD.price()));
+        when(offers.refreshCoupangPrice(SECOND, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
+        when(offers.refreshCoupangPrice(THIRD, THIRD.price(), CHECKED_AT)).thenReturn(PriceRefreshResult.UNCHANGED);
+
+        // when
+        List<ILoggingEvent> events = capture(() -> assertThat(job.refreshPrices())
+            .isEqualTo(new CoupangPriceRefreshJob.Summary(1, 1, 1, 0, 0, 0, 1)));
+
+        // then
+        assertRunResults(events, targets, List.of("API_FAILURE", "UPDATED", "HIDDEN_UNCHANGED", "UNCHANGED"));
+        assertField(events.get(1), "error.code", "API_REJECTED");
+        assertWarnException(events.get(1), CoupangApiException.class);
+        assertField(events.get(1), "coupang.r_code", responseCode);
+        assertField(events.getLast(), "price_refresh.success", 2);
+        assertField(events.getLast(), "price_refresh.hidden_unchanged", 1);
+        assertField(events.getLast(), "price_refresh.deferred", 1);
+        assertField(events.getLast(), "price_refresh.not_attempted", 0);
+        assertField(events.getLast(), "price_refresh.total", 4);
+        assertField(events.getLast(), "price_refresh.outcome", "PARTIAL");
+        verify(offers).findCoupangPriceRefreshTargets();
+        verify(offers).refreshCoupangPrice(SECOND, 2_100_000L, CHECKED_AT);
+        verify(offers).refreshCoupangPrice(THIRD, THIRD.price(), CHECKED_AT);
+        verifyNoMoreInteractions(offers);
+        assertThat(pauses).containsExactly(2100L, 2100L, 2100L);
+        assertThat(events.get(1).getKeyValuePairs().toString())
+            .doesNotContain("sensitive-server-body", "test-access", "test-secret");
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {401, 403, 429})
+    void API_거절은_계속하되_실제_HTTP_인증_호출제한은_중단하고_미시도도_식별한다(int status) {
+        // given
+        PriceRefreshTarget fifth = target(5L, 50L, "FIFTH");
+        List<PriceRefreshTarget> targets = List.of(FIRST, SECOND, HIDDEN, THIRD, fifth);
+        when(offers.findCoupangPriceRefreshTargets()).thenReturn(targets);
+        respond(FIRST, product(MATCHING_URL, 2_100_000L));
+        server.expect(requestTo(searchUrl(SECOND))).andRespond(withSuccess("{\"rCode\":\"429\"}",
+            MediaType.APPLICATION_JSON));
+        respond(HIDDEN, product("https://www.coupang.com/vp/products/999?vendorItemId=57", 1L));
+        server.expect(requestTo(searchUrl(THIRD))).andRespond(withStatus(HttpStatusCode.valueOf(status)));
+        when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UPDATED);
+
+        // when
+        List<ILoggingEvent> events = capture(() -> assertThat(job.refreshPrices())
+            .isEqualTo(new CoupangPriceRefreshJob.Summary(1, 0, 2, 1, 0, 0, 1)));
+
+        // then
+        assertRunResults(events, targets,
+            List.of("UPDATED", "API_FAILURE", "HIDDEN_UNCHANGED", "API_FAILURE", "NOT_ATTEMPTED"));
+        assertField(events.get(2), "error.code", "API_REJECTED");
+        assertWarnException(events.get(2), CoupangApiException.class);
+        assertWarnException(events.get(4), CoupangApiException.class);
+        assertField(events.get(2), "coupang.r_code", "429");
+        assertField(events.get(4), "error.code", status == 429 ? "RATE_LIMITED" : "AUTHENTICATION_FAILED");
+        assertThat(events.get(4).getKeyValuePairs()).noneMatch(pair -> "coupang.r_code".equals(pair.key));
+        assertThat(events.get(5).getKeyValuePairs()).noneMatch(pair -> "coupang.r_code".equals(pair.key));
+        assertField(events.getLast(), "price_refresh.success", 1);
+        assertField(events.getLast(), "price_refresh.hidden_unchanged", 1);
+        assertField(events.getLast(), "price_refresh.deferred", 2);
+        assertField(events.getLast(), "price_refresh.not_attempted", 1);
+        assertField(events.getLast(), "price_refresh.total", 5);
+        assertField(events.getLast(), "price_refresh.outcome", "PARTIAL");
+        verify(offers).findCoupangPriceRefreshTargets();
+        verify(offers).refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT);
+        verifyNoMoreInteractions(offers);
+        assertThat(pauses).containsExactly(2100L, 2100L, 2100L);
+    }
+
+    @ParameterizedTest
+    @MethodSource("responseCodesForLogging")
+    void 응답_코드는_로그에_넣기_전에_길이와_문자를_제한한다(String responseCode, String loggedCode) {
+        // given
+        CoupangProductSearchClient rejectedClient = mock(CoupangProductSearchClient.class);
+        when(rejectedClient.search(FIRST.productCode()))
+            .thenThrow(new CoupangApiException(CoupangApiException.Reason.API_REJECTED, responseCode));
+        job = new CoupangPriceRefreshJob(rejectedClient, offers, clock, "https://devica.example", pauses::add);
+
+        // when
+        List<ILoggingEvent> events = capture(this::assertDeferred);
+
+        // then
+        assertField(resultEvent(events), "price_refresh.result", "API_FAILURE");
+        assertField(resultEvent(events), "coupang.r_code", loggedCode);
+        assertThat(loggedCode).hasSizeLessThanOrEqualTo(67).doesNotContain("\r", "\n", "\t");
+        assertThat(resultEvent(events).getThrowableProxy()).isNull();
+    }
+
+    private static Stream<Arguments> responseCodesForLogging() {
+        return Stream.of(
+            Arguments.of("E_403.retry-1", "E_403.retry-1"),
+            Arguments.of("", ""),
+            Arguments.of("403\r\n\t \"한", "403??????"),
+            Arguments.of("X".repeat(64), "X".repeat(64)),
+            Arguments.of("X".repeat(1000), "X".repeat(64) + "...")
+        );
+    }
+
     @Test
     void 개별_조회_오류는_즉시_재시도하지_않고_간격을_둔_뒤_다음_상품을_조회한다() {
         // given
@@ -230,11 +339,19 @@ class CoupangPriceRefreshJobTest {
         respond(FIRST, product(MATCHING_URL, 2_100_000L));
         respond(SECOND, product(MATCHING_URL, 1_000_000L));
         when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT))
-            .thenThrow(new DataAccessResourceFailureException("test database failure"));
+            .thenThrow(new DataAccessResourceFailureException("sensitive-db-message",
+                new IllegalStateException("sensitive-db-cause")));
         when(offers.refreshCoupangPrice(SECOND, 1_000_000L, CHECKED_AT)).thenReturn(PriceRefreshResult.UNCHANGED);
 
-        // when & then
-        assertThat(job.refreshPrices()).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 1, 1, 0, 0, 0, 0));
+        // when
+        List<ILoggingEvent> events = capture(() -> assertThat(job.refreshPrices())
+            .isEqualTo(new CoupangPriceRefreshJob.Summary(0, 1, 1, 0, 0, 0, 0)));
+
+        // then
+        assertRunResults(events, List.of(FIRST, SECOND), List.of("DB_FAILURE", "UNCHANGED"));
+        assertWarnException(events.get(1), DataAccessResourceFailureException.class);
+        assertThat(events.get(1).getFormattedMessage()).doesNotContain("sensitive-db");
+        assertThat(events.get(1).getKeyValuePairs().toString()).doesNotContain("sensitive-db");
         verify(offers).refreshCoupangPrice(SECOND, 1_000_000L, CHECKED_AT);
     }
 
@@ -243,8 +360,10 @@ class CoupangPriceRefreshJobTest {
         // given
         when(offers.findCoupangPriceRefreshTargets()).thenReturn(List.of(FIRST, SECOND, THIRD));
         respond(FIRST, product(MATCHING_URL, 2_100_000L));
-        when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT))
-            .thenThrow(new CannotCreateTransactionException("test transaction start failure"));
+        CannotCreateTransactionException failure = new CannotCreateTransactionException("sensitive-db-message",
+            new IllegalStateException("sensitive-db-cause"));
+        failure.addSuppressed(new IllegalStateException("sensitive-db-suppressed"));
+        when(offers.refreshCoupangPrice(FIRST, 2_100_000L, CHECKED_AT)).thenThrow(failure);
 
         // when & then
         List<ILoggingEvent> events = capture(() -> assertThat(job.refreshPrices())
@@ -255,8 +374,17 @@ class CoupangPriceRefreshJobTest {
         assertField(events.get(1), "price_refresh.result", "DB_FAILURE");
         assertField(events.get(1), "price_refresh.action", "NONE");
         ILoggingEvent failureEvent = events.get(1);
+        assertThat(failureEvent.getLevel()).isEqualTo(Level.ERROR);
         assertThat(failureEvent.getThrowableProxy().getClassName())
             .isEqualTo(CannotCreateTransactionException.class.getName());
+        assertThat(failureEvent.getThrowableProxy().getMessage()).isEqualTo("쿠팡 가격 저장 트랜잭션 시작 실패");
+        assertThat(failureEvent.getThrowableProxy().getCause()).isNull();
+        assertThat(failureEvent.getThrowableProxy().getSuppressed()).isNullOrEmpty();
+        assertThat(failureEvent.getThrowableProxy().getStackTraceElementProxyArray())
+            .extracting(proxy -> proxy.getStackTraceElement()).containsExactly(failure.getStackTrace());
+        assertThat(failure.getMessage()).isEqualTo("sensitive-db-message");
+        assertThat(failure.getCause().getMessage()).isEqualTo("sensitive-db-cause");
+        assertThat(failure.getSuppressed()).hasSize(1);
         assertField(events.get(1), "offer.url", FIRST.purchaseUrl());
         assertThat(events.get(1).getKeyValuePairs())
             .noneSatisfy(pair -> assertThat(pair.key).isEqualTo("price_refresh.price_changed"));
@@ -447,6 +575,10 @@ class CoupangPriceRefreshJobTest {
             assertThatThrownBy(() -> job.refreshPrices()).isInstanceOf(DataAccessResourceFailureException.class);
 
             assertThat(appender.list).hasSize(2);
+            assertThat(appender.list.getLast().getLevel()).isEqualTo(Level.ERROR);
+            assertThat(appender.list.getLast().getThrowableProxy().getClassName())
+                .isEqualTo(DataAccessResourceFailureException.class.getName());
+            assertThat(appender.list.getLast().getThrowableProxy().getStackTraceElementProxyArray()).isNotEmpty();
             String runId = appender.list.getFirst().getMDCPropertyMap().get("price_refresh.run_id");
             assertThat(runId).isNotBlank();
             assertThat(appender.list.getLast().getMDCPropertyMap()).containsEntry("price_refresh.run_id", runId);
@@ -794,6 +926,7 @@ class CoupangPriceRefreshJobTest {
 
         assertField(resultEvent(events), "price_refresh.result", "API_FAILURE");
         assertField(resultEvent(events), "error.code", "RATE_LIMITED");
+        assertWarnException(resultEvent(events), CoupangApiException.class);
         assertField(resultEvent(events), "offer.url", FIRST.purchaseUrl());
         verify(offers, never()).hideCoupangOffer(any(), any());
     }
@@ -818,10 +951,33 @@ class CoupangPriceRefreshJobTest {
         }
     }
 
+    private void assertRunResults(List<ILoggingEvent> events, List<PriceRefreshTarget> targets,
+                                  List<String> results) {
+        assertThat(events).hasSize(targets.size() + 2);
+        String runId = events.getFirst().getMDCPropertyMap().get("price_refresh.run_id");
+        assertThat(runId).isNotBlank();
+        assertThat(events).allSatisfy(event -> assertThat(event.getMDCPropertyMap())
+            .containsEntry("price_refresh.run_id", runId));
+        for (int i = 0; i < targets.size(); i++) {
+            assertField(events.get(i + 1), "offer.id", targets.get(i).offerId());
+            assertField(events.get(i + 1), "product.id", targets.get(i).productId());
+            assertField(events.get(i + 1), "product.code", targets.get(i).productCode());
+            assertField(events.get(i + 1), "price_refresh.result", results.get(i));
+        }
+    }
+
     private ILoggingEvent resultEvent(List<ILoggingEvent> events) {
         return events.stream().filter(event -> event.getKeyValuePairs() != null
             && event.getKeyValuePairs().stream().anyMatch(pair -> "price_refresh.result".equals(pair.key)))
             .findFirst().orElseThrow();
+    }
+
+    private void assertWarnException(ILoggingEvent event, Class<? extends RuntimeException> exceptionType) {
+        assertThat(event.getLevel()).isEqualTo(Level.WARN);
+        assertField(event, "error.type", exceptionType.getName());
+        assertThat(event.getThrowableProxy()).isNull();
+        assertThat(event.getKeyValuePairs()).noneMatch(pair -> "error.message".equals(pair.key)
+            || "error.stack_trace".equals(pair.key));
     }
 
     private void assertField(ILoggingEvent event, String key, Object value) {
