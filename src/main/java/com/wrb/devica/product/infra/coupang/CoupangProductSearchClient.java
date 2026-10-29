@@ -44,7 +44,7 @@ public final class CoupangProductSearchClient {
                 throw new CoupangApiException(CoupangApiException.Reason.INVALID_RESPONSE);
             }
             if (!"0".equals(response.rCode())) {
-                throw new CoupangApiException(CoupangApiException.Reason.API_REJECTED);
+                throw new CoupangApiException(CoupangApiException.Reason.API_REJECTED, response.rCode());
             }
             if (response.data() == null || response.data().productData() == null
                 || response.data().productData().stream().anyMatch(Objects::isNull)) {

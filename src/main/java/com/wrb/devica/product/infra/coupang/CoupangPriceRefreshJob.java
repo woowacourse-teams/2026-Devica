@@ -137,11 +137,23 @@ public class CoupangPriceRefreshJob {
     }
 
     private Attempt apiFailure(PriceRefreshTarget target, CoupangApiException exception, long started) {
-        targetLog(log.atWarn(), target, "API_FAILURE", "NONE", started)
-            .addKeyValue("error.code", exception.getReason().name()).log("쿠팡 가격 조회 실패로 갱신 보류");
+        LoggingEventBuilder event = targetLog(log.atWarn(), target, "API_FAILURE", "NONE", started)
+            .addKeyValue("error.code", exception.getReason().name())
+            .addKeyValue("error.type", exception.getClass().getName());
+        if (exception.getResponseCode() != null) {
+            event.addKeyValue("coupang.r_code", safeResponseCode(exception.getResponseCode()));
+        }
+        event.log("쿠팡 가격 조회 실패로 갱신 보류");
         boolean stop = exception.getReason() == CoupangApiException.Reason.AUTHENTICATION_FAILED
             || exception.getReason() == CoupangApiException.Reason.RATE_LIMITED;
         return new Attempt(false, false, false, stop, false);
+    }
+
+    private String safeResponseCode(String responseCode) {
+        // 외부 값은 먼저 길이를 제한하고 제어문자 등을 정제한다. 원문은 예외 필드에만 보존한다.
+        String limited = responseCode.substring(0, Math.min(responseCode.length(), 64));
+        String sanitized = limited.replaceAll("[^A-Za-z0-9._-]", "?");
+        return responseCode.length() > 64 ? sanitized + "..." : sanitized;
     }
 
     private Attempt databaseFailure(PriceRefreshTarget target, RuntimeException exception, long started) {
