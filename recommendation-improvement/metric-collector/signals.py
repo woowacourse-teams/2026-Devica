@@ -189,7 +189,8 @@ def signals(path, prod, days, edits_path=None):
         if not views or views[0]['ts'] < start_ts:
             dropped['조회 기간 전에 시작한 세션'] += 1
             continue
-        results = [v for v in views if v['event'] == RESULT_EVENT and v['path'] == '/result']
+        # 답이 없는 결과는 설문 전 기본 권장 사양이라, 답을 바꾼 것으로 보지 않는다
+        results = [v for v in views if v['event'] == RESULT_EVENT and v['path'] == '/result' and v['answers']]
         if len({json.dumps([v['purpose'], v['answers']], sort_keys=True) for v in results}) < 2:
             dropped['다른 답 조합의 결과를 두 번 이상 보지 않음'] += 1
             continue
