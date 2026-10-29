@@ -80,7 +80,7 @@ class CoupangPriceRefreshOnceTest {
             "--spring.profiles.active=local", "--spring.main.web-application-type=none",
             "--spring.datasource.url=jdbc:mysql://localhost:13306/devica?characterEncoding=UTF-8&serverTimezone=Asia/Seoul",
             "--coupang.price-refresh.run-once=true", "--coupang.price-refresh.enabled=true",
-            "--coupang.price-refresh.cron=-", "--COUPANG_ACCESS_KEY=test-access", "--COUPANG_SECRET_KEY=test-secret")) {
+            "--coupang.price-refresh.cron=-", "--coupang.access-key=test-access", "--coupang.secret-key=test-secret")) {
             // then
             assertThat(context.getBeansOfType(CoupangPriceRefreshJob.class)).hasSize(1);
             assertThat(context.getBeansOfType(CoupangPriceRefreshOnce.class)).hasSize(1);
