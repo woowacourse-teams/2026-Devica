@@ -182,25 +182,40 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
    - 영향 범위: `compare.json` 의 `impact`.
    - 배포되지 않은 변경: `python3 "$ST/snapshot.py" diff origin/main origin/develop <purpose> <criterion>`. `origin/main` 에 정의서가 없으면 "운영에 정의서가 아직 배포되지 않았다"고 적는다.
    - 같은 규칙의 최근 변경: `python3 "$ST/snapshot.py" history origin/develop <purpose>` 중 `changes` 에 이 규칙의 키(새 `when` 이면 새 키도)가 있는 커밋 최근 5개의 시각, 커밋 앞 8자리, 제목, 전 → 후 weight·reason.
-3. **본문.** 파일로 쓴다.
+3. **본문.** 파일로 쓴다. 첫 줄은 식별 표시이고, 그 아래는 팀 PR 템플릿(`.github/pull_request_template.md`)의 절 순서다. [개선 PR](../interface/artifacts/improvement-pr.md)의 항목을 아래처럼 나눠 담는다.
    ```markdown
    <!-- product-recommendation:improvement -->
-   ## 근거 피드백
+   ## 이슈 번호
 
    Closes #<issue>
    Closes #<issue>
 
-   ## 변경
+   ## 체크 리스트
+
+   - [x] Gradle `test`를 실행했을 때, 모든 테스트가 정상적으로 통과했나요?
+   - [ ] 애플리케이션이 정상적으로 실행되나요?
+   - [ ] SonarQube 플러그인 검증과 AI 검증을 완료했나요?
+
+   정의서와 스냅숏만 바뀌어 애플리케이션 실행과 SonarQube 검증은 하지 않았다.
+
+   ## 1. 변경 내용
 
    - 정의서: `<DEF>`
    - 규칙: `<criterion>` · `<when 한 줄>`
    - <weight a → b | when a → b | 규칙 삭제 | reason "a" → "b">
 
-   ## 이유
+   ## 2. 변경 이유
 
    [개선 지시](<INS_URL>): <지시의 reason>
 
-   ## 결과 변화
+   ## 3. 핵심 구현
+
+   - 개선 지시가 가리킨 규칙 하나만 바꿨다. <방향만 있는 weight 면 "시도한 값 → 채택한 값"과 그 이유(5-3)>
+
+   ## 4. 테스트 방법
+
+   - `./gradlew test --tests 'com.wrb.devica.recommendation.*'` 통과
+   - 결과 변화
 
    | 사례 | 권장안 | CPU | 메모리 | 저장 공간 |
    |---|---|---|---|---|
@@ -208,30 +223,22 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
 
    <바뀐 근거 문장 전 → 후. 앞선 피드백 사례 중 결과가 바뀐 것이 있으면 같은 표로>
 
-   ## 배포되지 않은 변경
+   - 영향 범위: 전체 사례 <total>건 중 결과 값이 바뀐 사례 <value_changed>건, 근거 문장만 바뀐 사례 <reason_only>건
+     - 결과 값이 바뀐 사례(고친 규칙의 조건에 해당하는 답별): <질문.선택지 n건, …>
+     - 바뀐 대표 사용자: <이름들 또는 "없음">
 
-   <목록과 "운영 사용자가 겪을 변화는 위 결과 변화와 다를 수 있다", 또는 "없음">
+   ## 5. 고려한 대안 및 리뷰 포인트
 
-   ## 같은 규칙의 최근 변경
-
-   <목록 또는 "없음">
-
-   ## 영향 범위
-
-   - 전체 사례 <total>건 중 결과 값이 바뀐 사례 <value_changed>건, 근거 문장만 바뀐 사례 <reason_only>건
-   - 결과 값이 바뀐 사례(고친 규칙의 조건에 해당하는 답별): <질문.선택지 n건, …>
-   - 바뀐 대표 사용자: <이름들 또는 "없음">
-
-   ## 지표 추정 표시
-
-   이 개선은 지표 피드백에서 추정한 항목·방향에 기댄다. 사용자가 직접 고른 것이 아니므로 추정한 항목과 방향이 그럴듯한지 확인한다.
+   - **지표 추정 표시**: 이 개선은 지표 피드백에서 추정한 항목·방향에 기댄다. 사용자가 직접 고른 것이 아니므로 추정한 항목과 방향이 그럴듯한지 확인한다.
+   - **배포되지 않은 변경**: <목록과 "운영 사용자가 겪을 변화는 위 결과 변화와 다를 수 있다", 또는 "없음">
+   - **같은 규칙의 최근 변경**: <목록 또는 "없음">
    ```
-   `## 지표 추정 표시` 절은 `basis` 가 `METRIC_ESTIMATE` 일 때만 둔다.
+   `지표 추정 표시` 항목은 `basis` 가 `METRIC_ESTIMATE` 일 때만 둔다.
 4. **push 와 PR.**
    ```bash
    git -C "$WT" push -q origin "HEAD:refs/heads/$BR"
    gh pr create --repo "$GH_REPO" --base develop --head "$BR" \
-     --title "fix: 제품 추천 <criterion> 규칙 조정 (피드백 #<ISSUE>)" --body-file "$ST/pr-body.md"
+     --title "[FIX] 제품 추천 <criterion> 규칙 조정 (피드백 #<ISSUE>)" --body-file "$ST/pr-body.md"
    ```
    push 가 훅에 막히면 훅이 가리키는 문제를 기록하고 PR 을 올리지 않는다(`NOT_OPENED`, 사유에 훅의 메시지).
 
