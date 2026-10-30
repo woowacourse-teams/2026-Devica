@@ -37,7 +37,18 @@ management:
         http.server.requests: 100ms, 300ms, 500ms, 1s, 2s, 5s
 
 app:
+  public-base-url: ${DEVICA_PUBLIC_BASE_URL:https://devica.co.kr}
   product-image-base-url: ${PRODUCT_IMAGE_BASE_URL}
+
+coupang:
+  access-key: ${COUPANG_ACCESS_KEY:}
+  secret-key: ${COUPANG_SECRET_KEY:}
+  price-refresh:
+    enabled: ${COUPANG_PRICE_REFRESH_ENABLED:false}
+    # 수동 1회 실행은 local 프로파일·웹 비기동·cron=- 설정에서만 허용한다.
+    run-once: ${COUPANG_PRICE_REFRESH_RUN_ONCE:false}
+    # 한국 시간 매일 04:00. 활성화한 서버 한 대에서만 실행한다.
+    cron: ${COUPANG_PRICE_REFRESH_CRON:0 0 4 * * *}
 
 logging:
   structured:

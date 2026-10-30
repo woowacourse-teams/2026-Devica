@@ -9,8 +9,11 @@ import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.querydsl.jpa.JPAExpressions;
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
+import com.wrb.devica.product.domain.QProductOffer;
 import com.wrb.devica.product.dto.LaptopSearchCondition;
 import com.wrb.devica.product.dto.ProductSummaryRow;
 import com.wrb.devica.product.dto.QProductSummaryRow;
@@ -133,6 +136,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
 
     private Predicate[] conditions(LaptopSearchCondition condition) {
         return new Predicate[]{
+            visibleProduct(),
             osEq(condition.os()),
             cpuTierAtLeast(condition.cpuTier()),
             memoryGbGoe(condition.memoryGb()),
@@ -172,9 +176,17 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             .select(laptop.brand)
             .distinct()
             .from(laptop)
-            .where(osEq(os))
+            .where(osEq(os), visibleProduct())
             .orderBy(laptop.brand.asc())
             .fetch();
+    }
+
+    private BooleanExpression visibleProduct() {
+        QProductOffer offer = new QProductOffer("visibilityOffer");
+        return JPAExpressions.selectOne().from(offer)
+            .where(offer.productId.eq(laptop.id), offer.status.eq(OfferStatus.HIDDEN)).notExists()
+            .or(JPAExpressions.selectOne().from(offer)
+                .where(offer.productId.eq(laptop.id), offer.status.eq(OfferStatus.ON_SALE)).exists());
     }
 
     private BooleanExpression minPriceGoe(Long minPrice) {

@@ -260,6 +260,33 @@ class LaptopRepositoryCustomTest {
         assertThat(found.hasNext()).isFalse();
     }
 
+    @ParameterizedTest
+    @EnumSource(SortType.class)
+    void 숨김_상품은_모든_정렬과_페이지에서_제외하되_다른_판매처가_있으면_노출한다(SortType sort) {
+        // given
+        Laptop hidden = laptopOf(laptop().name("숨김").brand("숨김브랜드"));
+        productOfferRepository.save(offer().product(hidden).status(OfferStatus.HIDDEN).build());
+        Laptop visible = onSaleLaptop(laptop().name("다른판매처").brand("노출브랜드"));
+        productOfferRepository.save(offer().product(visible).status(OfferStatus.HIDDEN).build());
+        Laptop unpriced = laptopOf(laptop().name("오퍼없음").brand("오퍼없는브랜드"));
+        entityManager.flush();
+        entityManager.clear();
+
+        // when
+        var first = laptopRepository.findSummariesWithMinPrice(condition().build(), sort, PageRequest.of(0, 1));
+        var second = laptopRepository.findSummariesWithMinPrice(condition().build(), sort, PageRequest.of(1, 1));
+
+        // then
+        assertThat(first.getContent()).extracting(ProductSummaryRow::name).containsExactly("다른판매처");
+        assertThat(first.hasNext()).isTrue();
+        assertThat(second.getContent()).extracting(ProductSummaryRow::name).containsExactly("오퍼없음");
+        assertThat(second.hasNext()).isFalse();
+        assertThat(laptopRepository.findWithCpuById(hidden.getId())).isPresent();
+        assertThat(laptopRepository.findWithCpuById(visible.getId())).isPresent();
+        assertThat(laptopRepository.findWithCpuById(unpriced.getId())).isPresent();
+        assertThat(laptopRepository.findBrands(null)).containsExactly("노출브랜드", "오퍼없는브랜드");
+    }
+
     @Test
     void 판매_중인_오퍼가_없어도_조회하고_최저가는_비워둔다() {
         // given

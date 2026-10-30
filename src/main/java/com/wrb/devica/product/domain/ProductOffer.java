@@ -32,6 +32,7 @@ public class ProductOffer extends BaseTimeEntity {
     @Column(nullable = false)
     private long price;
 
+    // 판매처의 판매 옵션 ID. 쿠팡은 purchaseUrl의 vendorItemId를 저장한다(productId, itemId와 구분).
     @Column(name = "external_item_id", length = 64)
     private String externalItemId;
 
@@ -56,5 +57,18 @@ public class ProductOffer extends BaseTimeEntity {
         this.purchaseUrl = purchaseUrl;
         this.status = status;
         this.checkedAt = checkedAt;
+    }
+
+    public void hide() {
+        this.status = OfferStatus.HIDDEN;
+    }
+
+    public void refreshPrice(long price, LocalDate checkedAt) {
+        if (price <= 0 || checkedAt == null) {
+            throw new IllegalArgumentException("확인한 가격은 양수이고 확인 날짜가 있어야 합니다.");
+        }
+        this.price = price;
+        this.checkedAt = checkedAt;
+        this.status = OfferStatus.ON_SALE;
     }
 }

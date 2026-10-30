@@ -2,6 +2,7 @@ package com.wrb.devica.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.wrb.devica.product.infra.coupang.CoupangProductUrl;
 import java.util.List;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,36 @@ public class FlywayMigrationTest {
 
         // then
         assertThat(pendingMigrations).isEmpty();
+    }
+
+    @Test
+    void 초기_노트북_20개의_쿠팡_판매상품_ID는_URL의_vendorItemId와_일치하고_중복되지_않는다() {
+        // given: 운영 DB가 아닌 마이그레이션 테스트 전용 DB에 초기 데이터를 적용한다.
+        flyway.clean();
+        flyway.migrate();
+
+        // when
+        var offers = jdbcTemplate.queryForList("""
+            SELECT p.code, o.external_item_id, o.purchase_url
+            FROM product_offer o
+            JOIN product p ON p.id = o.product_id
+            JOIN laptop l ON l.id = p.id
+            WHERE o.name = '쿠팡'
+            ORDER BY p.code
+            """);
+
+        // then
+        assertThat(offers).hasSize(20);
+        assertThat(offers).extracting(row -> row.get("code")).doesNotHaveDuplicates();
+        assertThat(offers).extracting(row -> row.get("external_item_id")).doesNotHaveDuplicates();
+        offers.forEach(row -> {
+            String externalItemId = (String) row.get("external_item_id");
+            var url = CoupangProductUrl.parse((String) row.get("purchase_url"));
+            assertThat(url).as("%s의 쿠팡 URL", row.get("code")).isPresent();
+            assertThat(externalItemId).as("%s의 판매상품 ID", row.get("code"))
+                .isNotBlank()
+                .isEqualTo(url.orElseThrow().vendorItemId());
+        });
     }
 
     @Test

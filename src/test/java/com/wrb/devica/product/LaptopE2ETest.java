@@ -7,6 +7,9 @@ import static com.wrb.devica.fixture.ProductOfferFixture.onSaleOffer;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.wrb.devica.category.domain.ProductCategory;
 import com.wrb.devica.category.domain.ProductCategoryCode;
@@ -20,10 +23,20 @@ import com.wrb.devica.product.domain.Laptop;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.domain.Product;
+import com.wrb.devica.product.domain.ProductOffer;
+import com.wrb.devica.product.dto.PriceRefreshTarget;
+import com.wrb.devica.product.infra.coupang.CoupangProductSearchClient;
+import com.wrb.devica.product.infra.coupang.CoupangPriceRefreshJob;
+import com.wrb.devica.product.service.ProductOfferService;
 import com.wrb.devica.product.repository.CpuRepository;
 import com.wrb.devica.product.repository.LaptopRepository;
 import com.wrb.devica.product.repository.ProductOfferRepository;
 import java.time.LocalDate;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +61,9 @@ class LaptopE2ETest extends E2ETest {
 
     @Autowired
     private MinPriceRefresher minPriceRefresher;
+
+    @Autowired
+    private ProductOfferService productOfferService;
 
     private ProductCategory category;
 
@@ -264,6 +280,71 @@ class LaptopE2ETest extends E2ETest {
             .body("content.minPrice", contains(1_000_000, null, null));
     }
 
+    @Test
+    void 상위_검색_후보에_없어도_기존_가격과_확인일과_목록_상세_노출을_유지한다() {
+        // given
+        Laptop laptop = laptopOf(laptop().name("검색에서빠진상품"));
+        ProductOffer offer = productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).name("쿠팡")
+            .externalItemId("56").price(1_000_000L).checkedAt(LocalDate.of(2026, 10, 25))
+            .purchaseUrl("https://www.coupang.com/vp/products/999?vendorItemId=56")
+            .status(OfferStatus.ON_SALE).build());
+        minPriceRefresher.refresh(laptop.getId());
+        CoupangProductSearchClient client = mock(CoupangProductSearchClient.class);
+        List<CoupangProductSearchClient.Product> candidates = IntStream.rangeClosed(57, 66)
+            .mapToObj(id -> new CoupangProductSearchClient.Product("999", "다른상품", 900_000L,
+                "https://www.coupang.com/vp/products/999?vendorItemId=" + id)).toList();
+        when(client.search(laptop.getCode())).thenReturn(candidates);
+        Clock clock = Clock.fixed(Instant.parse("2026-10-26T16:00:00Z"), ZoneId.of("Asia/Seoul"));
+        var job = new CoupangPriceRefreshJob(client, productOfferService, clock, "https://devica.example");
+
+        // when
+        var summary = job.refreshPrices();
+
+        // then
+        assertThat(summary).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 1, 0, 0, 0, 0));
+        ProductOffer unchanged = productOfferRepository.findById(offer.getId()).orElseThrow();
+        assertThat(unchanged.getStatus()).isEqualTo(OfferStatus.ON_SALE);
+        assertThat(unchanged.getPrice()).isEqualTo(1_000_000L);
+        assertThat(unchanged.getCheckedAt()).isEqualTo(LocalDate.of(2026, 10, 25));
+        given().when().get(PATH).then().statusCode(200).body("content.size()", is(1))
+            .body("content[0].minPrice", is(1_000_000));
+        given().when().get("/api/products/" + laptop.getId()).then().statusCode(200)
+            .body("offers[0].price", is(1_000_000)).body("offers[0].checkedAt", is("2026-10-25"));
+    }
+
+    @Test
+    void 숨김과_복구가_실제_목록과_상세_API에_반영된다() {
+        // given
+        Laptop laptop = laptopOf(laptop().name("재확인대상"));
+        ProductOffer offer = productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).name("쿠팡")
+            .externalItemId("56").price(1_000_000L).checkedAt(LocalDate.of(2026, 10, 25))
+            .purchaseUrl("https://www.coupang.com/vp/products/999?vendorItemId=56")
+            .status(OfferStatus.ON_SALE).build());
+        minPriceRefresher.refresh(laptop.getId());
+        PriceRefreshTarget target = new PriceRefreshTarget(offer.getId(), laptop.getId(), laptop.getCode(), "56",
+            offer.getPurchaseUrl(), offer.getPrice(), offer.getStatus());
+
+        // when
+        productOfferService.hideCoupangOffer(target, LocalDate.of(2026, 10, 26));
+
+        // then
+        given().when().get(PATH).then().statusCode(200).body("content.size()", is(0));
+        given().when().get("/api/products/" + laptop.getId()).then().statusCode(200)
+            .body("name", is("재확인대상")).body("offers", is(List.of()));
+
+        // given
+        PriceRefreshTarget hidden = productOfferService.findCoupangPriceRefreshTargets().getFirst();
+
+        // when
+        productOfferService.refreshCoupangPrice(hidden, 900_000L, LocalDate.of(2026, 10, 27));
+
+        // then
+        given().when().get(PATH).then().statusCode(200)
+            .body("content[0].name", is("재확인대상")).body("content[0].minPrice", is(900_000));
+        given().when().get("/api/products/" + laptop.getId()).then().statusCode(200)
+            .body("offers[0].price", is(900_000)).body("offers[0].checkedAt", is("2026-10-27"));
+    }
+
     // UC-11: 가격을 확인하고 외부 구매처로 이동할 수 있다
     @Test
     void 상세를_조회하면_판매_중인_판매처를_싼_순으로_받는다() {
@@ -284,6 +365,10 @@ class LaptopE2ETest extends E2ETest {
         productOfferRepository.save(offer()
             .product(laptop)
             .price(2_500_000L).status(OfferStatus.SOLD_OUT)
+            .build());
+        productOfferRepository.save(offer()
+            .product(laptop)
+            .price(2_000_000L).status(OfferStatus.HIDDEN)
             .build());
 
         // when & then

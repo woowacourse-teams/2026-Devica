@@ -1,0 +1,2 @@
+org.springframework.context.ApplicationContextInitializer=\
+com.wrb.devica.product.infra.coupang.CoupangPriceRefreshOnceGuard
