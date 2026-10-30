@@ -21,31 +21,42 @@ public record CoupangProductUrl(String pageId, String itemId, String vendorItemI
             return Optional.empty();
         }
         try {
-            URI uri = URI.create(url);
-            if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getUserInfo() != null
-                || (uri.getPort() != -1 && uri.getPort() != 443)) {
-                return Optional.empty();
-            }
-            Map<String, String> query = identifiers(uri.getRawQuery());
-            String pageId;
-            if ("link.coupang.com".equals(uri.getHost()) && "/re/AFFSDP".equals(uri.getPath())) {
-                pageId = query.get("pageKey");
-            } else if (uri.getHost() != null && PRODUCT_HOSTS.contains(uri.getHost())) {
-                Matcher path = PRODUCT_PATH.matcher(uri.getPath());
-                if (!path.matches()) {
-                    return Optional.empty();
-                }
-                pageId = path.group(1);
-            } else {
-                return Optional.empty();
-            }
-            if (pageId == null) {
-                return Optional.empty();
-            }
-            return Optional.of(new CoupangProductUrl(pageId, query.get("itemId"), query.get("vendorItemId")));
+            return parseProductUrl(URI.create(url));
         } catch (IllegalArgumentException exception) {
             return Optional.empty();
         }
+    }
+
+    private static Optional<CoupangProductUrl> parseProductUrl(URI uri) {
+        if (!isSecureUrl(uri)) {
+            return Optional.empty();
+        }
+        Map<String, String> query = identifiers(uri.getRawQuery());
+        return pageId(uri, query)
+            .map(pageId -> new CoupangProductUrl(pageId, query.get("itemId"), query.get("vendorItemId")));
+    }
+
+    private static boolean isSecureUrl(URI uri) {
+        return "https".equalsIgnoreCase(uri.getScheme()) && uri.getUserInfo() == null
+            && (uri.getPort() == -1 || uri.getPort() == 443);
+    }
+
+    private static Optional<String> pageId(URI uri, Map<String, String> query) {
+        if ("link.coupang.com".equals(uri.getHost()) && "/re/AFFSDP".equals(uri.getPath())) {
+            return Optional.ofNullable(query.get("pageKey"));
+        }
+        if (uri.getHost() == null || !PRODUCT_HOSTS.contains(uri.getHost())) {
+            return Optional.empty();
+        }
+        return pageIdFromPath(uri.getPath());
+    }
+
+    private static Optional<String> pageIdFromPath(String path) {
+        Matcher productPath = PRODUCT_PATH.matcher(path);
+        if (!productPath.matches()) {
+            return Optional.empty();
+        }
+        return Optional.of(productPath.group(1));
     }
 
     public OptionMatch compareOption(CoupangProductUrl other) {
@@ -64,17 +75,31 @@ public record CoupangProductUrl(String pageId, String itemId, String vendorItemI
             return values;
         }
         for (String parameter : rawQuery.split("&")) {
-            String[] pair = parameter.split("=", 2);
-            String key = URLDecoder.decode(pair[0], StandardCharsets.UTF_8);
-            if (!IDENTIFIERS.contains(key)) {
-                continue;
-            }
-            String value = pair.length == 2 ? URLDecoder.decode(pair[1], StandardCharsets.UTF_8) : "";
-            if (!value.matches("[1-9][0-9]*") || values.putIfAbsent(key, value) != null) {
-                throw new IllegalArgumentException("상품 식별자가 누락되거나 중복되었습니다.");
-            }
+            addIdentifier(values, parameter);
         }
         return values;
+    }
+
+    private static void addIdentifier(Map<String, String> values, String parameter) {
+        String[] pair = parameter.split("=", 2);
+        String key = URLDecoder.decode(pair[0], StandardCharsets.UTF_8);
+        if (!IDENTIFIERS.contains(key)) {
+            return;
+        }
+        putIdentifier(values, key, identifierValue(pair));
+    }
+
+    private static String identifierValue(String[] pair) {
+        if (pair.length < 2) {
+            return "";
+        }
+        return URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
+    }
+
+    private static void putIdentifier(Map<String, String> values, String key, String value) {
+        if (!value.matches("[1-9][0-9]*") || values.putIfAbsent(key, value) != null) {
+            throw new IllegalArgumentException("상품 식별자가 누락되거나 중복되었습니다.");
+        }
     }
 
     public enum OptionMatch {

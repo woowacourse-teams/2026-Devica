@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class CoupangProductUrlTest {
@@ -18,6 +19,20 @@ class CoupangProductUrlTest {
 
         // then
         assertThat(parsed).contains(expected);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "HTTPS://www.coupang.com:443/vp/products/9410641464?itemId=27961674147&vendorItemId=94919713475",
+        "https://m.coupang.com/vm/products/9410641464/?itemId=27961674147&vendorItemId=94919713475",
+        "https://coupang.com/vp/products/9410641464?pageKey=123&itemId=27961674147&vendorItemId=94919713475",
+        "https://www.coupang.com/vp/products/%39410641464?%69temId=%327961674147&vendorItemId=94919713475"
+            + "&traceid=first&traceid=second",
+        "https://link.coupang.com/re/AFFSDP?page%4Bey=9410641464&itemId=27961674147&vendorItemId=94919713475"
+    })
+    void 허용된_URL과_인코딩된_식별자를_같은_판매상품으로_해석한다(String url) {
+        // when & then
+        assertThat(CoupangProductUrl.parse(url)).contains(expected);
     }
 
     @Test
@@ -56,12 +71,20 @@ class CoupangProductUrlTest {
     }
 
     @ParameterizedTest
+    @NullAndEmptySource
     @ValueSource(strings = {
+        " ",
         "https://example.com/vp/products/123?itemId=1&vendorItemId=2",
         "https://www.coupang.com.example.com/vp/products/123?itemId=1&vendorItemId=2",
         "https://name@www.coupang.com/vp/products/123?itemId=1&vendorItemId=2",
+        "https://www.coupang.com:8443/vp/products/123?itemId=1&vendorItemId=2",
+        "https://www.coupang.com/vp/products/0?itemId=1&vendorItemId=2",
+        "https://link.coupang.com/re/AFFSDP?itemId=1&vendorItemId=2",
         "https://link.coupang.com/re/AFFSRP?pageKey=laptop",
+        "https://www.coupang.com/vp/products/123?pageKey=invalid&itemId=1&vendorItemId=2",
         "https://www.coupang.com/vp/products/123?itemId=1&vendorItemId=2&vendorItemId=3",
+        "https://www.coupang.com/vp/products/123?itemId=1&vendorItemId=2&%76endorItemId=2",
+        "https://www.coupang.com/vp/products/123?itemId&vendorItemId=2",
         "https://www.coupang.com/vp/products/123?itemId=1&vendorItemId=",
         "https://www.coupang.com/vp/products/123?itemId=1&vendorItemId=abc",
         "https://www.coupang.com/vp/products/123?itemId=0&vendorItemId=2",

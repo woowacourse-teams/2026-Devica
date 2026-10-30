@@ -256,6 +256,17 @@ class ProductOfferServiceTest {
         assertUnchanged(offer);
     }
 
+    @Test
+    void 잘못된_가격이나_날짜는_대상을_조회하기_전에_거절한다() {
+        // when & then
+        assertThatThrownBy(() -> productOfferService.refreshCoupangPrice(null, 0, CHECKED_ON))
+            .isInstanceOf(IllegalArgumentException.class).hasMessage("확인한 가격은 양수이고 확인 날짜가 있어야 합니다.");
+        assertThatThrownBy(() -> productOfferService.refreshCoupangPrice(null, 1, null))
+            .isInstanceOf(IllegalArgumentException.class).hasMessage("확인한 가격은 양수이고 확인 날짜가 있어야 합니다.");
+        assertThatThrownBy(() -> productOfferService.hideCoupangOffer(null, null))
+            .isInstanceOf(IllegalArgumentException.class).hasMessage("조회 날짜가 있어야 합니다.");
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     @Transactional(propagation = Propagation.NOT_SUPPORTED)

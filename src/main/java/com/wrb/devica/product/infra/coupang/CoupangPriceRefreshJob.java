@@ -153,23 +153,26 @@ public class CoupangPriceRefreshJob {
         // 외부 값은 먼저 길이를 제한하고 제어문자 등을 정제한다. 원문은 예외 필드에만 보존한다.
         String limited = responseCode.substring(0, Math.min(responseCode.length(), 64));
         String sanitized = limited.replaceAll("[^A-Za-z0-9._-]", "?");
-        return responseCode.length() > 64 ? sanitized + "..." : sanitized;
+        if (responseCode.length() > 64) {
+            return sanitized + "...";
+        }
+        return sanitized;
     }
 
     private Attempt databaseFailure(PriceRefreshTarget target, RuntimeException exception, long started) {
-        boolean stop = exception instanceof CannotCreateTransactionException;
-        LoggingEventBuilder event;
-        if (stop) {
-            // DB 예외의 메시지·원인에는 접속 정보가 섞일 수 있어, 안전한 메시지와 실패 위치만 남긴다.
-            CannotCreateTransactionException logged = new CannotCreateTransactionException("쿠팡 가격 저장 트랜잭션 시작 실패");
-            logged.setStackTrace(exception.getStackTrace());
-            event = log.atError().setCause(logged);
-        } else {
-            event = log.atWarn().addKeyValue("error.type", exception.getClass().getName());
-        }
-        targetLog(event, target, "DB_FAILURE", "NONE", started)
+        targetLog(databaseFailureEvent(exception), target, "DB_FAILURE", "NONE", started)
             .log("쿠팡 가격 저장 실패로 해당 상품 갱신 취소");
-        return new Attempt(false, false, false, stop, false);
+        return new Attempt(false, false, false, exception instanceof CannotCreateTransactionException, false);
+    }
+
+    private LoggingEventBuilder databaseFailureEvent(RuntimeException exception) {
+        if (!(exception instanceof CannotCreateTransactionException)) {
+            return log.atWarn().addKeyValue("error.type", exception.getClass().getName());
+        }
+        // DB 예외의 메시지·원인에는 접속 정보가 섞일 수 있어, 안전한 메시지와 실패 위치만 남긴다.
+        CannotCreateTransactionException logged = new CannotCreateTransactionException("쿠팡 가격 저장 트랜잭션 시작 실패");
+        logged.setStackTrace(exception.getStackTrace());
+        return log.atError().setCause(logged);
     }
 
     private Summary summarize(List<Attempt> attempts, int total) {
@@ -268,7 +271,10 @@ public class CoupangPriceRefreshJob {
         }
 
         String vendorItemId() {
-            return identifiers == null ? null : identifiers.vendorItemId();
+            if (identifiers == null) {
+                return null;
+            }
+            return identifiers.vendorItemId();
         }
     }
 
@@ -292,15 +298,24 @@ public class CoupangPriceRefreshJob {
             if (matches.stream().anyMatch(product -> product.productPrice() == null || product.productPrice() <= 0)) {
                 return "INVALID_PRICE";
             }
-            return matches.stream().map(CoupangProductSearchClient.Product::productPrice).distinct().count() == 1
-                ? null : "CONFLICTING_PRICES";
+            return priceConflictReason();
+        }
+
+        private String priceConflictReason() {
+            if (matches.stream().map(CoupangProductSearchClient.Product::productPrice).distinct().count() == 1) {
+                return null;
+            }
+            return "CONFLICTING_PRICES";
         }
 
         String noMatchReason() {
             if (candidateCount == 0) {
                 return "NO_SEARCH_RESULTS";
             }
-            return invalidUrls + missingIds > 0 ? "IDENTIFIER_UNAVAILABLE" : "NO_MATCH";
+            if (invalidUrls + missingIds > 0) {
+                return "IDENTIFIER_UNAVAILABLE";
+            }
+            return "NO_MATCH";
         }
     }
 
@@ -325,11 +340,17 @@ public class CoupangPriceRefreshJob {
             if (success() + hiddenUnchanged == 0) {
                 return "FAILED";
             }
-            return deferred + notAttempted == 0 ? "SUCCESS" : "PARTIAL";
+            if (deferred + notAttempted == 0) {
+                return "SUCCESS";
+            }
+            return "PARTIAL";
         }
 
         public int exitCode() {
-            return "SUCCESS".equals(outcome()) ? 0 : 2;
+            if ("SUCCESS".equals(outcome())) {
+                return 0;
+            }
+            return 2;
         }
     }
 

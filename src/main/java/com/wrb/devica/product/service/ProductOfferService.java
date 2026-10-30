@@ -29,34 +29,57 @@ public class ProductOfferService {
 
     @Transactional
     public PriceRefreshResult refreshCoupangPrice(PriceRefreshTarget target, long price, LocalDate checkedAt) {
-        if (price <= 0 || checkedAt == null) {
-            throw new IllegalArgumentException("확인한 가격은 양수이고 확인 날짜가 있어야 합니다.");
-        }
+        validatePriceRefresh(price, checkedAt);
         ProductOffer offer = findUnchangedTarget(target, checkedAt);
         if (offer == null) {
             return PriceRefreshResult.SKIPPED;
         }
+        return refreshOfferPrice(offer, price, checkedAt);
+    }
+
+    private void validatePriceRefresh(long price, LocalDate checkedAt) {
+        if (price <= 0 || checkedAt == null) {
+            throw new IllegalArgumentException("확인한 가격은 양수이고 확인 날짜가 있어야 합니다.");
+        }
+    }
+
+    private PriceRefreshResult refreshOfferPrice(ProductOffer offer, long price, LocalDate checkedAt) {
         boolean restored = offer.getStatus() == OfferStatus.HIDDEN;
         boolean priceChanged = offer.getPrice() != price;
         offer.refreshPrice(price, checkedAt);
         if (priceChanged || restored) {
             refreshMinPrice(offer);
         }
+        return determinePriceRefreshResult(restored, priceChanged);
+    }
+
+    private PriceRefreshResult determinePriceRefreshResult(boolean restored, boolean priceChanged) {
         if (restored) {
             return PriceRefreshResult.RESTORED;
         }
-        return priceChanged ? PriceRefreshResult.UPDATED : PriceRefreshResult.UNCHANGED;
+        if (priceChanged) {
+            return PriceRefreshResult.UPDATED;
+        }
+        return PriceRefreshResult.UNCHANGED;
     }
 
     @Transactional
     public PriceRefreshResult hideCoupangOffer(PriceRefreshTarget target, LocalDate observedAt) {
-        if (observedAt == null) {
-            throw new IllegalArgumentException("조회 날짜가 있어야 합니다.");
-        }
+        validateObservedAt(observedAt);
         ProductOffer offer = findUnchangedTarget(target, observedAt);
         if (offer == null) {
             return PriceRefreshResult.SKIPPED;
         }
+        return hideOffer(offer);
+    }
+
+    private void validateObservedAt(LocalDate observedAt) {
+        if (observedAt == null) {
+            throw new IllegalArgumentException("조회 날짜가 있어야 합니다.");
+        }
+    }
+
+    private PriceRefreshResult hideOffer(ProductOffer offer) {
         if (offer.getStatus() == OfferStatus.HIDDEN) {
             return PriceRefreshResult.ALREADY_HIDDEN;
         }
@@ -66,21 +89,41 @@ public class ProductOfferService {
     }
 
     private ProductOffer findUnchangedTarget(PriceRefreshTarget target, LocalDate observedAt) {
-        // 같은 제품의 오퍼 갱신과 최저가 계산을 직렬화한다. API 호출은 트랜잭션 밖에서 한다.
-        ProductOffer offer = productOfferRepository.findAllByProductIdOrderByIdAsc(target.productId()).stream()
-            .filter(candidate -> candidate.getId().equals(target.offerId()))
-            .findFirst()
-            .orElse(null);
-        if (offer == null || !"쿠팡".equals(offer.getName())
-            || (offer.getStatus() != OfferStatus.ON_SALE && offer.getStatus() != OfferStatus.HIDDEN)
-            || offer.getStatus() != target.status() || offer.getPrice() != target.price()
-            || target.vendorItemId() == null || target.vendorItemId().isBlank()
-            || !target.vendorItemId().equals(offer.getExternalItemId())
-            || !offer.getPurchaseUrl().equals(target.purchaseUrl())
-            || (offer.getCheckedAt() != null && offer.getCheckedAt().isAfter(observedAt))) {
+        ProductOffer offer = findLockedOffer(target);
+        if (!isUnchangedTarget(offer, target, observedAt)) {
             return null;
         }
         return offer;
+    }
+
+    private ProductOffer findLockedOffer(PriceRefreshTarget target) {
+        // 같은 제품의 오퍼 갱신과 최저가 계산을 직렬화한다. API 호출은 트랜잭션 밖에서 한다.
+        return productOfferRepository.findAllByProductIdOrderByIdAsc(target.productId()).stream()
+            .filter(candidate -> candidate.getId().equals(target.offerId()))
+            .findFirst()
+            .orElse(null);
+    }
+
+    private boolean isUnchangedTarget(ProductOffer offer, PriceRefreshTarget target, LocalDate observedAt) {
+        return offer != null && "쿠팡".equals(offer.getName())
+            && hasRefreshableStatus(offer)
+            && offer.getStatus() == target.status() && offer.getPrice() == target.price()
+            && hasMatchingVendorItem(offer, target)
+            && offer.getPurchaseUrl().equals(target.purchaseUrl())
+            && !isCheckedAfter(offer, observedAt);
+    }
+
+    private boolean hasRefreshableStatus(ProductOffer offer) {
+        return offer.getStatus() == OfferStatus.ON_SALE || offer.getStatus() == OfferStatus.HIDDEN;
+    }
+
+    private boolean hasMatchingVendorItem(ProductOffer offer, PriceRefreshTarget target) {
+        return target.vendorItemId() != null && !target.vendorItemId().isBlank()
+            && target.vendorItemId().equals(offer.getExternalItemId());
+    }
+
+    private boolean isCheckedAfter(ProductOffer offer, LocalDate observedAt) {
+        return offer.getCheckedAt() != null && offer.getCheckedAt().isAfter(observedAt);
     }
 
     private void refreshMinPrice(ProductOffer offer) {
