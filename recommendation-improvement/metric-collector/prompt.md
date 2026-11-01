@@ -4,18 +4,19 @@
 
 ## 설정
 
-| 이름 | 값 |
-|---|---|
-| GitHub 레포 | `woowacourse-teams/2026-Devica` |
-| 피드백 라벨 | `product-recommendation-feedback` |
-| PostHog 프로젝트 | `638813` |
-| 운영 제품 추천 API | `https://api.devica.co.kr` |
-| 결과 화면 주소 | `https://devica.co.kr/result` |
-| 상태 디렉터리 | `$HOME/.devica-product-recommendation/metric-collector` |
-| 운영 정의서 | `origin/main` |
-| 개발 정의서 | `origin/develop` |
-
-`SELF_REF` 는 이 지시문과 스크립트를 읽어 온 git ref 다. `run.sh` 가 환경 변수로 넘기고, 기본은 `origin/develop` 이다.
+| 이름 | 환경 변수 | 값 |
+|---|---|---|
+| GitHub 레포 | `GH_REPO` | `woowacourse-teams/2026-Devica` |
+| 피드백 라벨 | | `product-recommendation-feedback` |
+| PostHog 프로젝트 | | `638813` |
+| 운영 제품 추천 API | | `https://api.devica.co.kr` |
+| 결과 화면 주소 | | `https://devica.co.kr/result` |
+| 상태 디렉터리 | `ST` | `$HOME/.devica-product-recommendation/metric-collector`. `SELF_REF` 에서 복사한 스크립트와 스키마 3개(`analysis-result`, `improvement-instruction`, `improvement-result`)가 있다 |
+| 레포 clone | `REPO` | `$ST/repo`. 이 구성 요소만 쓴다. `git fetch` 는 끝났다 |
+| 지시문·스크립트 ref | `SELF_REF` | `run.sh` 가 넘긴다. 기본은 `origin/develop` |
+| 실행 기록 | `RUN` | `$ST/runs/<UTC 시각>.md`. 단계마다 무엇을 보고 무엇을 했는지 이어 적는다 |
+| 운영 정의서 | | `origin/main` |
+| 개발 정의서 | | `origin/develop` |
 
 ## 지킬 것
 
@@ -29,17 +30,7 @@
 
 ## 0. 준비
 
-`run.sh` 가 했다. 잠금을 잡고(끝날 때 푼다), 실행 기록 파일을 만들고, `SELF_REF` 에서 스크립트와 스키마를 복사했다. 지시문은 잠금을 다루지 않는다.
-
-이 지시문의 명령은 아래 환경 변수를 그대로 쓴다. Bash 호출 사이에 셸 변수와 함수는 남지 않으므로, 한 호출에서 구한 값을 다음 호출에서 쓰려면 파일에 적어 둔다.
-
-| 변수 | 뜻 |
-|---|---|
-| `REPO` | 이 구성 요소만 쓰는 레포 clone. `git fetch` 는 끝났다 |
-| `ST` | 상태 디렉터리. `SELF_REF` 에서 복사한 스크립트와 스키마 3개(`analysis-result`, `improvement-instruction`, `improvement-result`)가 있다 |
-| `GH_REPO` | GitHub 레포 |
-| `SELF_REF` | 지시문과 스크립트를 읽어 온 git ref |
-| `RUN` | 이번 실행의 기록 파일. 단계마다 무엇을 보고 무엇을 했는지 이어 적는다 |
+`run.sh` 가 했다. 잠금을 잡고(끝날 때 푼다), 실행 기록 파일을 만들고, `SELF_REF` 에서 스크립트와 스키마를 복사했다. 지시문은 잠금을 다루지 않는다. 설정 표의 환경 변수는 지금 셸에 있고, 이 지시문의 명령은 그것을 그대로 쓴다. Bash 호출 사이에 셸 변수와 함수는 남지 않으므로, 한 호출에서 구한 값을 다음 호출에서 쓰려면 파일에 적어 둔다.
 
 스크립트 명령은 `python3 "$ST/signals.py" <명령> …` 으로 부른다. 명령과 사용법은 `common.py` 머리 주석에 있다. `signals.py` 는 `common.py` 의 명령에 이 구성 요소 전용 명령을 더한 것이다.
 
@@ -55,7 +46,7 @@ PostHog 커넥터로 `call project-get {}` 를 실행해 `id` 가 `638813` 인�
 
 ### 1-2. 결과 화면 조회 가져오기
 
-커넥터의 `execute-sql` 을 `call --json execute-sql {"query": "..."}` 로 부른다. `{DAYS}` 는 0단계 4에서 읽은 `DAYS`, `{DAYS1}` 은 그보다 1 큰 값이다.
+커넥터의 `execute-sql` 을 `call --json execute-sql {"query": "..."}` 로 부른다. `{DAYS}` 는 0. 준비의 기준값에서 읽은 `DAYS`, `{DAYS1}` 은 그보다 1 큰 값이다.
 
 ```sql
 SELECT views

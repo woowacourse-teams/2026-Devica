@@ -4,17 +4,18 @@
 
 ## 설정
 
-| 이름 | 값 |
-|---|---|
-| GitHub 레포 | `woowacourse-teams/2026-Devica` |
-| 피드백 라벨 | `product-recommendation-feedback` |
-| PR 기준 브랜치 | `develop` |
-| 개선 브랜치 | `fix/<지시가 달린 이슈 번호>-product-recommendation-rule` |
-| 상태 디렉터리 | `$HOME/.devica-product-recommendation/recommendation-improver` |
-| 작업 공간(git worktree) | `<상태 디렉터리>/worktree` |
-| 스냅숏 | `src/test/resources/recommendation/backend-development-snapshot.json` |
-
-`SELF_REF` 는 이 지시문과 스크립트를 읽어 온 git ref 다. `run.sh` 가 환경 변수로 넘기고, 기본은 `origin/develop` 이다.
+| 이름 | 환경 변수 | 값 |
+|---|---|---|
+| GitHub 레포 | `GH_REPO` | `woowacourse-teams/2026-Devica` |
+| 피드백 라벨 | | `product-recommendation-feedback` |
+| PR 기준 브랜치 | | `develop` |
+| 개선 브랜치 | | `fix/<지시가 달린 이슈 번호>-product-recommendation-rule` |
+| 상태 디렉터리 | `ST` | `$HOME/.devica-product-recommendation/recommendation-improver`. `SELF_REF` 에서 복사한 스크립트와 스키마 3개(`analysis-result`, `improvement-instruction`, `improvement-result`)가 있다 |
+| 레포 clone | `REPO` | `$ST/repo`. 이 구성 요소만 쓴다. `git fetch` 는 끝났다 |
+| 작업 공간(git worktree) | `WT` | `$ST/worktree`. `run.sh` 가 만들어 둔다 |
+| 스냅숏 | `SNAP` | `src/test/resources/recommendation/backend-development-snapshot.json`(레포 안 경로) |
+| 지시문·스크립트 ref | `SELF_REF` | `run.sh` 가 넘긴다. 기본은 `origin/develop` |
+| 실행 기록 | `RUN` | `$ST/runs/<UTC 시각>.md`. 단계마다 무엇을 보고 무엇을 했는지 이어 적는다 |
 
 ## 지킬 것
 
@@ -28,19 +29,7 @@
 
 ## 0. 준비
 
-`run.sh` 가 했다. 잠금을 잡고(끝날 때 푼다), 실행 기록 파일을 만들고, `SELF_REF` 에서 스크립트와 스키마를 복사했다. 지시문은 잠금을 다루지 않는다.
-
-이 지시문의 명령은 아래 환경 변수를 그대로 쓴다. Bash 호출 사이에 셸 변수와 함수는 남지 않으므로, 한 호출에서 구한 값을 다음 호출에서 쓰려면 파일에 적어 둔다.
-
-| 변수 | 뜻 |
-|---|---|
-| `REPO` | 이 구성 요소만 쓰는 레포 clone. `git fetch` 는 끝났다 |
-| `ST` | 상태 디렉터리. `SELF_REF` 에서 복사한 스크립트와 스키마 3개(`analysis-result`, `improvement-instruction`, `improvement-result`)가 있다 |
-| `GH_REPO` | GitHub 레포 |
-| `SELF_REF` | 지시문과 스크립트를 읽어 온 git ref |
-| `RUN` | 이번 실행의 기록 파일. 단계마다 무엇을 보고 무엇을 했는지 이어 적는다 |
-| `WT` | 작업 공간(git worktree) 경로 |
-| `SNAP` | 스냅숏 파일의 레포 안 경로 |
+`run.sh` 가 했다. 잠금을 잡고(끝날 때 푼다), 실행 기록 파일을 만들고, `SELF_REF` 에서 스크립트와 스키마를 복사했다. 지시문은 잠금을 다루지 않는다. 설정 표의 환경 변수는 지금 셸에 있고, 이 지시문의 명령은 그것을 그대로 쓴다. Bash 호출 사이에 셸 변수와 함수는 남지 않으므로, 한 호출에서 구한 값을 다음 호출에서 쓰려면 파일에 적어 둔다. `<ISSUE>`, `<BASE>`, `<BR>`, `<DEF>` 처럼 꺾쇠로 적은 것은 앞 단계에서 정한 값을 명령에 적어 넣는 자리다.
 
 스크립트 명령은 `python3 "$ST/snapshot.py" <명령> …` 으로 부른다. 명령과 사용법은 `common.py` 머리 주석에 있다. `snapshot.py` 는 `common.py` 의 명령에 이 구성 요소 전용 명령을 더한 것이다.
 
@@ -68,7 +57,7 @@ gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.
 
 댓글 순서는 `created_at`, 같으면 `id` 다. 개선 지시 I 의 결과는 같은 이슈에서 I 뒤, 다음 개선 지시 앞에 있는 첫 개선 결과다. **결과가 없는 개선 지시 중 가장 오래된 것 하나**가 대상이다. 없으면 기록하고 끝낸다. 팀원이 이슈를 닫아 처리를 멈춘 지시는 열린 이슈만 읽으므로 대상이 되지 않는다.
 
-지시가 달린 이슈 번호를 `ISSUE`, 댓글 주소를 `INS_URL` 로 둔다. 댓글 본문을 파일로 써서 `python3 "$ST/snapshot.py" block <파일>` 의 `data` 를 `$ST/instruction.json` 에 쓴다. `errors` 가 비어 있지 않으면 그 지시는 처리하지 않고 기록에 적은 뒤, 다음으로 오래된 지시를 대상으로 한다.
+지시가 달린 이슈 번호를 `<ISSUE>`, 댓글 주소를 `<INS_URL>` 로 둔다. 댓글 본문을 파일로 써서 `python3 "$ST/snapshot.py" block <파일>` 의 `data` 를 `$ST/instruction.json` 에 쓴다. `errors` 가 비어 있지 않으면 그 지시는 처리하지 않고 기록에 적은 뒤, 다음으로 오래된 지시를 대상으로 한다.
 
 이 아래에서 "PR 을 올리지 않는다"고 하면 7 로 가 `NOT_OPENED` 를 남긴다. 사유는 무엇이 기대와 달랐는지 한 문장이다.
 
@@ -79,20 +68,19 @@ gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.
    docker compose -f "$REPO/docker-compose.yml" up -d mysql-test
    ```
    `docker inspect -f '{{.State.Health.Status}}' devica-mysql-test` 가 `healthy` 가 될 때까지 최대 2분 기다린다. 안 되면 기록하고 끝낸다(개선 결과를 남기지 않는다. 지시의 문제가 아니므로 다음 실행이 다시 한다).
-2. **worktree.** 최신 `develop` 에 맞춘다.
+2. **worktree.** 최신 `develop` 에 맞추고, 그 커밋을 기준 커밋 `<BASE>` 로 둔다.
    ```bash
-   [ -d "$WT" ] || git -C "$REPO" worktree add -q --detach "$WT" origin/develop
    git -C "$WT" checkout -q --detach -f origin/develop && git -C "$WT" clean -fdq
-   BASE=$(git -C "$WT" rev-parse HEAD)
+   git -C "$WT" rev-parse HEAD
    ```
-3. **브랜치 이름.** `BR=fix/$ISSUE-product-recommendation-rule`. `git -C "$REPO" ls-remote --heads origin "$BR"` 에 이미 있으면(앞서 반려된 PR 의 브랜치 등) 끝에 `-2`, `-3` … 을 붙여 없는 이름을 쓴다.
+3. **브랜치 이름.** `<BR>` 은 `fix/<ISSUE>-product-recommendation-rule`. `git -C "$REPO" ls-remote --heads origin <BR>` 에 이미 있으면(앞서 반려된 PR 의 브랜치 등) 끝에 `-2`, `-3` … 을 붙여 없는 이름을 쓴다.
 
 ## 3. 지시 확인
 
 하나라도 어긋나면 PR 을 올리지 않는다.
 
-- 정의서 `DEF=src/main/resources/recommendation/purposes/<purpose>.yml` 이 `$WT` 에 있다. 스냅숏 테스트는 `BACKEND_DEVELOPMENT` 만 다루므로 다른 `purpose` 면 "스냅숏 테스트가 없는 사용 목적이다".
-- `python3 "$ST/snapshot.py" def "$WT/$DEF" <purpose>` 의 `rules` 중 `criterion` 과 `when` 이 지시의 `rule` 과 같은(키 순서 무관) 규칙이 **정확히 하나**다.
+- 정의서 `<DEF>` = `src/main/resources/recommendation/purposes/<purpose>.yml` 이 `$WT` 에 있다. 스냅숏 테스트는 `BACKEND_DEVELOPMENT` 만 다루므로 다른 `purpose` 면 "스냅숏 테스트가 없는 사용 목적이다".
+- `python3 "$ST/snapshot.py" def "$WT/<DEF>" <purpose>` 의 `rules` 중 `criterion` 과 `when` 이 지시의 `rule` 과 같은(키 순서 무관) 규칙이 **정확히 하나**다.
 - `change.weight.from`, `change.when.from`, `change.reason.from` 이 있으면 그 규칙의 지금 값과 같다. 다르면 "지시 뒤에 develop 의 규칙이 바뀌었다(지시 <from>, 지금 <값>)".
 - `change.when.to` 의 질문·선택지가 그 정의서 `survey` 에 있다.
 
@@ -131,8 +119,8 @@ gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.
 
 고칠 때마다 확인한다.
 
-- `git -C "$WT" diff --name-only "$BASE"` 에 `$DEF` 와 `$SNAP` 밖의 파일이 없다.
-- `python3 "$ST/snapshot.py" diff origin/develop "$WT/$DEF" <purpose>` 가 지시한 규칙의 변경만 보인다(`when` 변경은 옛 키 삭제와 새 키 추가 두 항목). `python3 "$ST/snapshot.py" def` 로 읽은 `survey`·`mappings` 가 `origin/develop` 과 같다.
+- `git -C "$WT" diff --name-only <BASE>` 에 `<DEF>` 와 `$SNAP` 밖의 파일이 없다.
+- `python3 "$ST/snapshot.py" diff origin/develop "$WT/<DEF>" <purpose>` 가 지시한 규칙의 변경만 보인다(`when` 변경은 옛 키 삭제와 새 키 추가 두 항목). `python3 "$ST/snapshot.py" def` 로 읽은 `survey`·`mappings` 가 `origin/develop` 과 같다.
 
 고친 뒤 4-2 의 명령으로 스냅숏을 다시 채운다.
 
@@ -176,7 +164,7 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
    - <규칙 when 요약> 규칙의 <weight a → b | when 변경 | 삭제 | 근거 문장 변경>
    - 근거: 개선 지시 #<ISSUE>(피드백 #<issues>)
    ```
-   `git -C "$WT" add "$DEF" "$SNAP" && git -C "$WT" commit -q -F <메시지 파일>`.
+   `git -C "$WT" add <DEF> "$SNAP" && git -C "$WT" commit -q -F <메시지 파일>`.
 2. **본문 값 모으기.**
    - 결과 변화: `compare.json` 의 `rows`(지시의 사례)와 `other_feedback_rows`(결과가 바뀐 앞선 `피드백 #` 사례).
    - 영향 범위: `compare.json` 의 `impact`.
@@ -196,7 +184,7 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
    - [ ] 애플리케이션이 정상적으로 실행되나요?
    - [ ] SonarQube 플러그인 검증과 AI 검증을 완료했나요?
 
-   정의서와 스냅숏만 바뀌어 애플리케이션 실행과 SonarQube 검증은 하지 않았다.
+   정의서와 스냅숏만 바뀌어 제품 추천 테스트(`com.wrb.devica.recommendation.*`)만 돌렸고, 애플리케이션 실행과 SonarQube 검증은 하지 않았다.
 
    ## 1. 변경 내용
 
@@ -236,15 +224,15 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
    `지표 추정 표시` 항목은 `basis` 가 `METRIC_ESTIMATE` 일 때만 둔다.
 4. **push 와 PR.**
    ```bash
-   git -C "$WT" push -q origin "HEAD:refs/heads/$BR"
-   gh pr create --repo "$GH_REPO" --base develop --head "$BR" \
+   git -C "$WT" push -q origin HEAD:refs/heads/<BR>
+   gh pr create --repo "$GH_REPO" --base develop --head <BR> \
      --title "[FIX] 제품 추천 <criterion> 규칙 조정 (피드백 #<ISSUE>)" --body-file "$ST/pr-body.md"
    ```
    push 가 훅에 막히면 훅이 가리키는 문제를 기록하고 PR 을 올리지 않는다(`NOT_OPENED`, 사유에 훅의 메시지).
 
 ## 7. 개선 결과 남기기
 
-[improvement-result.schema.yml](../interface/artifacts/improvement-result.schema.yml)의 형식으로 `ISSUE` 에 댓글을 남긴다(`gh issue comment "$ISSUE" --repo "$GH_REPO" --body-file <파일>`). 남기기 전에 `python3 "$ST/snapshot.py" block <파일>` 의 `errors` 가 비어 있는지 확인한다.
+[improvement-result.schema.yml](../interface/artifacts/improvement-result.schema.yml)의 형식으로 `<ISSUE>` 에 댓글을 남긴다(`gh issue comment <ISSUE> --repo "$GH_REPO" --body-file <파일>`). 남기기 전에 `python3 "$ST/snapshot.py" block <파일>` 의 `errors` 가 비어 있는지 확인한다.
 
 ````markdown
 <!-- product-recommendation:result -->
