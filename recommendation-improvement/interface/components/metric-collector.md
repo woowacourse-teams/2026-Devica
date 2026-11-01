@@ -6,7 +6,7 @@
 
 | | 산출물 |
 |---|---|
-| 받는 것 | [사용자 행동 지표](../artifacts/user-behavior-metrics.schema.yml). 자기가 만든 열린 [피드백](../artifacts/feedback.md)과 거기 달린 [개선 지시](../artifacts/improvement-instruction.schema.yml)·[개선 결과](../artifacts/improvement-result.schema.yml)(처리 중인지 보려고) |
+| 받는 것 | [사용자 행동 지표](../artifacts/user-behavior-metrics.schema.yml). 자기가 만든 [피드백](../artifacts/feedback.md)(열린 것과 조회 기간 안에 닫힌 것)과 거기 달린 [개선 지시](../artifacts/improvement-instruction.schema.yml)·[개선 결과](../artifacts/improvement-result.schema.yml)(처리 중인지 보려고) |
 | 내놓는 것 | 지표 피드백([피드백](../artifacts/feedback.md)의 `[제품 추천 지표]`). 열린 지표 피드백 닫기(지금 건수를 댓글로 남기고) |
 
 ## 의존하는 외부 시스템
@@ -43,7 +43,7 @@
 **만들지 않는 것**
 
 - 기준값이 비어 있으면 지표 피드백을 만들거나 닫지 않는다.
-- 같은 신호의 지표 피드백이 열려 있으면 새로 만들지 않는다.
+- 같은 신호의 지표 피드백이 열려 있거나 조회 기간 안에 닫혔으면 새로 만들지 않는다. 팀원이 닫은 피드백을 세션 기록이 남아 있다는 이유로 되살리지 않기 위해서다. 수집기 자신이 건수 부족으로 닫은 것은 예외다. 그 뒤 다시 모인 건수는 새 신호이기 때문이다.
 - 고친 규칙이 적용되는 세션은 그 규칙이 운영에 **배포된 뒤**의 것만 센다. 머지됐지만 아직 배포되지 않은 규칙(`develop` 과 `main` 이 다름)이 적용되는 세션도 세지 않는다. 규칙이 적용된다는 것은 세션이 본 답 조합 중 하나라도 그 규칙의 조건을 만족한다는 뜻이다. 답을 바꾼 세션은 처음 결과를 본 시각, 추천 결과를 고친 세션은 고친 시각을 배포 시각과 견준다.
 - 개인을 식별할 수 있는 정보(세션 ID, 사용자 ID, IP)를 어디에도 남기지 않는다. 결과 화면 주소는 `category`, `purpose`, `answer` 만 남긴다.
 
