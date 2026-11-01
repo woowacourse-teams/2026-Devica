@@ -25,7 +25,7 @@ cd "$REPO" || exit 1
 # 상태 디렉터리 안의 파일 쓰기·지우기(리다이렉션, mkdir, rm 포함)는 acceptEdits 가 허용한다. 레포 편집 거부는 에이전트의 편집 기능에만 걸리고, 허용한 명령의 쓰기는 막지 못한다
 TOOLS=(
   'Bash(git *)' 'Bash(gh *)' 'Bash(python3 *)' 'Bash(ruby *)'
-  'Bash(mkdir *)' 'Bash(find *)' 'Bash(ls *)' 'Bash(cat *)' 'Bash(head *)' 'Bash(date *)'
+  'Bash(mkdir *)' 'Bash(find *)' 'Bash(ls *)' 'Bash(cat *)' 'Bash(head *)' 'Bash(date *)' 'Bash(printenv *)'
   'Read' 'Edit(~/.devica-product-recommendation/**)'
 )
 # SELF_REF 에서 상태 디렉터리로 평평하게 복사할 파일. 스크립트는 common.py 를 같은 디렉터리에서 import 한다
@@ -65,8 +65,11 @@ for f in "${FILES[@]}"; do
 done
 [ -z "${WT:-}" ] || [ -d "$WT" ] || git worktree add -q --detach "$WT" origin/develop || fail "worktree 를 만들지 못했다."
 
+# 허용 목록을 에이전트에게도 알려 준다. 모르면 env·echo·for 같은 막히는 명령을 시도하다 턴을 쓴다
+CMDS=$(printf '%s\n' "${TOOLS[@]}" | sed -n 's/^Bash(\(.*\) \*)$/\1/p' | paste -sd ' ' -)
 PROMPT="작업 폴더의 git 레포에서 \`git show $SELF_REF:recommendation-improvement/$C/prompt.md\` 의 출력을
-이번 실행의 지시문으로 삼아 끝까지 따른다."
+이번 실행의 지시문으로 삼아 끝까지 따른다. 셸 명령은 다음으로 시작하는 한 줄 명령만 허용된다: $CMDS.
+그 밖의 명령과 변수 지정·함수 정의·반복문은 막힌다. 파일은 Edit 로 쓴다."
 
 # 이 파일은 파이프로 들어온다(install.sh). 표준 입력을 끊지 않으면 claude 가 남은 스크립트를 입력으로 읽는다
 # 허용 목록에 없어 막힌 명령은 결과 뒤에 적는다. 목록을 고칠 근거다
