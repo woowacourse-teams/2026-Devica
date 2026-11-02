@@ -8,7 +8,7 @@ from common import COMMANDS, json, sys
 #   signals.py issue   BODY_FILE                                    지표 피드백의 신호 키와 배포를 기다리는 걸린 규칙
 # SESSIONS_FILE 은 prompt.md 의 HogQL 결과에서 세션마다 views 한 칸을 꺼내 모은 JSON 배열이다.
 # view = [유닉스 초, 이벤트, 경로, purpose, category, "질문.선택지&질문.선택지…"]
-# EDITS_FILE 은 추천 결과를 직접 고친 기록이다. 세션·답 조합·OS 마다 마지막 기록 하나를 쿼리가 골라 둔 JSON 배열이다.
+# EDITS_FILE 은 추천 결과를 직접 고친 기록이다. 세션·사용 목적·OS 마다 마지막 기록 하나를 쿼리가 골라 둔 JSON 배열이다.
 # edit = [유닉스 초, purpose, category, "질문.선택지&…", OS, CPU 추천, CPU 고친 값, 메모리 추천, 메모리 고친 값, 저장 공간 추천, 저장 공간 고친 값]
 from collections import Counter
 from datetime import timedelta

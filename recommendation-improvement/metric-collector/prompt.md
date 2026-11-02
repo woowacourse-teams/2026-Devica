@@ -88,7 +88,7 @@ LIMIT 500 OFFSET 0
 
 ### 1-3. 추천 결과를 고친 기록 가져오기
 
-같은 방법으로 아래 쿼리를 부른다. 세션·사용 목적·답 조합·OS 마다 마지막 기록 하나만 남긴다. 세션 ID 는 묶는 데만 쓰고 꺼내지 않는다.
+같은 방법으로 아래 쿼리를 부른다. 세션·사용 목적·OS 마다 마지막 기록 하나만 남긴다. 답 조합은 묶지 않는다. 신호를 답 조합과 무관하게 묶으므로, 답을 바꿔 가며 여러 번 고친 세션이 2건으로 세이지 않게 하기 위해서다. 세션 ID 는 묶는 데만 쓰고 꺼내지 않는다.
 
 ```sql
 SELECT edit
@@ -113,7 +113,6 @@ FROM (
     AND notEmpty(coalesce(properties.$session_id, ''))
   GROUP BY properties.$session_id,
            extract(properties.$current_url, '[?&]purpose=([^&#]+)'),
-           arrayStringConcat(arraySort(extractAll(properties.$current_url, '[?&]answer=([^&#]+)')), '&'),
            toString(properties.os)
 )
 ORDER BY at
@@ -173,8 +172,11 @@ python3 "$ST/signals.py" issue "$ST/issue-<번호>.md"
 
 `signals.json` 의 묶음 중 `count ≥ MIN` 인 것마다:
 
-- 2 의 열린 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않고 기록한다.
-- 2 의 닫힌 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않고 기록한다. 팀원이 닫은 것이다. 단 수집기가 닫은 것이면 만든다. 수집기가 닫은 것은 마지막 팀원 댓글이 4-5 의 닫는 문구(`신호 최소 건수 … 보다 적어 닫습니다`)이고, 이슈의 `closed_at` 이 그 댓글의 `created_at` 뒤 10분 안인 것이다. 수집기는 댓글을 남기고 바로 닫는다. 팀원이 다시 열었다가 댓글 없이 닫았으면 마지막 댓글은 그대로 닫는 문구지만 `closed_at` 이 그보다 한참 뒤다. 댓글은 4-1 의 명령으로 읽는다.
+- 2 의 열린 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않는다. 그 이슈에 분석 결과가 없거나 가장 최근 분석 결과의 `judgment` 가 `ON_HOLD` 이고, 묶음의 `urls` 중 이슈 본문의 `결과 화면 주소` 칸에 없는 것이 있으면 본문을 묶음의 `body` 로 바꾼다. 나중에 모인 주소로 Feedback Analyzer 가 다시 판단하게 하기 위해서다. 그 밖은 근거를 바꾸지 않고 기록만 한다. 분석 결과는 첫 줄이 `<!-- product-recommendation:analysis -->` 인 팀원 댓글이고, 댓글은 4-1 의 명령으로 읽어 `block` 으로 yaml 을 읽는다.
+  ```bash
+  gh issue edit <번호> --repo "$GH_REPO" --body-file "$ST/new-body.md"
+  ```
+- 2 의 닫힌 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않고 기록한다. 팀원이 닫은 것이다. 단 수집기가 닫은 것이면 만든다. 수집기가 닫은 것은 마지막 팀원 댓글이 4-5 의 닫는 문구(`신호 최소 건수 … 보다 적어 닫습니다`)이고, 이슈의 `closed_at` 이 그 댓글의 `created_at` 뒤 10분 안인 것이다. 수집기는 댓글을 남기고 바로 닫는다. 팀원이 다시 열었다가 댓글 없이 닫았으면 마지막 댓글은 그대로 닫는 문구지만 `closed_at` 이 그보다 한참 뒤다. 개선 PR 머지로 닫힌 것도 만든다. 그 이슈의 개선 결과 중 `PR_OPENED` 인 것의 PR 이 머지됐으면(`gh pr view <pr> --repo "$GH_REPO" --json mergedAt` 이 비어 있지 않음) 그렇다. 고친 규칙에 걸린 세션은 1-4 에서 이미 버려져, 다시 모인 것은 그 개선이 다루지 못한 세션이다. 댓글은 4-1 의 명령으로 읽는다.
 - 없으면 묶음의 `body` 를 파일로 쓰고 이슈를 만든다.
   ```bash
   gh issue create --repo "$GH_REPO" --title "<title>" --body-file "$ST/new-body.md" --label product-recommendation-feedback
