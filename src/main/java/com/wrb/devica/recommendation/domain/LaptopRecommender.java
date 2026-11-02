@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Component;
 
 @Component
-public class BackendDevelopmentRecommender {
+public class LaptopRecommender {
 
     private static final String OS_ITEM = "OS";
     private static final String CPU_ITEM = LaptopRequirement.REQUIRED_CPU.name();

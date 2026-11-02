@@ -19,7 +19,7 @@ public class RecommendationDefinitions {
                 .forEach(error -> errors.add(code + ": " + error)));
 
         purposes.forEach((code, definition) ->
-            BackendDevelopmentRecommender.findUnsupported(definition.interpretation())
+            LaptopRecommender.findUnsupported(definition.interpretation())
                 .forEach(error -> errors.add(code + ": " + error)));
 
         if (!errors.isEmpty()) {

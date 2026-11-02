@@ -11,16 +11,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-class BackendDevelopmentRecommenderTest {
+class LaptopRecommenderTest {
 
     private static final LaptopInterpretation INTERPRETATION = RecommendationDefinition.read(
-        BackendDevelopmentRecommenderTest.class.getResourceAsStream("/recommendation/purposes/BACKEND_DEVELOPMENT.yml"))
+        LaptopRecommenderTest.class.getResourceAsStream("/recommendation/purposes/BACKEND_DEVELOPMENT.yml"))
         .interpretation();
 
     @Test
     void CPU_점수가_2에서_3이_되면_한_단계_오른다() {
         // given
-        BackendDevelopmentRecommender recommender = new BackendDevelopmentRecommender();
+        LaptopRecommender recommender = new LaptopRecommender();
         Requirements two = new Requirements(Map.of("REQUIRED_CPU", 2), Map.of());
         Requirements three = new Requirements(Map.of("REQUIRED_CPU", 3), Map.of());
 
@@ -38,7 +38,7 @@ class BackendDevelopmentRecommenderTest {
     @Test
     void CPU_점수가_4에서_5가_되면_Windows_는_한_단계_오르고_Mac_은_M_Pro_칩으로_제한한다() {
         // given
-        BackendDevelopmentRecommender recommender = new BackendDevelopmentRecommender();
+        LaptopRecommender recommender = new LaptopRecommender();
         Requirements four = new Requirements(Map.of("REQUIRED_CPU", 4), Map.of());
         Requirements five = new Requirements(Map.of("REQUIRED_CPU", 5), Map.of());
 
@@ -58,7 +58,7 @@ class BackendDevelopmentRecommenderTest {
     @Test
     void Mac_은_메모리가_CPU_등급의_상한을_넘으면_CPU_를_올린다() {
         // given
-        BackendDevelopmentRecommender recommender = new BackendDevelopmentRecommender();
+        LaptopRecommender recommender = new LaptopRecommender();
         Requirements requirements = new Requirements(Map.of("MEMORY", 7), Map.of());
 
         // when
@@ -72,7 +72,7 @@ class BackendDevelopmentRecommenderTest {
     @Test
     void Mac_은_CPU_등급에_없는_메모리를_가장_가까운_큰_용량으로_맞춘다() {
         // given
-        BackendDevelopmentRecommender recommender = new BackendDevelopmentRecommender();
+        LaptopRecommender recommender = new LaptopRecommender();
         Requirements requirements = new Requirements(Map.of("REQUIRED_CPU", 3, "MEMORY", 4), Map.of());
 
         // when
@@ -88,7 +88,7 @@ class BackendDevelopmentRecommenderTest {
     @Test
     void 지금_쓰는_CPU_가_같은_OS_면_그보다_한_단계_위를_권한다() {
         // given
-        BackendDevelopmentRecommender recommender = new BackendDevelopmentRecommender();
+        LaptopRecommender recommender = new LaptopRecommender();
         Requirements requirements = new Requirements(Map.of(), Map.of());
         Map<String, String> conditions = Map.of("CURRENT_CPU_TIER", "BASIC");
 
@@ -104,7 +104,7 @@ class BackendDevelopmentRecommenderTest {
     @CsvSource({"1, 16", "2, 24", "3, 24", "4, 32", "6, 32", "7, 48"})
     void 메모리_점수가_구간_경계를_넘으면_한_단계_오른다(int score, int memoryGb) {
         // given
-        BackendDevelopmentRecommender recommender = new BackendDevelopmentRecommender();
+        LaptopRecommender recommender = new LaptopRecommender();
         Requirements requirements = new Requirements(Map.of("MEMORY", score), Map.of());
 
         // when
@@ -118,7 +118,7 @@ class BackendDevelopmentRecommenderTest {
     @CsvSource({"-2, 256", "-1, 512", "2, 512", "3, 1024"})
     void 저장_공간_점수가_구간_경계를_넘으면_한_단계_오른다(int score, int storageGb) {
         // given
-        BackendDevelopmentRecommender recommender = new BackendDevelopmentRecommender();
+        LaptopRecommender recommender = new LaptopRecommender();
         Requirements requirements = new Requirements(Map.of("STORAGE", score), Map.of());
 
         // when
@@ -131,7 +131,7 @@ class BackendDevelopmentRecommenderTest {
     @Test
     void 저장_공간_점수가_6에서_7이_되면_1TB_에서_2TB_로_오른다() {
         // given
-        BackendDevelopmentRecommender recommender = new BackendDevelopmentRecommender();
+        LaptopRecommender recommender = new LaptopRecommender();
         Requirements six = new Requirements(Map.of("STORAGE", 6), Map.of());
         Requirements seven = new Requirements(Map.of("STORAGE", 7), Map.of());
 
@@ -148,7 +148,7 @@ class BackendDevelopmentRecommenderTest {
     @Test
     void 요구_항목의_근거_뒤에_결과_문장을_붙인다() {
         // given
-        BackendDevelopmentRecommender recommender = new BackendDevelopmentRecommender();
+        LaptopRecommender recommender = new LaptopRecommender();
         Requirements requirements = new Requirements(Map.of("MEMORY", 2), Map.of("MEMORY", List.of("자주 느려집니다.")));
 
         // when
@@ -161,7 +161,7 @@ class BackendDevelopmentRecommenderTest {
     @Test
     void 정의서의_점수_해석_규칙은_검증을_통과한다() {
         // when
-        List<String> errors = BackendDevelopmentRecommender.findUnsupported(INTERPRETATION);
+        List<String> errors = LaptopRecommender.findUnsupported(INTERPRETATION);
 
         // then
         assertThat(errors).isEmpty();
@@ -177,7 +177,7 @@ class BackendDevelopmentRecommenderTest {
             CpuTier.MAX);
 
         // when
-        List<String> errors = BackendDevelopmentRecommender.findUnsupported(interpretation);
+        List<String> errors = LaptopRecommender.findUnsupported(interpretation);
 
         // then
         assertThat(errors).containsExactly(
