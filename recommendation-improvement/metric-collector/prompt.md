@@ -176,7 +176,10 @@ python3 "$ST/signals.py" issue "$ST/issue-<번호>.md"
   ```bash
   gh issue edit <번호> --repo "$GH_REPO" --body-file "$ST/new-body.md"
   ```
-- 2 의 닫힌 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않고 기록한다. 팀원이 닫은 것이다. 단 수집기가 닫은 것이면 만든다. 수집기가 닫은 것은 마지막 팀원 댓글이 4-5 의 닫는 문구(`신호 최소 건수 … 보다 적어 닫습니다`)이고, 이슈의 `closed_at` 이 그 댓글의 `created_at` 뒤 10분 안인 것이다. 수집기는 댓글을 남기고 바로 닫는다. 팀원이 다시 열었다가 댓글 없이 닫았으면 마지막 댓글은 그대로 닫는 문구지만 `closed_at` 이 그보다 한참 뒤다. 개선 PR 머지로 닫힌 것도 만든다. 그 이슈의 개선 결과 중 `PR_OPENED` 인 것의 PR 이 머지됐으면(`gh pr view <pr> --repo "$GH_REPO" --json mergedAt` 이 비어 있지 않음) 그렇다. 고친 규칙에 걸린 세션은 1-4 에서 이미 버려져, 다시 모인 것은 그 개선이 다루지 못한 세션이다. 댓글은 4-1 의 명령으로 읽는다.
+- 2 의 닫힌 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않고 기록한다. 팀원이 닫은 것이다. 단 수집기가 닫은 것이면 만든다. 수집기가 닫은 것은 마지막 팀원 댓글이 4-5 의 닫는 문구(`신호 최소 건수 … 보다 적어 닫습니다`)이고, 이슈의 `closed_at` 이 그 댓글의 `created_at` 뒤 10분 안인 것이다. 수집기는 댓글을 남기고 바로 닫는다. 팀원이 다시 열었다가 댓글 없이 닫았으면 마지막 댓글은 그대로 닫는 문구지만 `closed_at` 이 그보다 한참 뒤다. 개선 PR 머지로 닫힌 것도 만든다. 이슈를 닫은 것이 머지된 PR 이면(아래 명령의 `merged` 가 참) 그렇다. 개선 결과 댓글은 근거 피드백 중 번호가 가장 작은 이슈에만 달려, 같은 PR 이 닫은 다른 피드백에는 없다. 그래서 댓글이 아니라 이슈를 닫은 PR 을 본다. 고친 규칙에 걸린 세션은 1-4 에서 이미 버려져, 다시 모인 것은 그 개선이 다루지 못한 세션이다. 댓글은 4-1 의 명령으로 읽는다.
+  ```bash
+  gh api graphql -f query='{ repository(owner: "woowacourse-teams", name: "2026-Devica") { issue(number: <번호>) { timelineItems(itemTypes: [CLOSED_EVENT], last: 1) { nodes { ... on ClosedEvent { closer { ... on PullRequest { number merged } } } } } } } }' --jq '.data.repository.issue.timelineItems.nodes[0].closer'
+  ```
 - 없으면 묶음의 `body` 를 파일로 쓰고 이슈를 만든다.
   ```bash
   gh issue create --repo "$GH_REPO" --title "<title>" --body-file "$ST/new-body.md" --label product-recommendation-feedback
@@ -192,7 +195,7 @@ python3 "$ST/signals.py" issue "$ST/issue-<번호>.md"
    gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" \
      --jq '.[] | {id, created_at, author_association, body}'
    ```
-   팀원 댓글 중 첫 줄이 `<!-- product-recommendation:decision -->` 인 것이 개선 지시, `<!-- product-recommendation:result -->` 인 것이 개선 결과다. 댓글 본문을 파일로 써서 `python3 "$ST/signals.py" block <파일>` 로 yaml 블록을 읽는다. `errors` 가 비어 있지 않으면 그 댓글은 산출물로 보지 않고 기록에 적는다. 개선 결과는 같은 이슈에서 그보다 앞선 개선 지시 중 가장 최근 것의 결과다(순서는 `created_at`, 같으면 `id`). 개선 지시의 `issues` 에 이 이슈 번호가 있고, 개선 결과가 없거나 결과가 `PR_OPENED` 인데 그 PR 이 열려 있으면(`gh pr view <pr> --repo "$GH_REPO" --json state`) 처리 중이다.
+   팀원 댓글 중 첫 줄이 `<!-- product-recommendation:decision -->` 인 것이 개선 지시, `<!-- product-recommendation:result -->` 인 것이 개선 결과다. 댓글 본문을 파일로 써서 `python3 "$ST/signals.py" block <파일>` 로 yaml 블록을 읽는다. `errors` 가 비어 있지 않으면 그 댓글은 산출물로 보지 않고 기록에 적는다. 개선 결과는 같은 이슈에서 그보다 앞선 개선 지시 중 가장 최근 것의 결과다(순서는 `created_at`, 같으면 `id`). 열린 피드백 이슈 전체의 개선 지시 중 `issues` 에 이 이슈 번호가 있는 것이 하나라도, 개선 결과가 없거나 결과가 `PR_OPENED` 인데 그 PR 이 열려 있으면(`gh pr view <pr> --repo "$GH_REPO" --json state`) 처리 중이다. 개선 지시는 근거 피드백 중 번호가 가장 작은 이슈에만 달려, 다른 근거 피드백의 댓글에는 없기 때문이다.
 2. **세션에 걸린 규칙이 배포를 기다리면 열어 둔다.** `pending` 이 비어 있지 않다.
 3. **`signals.json` 의 `incomplete` 가 참이면 열어 둔다.** 운영 서버 오류로 세지 못한 세션이 있어 건수가 실제보다 적을 수 있다. 사용자의 문제가 풀린 것이 아니라 응답을 받지 못한 것이므로 닫지 않고 다음 실행에서 다시 센다.
 4. **지금 건수를 센다.** `c` = `signals.json` 에서 `key` 가 같은 묶음의 `count`(없으면 0). `c ≥ MIN` 이면 열어 둔다.
