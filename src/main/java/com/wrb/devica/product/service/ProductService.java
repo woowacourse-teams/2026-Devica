@@ -24,6 +24,7 @@ public class ProductService {
 
     private final LaptopRepository laptopRepository;
     private final ProductImageUrlResolver imageUrlResolver;
+    private final ProductOfferService productOfferService;
 
     public Slice<ProductSummaryResponse> findProductsByCategory(String categoryCode, LaptopSearchCondition condition,
                                                                 PageCondition pageCondition) {
@@ -34,8 +35,10 @@ public class ProductService {
             pageCondition.sort(),
             PageRequest.of(pageCondition.page(), pageCondition.size())
         );
+        var sources = productOfferService.findLowestOnSaleOffers(rows.stream()
+            .filter(row -> row.minPrice() != null).map(ProductSummaryRow::id).toList());
         return rows.map(row -> ProductSummaryResponse.from(
-            row, imageUrlResolver.resolve(row.imageKey()))
+            row, imageUrlResolver.resolve(row.imageKey()), sources.get(row.id()))
         );
     }
 
