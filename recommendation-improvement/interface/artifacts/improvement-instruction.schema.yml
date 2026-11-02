@@ -28,7 +28,7 @@ properties:
     type: string
 
   # 고칠 규칙. 정의서 rules 에서 하나로 특정되도록 criterion 과 when 을 지금 정의서의 것 그대로 적는다.
-  # rules 밖(survey, mappings, 코드)은 대상이 아니다.
+  # rules 밖(survey, mappings, interpretation, 코드)은 대상이 아니다.
   rule:
     type: object
     additionalProperties: false
