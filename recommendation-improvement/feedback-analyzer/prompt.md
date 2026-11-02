@@ -4,17 +4,17 @@
 
 ## 설정
 
-| 이름 | 값 |
-|---|---|
-| GitHub 레포 | `woowacourse-teams/2026-Devica` |
-| 피드백 라벨 | `product-recommendation-feedback` |
-| 개발 제품 추천 API(`develop` 반영) | `http://dev.devica.co.kr` |
-| 운영 제품 추천 API | `https://api.devica.co.kr` |
-| 상태 디렉터리 | `$HOME/.devica-product-recommendation/feedback-analyzer` |
-| 판단 기준 정의서 | `origin/develop` |
-| 운영 정의서 이력 | `origin/main` |
-
-`SELF_REF` 는 이 지시문을 읽어 온 git ref 다. 예약 작업의 프롬프트가 정하고, 정하지 않았으면 `origin/develop` 이다.
+| 이름 | 환경 변수 | 값 |
+|---|---|---|
+| GitHub 레포 | `GH_REPO` | `woowacourse-teams/2026-Devica` |
+| 피드백 라벨 | | `product-recommendation-feedback` |
+| 개발 제품 추천 API(`develop` 반영) | | `http://dev.devica.co.kr` |
+| 운영 제품 추천 API | | `https://api.devica.co.kr` |
+| 상태 디렉터리 | `ST` | `$HOME/.devica-product-recommendation/feedback-analyzer`. `SELF_REF` 에서 복사한 스크립트와 스키마 3개(`analysis-result`, `improvement-instruction`, `improvement-result`)가 있다 |
+| 지시문·스크립트 ref | `SELF_REF` | `run.sh` 가 넘긴다. 기본은 `origin/develop` |
+| 실행 기록 | `RUN` | `$ST/runs/<UTC 시각>.md`. 단계마다 무엇을 보고 무엇을 했는지 이어 적는다 |
+| 판단 기준 정의서 | | `origin/develop` |
+| 운영 정의서 이력 | | `origin/main` |
 
 ## 지킬 것
 
@@ -26,28 +26,14 @@
 
 ## 0. 준비
 
-Bash 호출 사이에 셸 상태가 남지 않는다. 호출마다 맨 앞에 아래를 붙인다.
+`run.sh` 가 했다. 잠금을 잡고(끝날 때 푼다), 실행 기록 파일을 만들고, `SELF_REF` 에서 스크립트와 스키마를 복사했다. 지시문은 잠금을 다루지 않는다. 명령에 적힌 `$ST`·`$GH_REPO` 같은 설정 표의 변수는 실행 안내에 적힌 값으로 바꿔 적는다. 변수가 든 명령은 실행 전에 검사할 수 없어 막힌다. Bash 호출 사이에 셸 변수와 함수는 남지 않으므로, 한 호출에서 구한 값을 다음 호출에서 쓰려면 파일에 적어 둔다.
 
+스크립트 명령은 `python3 "$ST/common.py" <명령> …` 으로 부른다. 명령과 사용법은 `common.py` 머리 주석에 있다.
+
+**서버 확인.** 두 API 가 응답하는지 본다. 하나라도 200 이 아니면 아무것도 쓰지 않고 기록한 뒤 끝낸다.
 ```bash
-export REPO=$(git rev-parse --show-toplevel) GH_REPO=woowacourse-teams/2026-Devica
-ST="$HOME/.devica-product-recommendation/feedback-analyzer"; rec() { python3 "$ST/common.py" "$@"; }
-DEV=http://dev.devica.co.kr PROD=https://api.devica.co.kr
+python3 "$ST/common.py" api http://dev.devica.co.kr BACKEND_DEVELOPMENT '{}' | head -c 200; python3 "$ST/common.py" api https://api.devica.co.kr BACKEND_DEVELOPMENT '{}' | head -c 200
 ```
-
-1. **잠금.** `mkdir -p "$ST/runs" && mkdir "$ST/lock"` 가 실패하면 다른 실행이 진행 중이므로 아무것도 하지 않고 끝낸다. 단 `find "$ST/lock" -maxdepth 0 -mmin +360` 이 결과를 내면(6시간 넘게 남은 잠금) 앞선 실행이 비정상으로 끝난 것으로 보고 `rm -rf "$ST/lock"` 뒤 다시 잡고 기록한다. 잠금을 잡은 뒤에는 **어느 단계에서 끝나든** 마지막에 `rm -rf "$ST/lock"` 을 한다.
-2. **실행 기록.** `$ST/runs/<UTC 시각 YYYYMMDDTHHMMSSZ>.md` 를 만들고 대상마다 판단과 근거를 적는다.
-3. **레포 갱신과 스크립트 준비.**
-   ```bash
-   git -C "$REPO" fetch -q origin
-   git -C "$REPO" show "${SELF_REF}:recommendation-improvement/common.py" > "$ST/common.py"
-   for s in analysis-result improvement-instruction improvement-result; do git -C "$REPO" show "${SELF_REF}:recommendation-improvement/interface/artifacts/$s.schema.yml" > "$ST/$s.schema.yml"; done
-   ```
-4. **서버 확인.** 두 API 가 응답하는지 본다. 하나라도 200 이 아니면 아무것도 쓰지 않고 기록한 뒤 끝낸다.
-   ```bash
-   rec api "$DEV" BACKEND_DEVELOPMENT '{}' | head -c 200; rec api "$PROD" BACKEND_DEVELOPMENT '{}' | head -c 200
-   ```
-
-스크립트 명령: `rec def|hits|visible|diff|history|api|url|values|fields|block` (사용법은 `common.py` 머리 주석). `hits` 는 노출 조건을 적용한 답으로 걸린 규칙을 돌려준다.
 
 ## 1. 상태 읽기
 
@@ -59,7 +45,7 @@ gh api --paginate "repos/$GH_REPO/issues?labels=product-recommendation-feedback&
 gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.[] | {id, created_at, author_association, body}'
 ```
 
-댓글이 있는 이슈만 댓글을 읽는다. 댓글 순서는 `created_at`, 같으면 `id` 로 정한다. 팀원 댓글의 첫 줄로 산출물을 가른다. 본문을 파일로 써서 `rec block <파일>` 로 yaml 블록을 읽는다. `errors` 가 비어 있지 않으면 그 댓글은 산출물로 보지 않고 기록에 적는다.
+댓글이 있는 이슈만 댓글을 읽는다. 댓글 순서는 `created_at`, 같으면 `id` 로 정한다. 팀원 댓글의 첫 줄로 산출물을 가른다. 본문을 파일로 써서 `python3 "$ST/common.py" block <파일>` 로 yaml 블록을 읽는다. `errors` 가 비어 있지 않으면 그 댓글은 산출물로 보지 않고 기록에 적는다.
 
 | 첫 줄 | 산출물 |
 |---|---|
@@ -93,25 +79,25 @@ R 의 근거 피드백 중 열린 것은 R 에서만 다루고 A·H 에서 뺀�
 
 ### 3-1. 칸 읽기
 
-본문을 파일로 써서 `rec fields <파일>` 로 칸을 읽는다.
+본문을 파일로 써서 `python3 "$ST/common.py" fields <파일>` 로 칸을 읽는다.
 
-- **주소**: `결과 화면 주소` 칸에서 `https://devica.co.kr/result` 또는 `https://2026-devica.vercel.app/result` 로 시작하는 줄만 쓴다. `rec url <주소>` 의 `answers` 만 쓰고 `answer` 밖의 값은 버린다. 사용 목적은 `purpose`(없으면 `BACKEND_DEVELOPMENT`)다. 주소가 하나도 없으면 "재현할 수 없음".
+- **주소**: `결과 화면 주소` 칸에서 `https://devica.co.kr/result` 또는 `https://2026-devica.vercel.app/result` 로 시작하는 줄만 쓴다. `python3 "$ST/common.py" url <주소>` 의 `answers` 만 쓰고 `answer` 밖의 값은 버린다. 사용 목적은 `purpose`(없으면 `BACKEND_DEVELOPMENT`)다. 주소가 하나도 없으면 "재현할 수 없음".
 - **권장안**: `Mac` → [MAC], `Windows` → [WINDOWS], `둘 다` 또는 빈칸 → [MAC, WINDOWS].
 - **지적**: `어떤 점이 맞지 않았나요?` 를 `, ` 로 나눈다.
   - 값 지적: `CPU 가`·`메모리가`·`저장 공간이` + `과해요`(DOWN, 내려야 함) / `부족해요`(UP, 올려야 함). 항목 코드는 `REQUIRED_CPU`, `MEMORY`, `STORAGE`.
   - 문장 지적: `근거 설명이 제 상황과 달라요`. 짚은 문장 = 재현 결과(지적한 권장안)의 근거 문장 중 `더 알려 주실 내용` 에 그대로(공백 차이 무시) 들어 있는 것. 없으면 문장은 특정되지 않고 사용자가 적은 상황만 남는다.
   - `질문이 이해하기 어려웠어요`: 질문(survey) 지적. `기타`: `더 알려 주실 내용` 으로만 판단한다.
-- 지표 피드백의 지적에는 "(지표 추정)"을 붙여 다룬다. 단 `고친 값` 칸이 있는 지표 피드백(추천 결과를 직접 고친 세션)은 사용자가 원한 값이 기록된 것이라 "(직접 수정)"을 붙인다. 이 피드백은 주소가 하나이고 권장안도 하나다. `rec edited <파일>` 로 고친 값을 읽는다.
+- 지표 피드백의 지적에는 "(지표 추정)"을 붙여 다룬다. 단 `고친 값` 칸이 있는 지표 피드백(추천 결과를 직접 고친 세션)은 사용자가 원한 값이 기록된 것이라 "(직접 수정)"을 붙인다. 이 피드백은 주소가 하나이고 권장안도 하나다. `python3 "$ST/common.py" edited <파일>` 로 고친 값을 읽는다.
 
 ### 3-2. 결과 받기
 
-주소마다 `rec api "$DEV" <purpose> '<answers>'` 를 부른다. 400 이면 그 주소는 재현되지 않는다(질문이 바뀌어 예전 답이 맞지 않음). **모든 주소가 재현되지 않으면 "재현할 수 없음"**으로 판단하고 3-3 부터는 하지 않는다. 일부만 되면 된 주소만 쓰고 나머지를 분석 결과에 적는다.
+주소마다 `python3 "$ST/common.py" api http://dev.devica.co.kr <purpose> '<answers>'` 를 부른다. 400 이면 그 주소는 재현되지 않는다(질문이 바뀌어 예전 답이 맞지 않음). **모든 주소가 재현되지 않으면 "재현할 수 없음"**으로 판단하고 3-3 부터는 하지 않는다. 일부만 되면 된 주소만 쓰고 나머지를 분석 결과에 적는다.
 
-**사용자가 본 값**은 이 피드백의 직전 분석 결과 yaml 블록의 `seen` 에서 그 주소의 `answers` 와 권장안·항목이 같은 것을 쓴다. 첫 분석이면 지금 `rec api "$PROD" …` 로 받은 값을 사용자가 본 값으로 삼아 주소마다 `seen` 에 적는다. 단 `고친 값` 이 있는 피드백은 `rec edited` 의 `recommended`(`value`, `rank`)가 사용자가 본 값이다. 사용자가 고칠 때 화면에 있던 값이 기록돼 있어, 그 뒤 운영이 바뀌었어도 이것과 비교해야 한다. 한 항목에 여러 줄이 있으면 `count` 가 가장 큰 줄의 값을 쓴다. 주소가 여럿이면 같은 권장안·항목이라도 주소마다 값이 다르므로 `answers` 로 구분한다. 다시 재현할 때 지금 운영 결과와 비교하면 그 사이 배포된 개선을 놓쳐 사용자가 본 적 없는 값에 지적을 다시 적용하기 때문이다. 운영 결과를 받지 못한 주소는 사용자가 본 값이 없고, 이미 바뀌었는지 비교하지 않는다(바뀌지 않은 것으로 본다).
+**사용자가 본 값**은 이 피드백의 직전 분석 결과 yaml 블록의 `seen` 에서 그 주소의 `answers` 와 권장안·항목이 같은 것을 쓴다. 첫 분석이면 지금 `python3 "$ST/common.py" api https://api.devica.co.kr …` 로 받은 값을 사용자가 본 값으로 삼아 주소마다 `seen` 에 적는다. 단 `고친 값` 이 있는 피드백은 `python3 "$ST/common.py" edited` 의 `recommended`(`value`, `rank`)가 사용자가 본 값이다. 사용자가 고칠 때 화면에 있던 값이 기록돼 있어, 그 뒤 운영이 바뀌었어도 이것과 비교해야 한다. 한 항목에 여러 줄이 있으면 `count` 가 가장 큰 줄의 값을 쓴다. 주소가 여럿이면 같은 권장안·항목이라도 주소마다 값이 다르므로 `answers` 로 구분한다. 다시 재현할 때 지금 운영 결과와 비교하면 그 사이 배포된 개선을 놓쳐 사용자가 본 적 없는 값에 지적을 다시 적용하기 때문이다. 운영 결과를 받지 못한 주소는 사용자가 본 값이 없고, 이미 바뀌었는지 비교하지 않는다(바뀌지 않은 것으로 본다).
 
 ### 3-3. 지적마다 이미 바뀌었는지
 
-재현된 주소 **모두**와 지적한 권장안 **모두**에서 아래가 성립하면 그 지적은 이미 바뀌었다(`rec values` 의 `rank` 로 비교한다).
+재현된 주소 **모두**와 지적한 권장안 **모두**에서 아래가 성립하면 그 지적은 이미 바뀌었다(`python3 "$ST/common.py" values` 의 `rank` 로 비교한다).
 
 - 값 지적: 그 주소의 개발 값 `rank` 가 같은 주소(`answers`)·권장안·항목의 사용자가 본 값(`seen` 의 `rank`)보다 지적한 방향으로 옮겨 있다. 예: 메모리가 과해요인데 사용자가 본 값 32GB(rank 32), 개발 24GB(rank 24).
 - 문장 지적(짚은 문장이 있을 때만): 짚은 문장이 개발 결과의 그 권장안 근거에 더는 없다.
@@ -120,7 +106,7 @@ R 의 근거 피드백 중 열린 것은 R 에서만 다루고 A·H 에서 뺀�
 
 ### 3-4. 근거 규칙과 가리키는 규칙
 
-재현된 주소마다 `H = rec hits origin/develop <purpose> '<answers>'`.
+재현된 주소마다 `H = python3 "$ST/common.py" hits origin/develop <purpose> '<answers>'`.
 
 - 값 지적 `(항목, 방향)` 의 **근거 규칙** = `H` 중 `criterion == 항목`. 개발 결과의 그 항목 근거 문장 중 이 규칙들의 `reason` 이 아닌 것은 코드가 만든 문장이다(정의서 머리 주석의 목록).
 - 그 지적이 **가리키는 규칙** = 근거 규칙 중 DOWN 이면 `weight > 0`, UP 이면 `weight < 0` 인 것. `weight` 가 0 인 규칙은 가리키지 않는다. 주소가 여럿이면 모든 주소에서 가리키는 규칙의 교집합. 비었으면 값의 원인은 정의서 밖(점수 구간·보정 등 코드)이다.
@@ -143,7 +129,7 @@ R 의 근거 피드백 중 열린 것은 R 에서만 다루고 A·H 에서 뺀�
 **조건 3 — 지표 피드백의 바꾼 답이 가리키는 규칙이 하나다.** `바꾼 답` 칸이 있는 지표 피드백에서만 본다. `고친 값` 칸이 있는 피드백은 아래 3 의 이력 조회까지 포함해 이 조건을 보지 않는다. 이력에서 최근 배포된 규칙 하나를 골라, 조건 4 라면 원인이 여럿이라 보류할 것을 지시로 바꾸기 때문이다. 남은 값 지적 `(항목, 방향)` 에 대해:
 1. 처음 답 조합 = 주소의 answers. 마지막 답 조합 = 처음 답 조합에서 `바꾼 답` 각 줄(`질문: 처음 → 마지막`)의 왼쪽 선택지를 빼고 오른쪽 선택지를 더한 것(`-` 는 없음).
 2. 버린 선택지에 걸린 규칙 = 처음 답 조합에 걸리고 마지막 답 조합에 걸리지 않는 `criterion == 항목` 규칙(`origin/develop`) 중 DOWN 이면 `weight > 0`, UP 이면 `weight < 0` 인 것. 주소마다 구해 합집합.
-3. 2 가 비었으면 `rec history origin/main <purpose> <근거 지표 기간 시작일>T00:00:00Z` 중 커밋 시각이 근거 지표 기간(시작일 00:00 ~ 끝일 24:00, UTC) 안이고, `criterion == 항목` 이며 처음 답 조합에 걸리고, `weight` 가 지적과 반대 방향으로 바뀐 규칙(DOWN 지적이면 올라간 것, UP 지적이면 내려간 것. 새로 생긴 규칙은 0 에서 바뀐 것으로 본다). 합집합. 그 규칙이 지금 `origin/develop` 에 없으면 쓰지 않는다.
+3. 2 가 비었으면 `python3 "$ST/common.py" history origin/main <purpose> <근거 지표 기간 시작일>T00:00:00Z` 중 커밋 시각이 근거 지표 기간(시작일 00:00 ~ 끝일 24:00, UTC) 안이고, `criterion == 항목` 이며 처음 답 조합에 걸리고, `weight` 가 지적과 반대 방향으로 바뀐 규칙(DOWN 지적이면 올라간 것, UP 지적이면 내려간 것. 새로 생긴 규칙은 0 에서 바뀐 것으로 본다). 합집합. 그 규칙이 지금 `origin/develop` 에 없으면 쓰지 않는다.
 4. 규칙이 정확히 하나면 후보: `weight: { from: <origin/develop 의 지금 값>, direction: <지적 방향> }`. 둘 이상이면 이 조건으로는 보류한다.
 
 **조건 4 — 추천 결과를 직접 고친 지표 피드백에서, 고친 항목·방향이 가리키는 규칙이 하나이고 고친 세션이 2건 이상이다.** `고친 값` 칸이 있는 지표 피드백에서만 본다. 남은 값 지적 `(항목, 방향)` 에 대해:
@@ -187,7 +173,7 @@ R 의 근거 피드백 중 열린 것은 R 에서만 다루고 A·H 에서 뺀�
 
 ## 6. 댓글
 
-댓글 본문을 파일로 쓰고, 남기기 전에 `rec block <파일>` 의 `errors` 가 비어 있는지 확인한다. 있으면 고쳐서 다시 확인한다. 그 뒤 `gh issue comment <번호> --repo "$GH_REPO" --body-file <파일>` 로 남긴다. 표의 칸에 `|` 가 들어가면 `\|` 로 쓴다.
+댓글 본문을 파일로 쓰고, 남기기 전에 `python3 "$ST/common.py" block <파일>` 의 `errors` 가 비어 있는지 확인한다. 있으면 고쳐서 다시 확인한다. 그 뒤 `gh issue comment <번호> --repo "$GH_REPO" --body-file <파일>` 로 남긴다. 표의 칸에 `|` 가 들어가면 `\|` 로 쓴다.
 
 ### 6-1. 분석 결과
 
@@ -217,7 +203,7 @@ R 의 근거 피드백 중 열린 것은 R 에서만 다루고 A·H 에서 뺀�
 ```yaml
 judgment: <INSTRUCTED | ON_HOLD | TEAM_HANDLES | ALREADY_CHANGED | NOT_REPRODUCIBLE>
 seen:
-  - { answers: <그 주소의 rec url answers, 한 줄>, plan: <MAC | WINDOWS>, item: <REQUIRED_CPU | MEMORY | STORAGE>, value: <values 의 display>, rank: <values 의 rank> }
+  - { answers: <그 주소의 python3 "$ST/common.py" url answers, 한 줄>, plan: <MAC | WINDOWS>, item: <REQUIRED_CPU | MEMORY | STORAGE>, value: <values 의 display>, rank: <values 의 rank> }
 ```
 ````
 
@@ -236,10 +222,11 @@ seen:
 - **판단 근거**: 판단에 실제로 쓴 사실만 한 줄씩 적는다. 걸린 규칙과 점수, 판단에 쓴 사용자 문장의 짧은 인용이다. 판단이 이미 바뀜이면 지적한 항목의 사용자가 본 값과 개발 값을 적고, 이미 머지된 변경으로 다음 배포부터 그 값이 나온다고 적는다. 그 밖의 판단에서는 "이미 바뀐 것은 없다" 같은 문장을 쓰지 않는다. 다시 판단한 것이면 실패·반려 사유를 적는다.
 - **팀원이 정할 것**: 루프가 하지 못해 팀원이 정할 일을 한 줄씩 적고, `—` 뒤에 원인 구분을 붙인다.
   - 설문 질문이면 바꿀 질문·선택지의 초안을 함께 적는다. 정의서 `survey` 의 지금 질문을 읽고, 추가·변경할 질문 문구와 선택지를 화면 문구로 적는다. 예: `예산 질문을 더한다 — 설문 질문` 아래에 `  - 초안: "노트북 예산은 얼마인가요?" — 150만 원 이하 / 150~250만 원 / 250만 원 이상 / 정하지 않음`.
-  - 개선 지시면 `개선 지시 #<이슈> 의 PR 을 리뷰한다`, 보류면 무엇이 모이면 다시 판단하는지 적는다. 정할 것이 없으면 이 절을 뺀다.
+  - 개선 지시면 `개선 지시 #<이슈> 의 PR 을 리뷰한다`. `— 다음 피드백으로 넘김` 을 붙인 지적 중 사람 몫(설문 질문·추천 코드·프로젝트 개선)이 있으면 `PR 을 머지하기 전에 작업 이슈로 넘긴다 — <원인 구분>` 을 한 줄씩 더 적는다. PR 이 머지되면 이 이슈가 닫혀 남은 지적이 묻히기 때문이다.
+  - 보류면 무엇이 모이면 다시 판단하는지 적는다. 정할 것이 없으면 이 절을 뺀다.
 - 지시문 안에서만 쓰는 말(조건 번호, `survey`·`rules` 같은 정의서 키, "항목·방향", "판단에 씀")을 쓰지 않는다. 규칙은 `criterion` 코드 대신 메모리·CPU·저장 공간, 답은 선택지의 화면 문구로 적는다.
 
-`사용자가 본 값` 은 3-2 의 값이다. 재현된 사양 표에 적고, yaml 블록의 `seen` 에도 주소마다 사용자가 고른 권장안의 CPU·메모리·저장 공간을 모두 적는다. 고친 값이 있는 피드백은 고친 항목은 `rec edited` 의 값, 나머지 항목은 지금 운영 값을 적는다. 이미 바뀌었는지는 지적한 항목만 비교한다. 다음 실행은 `seen` 에서 읽으므로 첫 분석부터 빠뜨리지 않고, 다시 판단할 때는 직전 `seen` 을 그대로 옮겨 적는다.
+`사용자가 본 값` 은 3-2 의 값이다. 재현된 사양 표에 적고, yaml 블록의 `seen` 에도 주소마다 사용자가 고른 권장안의 CPU·메모리·저장 공간을 모두 적는다. 고친 값이 있는 피드백은 고친 항목은 `python3 "$ST/common.py" edited` 의 값, 나머지 항목은 지금 운영 값을 적는다. 이미 바뀌었는지는 지적한 항목만 비교한다. 다음 실행은 `seen` 에서 읽으므로 첫 분석부터 빠뜨리지 않고, 다시 판단할 때는 직전 `seen` 을 그대로 옮겨 적는다.
 
 ### 6-2. 개선 지시
 
@@ -274,4 +261,4 @@ reason: <조건 N. 근거 한두 문장>
 
 ## 7. 마치기
 
-실행 기록에 대상별 판단, 낸 개선 지시(이슈 번호·규칙·변경), 확정하지 않은 후보와 이유를 적는다. 이번 실행의 임시 파일을 지우고(실행 기록은 남긴다) `rm -rf "$ST/lock"` 으로 끝낸다.
+실행 기록에 대상별 판단, 낸 개선 지시(이슈 번호·규칙·변경), 확정하지 않은 후보와 이유를 적는다. 이번 실행의 임시 파일을 지우고(실행 기록은 남긴다) 끝낸다. 잠금은 `run.sh` 가 푼다.

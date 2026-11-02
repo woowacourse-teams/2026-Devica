@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-# common.py 와 구성 요소별 스크립트(signals.py, snapshot.py)의 테스트. 외부(git, API, PostHog)를 부르지 않는 함수만 본다.
+# common.py 와 구성 요소별 스크립트(signals.py, snapshot.py)의 테스트. 외부(API, PostHog)를 부르지 않는 함수만 본다.
+# run.sh 는 임시 git 저장소와 가짜 claude 로 준비·잠금만 본다.
 #
 #   python3 test.py
 import importlib.util
 import json
 import os
+import shutil
+import subprocess
 import tempfile
 import time
 import unittest
@@ -516,6 +519,102 @@ class ImproverTest(unittest.TestCase):
         out = improver.compare(tmp(before), tmp(after), tmp(json.dumps(INSTRUCTION)))
         self.assertTrue(out['ok'])
         self.assertEqual([r['case'] for r in out['other_feedback_rows']], ['피드백 #300'])
+
+
+class RunShTest(unittest.TestCase):
+    """run.sh 의 준비와 잠금. 임시 HOME·임시 origin 과 가짜 claude 로 돌려 외부를 부르지 않는다."""
+
+    RUN_SH = os.path.join(HERE, 'schedule', 'run.sh')
+    FAKE_CLAUDE = """#!/bin/bash
+# 불린 것을 남기고, 그때 잠금이 있었는지와 받은 프롬프트를 적는다
+[ -d "$ST/lock" ] && echo locked > "$MARK" || echo unlocked > "$MARK"
+printf '%s' "$2" > "$MARK.prompt"
+echo '{"result": "ok", "permission_denials": []}'
+exit "${FAKE_RC:-0}"
+"""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp)
+        git = ['git', '-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'init.defaultBranch=develop']
+        src = os.path.join(self.tmp, 'src')
+        for f in ['common.py', 'interface/artifacts/analysis-result.schema.yml',
+                  'interface/artifacts/improvement-instruction.schema.yml',
+                  'interface/artifacts/improvement-result.schema.yml']:
+            os.makedirs(os.path.dirname(os.path.join(src, 'recommendation-improvement', f)), exist_ok=True)
+            shutil.copy(os.path.join(HERE, f), os.path.join(src, 'recommendation-improvement', f))
+        origin = os.path.join(self.tmp, 'origin.git')
+        self.work = os.path.join(self.tmp, 'work')
+        for cmd, cwd in [(git + ['init', '-q', src], None), (git + ['add', '.'], src), (git + ['commit', '-qm', 'x'], src),
+                         (git + ['clone', '-q', '--bare', src, origin], None), (git + ['clone', '-q', origin, self.work], None)]:
+            subprocess.run(cmd, cwd=cwd, check=True)
+        bin_dir = os.path.join(self.tmp, 'bin')
+        os.makedirs(bin_dir)
+        with open(os.path.join(bin_dir, 'claude'), 'w') as f:
+            f.write(self.FAKE_CLAUDE)
+        os.chmod(os.path.join(bin_dir, 'claude'), 0o755)
+        self.home = os.path.join(self.tmp, 'home')
+        self.st = os.path.join(self.home, '.devica-product-recommendation', 'feedback-analyzer')
+        self.mark = os.path.join(self.tmp, 'called')
+        self.env = {**os.environ, 'HOME': self.home, 'PATH': bin_dir + os.pathsep + os.environ['PATH'], 'MARK': self.mark}
+        self.env.pop('SELF_REF', None)
+
+    def run_sh(self, **env):
+        return subprocess.run(['bash', self.RUN_SH, 'feedback-analyzer'], cwd=self.work, env={**self.env, **env},
+                              capture_output=True, text=True)
+
+    def test_준비한_뒤_잠금을_잡고_claude_를_부르고_끝나면_푼다(self):
+        r = self.run_sh()
+
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        with open(self.mark) as f:
+            self.assertEqual(f.read().strip(), 'locked')
+        self.assertTrue(os.path.exists(os.path.join(self.st, 'common.py')))
+        self.assertFalse(os.path.exists(os.path.join(self.st, 'lock')))
+        self.assertEqual(len(os.listdir(os.path.join(self.st, 'runs'))), 1)
+
+    def test_명령에_쓸_변수의_값을_프롬프트로_넘긴다(self):
+        self.run_sh()
+
+        with open(self.mark + '.prompt') as f:
+            prompt = f.read()
+        self.assertIn('GH_REPO=woowacourse-teams/2026-Devica', prompt)
+        self.assertIn('ST=' + self.st, prompt)
+        self.assertIn('SELF_REF=origin/develop', prompt)
+
+    def test_다른_실행이_잠금을_잡고_있으면_claude_를_부르지_않는다(self):
+        os.makedirs(os.path.join(self.st, 'lock'))
+
+        r = self.run_sh()
+
+        self.assertEqual(r.returncode, 0)
+        self.assertFalse(os.path.exists(self.mark))
+        self.assertTrue(os.path.exists(os.path.join(self.st, 'lock')))
+
+    def test_6시간_넘은_잠금은_지우고_실행한다(self):
+        lock = os.path.join(self.st, 'lock')
+        os.makedirs(lock)
+        old = time.time() - 7 * 3600
+        os.utime(lock, (old, old))
+
+        r = self.run_sh()
+
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertTrue(os.path.exists(self.mark))
+        self.assertFalse(os.path.exists(lock))
+
+    def test_준비에_실패하면_claude_를_부르지_않고_잠금을_푼다(self):
+        r = self.run_sh(SELF_REF='origin/없는-브랜치')
+
+        self.assertEqual(r.returncode, 1)
+        self.assertFalse(os.path.exists(self.mark))
+        self.assertFalse(os.path.exists(os.path.join(self.st, 'lock')))
+
+    def test_claude_가_실패하면_실패로_끝내고_잠금을_푼다(self):
+        r = self.run_sh(FAKE_RC='3')
+
+        self.assertEqual(r.returncode, 3)
+        self.assertFalse(os.path.exists(os.path.join(self.st, 'lock')))
 
 
 if __name__ == '__main__':
