@@ -14,7 +14,9 @@
 #   common.py url     RESULT_URL                        결과 화면 주소 → {category, purpose, answers}
 #   common.py values  RESPONSE_JSON                     api 의 출력이나 그 body → 권장안별 항목 값·순위·근거
 #   common.py fields  BODY_FILE                         피드백 이슈 본문 → 칸 제목별 값
-#   common.py edited  BODY_FILE                         지표 피드백의 "고친 값" 칸 → 줄마다 항목·제품 추천 결과 값·고친 값(rank 포함)·건수
+#   common.py edited  BODY_FILE                         지표 피드백의 "고친 값" 칸 → 줄마다 주소 번호·항목·제품 추천 결과 값·고친 값(rank 포함)·건수
+#   common.py metric  BODY_FILE                         지표 피드백 → 주소(번호·answers), 주소별 건수, 고친 값, 주소별 바꾼 답
+#   common.py cluster ITEMS_JSON                       주소마다 가리키는 규칙 [{address, count, rules}] → 함께 가리키는 규칙과 그 주소 묶음
 #   common.py block   COMMENT_FILE                      산출물 댓글 → 표시(첫 줄), 첫 ```yaml 블록(JSON), 스키마 검증 오류(errors)
 #
 # 테스트는 test.py 에 있다.
@@ -207,18 +209,68 @@ def edit_value(item, text):
     return {'value': text, 'rank': int(m[1]) * (1024 if m[2] == 'TB' else 1)} if m else None
 
 
+ADDRESS_LINE = re.compile(r'^주소 (\d+): ?(.*)$')
+
+
+def addressed(line):
+    # 지표 피드백의 주소별 줄 "주소 N: …". N 은 결과 화면 주소 칸의 순서(1부터)다. 접두어가 없으면 주소 1 이다
+    m = ADDRESS_LINE.match(line.strip())
+    return (int(m[1]), m[2].strip()) if m else (1, line.strip())
+
+
 def edited(text):
     out = []
     for line in fields(text).get('고친 값', '').splitlines():
-        m = EDIT_LINE.match(line.strip())
+        address, rest = addressed(line)
+        m = EDIT_LINE.match(rest)
         if not m:
             continue
         item = EDIT_ITEM[m[1]]
         recommended, changed = edit_value(item, m[2]), edit_value(item, m[3])
         # 사람이 본문을 고쳐 읽을 수 없게 된 줄은 건너뛴다
         if recommended and changed:
-            out.append({'item': item, 'recommended': recommended, 'edited': changed, 'count': int(m[4])})
+            out.append({'address': address, 'item': item, 'recommended': recommended, 'edited': changed, 'count': int(m[4])})
     return out
+
+
+def metric(text):
+    # 지표 피드백의 주소별 정보. 주소별 건수가 없는 옛 본문은 주소가 하나일 때만 건수를 그 주소의 것으로 본다
+    f = fields(text)
+    urls = [l.strip() for l in f.get('결과 화면 주소', '').splitlines() if l.strip().startswith(RESULT_PREFIXES)]
+    basis = f.get('근거 지표', '')
+    total, per = re.search(r'^- 건수: (\d+)', basis, re.M), re.search(r'^- 주소별 건수: (.+)$', basis, re.M)
+    counts = [int(x) for x in per[1].split(',')] if per else [int(total[1])] if total and len(urls) == 1 else []
+    changed = {}
+    for line in f.get('바꾼 답', '').splitlines():
+        if line.strip():
+            n, rest = addressed(line)
+            changed.setdefault(n, []).append(rest)
+    return {'urls': [{'address': i + 1, **parse_url(u)} for i, u in enumerate(urls)], 'counts': counts,
+            'edits': edited(text), 'changed': [{'address': n, 'lines': ls} for n, ls in sorted(changed.items())]}
+
+
+def cluster(items):
+    # 주소마다 가리키는 규칙 [{address, count, rules}]. 모든 주소의 교집합이 있으면 그것이 가리키는 규칙이다.
+    # 없으면 가장 많은 건수가 함께 가리키는 규칙의 주소들을 묶고, 그 묶음의 교집합을 가리키는 규칙으로 본다.
+    # 가장 큰 건수가 서로 다른 주소 묶음에서 나오면 tie 다. rest 는 묶음 밖 주소(가리키는 규칙이 없는 주소 포함)다
+    norm = lambda r: key(r) if isinstance(r, dict) else r
+    items = [{**i, 'rules': sorted({norm(r) for r in i['rules']})} for i in items]
+    pointing = [i for i in items if i['rules']]
+    total = lambda g: sum(i['count'] for i in g)
+    chosen, tie = pointing, False
+    if pointing and not set.intersection(*(set(i['rules']) for i in pointing)):
+        by_rule = {}
+        for i in pointing:
+            for r in i['rules']:
+                by_rule.setdefault(r, []).append(i)
+        best = max(total(g) for g in by_rule.values())
+        tops = [g for g in by_rule.values() if total(g) == best]
+        tie = len({tuple(i['address'] for i in g) for g in tops}) > 1
+        chosen = [] if tie else tops[0]
+    rules = sorted(set.intersection(*(set(i['rules']) for i in chosen))) if chosen else []
+    ids = [i['address'] for i in chosen]
+    return {'addresses': ids, 'rules': rules, 'count': total(chosen), 'tie': tie,
+            'rest': [i['address'] for i in items if i['address'] not in ids]}
 
 
 def schema_dir():
@@ -323,6 +375,8 @@ COMMANDS = {
     'values': lambda r: values(arg(r[0])),
     'fields': lambda r: fields(read(r[0])),
     'edited': lambda r: edited(read(r[0])),
+    'metric': lambda r: metric(read(r[0])),
+    'cluster': lambda r: cluster(arg(r[0])),
     'block': lambda r: block(read(r[0])),
 }
 

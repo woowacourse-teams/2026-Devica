@@ -5,7 +5,7 @@ from common import *  # noqa: F401,F403
 from common import COMMANDS, json, sys
 
 #   signals.py signals SESSIONS_FILE PROD_BASE_URL LOOKBACK_DAYS [EDITS_FILE]   신호를 같은 신호끼리 묶은 결과(제목·본문 포함)
-#   signals.py issue   BODY_FILE                                    열린 지표 피드백의 신호 키와 배포를 기다리는 걸린 규칙
+#   signals.py issue   BODY_FILE                                    지표 피드백의 신호 키와 배포를 기다리는 걸린 규칙
 # SESSIONS_FILE 은 prompt.md 의 HogQL 결과에서 세션마다 views 한 칸을 꺼내 모은 JSON 배열이다.
 # view = [유닉스 초, 이벤트, 경로, purpose, category, "질문.선택지&질문.선택지…"]
 # EDITS_FILE 은 추천 결과를 직접 고친 기록이다. 세션·답 조합·OS 마다 마지막 기록 하나를 쿼리가 골라 둔 JSON 배열이다.
@@ -119,13 +119,13 @@ def compare(v1, v2):
     return out, None
 
 
-def signal_key(purpose, plan_label, problem_text, lines):
-    return json.dumps([purpose, plan_label, problem_text, lines], ensure_ascii=False)
+def signal_key(purpose, plan_label, problem_text):
+    # 두 신호 모두 사용 목적·권장안·항목·방향으로 묶는다. 답 조합과 바꾼 답은 주소별로 적는다. 앞의 표시로 두 신호의 키가 섞이지 않는다
+    return json.dumps([purpose, plan_label, problem_text], ensure_ascii=False)
 
 
-def edit_key(purpose, plan_label, problem_text, answers):
-    # 답을 바꾼 신호는 바꾼 답으로, 직접 고친 신호는 답 조합으로 묶는다. 앞의 표시로 두 신호의 키가 섞이지 않는다
-    return json.dumps(['EDIT', purpose, plan_label, problem_text, answers], ensure_ascii=False, sort_keys=True)
+def edit_key(purpose, plan_label, problem_text):
+    return json.dumps(['EDIT', purpose, plan_label, problem_text], ensure_ascii=False)
 
 
 def parse_edit(row):
@@ -218,13 +218,16 @@ def signals(path, prod, days, edits_path=None):
             dropped[reason] += 1
             continue
         lines = changed_lines(first['answers'], last['answers'])
+        url = result_url(first['category'], purpose, first['answers'])
         for plan, item, direction in found:
-            k = signal_key(purpose, PLAN_LABEL[plan], problem(item, direction), lines)
+            k = signal_key(purpose, PLAN_LABEL[plan], problem(item, direction))
             g = groups.setdefault(k, {'key': k, 'purpose': purpose, 'plan': PLAN_LABEL[plan], 'item': item,
                                       'direction': direction, 'problem': problem(item, direction),
-                                      'changed': lines, 'count': 0, 'urls': set()})
+                                      'count': 0, 'addresses': {}})
             g['count'] += 1
-            g['urls'].add(result_url(first['category'], purpose, first['answers']))
+            # 주소 하나는 처음 답 조합과 바꾼 답의 짝이다. 같은 답 조합이라도 바꾼 답이 다르면 다른 주소다
+            a = g['addresses'].setdefault((url, tuple(lines)), {'url': url, 'changed': lines, 'count': 0})
+            a['count'] += 1
 
     # 직접 고친 신호는 사용자가 본 값과 원한 값이 기록에 있어 운영 결과를 다시 받지 않는다
     for e in (parse_edit(row) for row in (json.loads(read(edits_path)) if edits_path else [])):
@@ -244,52 +247,51 @@ def signals(path, prod, days, edits_path=None):
         for item, (rec, ed) in e['items'].items():
             rank = lambda v: CPU_RANK.get(v, -1) if item == 'REQUIRED_CPU' else int(v)
             direction = 'DOWN' if rank(ed) < rank(rec) else 'UP'
-            k = edit_key(e['purpose'], PLAN_LABEL[e['plan']], problem(item, direction), e['answers'])
+            k = edit_key(e['purpose'], PLAN_LABEL[e['plan']], problem(item, direction))
             g = groups.setdefault(k, {'key': k, 'kind': 'EDIT', 'purpose': e['purpose'], 'plan': PLAN_LABEL[e['plan']],
                                       'item': item, 'direction': direction, 'problem': problem(item, direction),
-                                      'edits': Counter(), 'count': 0,
-                                      'urls': {result_url(e['category'], e['purpose'], e['answers'])}})
+                                      'count': 0, 'addresses': {}})
             g['count'] += 1
-            g['edits'][(rec, ed)] += 1
+            url = result_url(e['category'], e['purpose'], e['answers'])
+            a = g['addresses'].setdefault(url, {'url': url, 'edits': Counter(), 'count': 0})
+            a['count'] += 1
+            a['edits'][(rec, ed)] += 1
 
     period = f"{start_iso[:10]} ~ {now.strftime('%Y-%m-%d')}"
     out = []
     for g in sorted(groups.values(), key=lambda g: (-g['count'], g['key'])):
-        g['urls'] = sorted(g['urls'])
-        if g.get('kind') == 'EDIT':
-            item = g['item']
-            g['edits'] = [{'recommended': rec, 'edited': ed, 'count': n}
-                          for (rec, ed), n in sorted(g['edits'].items(), key=lambda x: (-x[1], x[0]))]
-            g['title'] = f"[제품 추천 지표] {g['plan']} 권장안에서 {g['problem']} (직접 수정)"
-            g['body'] = '\n'.join([
-                '### 결과 화면 주소', '', *g['urls'], '',
+        # 주소는 건수가 많은 것부터. 주소별 줄은 "주소 N:" 으로 결과 화면 주소 칸의 N 번째 줄을 가리킨다
+        addresses = sorted(g.pop('addresses').values(), key=lambda a: (-a['count'], a['url'], a.get('changed', [])))
+        g['urls'] = [a['url'] for a in addresses]
+        g['counts'] = [a['count'] for a in addresses]
+        head = ['### 결과 화면 주소', '', *g['urls'], '',
                 '### 어느 권장안인가요?', '', g['plan'], '',
                 '### 어떤 점이 맞지 않았나요?', '', g['problem'], '',
-                '### 더 알려 주실 내용', '', '_No response_', '',
-                '### 고친 값', '',
-                *[f"{ITEM_LABEL[item]}: {display(item, x['recommended'])} → {display(item, x['edited'])} ({x['count']}건)"
+                '### 더 알려 주실 내용', '', '_No response_', '']
+        basis = [f'- 기간: {period}', f"- 건수: {g['count']}", f"- 주소별 건수: {', '.join(map(str, g['counts']))}"]
+        if g.get('kind') == 'EDIT':
+            item = g['item']
+            g['edits'] = [{'address': n, 'recommended': rec, 'edited': ed, 'count': c}
+                          for n, a in enumerate(addresses, 1)
+                          for (rec, ed), c in sorted(a['edits'].items(), key=lambda x: (-x[1], x[0]))]
+            g['title'] = f"[제품 추천 지표] {g['plan']} 권장안에서 {g['problem']} (직접 수정)"
+            g['body'] = '\n'.join([
+                *head, '### 고친 값', '',
+                *[f"주소 {x['address']}: {ITEM_LABEL[item]}: {display(item, x['recommended'])} → {display(item, x['edited'])} ({x['count']}건)"
                   for x in g['edits']], '',
-                '### 근거 지표', '',
-                f'- 기간: {period}',
-                f'- 신호: {EDIT_SIGNAL}',
-                f"- 건수: {g['count']}",
+                '### 근거 지표', '', basis[0], f'- 신호: {EDIT_SIGNAL}', *basis[1:],
                 f"- 사용자가 제품 추천 결과의 {ITEM_LABEL[item]} 값을 직접 {'낮춰' if g['direction'] == 'DOWN' else '높여'} 제품을 검색했다.",
                 ''])
             out.append(g)
             continue
+        g['changed'] = [{'address': n, 'lines': a['changed']} for n, a in enumerate(addresses, 1)]
         plan_title = 'Mac·Windows' if g['plan'] == '둘 다' else g['plan']
         moved = '내려간' if g['direction'] == 'DOWN' else '올라간'
         g['title'] = f"[제품 추천 지표] {plan_title} 권장안에서 {g['problem']}"
         g['body'] = '\n'.join([
-            '### 결과 화면 주소', '', *g['urls'], '',
-            '### 어느 권장안인가요?', '', g['plan'], '',
-            '### 어떤 점이 맞지 않았나요?', '', g['problem'], '',
-            '### 더 알려 주실 내용', '', '_No response_', '',
-            '### 바꾼 답', '', *g['changed'], '',
-            '### 근거 지표', '',
-            f'- 기간: {period}',
-            '- 신호: 답을 바꿔 다시 본 세션',
-            f"- 건수: {g['count']}",
+            *head, '### 바꾼 답', '',
+            *[f"주소 {x['address']}: {line}" for x in g['changed'] for line in x['lines']], '',
+            '### 근거 지표', '', basis[0], '- 신호: 답을 바꿔 다시 본 세션', *basis[1:],
             f"- \"{g['problem']}\"는 사용자가 고른 것이 아니라, 답을 바꾼 뒤 {SUBJECT[g['item']]} {moved} 것을 보고 추정한 것이다.",
             ''])
         out.append(g)
@@ -299,26 +301,25 @@ def signals(path, prod, days, edits_path=None):
 
 
 def issue(body_path):
-    f = fields(read(body_path))
-    urls = [l.strip() for l in f.get('결과 화면 주소', '').splitlines() if l.strip().startswith(RESULT_PREFIXES)]
-    lines = [l.strip() for l in f.get('바꾼 답', '').splitlines() if l.strip()]
-    if not urls:
+    text = read(body_path)
+    f, m = fields(text), metric(text)
+    if not m['urls']:
         return {'key': None, 'error': '결과 화면 주소가 없다'}
-    url = parse_url(urls[0])
-    purpose = url['purpose']
+    purpose = m['urls'][0]['purpose']
     plan, problem_text = f.get('어느 권장안인가요?', ''), f.get('어떤 점이 맞지 않았나요?', '')
     edited = bool(f.get('고친 값'))
-    key = edit_key(purpose, plan, problem_text, url['answers']) if edited else signal_key(purpose, plan, problem_text, lines)
+    key = (edit_key if edited else signal_key)(purpose, plan, problem_text)
     out = {'key': key, 'purpose': purpose, 'pending': []}
     dm, dd = definition(MAIN, purpose), definition(DEVELOP, purpose)
     if dm is None:
         out['pending'].append('main 에 정의서가 없음')
         return out
+    changed = {c['address']: c['lines'] for c in m['changed']}
     combos = []
-    for u in urls:
-        a = parse_url(u)['answers']
-        # 직접 고친 신호는 답을 바꾸지 않았다. 본 답 조합은 주소의 것 하나다
-        combos += [a] if edited else [a, apply_lines(a, lines)]
+    for u in m['urls']:
+        a = u['answers']
+        # 직접 고친 신호는 답을 바꾸지 않았다. 본 답 조합은 주소의 것 하나다. 답을 바꾼 신호는 주소마다 자기 바꾼 답을 적용한다
+        combos += [a] if edited else [a, apply_lines(a, changed.get(u['address'], []))]
     hit_any = lambda ch: any(hit(dm, ch['before'], a) or hit(dm, ch['after'], a) for a in combos)
     out['pending'] = [ch['key'] for ch in diff(dm, dd) if hit_any(ch)]
     return out
