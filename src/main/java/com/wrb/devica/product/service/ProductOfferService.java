@@ -7,6 +7,9 @@ import com.wrb.devica.product.repository.ProductMinPriceRepository;
 import com.wrb.devica.product.repository.ProductOfferRepository;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +23,15 @@ public class ProductOfferService {
     private final ProductMinPriceRepository productMinPriceRepository;
 
     public List<ProductOffer> findOnSaleOffers(Long productId) {
-        return productOfferRepository.findAllByProductIdAndStatusOrderByPriceAsc(productId, OfferStatus.ON_SALE);
+        return productOfferRepository.findAllByProductIdAndStatusOrderByPriceAscIdAsc(productId, OfferStatus.ON_SALE);
+    }
+
+    public Map<Long, ProductOffer> findLowestOnSaleOffers(List<Long> productIds) {
+        if (productIds.isEmpty()) {
+            return Map.of();
+        }
+        return productOfferRepository.findLowestOnSaleOffers(productIds).stream()
+            .collect(Collectors.toMap(ProductOffer::getProductId, Function.identity()));
     }
 
     public List<PriceRefreshTarget> findCoupangPriceRefreshTargets() {

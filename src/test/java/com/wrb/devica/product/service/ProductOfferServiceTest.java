@@ -12,6 +12,8 @@ import com.wrb.devica.category.domain.ProductCategoryCode;
 import com.wrb.devica.category.repository.ProductCategoryRepository;
 import com.wrb.devica.common.JpaSliceTest;
 import com.wrb.devica.product.domain.Laptop;
+import com.wrb.devica.product.domain.OfferLinkType;
+import com.wrb.devica.product.domain.OfferPriceBasis;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.dto.PriceRefreshTarget;
@@ -23,6 +25,7 @@ import com.wrb.devica.product.service.ProductOfferService.PriceRefreshResult;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -393,6 +396,79 @@ class ProductOfferServiceTest {
         assertThat(productOfferService.refreshCoupangPrice(snapshot, 800_000L, CHECKED_ON))
             .isEqualTo(PriceRefreshResult.SKIPPED);
         assertThat(offer.getStatus()).isEqualTo(OfferStatus.HIDDEN);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"학생복지스토어", "당근"})
+    void 조건부_가격도_최저가와_선택_판매처에_포함한다(String seller) {
+        Laptop laptop = saveLaptop();
+        productOfferRepository.save(coupangOffer(laptop).build());
+        var builder = coupangOffer(laptop).name(seller).externalItemId(null).price(900_000L)
+            .priceCondition("학생 인증 필요");
+        if (seller.equals("당근")) {
+            builder.priceCondition("판교 · 미개봉 · 확인 매물 중 최저가")
+                .priceBasis(OfferPriceBasis.OBSERVED_LOWEST).linkType(OfferLinkType.SEARCH)
+                .purchaseUrl("https://example.test/search");
+        }
+        ProductOffer winner = productOfferRepository.save(builder.build());
+        productOfferRepository.save(coupangOffer(laptop).price(100_000L).status(OfferStatus.HIDDEN).build());
+        productOfferRepository.save(coupangOffer(laptop).price(50_000L).status(OfferStatus.SOLD_OUT).build());
+        initializeMinPrice(laptop);
+
+        assertThat(productMinPriceRepository.findById(laptop.getId()).orElseThrow().getMinPrice()).isEqualTo(900_000L);
+        assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId())))
+            .containsEntry(laptop.getId(), winner);
+    }
+
+    @Test
+    void 여러_제품의_동률은_숨김을_제외한_가장_작은_오퍼_ID를_선택한다() {
+        Laptop first = saveLaptop();
+        Laptop second = laptopRepository.save(laptop().category(first.getCategory()).cpu(first.getCpu()).build());
+        productOfferRepository.save(coupangOffer(first).price(900_000L).status(OfferStatus.HIDDEN).build());
+        ProductOffer winner = productOfferRepository.save(coupangOffer(first).price(900_000L).build());
+        ProductOffer tied = productOfferRepository.save(coupangOffer(first).name("학생복지스토어")
+            .priceCondition("학생 인증 필요").price(900_000L).build());
+        ProductOffer other = productOfferRepository.save(coupangOffer(second).price(800_000L).build());
+        initializeMinPrice(first);
+        initializeMinPrice(second);
+
+        var winners = productOfferService.findLowestOnSaleOffers(List.of(first.getId(), second.getId()));
+        assertThat(winners).hasSize(2).containsEntry(first.getId(), winner).containsEntry(second.getId(), other);
+        assertThat(productOfferService.findOnSaleOffers(first.getId())).containsExactly(winner, tied);
+    }
+
+    @Test
+    void 쿠팡_가격_갱신_숨김_복구에_따라_선택_판매처도_바뀐다() {
+        Laptop laptop = saveLaptop();
+        ProductOffer coupang = productOfferRepository.save(coupangOffer(laptop).build());
+        ProductOffer student = productOfferRepository.save(coupangOffer(laptop).name("학생복지스토어")
+            .priceCondition("학생 인증 필요").price(900_000L).build());
+        initializeMinPrice(laptop);
+        assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId())))
+            .containsEntry(laptop.getId(), student);
+
+        productOfferService.refreshCoupangPrice(target(laptop, coupang), 800_000L, CHECKED_ON);
+        assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId())))
+            .containsEntry(laptop.getId(), coupang);
+        productOfferService.hideCoupangOffer(target(laptop, coupang), CHECKED_ON);
+        assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId())))
+            .containsEntry(laptop.getId(), student);
+        productOfferService.refreshCoupangPrice(target(laptop, coupang), 900_000L, CHECKED_ON);
+        assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId())))
+            .containsEntry(laptop.getId(), coupang);
+    }
+
+    @Test
+    void 캐시와_일치하는_판매처가_없으면_다른_가격의_출처를_붙이지_않는다() {
+        Laptop laptop = saveLaptop();
+        productOfferRepository.save(coupangOffer(laptop).build());
+        initializeMinPrice(laptop);
+        entityManager.createNativeQuery("UPDATE product_min_price SET min_price = 1 WHERE product_id = :id")
+            .setParameter("id", laptop.getId()).executeUpdate();
+        assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId()))).isEmpty();
+        productMinPriceRepository.deleteForProduct(laptop.getId());
+        assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId()))).isEmpty();
+        assertThat(productOfferService.findLowestOnSaleOffers(List.of())).isEmpty();
     }
 
     private Laptop saveLaptop() {
