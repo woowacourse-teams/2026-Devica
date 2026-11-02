@@ -7,6 +7,8 @@ import com.wrb.devica.product.domain.LaptopSpec;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class BackendDevelopmentRecommenderTest {
 
@@ -91,6 +93,34 @@ class BackendDevelopmentRecommenderTest {
         // then
         assertThat(((LaptopSpec) specs.get(0).spec()).cpuTier()).isEqualTo(CpuTier.PRO);
         assertThat(((LaptopSpec) specs.get(1).spec()).cpuTier()).isEqualTo(CpuTier.P_HS);
+    }
+
+    @ParameterizedTest(name = "메모리 점수 {0} → {1}GB")
+    @CsvSource({"1, 16", "2, 24", "3, 24", "4, 32", "6, 32", "7, 48"})
+    void 메모리_점수가_구간_경계를_넘으면_한_단계_오른다(int score, int memoryGb) {
+        // given
+        BackendDevelopmentRecommender recommender = new BackendDevelopmentRecommender();
+        Requirements requirements = new Requirements(Map.of("MEMORY", score), Map.of());
+
+        // when
+        RecommendedSpec windows = recommender.recommend(requirements, Map.of()).get(1);
+
+        // then
+        assertThat(((LaptopSpec) windows.spec()).memoryGb()).isEqualTo(memoryGb);
+    }
+
+    @ParameterizedTest(name = "저장 공간 점수 {0} → {1}GB")
+    @CsvSource({"-2, 256", "-1, 512", "2, 512", "3, 1024"})
+    void 저장_공간_점수가_구간_경계를_넘으면_한_단계_오른다(int score, int storageGb) {
+        // given
+        BackendDevelopmentRecommender recommender = new BackendDevelopmentRecommender();
+        Requirements requirements = new Requirements(Map.of("STORAGE", score), Map.of());
+
+        // when
+        RecommendedSpec windows = recommender.recommend(requirements, Map.of()).get(1);
+
+        // then
+        assertThat(((LaptopSpec) windows.spec()).storageGb()).isEqualTo(storageGb);
     }
 
     @Test
