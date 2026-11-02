@@ -70,7 +70,7 @@ gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.
 ## 2. 대상
 
 1. **다시 판단할 개선(R)**: 상태가 실패·반려인 개선 지시 중, 실패 시각 뒤에 그 지시의 `issues` 어느 이슈에도 분석 결과가 없고, `issues` 가 겹치는 개선 지시도 없는 것. `issues` 가 모두 닫혔으면 기록만 하고 대상에서 뺀다.
-2. **분석할 피드백(A)**: 열려 있고 분석 결과가 없는 피드백. 그리고 지금 판단이 `ON_HOLD` 인데 본문이 가장 최근 분석 결과 뒤에 고쳐진 피드백. Metric Collector 가 나중에 모인 주소를 더하면 본문이 고쳐진다. 본문을 고친 시각은 아래 명령으로 읽고, 비어 있으면 고친 적이 없다.
+2. **분석할 피드백(A)**: 열려 있고 분석 결과가 없는 피드백. 그리고 지금 판단이 `ON_HOLD` 인데 본문이 가장 최근 분석 결과 뒤에 고쳐진 피드백. Metric Collector 가 나중에 달라진 근거(주소·건수 등)로 바꾸면 본문이 고쳐진다. 본문을 고친 시각은 아래 명령으로 읽고, 비어 있으면 고친 적이 없다.
    ```bash
    gh api graphql -f query='{ repository(owner: "woowacourse-teams", name: "2026-Devica") { issue(number: <번호>) { lastEditedAt } } }' --jq .data.repository.issue.lastEditedAt
    ```

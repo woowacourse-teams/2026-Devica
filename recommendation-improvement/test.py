@@ -480,6 +480,15 @@ class SignalsTest(unittest.TestCase):
         self.assertEqual(collector.issue(tmp(two))['pending'], [c['key'] for c in diff(DEF, self.develop)])
         self.assertEqual(collector.issue(tmp('### 결과 화면 주소\n\n_No response_\n'))['error'], '결과 화면 주소가 없다')
 
+    def test_열린_지표_피드백은_조회_기간_말고_근거가_바뀌어야_갱신한다(self):
+        s = self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES')
+        one = self.run_signals(s)['groups'][0]['body']
+        old = one.replace('- 기간: ', '- 기간: 2000-01-01 ~ ').replace('\n', '\r\n')
+        self.assertEqual(collector.stale(tmp(old), tmp(one)), {'stale': False})
+        # 새 주소가 없어도 같은 주소의 건수가 늘면 갱신한다
+        two = self.run_signals(s, s)['groups'][0]['body']
+        self.assertEqual(collector.stale(tmp(one), tmp(two)), {'stale': True})
+
 
 # ---- Recommendation Improver ----
 

@@ -325,9 +325,16 @@ def issue(body_path):
     return out
 
 
+def stale(body_path, new_path):
+    # 조회 기간만 바뀐 것은 근거가 바뀐 것이 아니다. 주소·건수·바꾼 답·고친 값이 바뀌었는지만 본다
+    lines = lambda p: [l.rstrip() for l in read(p).replace('\r', '').strip().splitlines() if not l.startswith('- 기간:')]
+    return {'stale': lines(body_path) != lines(new_path)}
+
+
 COMMANDS.update({
     'signals': lambda r: signals(*r),
     'issue': lambda r: issue(*r),
+    'stale': lambda r: stale(*r),
 })
 
 if __name__ == '__main__':

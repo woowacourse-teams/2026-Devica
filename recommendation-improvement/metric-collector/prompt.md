@@ -172,7 +172,7 @@ python3 "$ST/signals.py" issue "$ST/issue-<번호>.md"
 
 `signals.json` 의 묶음 중 `count ≥ MIN` 인 것마다:
 
-- 2 의 열린 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않는다. 그 이슈에 분석 결과가 없거나 가장 최근 분석 결과의 `judgment` 가 `ON_HOLD` 이고, 묶음의 `urls` 중 이슈 본문의 `결과 화면 주소` 칸에 없는 것이 있으면 본문을 묶음의 `body` 로 바꾼다. 나중에 모인 주소로 Feedback Analyzer 가 다시 판단하게 하기 위해서다. 그 밖은 근거를 바꾸지 않고 기록만 한다. 분석 결과는 첫 줄이 `<!-- product-recommendation:analysis -->` 인 팀원 댓글이고, 댓글은 4-1 의 명령으로 읽어 `block` 으로 yaml 을 읽는다.
+- 2 의 열린 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않는다. 그 이슈에 분석 결과가 없거나 가장 최근 분석 결과의 `judgment` 가 `ON_HOLD` 이면, 묶음의 `body` 를 `$ST/new-body.md` 로 쓰고 `python3 "$ST/signals.py" stale "$ST/issue-<번호>.md" "$ST/new-body.md"` 의 `stale` 이 참일 때 본문을 바꾼다. 조회 기간 말고 주소·건수·바꾼 답·고친 값 중 하나라도 달라진 것이다. 새 주소가 없어도 한 주소의 건수만 늘어 가장 큰 묶음이 바뀔 수 있어, 바뀐 근거로 Feedback Analyzer 가 다시 판단하게 하기 위해서다. 그 밖은 근거를 바꾸지 않고 기록만 한다. 분석 결과는 첫 줄이 `<!-- product-recommendation:analysis -->` 인 팀원 댓글이고, 댓글은 4-1 의 명령으로 읽어 `block` 으로 yaml 을 읽는다.
   ```bash
   gh issue edit <번호> --repo "$GH_REPO" --body-file "$ST/new-body.md"
   ```
