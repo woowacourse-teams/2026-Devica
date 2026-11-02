@@ -57,6 +57,10 @@ def iso(ts):
     return datetime.fromtimestamp(ts, timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
+def ts(iso_time):
+    return int(datetime.fromisoformat(iso_time.replace('Z', '+00:00')).timestamp())
+
+
 def changed_lines(first, last):
     lines = []
     for q in sorted(set(first) | set(last)):
@@ -172,16 +176,21 @@ def signals(path, prod, days, edits_path=None):
         if purpose not in defs:
             dm, dd = definition(MAIN, purpose), definition(DEVELOP, purpose)
             defs[purpose] = dm
-            rule_state[purpose] = (diff(dm, dd), history(MAIN, purpose, start_iso)) if dm else None
+            rule_state[purpose] = (diff(dm, dd), history(MAIN, purpose, start_iso), interpretation_changed(dm, dd),
+                                   interpretation_history(MAIN, purpose, start_iso)) if dm else None
         dm = defs[purpose]
         if dm is None:
             return 'main 에 정의서가 없음(정의서 전체가 배포를 기다림)'
-        pending, deployed = rule_state[purpose]
+        pending, deployed, interpretation_pending, interpretation_deployed = rule_state[purpose]
+        # 점수 해석 규칙은 어느 답 조합에 걸리는지 답만으로 알 수 없어, 바뀌면 그 사용 목적의 세션을 모두 버린다
+        if interpretation_pending:
+            return '배포를 기다리는 점수 해석 규칙이 있음'
+        if any(at < ts(t) for t in interpretation_deployed):
+            return '배포 전에 본 점수 해석 규칙'
         hit_any = lambda ch: any(hit(dm, ch['before'], a) or hit(dm, ch['after'], a) for a in seen)
         if any(hit_any(ch) for ch in pending):
             return '배포를 기다리는 규칙에 걸림'
-        if any(at < int(datetime.fromisoformat(c['time'].replace('Z', '+00:00')).timestamp())
-               and any(hit_any(ch) for ch in c['changes']) for c in deployed):
+        if any(at < ts(c['time']) and any(hit_any(ch) for ch in c['changes']) for c in deployed):
             return '배포 전에 본 바뀐 규칙에 걸림'
         return None
 
@@ -322,6 +331,8 @@ def issue(body_path):
         combos += [a] if edited else [a, apply_lines(a, changed.get(u['address'], []))]
     hit_any = lambda ch: any(hit(dm, ch['before'], a) or hit(dm, ch['after'], a) for a in combos)
     out['pending'] = [ch['key'] for ch in diff(dm, dd) if hit_any(ch)]
+    if interpretation_changed(dm, dd):
+        out['pending'].append('interpretation')
     return out
 
 

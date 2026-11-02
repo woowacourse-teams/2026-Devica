@@ -324,11 +324,14 @@ class CollectorTest(unittest.TestCase):
 class SignalsTest(unittest.TestCase):
     # signals·issue 가 부르는 git·운영 API 를 가짜로 바꿔 끼운다
     def setUp(self):
-        self.saved = {k: getattr(collector, k) for k in ('api', 'definition', 'history')}
+        self.saved = {k: getattr(collector, k) for k in ('api', 'definition', 'history', 'interpretation_history')}
+        self.main = DEF
         self.develop = DEF
         self.deployed = []
-        collector.definition = lambda ref, purpose: DEF if ref == collector.MAIN else self.develop
+        self.interpretation_deployed = []
+        collector.definition = lambda ref, purpose: self.main if ref == collector.MAIN else self.develop
         collector.history = lambda ref, purpose, since=None: self.deployed
+        collector.interpretation_history = lambda ref, purpose, since=None: self.interpretation_deployed
         # SLOWDOWN 이 NEVER 면 메모리 32GB, 아니면 16GB
         collector.api = lambda base, purpose, a: {'status': 200, 'body': body(
             mac=('PRO', 32 if 'NEVER' in a.get('SLOWDOWN', []) else 16, 512))}
@@ -410,6 +413,34 @@ class SignalsTest(unittest.TestCase):
         self.assertEqual(self.run_signals(self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES'))['dropped'], {'배포 전에 본 바뀐 규칙에 걸림': 1})
         self.deployed = [{'time': collector.iso(now - 7200), 'changes': [change]}]
         self.assertEqual(len(self.run_signals(self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES'))['groups']), 1)
+
+    def with_interpretation(self, memory_up_to):
+        d = json.loads(json.dumps(DEF))
+        d['interpretation'] = {'memory': [{'upTo': memory_up_to, 'value': 16}, {'value': 24}]}
+        return d
+
+    def test_배포를_기다리는_점수_해석_규칙이_있으면_그_사용_목적의_세션을_세지_않는다(self):
+        self.main, self.develop = self.with_interpretation(1), self.with_interpretation(2)
+        out = self.run_signals(self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES'))
+        self.assertEqual(out['dropped'], {'배포를 기다리는 점수 해석 규칙이 있음': 1})
+
+    def test_점수_해석_규칙이_한쪽에만_있으면_바뀐_것으로_보지_않는다(self):
+        self.develop = self.with_interpretation(1)
+        self.assertEqual(len(self.run_signals(self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES'))['groups']), 1)
+        self.assertFalse(common.interpretation_changed(None, self.develop))
+        self.assertTrue(common.interpretation_changed(self.with_interpretation(1), self.with_interpretation(2)))
+
+    def test_배포_전에_본_점수_해석_규칙이면_세지_않는다(self):
+        now = int(time.time())
+        self.interpretation_deployed = [collector.iso(now - 60)]
+        self.assertEqual(self.run_signals(self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES'))['dropped'], {'배포 전에 본 점수 해석 규칙': 1})
+        self.interpretation_deployed = [collector.iso(now - 7200)]
+        self.assertEqual(len(self.run_signals(self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES'))['groups']), 1)
+
+    def test_점수_해석_규칙이_배포를_기다리면_열린_지표_피드백도_배포를_기다린다(self):
+        g = self.run_signals(self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES'))['groups'][0]
+        self.main, self.develop = self.with_interpretation(1), self.with_interpretation(2)
+        self.assertEqual(collector.issue(tmp(g['body']))['pending'], ['interpretation'])
 
     def edit(self, answers, plan='MAC', cpu=('PRO', None), memory=(32, None), storage=(512, None), at=None):
         t = at or int(time.time()) - 3600
