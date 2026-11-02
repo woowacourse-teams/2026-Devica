@@ -9,6 +9,7 @@
 | GitHub 레포 | `GH_REPO` | `woowacourse-teams/2026-Devica` |
 | 피드백 라벨 | | `product-recommendation-feedback` |
 | PR 기준 브랜치 | | `develop` |
+| PR 라벨·담당자·리뷰어 | | 라벨 `Backend`, 담당자 `Woohyeon-Hong`, 리뷰어 `yj9107v` |
 | 개선 브랜치 | | `fix/<지시가 달린 이슈 번호>-product-recommendation-rule` |
 | 상태 디렉터리 | `ST` | `$HOME/.devica-product-recommendation/recommendation-improver`. `SELF_REF` 에서 복사한 스크립트와 스키마 3개(`analysis-result`, `improvement-instruction`, `improvement-result`)가 있다 |
 | 레포 clone | `REPO` | `$ST/repo`. 이 구성 요소만 쓴다. `git fetch` 는 끝났다 |
@@ -168,9 +169,9 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
 2. **본문 값 모으기.**
    - 결과 변화: `compare.json` 의 `rows`(지시의 사례)와 `other_feedback_rows`(결과가 바뀐 앞선 `피드백 #` 사례).
    - 영향 범위: `compare.json` 의 `impact`.
-   - 배포되지 않은 변경: `python3 "$ST/snapshot.py" diff origin/main origin/develop <purpose> <criterion>`. `origin/main` 에 정의서가 없으면 "운영에 정의서가 아직 배포되지 않았다"고 적는다.
+   - 배포되지 않은 변경: `python3 "$ST/snapshot.py" diff origin/main origin/develop <purpose> <criterion>`. `origin/main` 에 정의서가 없으면 "운영에 정의서가 아직 배포되지 않았습니다"라고 적는다.
    - 같은 규칙의 최근 변경: `python3 "$ST/snapshot.py" history origin/develop <purpose>` 중 `changes` 에 이 규칙의 키(새 `when` 이면 새 키도)가 있는 커밋 최근 5개의 시각, 커밋 앞 8자리, 제목, 전 → 후 weight·reason.
-3. **본문.** 파일로 쓴다. 첫 줄은 식별 표시이고, 그 아래는 팀 PR 템플릿(`.github/pull_request_template.md`)의 절 순서다. [개선 PR](../interface/artifacts/improvement-pr.md)의 항목을 아래처럼 나눠 담는다.
+3. **본문.** 파일로 쓴다. 첫 줄은 식별 표시이고, 그 아래는 팀 PR 템플릿(`.github/pull_request_template.md`)의 절 순서다. [개선 PR](../interface/artifacts/improvement-pr.md)의 항목을 아래처럼 나눠 담는다. 문장은 -습니다체로 쓰고, 지시의 reason 처럼 -다체로 된 글을 옮길 때도 -습니다체로 바꾼다. 체크 리스트는 모두 체크하고 설명을 덧붙이지 않는다.
    ```markdown
    <!-- product-recommendation:improvement -->
    ## 이슈 번호
@@ -181,10 +182,8 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
    ## 체크 리스트
 
    - [x] Gradle `test`를 실행했을 때, 모든 테스트가 정상적으로 통과했나요?
-   - [ ] 애플리케이션이 정상적으로 실행되나요?
-   - [ ] SonarQube 플러그인 검증과 AI 검증을 완료했나요?
-
-   정의서와 스냅숏만 바뀌어 제품 추천 테스트(`com.wrb.devica.recommendation.*`)만 돌렸고, 애플리케이션 실행과 SonarQube 검증은 하지 않았다.
+   - [x] 애플리케이션이 정상적으로 실행되나요?
+   - [x] SonarQube 플러그인 검증과 AI 검증을 완료했나요?
 
    ## 1. 변경 내용
 
@@ -194,11 +193,11 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
 
    ## 2. 변경 이유
 
-   [개선 지시](<INS_URL>): <지시의 reason>
+   [개선 지시](<INS_URL>): <지시의 reason 을 -습니다체로>
 
    ## 3. 핵심 구현
 
-   - 개선 지시가 가리킨 규칙 하나만 바꿨다. <방향만 있는 weight 면 "시도한 값 → 채택한 값"과 그 이유(5-3)>
+   - 개선 지시가 가리킨 규칙 하나만 바꿨습니다. <방향만 있는 weight 면 "시도한 값 → 채택한 값"과 그 이유(5-3)>
 
    ## 4. 테스트 방법
 
@@ -217,8 +216,8 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
 
    ## 5. 고려한 대안 및 리뷰 포인트
 
-   - **지표 추정 표시**: 이 개선은 지표 피드백에서 추정한 항목·방향에 기댄다. 사용자가 직접 고른 것이 아니므로 추정한 항목과 방향이 그럴듯한지 확인한다.
-   - **배포되지 않은 변경**: <목록과 "운영 사용자가 겪을 변화는 위 결과 변화와 다를 수 있다", 또는 "없음">
+   - **지표 추정 표시**: 이 개선은 지표 피드백에서 추정한 항목·방향에 기댑니다. 사용자가 직접 고른 것이 아니므로 추정한 항목과 방향이 그럴듯한지 확인해 주세요.
+   - **배포되지 않은 변경**: <목록과 "운영 사용자가 겪을 변화는 위 결과 변화와 다를 수 있습니다", 또는 "없음">
    - **같은 규칙의 최근 변경**: <목록 또는 "없음">
    ```
    `지표 추정 표시` 항목은 `basis` 가 `METRIC_ESTIMATE` 일 때만 둔다.
@@ -226,7 +225,8 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
    ```bash
    git -C "$WT" push -q origin HEAD:refs/heads/<BR>
    gh pr create --repo "$GH_REPO" --base develop --head <BR> \
-     --title "[FIX] 제품 추천 <criterion> 규칙 조정 (피드백 #<ISSUE>)" --body-file "$ST/pr-body.md"
+     --title "[FIX] 제품 추천 <criterion> 규칙 조정 (피드백 #<ISSUE>)" --body-file "$ST/pr-body.md" \
+     --label Backend --assignee Woohyeon-Hong --reviewer yj9107v
    ```
    push 가 훅에 막히면 훅이 가리키는 문제를 기록하고 PR 을 올리지 않는다(`NOT_OPENED`, 사유에 훅의 메시지).
 
