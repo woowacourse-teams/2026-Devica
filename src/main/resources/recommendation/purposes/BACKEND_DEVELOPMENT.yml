@@ -172,7 +172,7 @@ rules:
     when: { question: AI_CODING_TOOL, anyOf: [ AI_EDITOR ] }
     reason: AI 전용 에디터는 모델 연동으로 메모리를 더 씁니다.
   - criterion: MEMORY
-    weight: 2
+    weight: 1
     when: { question: DEV_ENVIRONMENT_SETUP, anyOf: [ LOCAL_MANY, DOCKER_MANY ] }
     reason: 개발 환경을 여러 개 띄우는 방식이라 여유가 필요합니다.
   - criterion: MEMORY
