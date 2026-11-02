@@ -128,8 +128,10 @@ LIMIT 500 OFFSET 0
 ### 1-4. 신호 계산
 
 ```bash
-python3 "$ST/signals.py" signals "$ST/sessions.json" https://api.devica.co.kr "$DAYS" "$ST/edits.json" > "$ST/signals.json"
+python3 "$ST/signals.py" signals "$ST/sessions.json" https://api.devica.co.kr <DAYS> "$ST/edits.json" > "$ST/signals.json"
 ```
+
+`<DAYS>` 에는 0. 준비의 기준값에서 계산한 숫자를 그대로 적는다. 셸에 `DAYS` 변수는 없다.
 
 스크립트가 명세의 "신호의 뜻"과 "만들지 않는 것"을 그대로 계산한다.
 
@@ -172,7 +174,7 @@ python3 "$ST/signals.py" issue "$ST/issue-<번호>.md"
 `signals.json` 의 묶음 중 `count ≥ MIN` 인 것마다:
 
 - 2 의 열린 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않고 기록한다.
-- 2 의 닫힌 지표 피드백 중 `key` 가 같은 것이 있으면, 그 이슈의 마지막 팀원 댓글이 4-5 의 닫는 문구(`신호 최소 건수 … 보다 적어 닫습니다`)가 아닌 한 만들지 않고 기록한다. 팀원이 닫은 것이다. 댓글은 4-1 의 명령으로 읽는다.
+- 2 의 닫힌 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않고 기록한다. 팀원이 닫은 것이다. 단 수집기가 닫은 것이면 만든다. 수집기가 닫은 것은 마지막 팀원 댓글이 4-5 의 닫는 문구(`신호 최소 건수 … 보다 적어 닫습니다`)이고, 이슈의 `closed_at` 이 그 댓글의 `created_at` 뒤 10분 안인 것이다. 수집기는 댓글을 남기고 바로 닫는다. 팀원이 다시 열었다가 댓글 없이 닫았으면 마지막 댓글은 그대로 닫는 문구지만 `closed_at` 이 그보다 한참 뒤다. 댓글은 4-1 의 명령으로 읽는다.
 - 없으면 묶음의 `body` 를 파일로 쓰고 이슈를 만든다.
   ```bash
   gh issue create --repo "$GH_REPO" --title "<title>" --body-file "$ST/new-body.md" --label product-recommendation-feedback
