@@ -88,7 +88,7 @@ LIMIT 500 OFFSET 0
 
 ### 1-3. 추천 결과를 고친 기록 가져오기
 
-같은 방법으로 아래 쿼리를 부른다. 세션·사용 목적·답 조합·OS 마다 마지막 기록 하나만 남긴다. 세션 ID 는 묶는 데만 쓰고 꺼내지 않는다.
+같은 방법으로 아래 쿼리를 부른다. 세션·사용 목적·OS 마다 마지막 기록 하나만 남긴다. 답 조합은 묶지 않는다. 신호를 답 조합과 무관하게 묶으므로, 답을 바꿔 가며 여러 번 고친 세션이 2건으로 세이지 않게 하기 위해서다. 세션 ID 는 묶는 데만 쓰고 꺼내지 않는다.
 
 ```sql
 SELECT edit
@@ -113,7 +113,6 @@ FROM (
     AND notEmpty(coalesce(properties.$session_id, ''))
   GROUP BY properties.$session_id,
            extract(properties.$current_url, '[?&]purpose=([^&#]+)'),
-           arrayStringConcat(arraySort(extractAll(properties.$current_url, '[?&]answer=([^&#]+)')), '&'),
            toString(properties.os)
 )
 ORDER BY at
@@ -140,9 +139,9 @@ python3 "$ST/signals.py" signals "$ST/sessions.json" https://api.devica.co.kr <D
 - 조회 기간 안에 `origin/main` 에서 바뀐 규칙에 걸리고, 그 커밋 시각(배포 시점으로 본다)보다 먼저 시작한 세션은 버린다.
 - 처음·마지막 답 조합의 운영 결과를 다시 받아 권장안이 같으면 항목별로 비교한다. 마지막 결과에서 내려간 항목은 처음 결과가 "과해요"(DOWN), 올라간 항목은 "부족해요"(UP)로 추정한다. 바뀐 항목이 없거나 여러 항목이 반대로 바뀌었거나 권장안이 달라졌으면(`PREFERRED_OS` 만 바꾼 경우) 버린다. 생각하는 노트북을 정하지 않은 세션은 두 권장안을 함께 보고, 두 권장안에서 같은 방향이면 `둘 다` 로 묶는다.
 - 바꾼 답은 처음 답 조합에만 있는 선택지와 마지막 답 조합에만 있는 선택지다. 예: `SLOWDOWN: OFTEN → FINE`.
-- 권장안·항목·방향·바꾼 답이 같은 신호를 묶고, 묶음마다 제목·본문([feedback.md](../interface/artifacts/feedback.md) 형식)을 만든다. 주소는 처음 본 결과의 `category`, `purpose`, `answer` 로만 새로 만든다. 맞지 않은 점은 추정한 항목·방향에 맞는 선택지 하나(예: `메모리가 과해요`), 근거 지표는 기간·"답을 바꿔 다시 본 세션"·건수와 항목·방향이 추정임을 밝히는 문장이다.
+- 사용 목적·권장안·항목·방향이 같은 신호를 묶고, 묶음마다 제목·본문([feedback.md](../interface/artifacts/feedback.md) 형식)을 만든다. 처음 답 조합마다(같은 답 조합이라도 바꾼 답이 다르면 따로) 주소 한 줄을 건수가 많은 것부터 적는다. 주소는 처음 본 결과의 `category`, `purpose`, `answer` 로만 새로 만든다. 바꾼 답은 `주소 N:` 을 붙여 주소마다 적는다. 맞지 않은 점은 추정한 항목·방향에 맞는 선택지 하나(예: `메모리가 과해요`), 근거 지표는 기간·"답을 바꿔 다시 본 세션"·건수·주소별 건수와 항목·방향이 추정임을 밝히는 문장이다.
 
-- 추천 결과를 고친 기록은 항목별로 나눠, 사용 목적·답 조합·OS·항목·방향이 같은 것을 묶는다. 고친 값이 제품 추천 결과보다 낮으면 DOWN, 높으면 UP 이다. 배포를 기다리는 규칙과 배포 전에 본 바뀐 규칙은 위와 같이 거르되, 견주는 시각은 고친 시각이다. 운영 결과는 다시 받지 않는다. 사용자가 본 값과 고친 값이 기록에 있다. 본문은 `### 바꾼 답` 대신 `### 고친 값` 에 값별 건수를 적고, 신호를 "추천 결과를 직접 고친 세션"으로 적는다.
+- 추천 결과를 고친 기록은 항목별로 나눠, 사용 목적·OS(권장안)·항목·방향이 같은 것을 묶고 답 조합은 주소로 적는다. 고친 값이 제품 추천 결과보다 낮으면 DOWN, 높으면 UP 이다. 배포를 기다리는 규칙과 배포 전에 본 바뀐 규칙은 위와 같이 거르되, 견주는 시각은 고친 시각이다. 운영 결과는 다시 받지 않는다. 사용자가 본 값과 고친 값이 기록에 있다. 본문은 `### 바꾼 답` 대신 `### 고친 값` 에 `주소 N:` 을 붙여 주소마다 값별 건수를 적고, 신호를 "추천 결과를 직접 고친 세션"으로 적는다.
 
 - 운영 결과가 400 이면 질문이 바뀐 것으로 보고 버린다. 그 밖의 오류(500, 429 등)는 `운영 서버 오류` 로 따로 세고 `incomplete` 를 참으로 둔다.
 
@@ -173,8 +172,14 @@ python3 "$ST/signals.py" issue "$ST/issue-<번호>.md"
 
 `signals.json` 의 묶음 중 `count ≥ MIN` 인 것마다:
 
-- 2 의 열린 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않고 기록한다.
-- 2 의 닫힌 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않고 기록한다. 팀원이 닫은 것이다. 단 수집기가 닫은 것이면 만든다. 수집기가 닫은 것은 마지막 팀원 댓글이 4-5 의 닫는 문구(`신호 최소 건수 … 보다 적어 닫습니다`)이고, 이슈의 `closed_at` 이 그 댓글의 `created_at` 뒤 10분 안인 것이다. 수집기는 댓글을 남기고 바로 닫는다. 팀원이 다시 열었다가 댓글 없이 닫았으면 마지막 댓글은 그대로 닫는 문구지만 `closed_at` 이 그보다 한참 뒤다. 댓글은 4-1 의 명령으로 읽는다.
+- 2 의 열린 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않는다. 그 이슈에 분석 결과가 없거나 가장 최근 분석 결과의 `judgment` 가 `ON_HOLD` 이면, 묶음의 `body` 를 `$ST/new-body.md` 로 쓰고 `python3 "$ST/signals.py" stale "$ST/issue-<번호>.md" "$ST/new-body.md"` 의 `stale` 이 참일 때 본문을 바꾼다. 조회 기간 말고 주소·건수·바꾼 답·고친 값 중 하나라도 달라진 것이다. 새 주소가 없어도 한 주소의 건수만 늘어 가장 큰 묶음이 바뀔 수 있어, 바뀐 근거로 Feedback Analyzer 가 다시 판단하게 하기 위해서다. 그 밖은 근거를 바꾸지 않고 기록만 한다. 분석 결과는 첫 줄이 `<!-- product-recommendation:analysis -->` 인 팀원 댓글이고, 댓글은 4-1 의 명령으로 읽어 `block` 으로 yaml 을 읽는다.
+  ```bash
+  gh issue edit <번호> --repo "$GH_REPO" --body-file "$ST/new-body.md"
+  ```
+- 2 의 닫힌 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않고 기록한다. 팀원이 닫은 것이다. 단 수집기가 닫은 것이면 만든다. 수집기가 닫은 것은 마지막 팀원 댓글이 4-5 의 닫는 문구(`신호 최소 건수 … 보다 적어 닫습니다`)이고, 이슈의 `closed_at` 이 그 댓글의 `created_at` 뒤 10분 안인 것이다. 수집기는 댓글을 남기고 바로 닫는다. 팀원이 다시 열었다가 댓글 없이 닫았으면 마지막 댓글은 그대로 닫는 문구지만 `closed_at` 이 그보다 한참 뒤다. 개선 PR 머지로 닫힌 것도 만든다. 이슈를 닫은 것이 머지된 PR 이면(아래 명령의 `merged` 가 참) 그렇다. 개선 결과 댓글은 근거 피드백 중 번호가 가장 작은 이슈에만 달려, 같은 PR 이 닫은 다른 피드백에는 없다. 그래서 댓글이 아니라 이슈를 닫은 PR 을 본다. 고친 규칙에 걸린 세션은 1-4 에서 이미 버려져, 다시 모인 것은 그 개선이 다루지 못한 세션이다. 댓글은 4-1 의 명령으로 읽는다.
+  ```bash
+  gh api graphql -f query='{ repository(owner: "woowacourse-teams", name: "2026-Devica") { issue(number: <번호>) { timelineItems(itemTypes: [CLOSED_EVENT], last: 1) { nodes { ... on ClosedEvent { closer { ... on PullRequest { number merged } } } } } } } }' --jq '.data.repository.issue.timelineItems.nodes[0].closer'
+  ```
 - 없으면 묶음의 `body` 를 파일로 쓰고 이슈를 만든다.
   ```bash
   gh issue create --repo "$GH_REPO" --title "<title>" --body-file "$ST/new-body.md" --label product-recommendation-feedback
@@ -190,7 +195,7 @@ python3 "$ST/signals.py" issue "$ST/issue-<번호>.md"
    gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" \
      --jq '.[] | {id, created_at, author_association, body}'
    ```
-   팀원 댓글 중 첫 줄이 `<!-- product-recommendation:decision -->` 인 것이 개선 지시, `<!-- product-recommendation:result -->` 인 것이 개선 결과다. 댓글 본문을 파일로 써서 `python3 "$ST/signals.py" block <파일>` 로 yaml 블록을 읽는다. `errors` 가 비어 있지 않으면 그 댓글은 산출물로 보지 않고 기록에 적는다. 개선 결과는 같은 이슈에서 그보다 앞선 개선 지시 중 가장 최근 것의 결과다(순서는 `created_at`, 같으면 `id`). 개선 지시의 `issues` 에 이 이슈 번호가 있고, 개선 결과가 없거나 결과가 `PR_OPENED` 인데 그 PR 이 열려 있으면(`gh pr view <pr> --repo "$GH_REPO" --json state`) 처리 중이다.
+   팀원 댓글 중 첫 줄이 `<!-- product-recommendation:decision -->` 인 것이 개선 지시, `<!-- product-recommendation:result -->` 인 것이 개선 결과다. 댓글 본문을 파일로 써서 `python3 "$ST/signals.py" block <파일>` 로 yaml 블록을 읽는다. `errors` 가 비어 있지 않으면 그 댓글은 산출물로 보지 않고 기록에 적는다. 개선 결과는 같은 이슈에서 그보다 앞선 개선 지시 중 가장 최근 것의 결과다(순서는 `created_at`, 같으면 `id`). 열린 피드백 이슈 전체의 개선 지시 중 `issues` 에 이 이슈 번호가 있는 것이 하나라도, 개선 결과가 없거나 결과가 `PR_OPENED` 인데 그 PR 이 열려 있으면(`gh pr view <pr> --repo "$GH_REPO" --json state`) 처리 중이다. 개선 지시는 근거 피드백 중 번호가 가장 작은 이슈에만 달려, 다른 근거 피드백의 댓글에는 없기 때문이다.
 2. **세션에 걸린 규칙이 배포를 기다리면 열어 둔다.** `pending` 이 비어 있지 않다.
 3. **`signals.json` 의 `incomplete` 가 참이면 열어 둔다.** 운영 서버 오류로 세지 못한 세션이 있어 건수가 실제보다 적을 수 있다. 사용자의 문제가 풀린 것이 아니라 응답을 받지 못한 것이므로 닫지 않고 다음 실행에서 다시 센다.
 4. **지금 건수를 센다.** `c` = `signals.json` 에서 `key` 가 같은 묶음의 `count`(없으면 0). `c ≥ MIN` 이면 열어 둔다.

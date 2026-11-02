@@ -99,14 +99,46 @@ class CommonTest(unittest.TestCase):
         self.assertEqual(v['MAC']['REQUIRED_CPU']['rank'], 2)
         self.assertEqual(v['WIN' 'DOWS']['MEMORY'], {'value': '8', 'display': '8GB', 'rank': 8, 'reasons': []})
 
-    def test_고친_값_칸은_항목과_rank_로_읽는다(self):
-        text = '### 고친 값\n\n메모리: 24GB → 16GB (2건)\n저장 공간: 512GB → 1TB (1건)\nCPU: PRO → BASIC (1건)\n이상한 줄\n'
+    def test_고친_값_칸은_주소_번호와_항목과_rank_로_읽는다(self):
+        text = '### 고친 값\n\n주소 1: 메모리: 24GB → 16GB (2건)\n주소 2: 저장 공간: 512GB → 1TB (1건)\nCPU: PRO → BASIC (1건)\n이상한 줄\n'
         self.assertEqual(common.edited(text), [
-            {'item': 'MEMORY', 'recommended': {'value': '24GB', 'rank': 24}, 'edited': {'value': '16GB', 'rank': 16}, 'count': 2},
-            {'item': 'STORAGE', 'recommended': {'value': '512GB', 'rank': 512}, 'edited': {'value': '1TB', 'rank': 1024}, 'count': 1},
-            {'item': 'REQUIRED_CPU', 'recommended': {'value': 'PRO', 'rank': 1}, 'edited': {'value': 'BASIC', 'rank': 0}, 'count': 1}])
+            {'address': 1, 'item': 'MEMORY', 'recommended': {'value': '24GB', 'rank': 24}, 'edited': {'value': '16GB', 'rank': 16}, 'count': 2},
+            {'address': 2, 'item': 'STORAGE', 'recommended': {'value': '512GB', 'rank': 512}, 'edited': {'value': '1TB', 'rank': 1024}, 'count': 1},
+            {'address': 1, 'item': 'REQUIRED_CPU', 'recommended': {'value': 'PRO', 'rank': 1}, 'edited': {'value': 'BASIC', 'rank': 0}, 'count': 1}])
         self.assertEqual(common.edited('### 바꾼 답\n\nA: x → y\n'), [])
         self.assertEqual(common.edited('### 고친 값\n\nCPU: PRO → ULTRA (1건)\n메모리: 큰 → 16GB (1건)\n'), [])
+
+    def test_지표_피드백의_주소별_정보(self):
+        text = ('### 결과 화면 주소\n\nhttps://devica.co.kr/result?purpose=DEV&answer=A.x\nhttps://devica.co.kr/result?purpose=DEV&answer=A.y\n\n'
+                '### 바꾼 답\n\n주소 1: A: x → z\n주소 2: A: y → z\n주소 2: B: - → q\n\n### 근거 지표\n\n- 건수: 3\n- 주소별 건수: 2, 1\n')
+        m = common.metric(text)
+        self.assertEqual([(u['address'], u['answers']) for u in m['urls']], [(1, {'A': ['x']}), (2, {'A': ['y']})])
+        self.assertEqual(m['counts'], [2, 1])
+        self.assertEqual(m['changed'], [{'address': 1, 'lines': ['A: x → z']}, {'address': 2, 'lines': ['A: y → z', 'B: - → q']}])
+        # 주소별 건수가 없는 옛 본문은 주소가 하나일 때만 건수를 쓴다
+        old = '### 결과 화면 주소\n\nhttps://devica.co.kr/result?purpose=DEV&answer=A.x\n\n### 바꾼 답\n\nA: x → z\n\n### 근거 지표\n\n- 건수: 2\n'
+        m = common.metric(old)
+        self.assertEqual((m['counts'], m['changed']), ([2], [{'address': 1, 'lines': ['A: x → z']}]))
+
+    def test_주소_묶음은_교집합이_비면_가장_많은_건수가_함께_가리키는_규칙으로_묶는다(self):
+        c = common.cluster
+        # 전체 교집합이 있으면 그것
+        self.assertEqual(c([{'address': 1, 'count': 2, 'rules': ['r1', 'r2']}, {'address': 2, 'count': 2, 'rules': ['r1']}]),
+                         {'addresses': [1, 2], 'rules': ['r1'], 'count': 4, 'tie': False, 'rest': []})
+        # 비면 가장 큰 묶음(A·B·C 의 r1, 3건)이고 D·E(r3, 2건)는 밖
+        items = [{'address': 1, 'count': 1, 'rules': ['r1', 'r2']}, {'address': 2, 'count': 1, 'rules': ['r1', 'r4']},
+                 {'address': 3, 'count': 1, 'rules': ['r1']}, {'address': 4, 'count': 1, 'rules': ['r3']},
+                 {'address': 5, 'count': 1, 'rules': ['r3', 'r2']}, {'address': 6, 'count': 1, 'rules': []}]
+        self.assertEqual(c(items), {'addresses': [1, 2, 3], 'rules': ['r1'], 'count': 3, 'tie': False, 'rest': [4, 5, 6]})
+        # 묶음의 교집합이 둘이면 둘 다 돌려 준다(판단은 보류)
+        self.assertEqual(c([{'address': 1, 'count': 1, 'rules': ['r1', 'r2']}, {'address': 2, 'count': 1, 'rules': ['r1', 'r2']},
+                            {'address': 3, 'count': 1, 'rules': ['r3']}])['rules'], ['r1', 'r2'])
+        # 가장 큰 건수가 서로 다른 주소 묶음에서 나오면 tie
+        out = c([{'address': 1, 'count': 2, 'rules': ['r1']}, {'address': 2, 'count': 2, 'rules': ['r2']}])
+        self.assertEqual((out['tie'], out['rules'], out['rest']), (True, [], [1, 2]))
+        # 규칙 객체도 받는다
+        rule = {'criterion': 'MEMORY', 'when': {'question': 'Q', 'anyOf': ['a']}, 'weight': 1}
+        self.assertEqual(c([{'address': 1, 'count': 2, 'rules': [rule]}])['rules'], [common.key(rule)])
 
     def test_이슈_본문_칸(self):
         f = fields('### 결과 화면 주소\n\nhttps://a\nhttps://b\n\n### 더 알려 주실 내용\n\n_No response_\n\n### 바꾼 답\n\nSLOWDOWN: NEVER → OFTEN\n')
@@ -282,9 +314,10 @@ class CollectorTest(unittest.TestCase):
                 self.assertEqual([v['ts'] for v in out[0]], [10, 20])
 
     def test_같은_신호는_같은_키(self):
-        k = lambda lines: collector.signal_key('DEV', 'Mac', collector.problem('MEMORY', 'DOWN'), lines)
-        self.assertEqual(k(['A: x → y']), k(['A: x → y']))
-        self.assertNotEqual(k(['A: x → y']), k(['A: x → z']))
+        k = lambda item, d: collector.signal_key('DEV', 'Mac', collector.problem(item, d))
+        self.assertEqual(k('MEMORY', 'DOWN'), k('MEMORY', 'DOWN'))
+        self.assertNotEqual(k('MEMORY', 'DOWN'), k('MEMORY', 'UP'))
+        self.assertNotEqual(k('MEMORY', 'DOWN'), collector.edit_key('DEV', 'Mac', collector.problem('MEMORY', 'DOWN')))
         self.assertEqual(collector.problem('REQUIRED_CPU', 'UP'), 'CPU 가 부족해요')
 
 
@@ -316,11 +349,26 @@ class SignalsTest(unittest.TestCase):
                                self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES'))
         self.assertEqual(out['dropped'], {})
         g, = out['groups']
-        self.assertEqual((g['count'], g['plan'], g['problem'], g['changed']), (2, 'Mac', '메모리가 과해요', ['SLOWDOWN: NEVER → SOMETIMES']))
+        self.assertEqual((g['count'], g['plan'], g['problem']), (2, 'Mac', '메모리가 과해요'))
+        self.assertEqual(g['changed'], [{'address': 1, 'lines': ['SLOWDOWN: NEVER → SOMETIMES']}])
         self.assertEqual(g['urls'], ['https://devica.co.kr/result?category=LAPTOP&purpose=DEV&answer=SLOWDOWN.NEVER'])
         self.assertEqual(g['title'], '[제품 추천 지표] Mac 권장안에서 메모리가 과해요')
-        self.assertIn('- 건수: 2', g['body'])
-        self.assertEqual(fields(g['body'])['바꾼 답'], 'SLOWDOWN: NEVER → SOMETIMES')
+        self.assertIn('- 건수: 2\n- 주소별 건수: 2', g['body'])
+        self.assertEqual(fields(g['body'])['바꾼 답'], '주소 1: SLOWDOWN: NEVER → SOMETIMES')
+
+    def test_답_조합이_달라도_같은_항목_방향이면_한_신호로_묶이고_주소는_따로_적는다(self):
+        out = self.run_signals(self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES'),
+                               self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES'),
+                               self.session('SLOWDOWN.NEVER', 'SLOWDOWN.OFTEN'),
+                               self.session('SLOWDOWN.NEVER&VIDEO.YES', 'SLOWDOWN.SOMETIMES'))
+        g, = out['groups']
+        self.assertEqual((g['count'], g['counts']), (4, [2, 1, 1]))
+        self.assertEqual(len(g['urls']), 3)  # 같은 답 조합이라도 바꾼 답이 다르면 다른 주소
+        self.assertEqual(g['changed'][0], {'address': 1, 'lines': ['SLOWDOWN: NEVER → SOMETIMES']})
+        self.assertIn('- 주소별 건수: 2, 1, 1', g['body'])
+        m = common.metric(g['body'])
+        self.assertEqual((m['counts'], [c['address'] for c in m['changed']]), ([2, 1, 1], [1, 2, 3]))
+        self.assertEqual(collector.issue(tmp(g['body']))['key'], g['key'])
 
     def test_버리는_세션(self):
         old = int(time.time()) - 40 * 86400
@@ -336,7 +384,7 @@ class SignalsTest(unittest.TestCase):
         out = self.run_signals(self.session('', 'SLOWDOWN.NEVER'))
         self.assertEqual((out['groups'], out['dropped']), ([], {'다른 답 조합의 결과를 두 번 이상 보지 않음': 1}))
         g, = self.run_signals(self.session('', 'SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES'))['groups']
-        self.assertEqual(g['changed'], ['SLOWDOWN: NEVER → SOMETIMES'])
+        self.assertEqual(g['changed'], [{'address': 1, 'lines': ['SLOWDOWN: NEVER → SOMETIMES']}])
 
     def test_운영_서버_오류는_질문이_바뀐_것과_구분하고_불완전으로_표시한다(self):
         session = self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES')
@@ -370,19 +418,21 @@ class SignalsTest(unittest.TestCase):
     def run_edits(self, *edits, sessions=()):
         return collector.signals(tmp(json.dumps(list(sessions))), 'https://api', 28, tmp(json.dumps(list(edits))))
 
-    def test_직접_고친_기록은_항목별로_나눠_답_조합마다_묶는다(self):
+    def test_직접_고친_기록은_항목별로_나눠_항목_방향마다_묶고_답_조합은_주소로_적는다(self):
         out = self.run_edits(self.edit('SLOWDOWN.OFTEN', memory=(32, 16), storage=(512, 1024)),
                              self.edit('SLOWDOWN.OFTEN', memory=(32, 24)),
                              self.edit('SLOWDOWN.NEVER', memory=(32, 16)))
-        memory = next(g for g in out['groups'] if g['item'] == 'MEMORY' and 'OFTEN' in g['urls'][0])
-        self.assertEqual((memory['count'], memory['problem'], memory['title']),
-                         (2, '메모리가 과해요', '[제품 추천 지표] Mac 권장안에서 메모리가 과해요 (직접 수정)'))
-        self.assertIn('메모리: 32GB → 16GB (1건)\n메모리: 32GB → 24GB (1건)', memory['body'])
-        self.assertIn('- 신호: 추천 결과를 직접 고친 세션', memory['body'])
+        memory = next(g for g in out['groups'] if g['item'] == 'MEMORY')
+        self.assertEqual((memory['count'], memory['counts'], memory['problem'], memory['title']),
+                         (3, [2, 1], '메모리가 과해요', '[제품 추천 지표] Mac 권장안에서 메모리가 과해요 (직접 수정)'))
+        self.assertIn('OFTEN', memory['urls'][0])  # 건수가 많은 주소가 앞
+        self.assertIn('주소 1: 메모리: 32GB → 16GB (1건)\n주소 1: 메모리: 32GB → 24GB (1건)\n주소 2: 메모리: 32GB → 16GB (1건)', memory['body'])
+        self.assertIn('- 신호: 추천 결과를 직접 고친 세션\n- 건수: 3\n- 주소별 건수: 2, 1', memory['body'])
+        self.assertEqual([e['address'] for e in common.edited(memory['body'])], [1, 1, 2])
         storage = next(g for g in out['groups'] if g['item'] == 'STORAGE')
         self.assertEqual((storage['direction'], storage['count']), ('UP', 1))
-        self.assertIn('저장 공간: 512GB → 1TB (1건)', storage['body'])
-        self.assertEqual(len(out['groups']), 3)  # OFTEN 의 메모리·저장 공간, NEVER 의 메모리
+        self.assertIn('주소 1: 저장 공간: 512GB → 1TB (1건)', storage['body'])
+        self.assertEqual(len(out['groups']), 2)  # 메모리 과해요, 저장 공간 부족해요
 
     def test_직접_고친_신호와_답을_바꾼_신호는_키가_섞이지_않는다(self):
         out = self.run_edits(self.edit('SLOWDOWN.NEVER', memory=(32, 16)),
@@ -413,7 +463,7 @@ class SignalsTest(unittest.TestCase):
 
     def test_직접_고친_지표_피드백은_만든_신호와_같은_키를_낸다(self):
         g = self.run_edits(self.edit('SLOWDOWN.NEVER', memory=(32, 16)))['groups'][0]
-        self.assertEqual([(e['item'], e['recommended']['rank'], e['edited']['rank']) for e in common.edited(g['body'])], [('MEMORY', 32, 16)])
+        self.assertEqual([(e['address'], e['item'], e['recommended']['rank'], e['edited']['rank']) for e in common.edited(g['body'])], [(1, 'MEMORY', 32, 16)])
         self.assertEqual(collector.issue(tmp(g['body'])), {'key': g['key'], 'purpose': 'DEV', 'pending': []})
 
     def test_열린_지표_피드백의_신호_키와_배포를_기다리는_규칙(self):
@@ -422,9 +472,22 @@ class SignalsTest(unittest.TestCase):
         body_text = ('### 결과 화면 주소\n\nhttps://devica.co.kr/result?category=LAPTOP&purpose=DEV&answer=SLOWDOWN.NEVER\n\n'
                      '### 어느 권장안인가요?\n\nMac\n\n### 어떤 점이 맞지 않았나요?\n\n메모리가 과해요\n\n### 바꾼 답\n\nSLOWDOWN: NEVER → OFTEN\n')
         out = collector.issue(tmp(body_text))
-        self.assertEqual(out['key'], collector.signal_key('DEV', 'Mac', '메모리가 과해요', ['SLOWDOWN: NEVER → OFTEN']))
+        self.assertEqual(out['key'], collector.signal_key('DEV', 'Mac', '메모리가 과해요'))
         self.assertEqual(out['pending'], [c['key'] for c in diff(DEF, self.develop)])
+        # 주소마다 자기 바꾼 답을 적용한다. 주소 2 만 OFTEN 으로 바꿨어도 걸린다
+        two = body_text.replace('answer=SLOWDOWN.NEVER\n', 'answer=SLOWDOWN.NEVER\nhttps://devica.co.kr/result?category=LAPTOP&purpose=DEV&answer=SLOWDOWN.SOMETIMES\n') \
+                       .replace('SLOWDOWN: NEVER → OFTEN', '주소 1: SLOWDOWN: NEVER → SOMETIMES\n주소 2: SLOWDOWN: SOMETIMES → OFTEN')
+        self.assertEqual(collector.issue(tmp(two))['pending'], [c['key'] for c in diff(DEF, self.develop)])
         self.assertEqual(collector.issue(tmp('### 결과 화면 주소\n\n_No response_\n'))['error'], '결과 화면 주소가 없다')
+
+    def test_열린_지표_피드백은_조회_기간_말고_근거가_바뀌어야_갱신한다(self):
+        s = self.session('SLOWDOWN.NEVER', 'SLOWDOWN.SOMETIMES')
+        one = self.run_signals(s)['groups'][0]['body']
+        old = one.replace('- 기간: ', '- 기간: 2000-01-01 ~ ').replace('\n', '\r\n')
+        self.assertEqual(collector.stale(tmp(old), tmp(one)), {'stale': False})
+        # 새 주소가 없어도 같은 주소의 건수가 늘면 갱신한다
+        two = self.run_signals(s, s)['groups'][0]['body']
+        self.assertEqual(collector.stale(tmp(one), tmp(two)), {'stale': True})
 
 
 # ---- Recommendation Improver ----
