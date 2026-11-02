@@ -13,6 +13,7 @@ import {
   formatStorage,
   MEMORY_STEPS,
   OSES,
+  offerCondition,
   osOfTier,
   type Product,
   type ProductSpecItem,
@@ -433,6 +434,7 @@ export function ProductListView({
 }
 
 function ProductCard({ product, onDetail }: { product: Product; onDetail: (productId: number) => void }) {
+  const source = product.minPriceOffer?.price === product.minPrice ? product.minPriceOffer : undefined;
   return (
     <article className="bordered-panel product-card">
       <ProductImage imageUrl={product.imageUrl} name={product.name} className="product-card__image-frame" />
@@ -444,7 +446,14 @@ function ProductCard({ product, onDetail }: { product: Product; onDetail: (produ
             </span>
             <h3>{product.name}</h3>
           </div>
-          <strong className="product-card__price">{formatPrice(product.minPrice)}</strong>
+          <div className="product-card__pricing">
+            <strong className="product-card__price">{formatPrice(product.minPrice)}</strong>
+            {product.minPrice !== null && (
+              <p className="product-card__price-context">
+                {source ? `${source.name} · ${offerCondition(source)}` : '판매처·조건 정보 없음'}
+              </p>
+            )}
+          </div>
         </div>
         <dl className="product-card__specs">
           {CARD_SPECS.map(({ code, label }) => (
