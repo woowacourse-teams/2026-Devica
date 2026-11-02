@@ -11,11 +11,6 @@ import java.util.Map;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Component;
 
-/**
- * 점수를 사양으로 바꾸고, 결과 화면의 근거 문장 일부를 직접 만든다. 이 문장들은 BACKEND_DEVELOPMENT.yml 머리 주석에
- * 모아 두었으니 문장을 더하거나 고치면 그 목록도 함께 고친다. 문장이나 보정을 바꾸면 RecommendationServiceTest 의
- * 스냅숏을 다시 만든다.
- */
 @Component
 public class BackendDevelopmentRecommender {
 
@@ -24,57 +19,86 @@ public class BackendDevelopmentRecommender {
     private static final String MEMORY_ITEM = LaptopRequirement.MEMORY.name();
     private static final String STORAGE_ITEM = LaptopRequirement.STORAGE.name();
 
-    private static final Map<Os, List<Band<CpuTier>>> CPU_BANDS = Map.of(
-        Os.MAC, List.of(
-            new Band<>(2, CpuTier.BASIC),
-            new Band<>(4, CpuTier.PRO),
-            new Band<>(Integer.MAX_VALUE, CpuTier.MAX)),
-        Os.WINDOWS, List.of(
-            new Band<>(2, CpuTier.P_HS),
-            new Band<>(4, CpuTier.H),
-            new Band<>(Integer.MAX_VALUE, CpuTier.HX)));
-
-    private static final List<Band<Integer>> MEMORY_BANDS = List.of(
-        new Band<>(1, 16),
-        new Band<>(3, 24),
-        new Band<>(6, 32),
-        new Band<>(Integer.MAX_VALUE, 48));
-
-    private static final List<Band<Integer>> STORAGE_BANDS = List.of(
-        new Band<>(-2, 256),
-        new Band<>(2, 512),
-        new Band<>(6, 1024),
-        new Band<>(Integer.MAX_VALUE, 2048));
-
     private static final Map<CpuTier, List<Integer>> MAC_MEMORY_BY_CPU = Map.of(
         CpuTier.BASIC, List.of(16, 24, 32),
         CpuTier.PRO, List.of(24, 48));
 
-    private static <T> T valueFor(List<Band<T>> bands, int score) {
-        return bands.stream()
-            .filter(band -> score <= band.maxScore())
-            .findFirst()
-            .orElseThrow()
-            .value();
+    public static List<String> findUnsupported(LaptopInterpretation interpretation) {
+        List<String> errors = new ArrayList<>();
+
+        if (interpretation == null) {
+            errors.add("점수 해석 규칙이 없습니다");
+            return errors;
+        }
+
+        validateCpu(interpretation.cpu(), errors);
+
+        validateSteps(interpretation.memory(), LaptopSpec.MEMORY_STEPS, "메모리 구간", errors);
+        validateSteps(interpretation.storage(), LaptopSpec.STORAGE_STEPS, "저장 공간 구간", errors);
+
+        validateMacCpuLimit(interpretation.macCpuLimit(), errors);
+
+        return errors;
     }
 
-    public List<RecommendedSpec> recommend(Requirements requirements, Map<String, String> conditions) {
+    private static void validateCpu(Map<Os, List<ScoreRange<CpuTier>>> cpu, List<String> errors) {
+        if (cpu == null) {
+            errors.add("CPU 구간이 없습니다");
+            return;
+        }
+
+        for (Os os : Os.values()) {
+            String where = "CPU 구간 " + os;
+            List<ScoreRange<CpuTier>> ranges = cpu.get(os);
+            ScoreRange.validate(ranges, where, errors);
+
+            if (ranges != null) {
+                ranges.stream()
+                    .map(ScoreRange::value)
+                    .filter(tier -> tier != null && tier.getOs() != os)
+                    .forEach(tier -> errors.add(where + ": " + os + " 의 CPU 등급이 아닙니다: " + tier));
+            }
+        }
+    }
+
+    private static void validateSteps(List<ScoreRange<Integer>> ranges,
+                                      List<Integer> steps, String where, List<String> errors) {
+        ScoreRange.validate(ranges, where, errors);
+
+        if (ranges != null) {
+            ranges.stream()
+                .map(ScoreRange::value)
+                .filter(value -> value != null && !steps.contains(value))
+                .forEach(value -> errors.add(where + ": " + steps + " 에 없는 값입니다: " + value));
+        }
+    }
+
+    private static void validateMacCpuLimit(CpuTier limit, List<String> errors) {
+        if (limit == null || !MAC_MEMORY_BY_CPU.containsKey(limit)) {
+            List<CpuTier> limits = CpuTier.inOrder().stream().filter(MAC_MEMORY_BY_CPU::containsKey).toList();
+            errors.add("Mac CPU 상한은 " + limits + " 중 하나여야 합니다: " + limit);
+        }
+    }
+
+    public List<RecommendedSpec> recommend(LaptopInterpretation interpretation, Requirements requirements,
+                                           Map<String, String> conditions) {
         return Stream.of(Os.MAC, Os.WINDOWS)
-            .map(os -> recommendFor(os, requirements, conditions))
+            .map(os -> recommendFor(interpretation, os, requirements, conditions))
             .toList();
     }
 
-    private RecommendedSpec recommendFor(Os os, Requirements requirements, Map<String, String> conditions) {
+    private RecommendedSpec recommendFor(LaptopInterpretation interpretation, Os os, Requirements requirements,
+                                         Map<String, String> conditions) {
         Map<String, List<String>> reasons = new HashMap<>();
         reasons.put(OS_ITEM, new ArrayList<>(List.of(os.getDisplayName() + " 권장안입니다.")));
         for (LaptopRequirement requirement : LaptopRequirement.values()) {
             reasons.put(requirement.name(), new ArrayList<>(requirements.reasonsOf(requirement.name())));
         }
 
-        int memoryGb = valueFor(MEMORY_BANDS, requirements.valueOf(MEMORY_ITEM));
-        int storageGb = valueFor(STORAGE_BANDS, requirements.valueOf(STORAGE_ITEM));
+        int memoryGb = ScoreRange.valueFor(interpretation.memory(), requirements.valueOf(MEMORY_ITEM));
+        int storageGb = ScoreRange.valueFor(interpretation.storage(), requirements.valueOf(STORAGE_ITEM));
         CpuTier current = currentCpuTier(os, conditions);
-        CpuTier cpuTier = calculateCpu(os, requirements.valueOf(CPU_ITEM), current, reasons.get(CPU_ITEM));
+        CpuTier cpuTier = calculateCpu(interpretation, os, requirements.valueOf(CPU_ITEM), current, reasons.get(CPU_ITEM));
 
         LaptopSpec spec = buyableSpec(os, cpuTier, memoryGb, storageGb, reasons);
         addResultReasons(spec, current, reasons);
@@ -82,14 +106,16 @@ public class BackendDevelopmentRecommender {
         return new RecommendedSpec(spec, reasons, preferred);
     }
 
-    private CpuTier calculateCpu(Os os, int score, CpuTier current, List<String> reasons) {
-        CpuTier tier = valueFor(CPU_BANDS.get(os), score);
+    private CpuTier calculateCpu(LaptopInterpretation interpretation, Os os, int score, CpuTier current,
+                                 List<String> reasons) {
+        CpuTier tier = ScoreRange.valueFor(interpretation.cpu().get(os), score);
         if (current != null) {
             tier = current.stepUp().higherOf(tier);
         }
-        if (os == Os.MAC && !MAC_MEMORY_BY_CPU.containsKey(tier)) {
-            reasons.add("예산을 고려해 Mac 권장 CPU 는 M Pro 칩으로 제한했습니다.");
-            tier = CpuTier.PRO;
+        CpuTier limit = interpretation.macCpuLimit();
+        if (os == Os.MAC && tier.isHigherThan(limit)) {
+            reasons.add("예산을 고려해 Mac 권장 CPU 는 " + limit.getDisplayName() + "으로 제한했습니다.");
+            tier = limit;
         }
         return tier;
     }
@@ -149,8 +175,5 @@ public class BackendDevelopmentRecommender {
             .filter(option -> option >= memoryGb)
             .findFirst()
             .orElseGet(() -> largestMemoryOf(tier));
-    }
-
-    private record Band<T>(int maxScore, T value) {
     }
 }

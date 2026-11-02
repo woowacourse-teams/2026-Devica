@@ -29,7 +29,7 @@ public class RecommendationService {
         Requirements requirements = Judgement.judge(purpose.rules(), response);
         Map<String, String> conditions = Judgement.map(purpose.mappings(), response);
 
-        return backendDevelopmentRecommender.recommend(requirements, conditions);
+        return backendDevelopmentRecommender.recommend(purpose.interpretation(), requirements, conditions);
     }
 
     public Survey findSurvey(String purposeCode) {

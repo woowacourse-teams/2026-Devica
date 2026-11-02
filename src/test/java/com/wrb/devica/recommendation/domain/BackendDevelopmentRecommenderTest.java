@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.wrb.devica.product.domain.CpuTier;
 import com.wrb.devica.product.domain.LaptopSpec;
+import com.wrb.devica.product.domain.Os;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 class BackendDevelopmentRecommenderTest {
+
+    private static final LaptopInterpretation INTERPRETATION = RecommendationDefinition.read(
+        BackendDevelopmentRecommenderTest.class.getResourceAsStream("/recommendation/purposes/BACKEND_DEVELOPMENT.yml"))
+        .interpretation();
 
     @Test
     void CPU_점수가_2에서_3이_되면_한_단계_오른다() {
@@ -20,8 +25,8 @@ class BackendDevelopmentRecommenderTest {
         Requirements three = new Requirements(Map.of("REQUIRED_CPU", 3), Map.of());
 
         // when
-        List<RecommendedSpec> atTwo = recommender.recommend(two, Map.of());
-        List<RecommendedSpec> atThree = recommender.recommend(three, Map.of());
+        List<RecommendedSpec> atTwo = recommender.recommend(INTERPRETATION, two, Map.of());
+        List<RecommendedSpec> atThree = recommender.recommend(INTERPRETATION, three, Map.of());
 
         // then
         assertThat(((LaptopSpec) atTwo.get(0).spec()).cpuTier()).isEqualTo(CpuTier.BASIC);
@@ -38,8 +43,8 @@ class BackendDevelopmentRecommenderTest {
         Requirements five = new Requirements(Map.of("REQUIRED_CPU", 5), Map.of());
 
         // when
-        List<RecommendedSpec> atFour = recommender.recommend(four, Map.of());
-        List<RecommendedSpec> atFive = recommender.recommend(five, Map.of());
+        List<RecommendedSpec> atFour = recommender.recommend(INTERPRETATION, four, Map.of());
+        List<RecommendedSpec> atFive = recommender.recommend(INTERPRETATION, five, Map.of());
 
         // then
         assertThat(((LaptopSpec) atFour.get(1).spec()).cpuTier()).isEqualTo(CpuTier.H);
@@ -57,7 +62,7 @@ class BackendDevelopmentRecommenderTest {
         Requirements requirements = new Requirements(Map.of("MEMORY", 7), Map.of());
 
         // when
-        LaptopSpec mac = (LaptopSpec) recommender.recommend(requirements, Map.of()).get(0).spec();
+        LaptopSpec mac = (LaptopSpec) recommender.recommend(INTERPRETATION, requirements, Map.of()).get(0).spec();
 
         // then
         assertThat(mac.cpuTier()).isEqualTo(CpuTier.PRO);
@@ -71,8 +76,8 @@ class BackendDevelopmentRecommenderTest {
         Requirements requirements = new Requirements(Map.of("REQUIRED_CPU", 3, "MEMORY", 4), Map.of());
 
         // when
-        RecommendedSpec mac = recommender.recommend(requirements, Map.of()).get(0);
-        RecommendedSpec windows = recommender.recommend(requirements, Map.of()).get(1);
+        RecommendedSpec mac = recommender.recommend(INTERPRETATION, requirements, Map.of()).get(0);
+        RecommendedSpec windows = recommender.recommend(INTERPRETATION, requirements, Map.of()).get(1);
 
         // then
         assertThat(((LaptopSpec) mac.spec()).memoryGb()).isEqualTo(48);
@@ -88,7 +93,7 @@ class BackendDevelopmentRecommenderTest {
         Map<String, String> conditions = Map.of("CURRENT_CPU_TIER", "BASIC");
 
         // when
-        List<RecommendedSpec> specs = recommender.recommend(requirements, conditions);
+        List<RecommendedSpec> specs = recommender.recommend(INTERPRETATION, requirements, conditions);
 
         // then
         assertThat(((LaptopSpec) specs.get(0).spec()).cpuTier()).isEqualTo(CpuTier.PRO);
@@ -103,7 +108,7 @@ class BackendDevelopmentRecommenderTest {
         Requirements requirements = new Requirements(Map.of("MEMORY", score), Map.of());
 
         // when
-        RecommendedSpec windows = recommender.recommend(requirements, Map.of()).get(1);
+        RecommendedSpec windows = recommender.recommend(INTERPRETATION, requirements, Map.of()).get(1);
 
         // then
         assertThat(((LaptopSpec) windows.spec()).memoryGb()).isEqualTo(memoryGb);
@@ -117,7 +122,7 @@ class BackendDevelopmentRecommenderTest {
         Requirements requirements = new Requirements(Map.of("STORAGE", score), Map.of());
 
         // when
-        RecommendedSpec windows = recommender.recommend(requirements, Map.of()).get(1);
+        RecommendedSpec windows = recommender.recommend(INTERPRETATION, requirements, Map.of()).get(1);
 
         // then
         assertThat(((LaptopSpec) windows.spec()).storageGb()).isEqualTo(storageGb);
@@ -131,8 +136,8 @@ class BackendDevelopmentRecommenderTest {
         Requirements seven = new Requirements(Map.of("STORAGE", 7), Map.of());
 
         // when
-        RecommendedSpec atSix = recommender.recommend(six, Map.of()).get(0);
-        RecommendedSpec atSeven = recommender.recommend(seven, Map.of()).get(0);
+        RecommendedSpec atSix = recommender.recommend(INTERPRETATION, six, Map.of()).get(0);
+        RecommendedSpec atSeven = recommender.recommend(INTERPRETATION, seven, Map.of()).get(0);
 
         // then
         assertThat(((LaptopSpec) atSix.spec()).storageGb()).isEqualTo(1024);
@@ -147,9 +152,40 @@ class BackendDevelopmentRecommenderTest {
         Requirements requirements = new Requirements(Map.of("MEMORY", 2), Map.of("MEMORY", List.of("자주 느려집니다.")));
 
         // when
-        RecommendedSpec mac = recommender.recommend(requirements, Map.of()).get(0);
+        RecommendedSpec mac = recommender.recommend(INTERPRETATION, requirements, Map.of()).get(0);
 
         // then
         assertThat(mac.itemReasons().get("MEMORY")).containsExactly("자주 느려집니다.", "권장 메모리는 24GB 입니다.");
+    }
+
+    @Test
+    void 정의서의_점수_해석_규칙은_검증을_통과한다() {
+        // when
+        List<String> errors = BackendDevelopmentRecommender.findUnsupported(INTERPRETATION);
+
+        // then
+        assertThat(errors).isEmpty();
+    }
+
+    @Test
+    void 점수_해석_규칙이_노트북에서_낼_수_없는_값을_쓰면_오류를_낸다() {
+        // given
+        LaptopInterpretation interpretation = new LaptopInterpretation(
+            Map.of(Os.MAC, List.of(new ScoreRange<>(2, CpuTier.BASIC), new ScoreRange<>(null, CpuTier.HX))),
+            List.of(new ScoreRange<>(3, 16), new ScoreRange<>(1, 24), new ScoreRange<>(null, 20)),
+            List.of(new ScoreRange<>(2, 512), new ScoreRange<>(6, 1024)),
+            CpuTier.MAX);
+
+        // when
+        List<String> errors = BackendDevelopmentRecommender.findUnsupported(interpretation);
+
+        // then
+        assertThat(errors).containsExactly(
+            "CPU 구간 WINDOWS: 구간이 없습니다",
+            "CPU 구간 MAC: MAC 의 CPU 등급이 아닙니다: HX",
+            "메모리 구간: upTo 는 작은 것부터 적어야 합니다",
+            "메모리 구간: [16, 24, 32, 48] 에 없는 값입니다: 20",
+            "저장 공간 구간: 마지막 구간은 upTo 없이 나머지 점수를 모두 받아야 합니다",
+            "Mac CPU 상한은 [BASIC, PRO] 중 하나여야 합니다: MAX");
     }
 }
