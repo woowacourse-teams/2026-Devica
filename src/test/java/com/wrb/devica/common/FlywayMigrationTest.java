@@ -90,6 +90,27 @@ public class FlywayMigrationTest {
         partial.migrate();
     }
 
+    @Test
+    void 가격_조건을_추가해도_기존_가격과_구버전_입력을_보존한다() {
+        migrateTo("1.14");
+        long productId = saveProduct("OFFER-CONTEXT");
+        saveOffer(productId, 900_000L, "ON_SALE");
+        flyway.migrate();
+        // 구버전 앱은 추가 컬럼 없이 계속 저장할 수 있다.
+        saveOffer(productId, 1_000_000L, "ON_SALE");
+
+        var rows = jdbcTemplate.queryForList("""
+            SELECT price, price_condition, price_basis, link_type
+            FROM product_offer WHERE product_id = ? ORDER BY price
+            """, productId);
+        assertThat(rows).extracting(row -> row.get("price")).containsExactly(900_000L, 1_000_000L);
+        rows.forEach(row -> {
+            assertThat(row.get("price_condition")).isEqualTo("일반 판매가");
+            assertThat(row.get("price_basis")).isEqualTo("SELLER_PRICE");
+            assertThat(row.get("link_type")).isEqualTo("PURCHASE");
+        });
+    }
+
     private long saveProduct(String code) {
         jdbcTemplate.update("""
             INSERT INTO product (product_category_id, brand, name, code, created_at, updated_at)

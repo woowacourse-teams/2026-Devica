@@ -47,9 +47,24 @@ public class ProductOffer extends BaseTimeEntity {
     @Column(name = "checked_at")
     private LocalDate checkedAt;
 
+    @Column(nullable = false, length = 255)
+    private String priceCondition;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
+    private OfferPriceBasis priceBasis;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private OfferLinkType linkType;
+
     @Builder
     private ProductOffer(Long productId, String name, long price, String externalItemId,
-                         String purchaseUrl, OfferStatus status, LocalDate checkedAt) {
+                         String purchaseUrl, OfferStatus status, LocalDate checkedAt,
+                         String priceCondition, OfferPriceBasis priceBasis, OfferLinkType linkType) {
+        if (price <= 0) {
+            throw new IllegalArgumentException("확인하지 않은 가격을 0원 이하로 등록할 수 없습니다.");
+        }
         this.productId = productId;
         this.name = name;
         this.price = price;
@@ -57,6 +72,20 @@ public class ProductOffer extends BaseTimeEntity {
         this.purchaseUrl = purchaseUrl;
         this.status = status;
         this.checkedAt = checkedAt;
+        this.priceBasis = priceBasis == null ? OfferPriceBasis.SELLER_PRICE : priceBasis;
+        this.linkType = linkType == null ? OfferLinkType.PURCHASE : linkType;
+        this.priceCondition = priceCondition == null ? "일반 판매가" : priceCondition.strip();
+        if (this.priceCondition.isBlank() || this.priceCondition.length() > 255) {
+            throw new IllegalArgumentException("가격 조건은 1~255자로 입력해야 합니다.");
+        }
+        if (this.priceBasis == OfferPriceBasis.OBSERVED_LOWEST
+            && (priceCondition == null || checkedAt == null)) {
+            throw new IllegalArgumentException("관측 최저가는 관측 범위와 확인 날짜가 있어야 합니다.");
+        }
+        if (this.linkType == OfferLinkType.SEARCH
+            && (this.priceBasis != OfferPriceBasis.OBSERVED_LOWEST || externalItemId != null)) {
+            throw new IllegalArgumentException("검색 링크는 개별 판매 옵션 ID가 없는 관측 최저가에 사용합니다.");
+        }
     }
 
     public void hide() {
