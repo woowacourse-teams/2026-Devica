@@ -15,6 +15,7 @@ description: 프론트엔드(frontend/) 변경을 팀 리뷰 규칙으로 리뷰
 
 - PR 이 있으면 `gh pr view --json baseRefName -q .baseRefName` 로 읽고 앞에 `origin/` 을 붙인다.
 - PR 이 없으면 보통 `origin/develop` 이다. 아직 머지되지 않은 다른 브랜치 위에서 작업했다면 그 브랜치(`origin/<부모 브랜치>`)다. 어느 쪽인지 확실하지 않으면 사용자에게 묻는다.
+- `gh`를 쓸 수 없으면(`gh auth status` 실패) PR 이 있는지 알 수 없다. `origin/develop`으로 짐작하지 말고 사용자에게 묻는다.
 
 아래에서 `<기준 브랜치>`는 이 값이다. 다른 PR 위에 쌓은 브랜치를 `origin/develop` 기준으로 리뷰하면 부모 PR 의 변경까지 리뷰·린트 대상에 섞인다.
 
@@ -51,7 +52,7 @@ git ls-files --others --exclude-standard -- frontend           # 새로 추가�
 
 - PR 이 있으면 `gh pr view --json title,body` 로 본문을 읽는다.
 - PR 이 없으면 브랜치 이름의 이슈 번호(`<타입>/<이슈번호>-…`)로 `gh issue view <번호>` 를 읽는다.
-- 둘 다 없으면 대조 리뷰어를 건너뛰고, 마지막 보고에 건너뛰었다고 적는다.
+- 둘 다 없거나 `gh`를 쓸 수 없으면(`gh auth status` 실패) 대조 리뷰어를 건너뛰고, 마지막 보고에 건너뛴 이유를 적는다.
 
 대조 리뷰어에게 아래 지시를 전달한다. `<문서 명령>`은 위에서 정한 명령이다.
 
