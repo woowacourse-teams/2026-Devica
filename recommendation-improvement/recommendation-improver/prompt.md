@@ -35,10 +35,10 @@
 
 어느 단계에서 끝나든 마지막에 8 의 정리를 한다.
 
-**열린 개선 PR 확인.** 이 구성 요소가 올린 PR 은 본문 첫 줄에 `<!-- product-recommendation:improvement -->` 가 있다.
+**열린 개선 PR 확인.** 이 구성 요소가 올린 PR 은 본문 첫 줄에 `<!-- product-recommendation:improvement -->` 가 있다. 명령에 `<`·`>` 를 쓰면 허용 목록이 리다이렉션으로 보고 막으므로, 첫 줄에 표시 이름이 있는지로 본다.
 ```bash
 gh pr list --repo "$GH_REPO" --state open --limit 100 --json number,body \
-  --jq '.[] | select(.body | startswith("<!-- product-recommendation:improvement -->")) | .number'
+  --jq '.[] | select(.body | split("\n")[0] | contains("product-recommendation:improvement")) | .number'
 ```
 하나라도 나오면 새 PR 을 올리지 않는다. 다만 그 PR 본문의 개선 지시 링크가 가리키는 지시에 개선 결과가 아직 없으면(앞 실행이 PR 을 올린 뒤 결과 댓글을 남기지 못한 경우), 그 지시가 달린 이슈에 `outcome: PR_OPENED`, `pr: <번호>` 개선 결과를 먼저 남긴다. 그 뒤 기록하고 끝낸다. 결과가 없으면 Feedback Analyzer 가 그 지시를 계속 처리 중으로 보기 때문이다.
 
@@ -51,7 +51,7 @@ gh api --paginate "repos/$GH_REPO/issues?labels=product-recommendation-feedback&
   --jq '.[] | select(.pull_request == null) | .number'
 gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.[]
   | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR")
-  | select((.body | startswith("<!-- product-recommendation:decision -->")) or (.body | startswith("<!-- product-recommendation:result -->")))
+  | select(.body | split("\n")[0] | test("product-recommendation:(decision|result)"))
   | {id, created_at, html_url, body}'
 ```
 
@@ -63,9 +63,9 @@ gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.
 
 ## 2. 작업 공간
 
-1. **테스트 DB.** 사용자의 개발 DB 컨테이너와 이름이 같으므로 레포 루트의 compose 파일로 띄운다.
+1. **테스트 DB.** 사용자가 레포 루트에서 띄운 것과 같은 compose 프로젝트(`devica`)로 띄운다. 프로젝트 이름을 주지 않으면 복제본 디렉터리 이름이 프로젝트가 되어, 이미 떠 있는 `devica-mysql-test` 와 컨테이너 이름이 충돌해 실패한다.
    ```bash
-   docker compose -f "$REPO/docker-compose.yml" up -d mysql-test
+   docker compose -p devica -f "$REPO/docker-compose.yml" up -d mysql-test
    ```
    `docker inspect -f '{{.State.Health.Status}}' devica-mysql-test` 가 `healthy` 가 될 때까지 최대 2분 기다린다. 안 되면 기록하고 끝낸다(개선 결과를 남기지 않는다. 지시의 문제가 아니므로 다음 실행이 다시 한다).
 2. **worktree.** 최신 `develop` 에 맞추고, 그 커밋을 기준 커밋 `<BASE>` 로 둔다.
