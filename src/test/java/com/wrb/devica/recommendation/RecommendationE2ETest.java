@@ -1,9 +1,9 @@
 package com.wrb.devica.recommendation;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.blankOrNullString;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.emptyString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -47,7 +47,7 @@ class RecommendationE2ETest extends E2ETest {
             .body("specs.preferred", contains(false, true))
             .body("specs[1].items.find { it.code == 'OS' }.value", is("WINDOWS"))
             .body("specs[1].items.code", hasItems("REQUIRED_CPU", "MEMORY", "STORAGE"))
-            .body("specs[1].items.find { it.code == 'MEMORY' }.displayValue", not(emptyString()))
-            .body("specs[1].items.find { it.code == 'MEMORY' }.reasons", not(empty()));
+            .body("specs[1].items.find { it.code == 'MEMORY' }.displayValue", not(blankOrNullString()))
+            .body("specs[1].items.find { it.code == 'MEMORY' }.reasons", hasItem(not(blankOrNullString())));
     }
 }
