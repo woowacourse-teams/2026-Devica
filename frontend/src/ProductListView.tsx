@@ -238,6 +238,7 @@ export function ProductListView({
   // 맞춤 목록의 OS 는 탭이라 검색 조건으로 치지 않는다. 조건을 지워도 보던 탭은 그대로다.
   const filters = matchedMode ? { ...condition, os: null } : condition;
   const hasCondition = Object.values(filters).some((value) => value !== null);
+  const chips = conditionLabels(filters, tiers).filter(({ field }) => field !== 'maxPrice');
 
   const change = (field: keyof SearchCondition, value: SearchCondition[keyof SearchCondition]) => {
     onChangeState((previous) => ({ ...previous, condition: { ...previous.condition, [field]: value } }));
@@ -287,6 +288,22 @@ export function ProductListView({
           >
             검색 조건
           </button>
+          {/* 가격은 가장 먼저 찾는 조건이라 패널에 숨기지 않는다. */}
+          <label className="product-list-control product-list-price" htmlFor="product-filter-price">
+            <span className="product-list-control__label">가격</span>
+            <select
+              id="product-filter-price"
+              value={condition.maxPrice === null ? '' : String(condition.maxPrice)}
+              onChange={(event) => change('maxPrice', event.target.value === '' ? null : Number(event.target.value))}
+            >
+              <option value="">전체</option>
+              {PRICE_STEPS.map((price) => (
+                <option value={String(price)} key={price}>
+                  {formatPrice(price)} 이하
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="product-list-control product-list-sort" htmlFor="product-sort">
             <span className="product-list-control__label">정렬</span>
             <select
@@ -303,6 +320,25 @@ export function ProductListView({
           </label>
         </div>
       </div>
+
+      {/* 패널을 접어도 무엇으로 걸렀는지 보이게 한다. 가격은 위에서 바로 보이니 뺀다. */}
+      {chips.length > 0 && (
+        <ul className="product-condition-chips" id="product-condition-chips" aria-label="적용한 검색 조건">
+          {chips.map(({ field, label }) => (
+            <li key={field}>
+              <button
+                className="product-condition-chip"
+                type="button"
+                aria-label={`${label} 조건 지우기`}
+                onClick={() => (field === 'os' ? changeOs(null) : change(field, null))}
+              >
+                {label}
+                <span aria-hidden="true">×</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {matchedMode && (
         <div className="product-list-os" id="product-list-os">
@@ -332,13 +368,6 @@ export function ProductListView({
             onChange={(event) => setTyped(event.target.value)}
           />
         </label>
-        <Filter
-          field="price"
-          label="가격"
-          value={condition.maxPrice === null ? '' : String(condition.maxPrice)}
-          choices={PRICE_STEPS.map((price) => ({ value: String(price), label: `${formatPrice(price)} 이하` }))}
-          onChange={(raw) => change('maxPrice', raw === '' ? null : Number(raw))}
-        />
         {!matchedMode && (
           <Filter
             field="os"
@@ -579,21 +608,26 @@ function CpuFilter({ groups, value, unavailable, onChange }: CpuFilterProps) {
   );
 }
 
-function describeCondition(
+function conditionLabels(
   { keyword, maxPrice, os, cpuTier, brand, memoryGb, storageGb }: SearchCondition,
   tiers: CpuTier[] | null,
-): string {
+): { field: keyof SearchCondition; label: string }[] {
   const tier = tiers?.find((each) => each.code === cpuTier);
-  return [
-    keyword !== null ? `검색어 "${keyword}"` : '',
-    maxPrice !== null ? `${formatPrice(maxPrice)} 이하` : '',
-    os !== null ? (OS_GROUP_LABELS[os] ?? os) : '',
-    brand !== null ? `브랜드 ${brand}` : '',
-    tier !== undefined ? cpuFilterLabel(tier) : '',
-    memoryGb !== null ? `RAM ${memoryGb}GB 이상` : '',
-    storageGb !== null ? `저장장치 ${formatStorage(storageGb)} 이상` : '',
-  ]
-    .filter((text) => text !== '')
+  const labels: { field: keyof SearchCondition; label: string | null }[] = [
+    { field: 'keyword', label: keyword !== null ? `검색어 "${keyword}"` : null },
+    { field: 'maxPrice', label: maxPrice !== null ? `${formatPrice(maxPrice)} 이하` : null },
+    { field: 'os', label: os !== null ? (OS_GROUP_LABELS[os] ?? os) : null },
+    { field: 'brand', label: brand !== null ? `브랜드 ${brand}` : null },
+    { field: 'cpuTier', label: tier !== undefined ? cpuFilterLabel(tier) : null },
+    { field: 'memoryGb', label: memoryGb !== null ? `RAM ${memoryGb}GB 이상` : null },
+    { field: 'storageGb', label: storageGb !== null ? `저장장치 ${formatStorage(storageGb)} 이상` : null },
+  ];
+  return labels.flatMap(({ field, label }) => (label === null ? [] : [{ field, label }]));
+}
+
+function describeCondition(condition: SearchCondition, tiers: CpuTier[] | null): string {
+  return conditionLabels(condition, tiers)
+    .map(({ label }) => label)
     .join(' · ');
 }
 

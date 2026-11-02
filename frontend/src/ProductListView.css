@@ -104,6 +104,19 @@
     gap: var(--density-high);
 }
 
+/* 좁은 화면에서는 세 버튼이 들쭉날쭉 줄바꿈된다. 검색 조건·정렬을 한 줄에 두고, 가격은 아래 줄을 다 쓴다. */
+@media (max-width: 767px) {
+    .product-list-controls {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .product-list-price {
+        grid-row: 2;
+        grid-column: 1 / -1;
+    }
+}
+
 .product-list-control {
     border-radius: var(--radius-control);
     display: flex;
@@ -141,6 +154,34 @@
 
 .product-list-os {
     margin-top: var(--gutter);
+}
+
+.product-condition-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--unit);
+    margin: var(--gutter) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.product-condition-chip {
+    border-radius: var(--radius-control);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--unit);
+    min-height: 32px;
+    border: 1px solid var(--outline-variant);
+    padding: 0 var(--density-high);
+    color: var(--on-surface);
+    background: var(--surface-container);
+    font: inherit;
+    font-size: var(--body-sm-font-size);
+    cursor: pointer;
+}
+
+.product-condition-chip span {
+    color: var(--on-surface-variant);
 }
 
 .product-filter-panel {
