@@ -249,13 +249,14 @@ change:
   <weight | when | delete 중 하나, 그리고/또는 reason>
 cases:
   - issue: <근거 피드백 번호>
-    answers: <그 피드백의 재현된 주소 중 이 규칙에 걸리는 첫 주소의 answers 에 visible 을 적용한 것, 한 줄>
+    answers: <그 피드백의 재현 사례 주소의 answers 에 visible 을 적용한 것, 한 줄>
     expected:
       - { plan: MAC|WINDOWS, item: <항목>, direction: UP|DOWN }
 reason: <조건 N. 근거 한두 문장>
 ```
 ````
 
+- **재현 사례 주소**는 그 피드백의 재현된 주소 중 이 규칙에 걸리는 것 하나다. 주소가 여럿이면 묶음(`addresses`) 안에서 지적한 항목의 가리키는 규칙 수가 가장 적은 주소, 같으면 번호가 작은 주소를 고른다. 그 규칙이 값을 좌우하는 몫이 가장 큰 주소라, 규칙을 바꿨을 때 값이 실제로 움직일 가능성이 가장 높다. 다른 규칙이나 추천 코드의 보정이 함께 걸린 주소를 고르면 규칙을 바꿔도 값이 그대로여서 Recommendation Improver 가 PR 을 올리지 못한다.
 - `basis` 는 근거에 지표 피드백이 하나라도 있으면 `METRIC_ESTIMATE`. 그때 `reason` 에 지표 추정임을 밝힌다. 근거가 직접 고친 피드백이면 추정이 아니므로 `reason` 에 "사용자 N명이 추천 결과의 <항목>을 직접 <낮춰|높여> 검색했다"고 적는다.
 - `expected` 는 그 피드백이 지적한 권장안마다 하나. `reason` 만 바꾸는 지시면 적지 않는다. `weight`·`when`·`delete` 가 있으면 모든 사례에 하나 이상 적는다. 빠지면 Recommendation Improver 가 개선을 확인할 수 없어 PR 을 올리지 않는다.
 - `weight`·`when` 을 바꿔 그 규칙의 `reason` 문장이 틀려지면(예: weight 를 0 에서 올리는데 문장이 "수치에 반영하지 않았습니다") `reason: { from, to }` 를 함께 적는다.
