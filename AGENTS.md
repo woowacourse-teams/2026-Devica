@@ -7,7 +7,7 @@
 `frontend/`를 고칠 때만 해당한다.
 
 1. 구현 초안을 완성한다.
-2. `frontend-review` Skill을 실행한다. Skill이 규칙별로 리뷰하고, 지적을 반영하고, 린트를 돌린 뒤 `Frontend-Review` 트레일러를 알려 준다.
+2. `frontend-review` Skill을 실행한다. Skill이 규칙별로 리뷰하고 PR 본문·이슈와 대조해 지적을 반영하고, 린트를 돌린 뒤 `Frontend-Review` 트레일러를 알려 준다.
 3. 코드를 커밋할 때 그 트레일러를 붙인다(`git commit --trailer "Frontend-Review: ..."`).
 
 pre-push 훅과 CI는 트레일러의 diff 해시를 현재 코드와 비교한다. 리뷰를 거치지 않았거나 리뷰 뒤에 코드가 바뀌었으면 push와 PR이 막힌다.
