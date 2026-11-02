@@ -51,6 +51,7 @@
 .product-detail__source {
     margin: var(--density-high) 0 0;
     font-size: var(--body-sm-font-size);
+    overflow-wrap: anywhere;
 }
 
 /* 판매처와 상세 사양은 요약 옆이 아니라 아래에 전폭으로 깔린다. */
@@ -99,6 +100,7 @@
 .product-offer {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "name price" "details details" "buy buy";
     align-items: center;
     gap: var(--density-med) var(--gutter);
     border: 1px solid var(--outline-variant);
@@ -107,11 +109,26 @@
 }
 
 .product-offer__name {
+    grid-area: name;
     min-width: 0;
     overflow-wrap: anywhere;
 }
 
+.product-offer__details {
+    grid-area: details;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.product-offer__context {
+    margin: var(--unit) 0 0;
+    color: var(--on-surface-variant);
+    font-size: var(--body-sm-font-size);
+    line-height: 1.5;
+}
+
 .product-offer__price {
+    grid-area: price;
     font-size: var(--headline-sm-font-size);
     text-align: right;
     white-space: nowrap;
@@ -119,7 +136,7 @@
 
 /* 좁은 화면에서는 이름·가격이 한 줄을 다 쓰고 버튼이 그 아래를 채운다. 높이는 .button 이 정한다. */
 .product-offer__buy {
-    grid-column: 1 / -1;
+    grid-area: buy;
     text-align: center;
     text-decoration: none;
 }
@@ -145,10 +162,10 @@
 
     .product-offer {
         grid-template-columns: minmax(0, 1fr) auto auto;
+        grid-template-areas: "name price buy" "details price buy";
     }
 
     .product-offer__buy {
-        grid-column: auto;
         min-width: 128px;
     }
 }
