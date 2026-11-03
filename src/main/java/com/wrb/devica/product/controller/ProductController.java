@@ -6,6 +6,7 @@ import com.wrb.devica.product.domain.Product;
 import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.dto.CpuTierResponse;
 import com.wrb.devica.product.dto.LaptopSearchCondition;
+import com.wrb.devica.product.dto.MinPriceResponse;
 import com.wrb.devica.product.dto.PageCondition;
 import com.wrb.devica.product.dto.ProductDetailResponse;
 import com.wrb.devica.product.dto.ProductListResponse;
@@ -42,6 +43,16 @@ public class ProductController {
             condition, pageCondition);
         ProductListResponse productListResponse = ProductListResponse.from(productSlice);
         return ResponseEntity.ok().body(productListResponse);
+    }
+
+    @GetMapping("/api/product-categories/{categoryCode}/products/min-price")
+    public ResponseEntity<MinPriceResponse> findMinPrice(
+        @PathVariable String categoryCode,
+        @Validated @ModelAttribute LaptopSearchCondition condition
+    ) {
+        Long minPrice = productService.findMinPrice(categoryCode, condition);
+        MinPriceResponse minPriceResponse = new MinPriceResponse(minPrice);
+        return ResponseEntity.ok().body(minPriceResponse);
     }
 
     @GetMapping("/api/product-categories/{categoryCode}/brands")

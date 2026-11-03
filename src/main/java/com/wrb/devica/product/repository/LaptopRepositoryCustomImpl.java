@@ -155,6 +155,17 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
     }
 
     @Override
+    public Long findMinPrice(LaptopSearchCondition condition) {
+        return queryFactory
+            .select(productMinPrice.minPrice.min())
+            .from(productMinPrice)
+            .join(laptop).on(laptop.id.eq(productMinPrice.productId))
+            .join(laptop.cpu, cpu)
+            .where(conditions(condition))
+            .fetchOne();
+    }
+
+    @Override
     public List<String> findBrands(Os os) {
         return queryFactory
             .select(laptop.brand)

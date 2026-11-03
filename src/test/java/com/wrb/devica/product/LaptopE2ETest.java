@@ -7,6 +7,7 @@ import static com.wrb.devica.fixture.ProductOfferFixture.onSaleOffer;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -250,6 +251,62 @@ class LaptopE2ETest extends E2ETest {
             .when().get(PATH)
             .then().statusCode(200)
             .body("content.name", contains("쌈", "비쌈"));
+    }
+
+    @Test
+    void 최저가를_조회하면_같은_조건의_가격_낮은_순_목록_첫_노트북_가격을_받는다() {
+        // given
+        onSaleLaptop(laptop().name("맥").os(Os.MAC), 900_000L);
+        onSaleLaptop(laptop().name("메모리_미달").memoryGb(8), 1_000_000L);
+        onSaleLaptop(laptop().name("상위_사양").memoryGb(32), 1_500_000L);
+        onSaleLaptop(laptop().name("맞음"), 2_000_000L);
+
+        // when & then
+        given()
+            .queryParam("os", "WINDOWS")
+            .queryParam("memoryGb", 16)
+            .when().get(PATH + "/min-price")
+            .then().statusCode(200)
+            .body("minPrice", is(1_500_000));
+
+        given()
+            .queryParam("os", "WINDOWS")
+            .queryParam("memoryGb", 16)
+            .queryParam("sort", "PRICE_ASC")
+            .when().get(PATH)
+            .then().statusCode(200)
+            .body("content[0].minPrice", is(1_500_000));
+    }
+
+    @Test
+    void 조건에_맞는_판매_중인_노트북이_없으면_최저가로_null을_받는다() {
+        // given
+        laptopOf(laptop().name("오퍼없음"));
+
+        // when & then
+        given()
+            .when().get(PATH + "/min-price")
+            .then().statusCode(200)
+            .body("containsKey('minPrice')", is(true))
+            .body("minPrice", nullValue());
+    }
+
+    @Test
+    void 최저가를_조회할_때_조건이_올바르지_않으면_400을_받는다() {
+        given()
+            .queryParam("os", "MAC")
+            .queryParam("cpuTier", CpuTier.H)
+            .when().get(PATH + "/min-price")
+            .then().statusCode(400)
+            .body("code", is("INVALID_REQUEST"));
+    }
+
+    @Test
+    void 없는_제품_종류의_최저가를_조회하면_404를_받는다() {
+        given()
+            .when().get("/api/product-categories/PHONE/products/min-price")
+            .then().statusCode(404)
+            .body("code", is("PRODUCT_CATEGORY_NOT_FOUND"));
     }
 
     // UC-07: 판매 중인 구매처가 없는 제품도 목록에 넣고 가격은 비워둔다

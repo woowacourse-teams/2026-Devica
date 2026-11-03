@@ -419,6 +419,36 @@ class LaptopRepositoryCustomTest {
     }
 
     @Test
+    void 최저가를_조회하면_조건에_맞는_노트북_중_가장_낮은_최저가를_반환한다() {
+        // given
+        int minScore = CpuTier.P_HS.getMinScore();
+        onSaleLaptop(laptop().name("등급_미달"), saveCpu(minScore - 1), 500_000L);
+        onSaleLaptop(laptop().name("메모리_미달").memoryGb(8), saveCpu(minScore), 600_000L);
+        onSaleLaptop(laptop().name("상위_사양").memoryGb(32), saveCpu(minScore + 1), 1_200_000L);
+        onSaleLaptop(laptop().name("맞음"), saveCpu(minScore), 1_500_000L);
+        laptopOf(laptop().name("오퍼없음"));
+
+        // when
+        Long minPrice = findMinPrice(condition().cpuTier(CpuTier.P_HS).memoryGb(16).build());
+
+        // then
+        assertThat(minPrice).isEqualTo(1_200_000L);
+    }
+
+    @Test
+    void 조건에_맞는_판매_중인_노트북이_없을_때_최저가를_조회하면_null을_반환한다() {
+        // given
+        onSaleLaptop(laptop().name("윈도우").os(Os.WINDOWS));
+        laptopOf(laptop().name("오퍼없는_맥").os(Os.MAC));
+
+        // when
+        Long minPrice = findMinPrice(condition().os(Os.MAC).build());
+
+        // then
+        assertThat(minPrice).isNull();
+    }
+
+    @Test
     void 브랜드를_조회하면_겹치지_않게_이름순으로_반환한다() {
         // given
         laptopOf(laptop().brand("Samsung"));
@@ -500,6 +530,12 @@ class LaptopRepositoryCustomTest {
 
     private Slice<ProductSummaryRow> findLaptops(LaptopSearchCondition condition, int page, int size) {
         return findLaptops(condition, null, page, size);
+    }
+
+    private Long findMinPrice(LaptopSearchCondition condition) {
+        entityManager.flush();
+        entityManager.clear();
+        return laptopRepository.findMinPrice(condition);
     }
 
     private Slice<ProductSummaryRow> findLaptops(LaptopSearchCondition condition, SortType sort,
