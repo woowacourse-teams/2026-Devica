@@ -72,11 +72,11 @@ survey:
 
     - questions:
         - code: PROJECT_SCALE
-          title: 주로 어떤 규모의 프로젝트를 다루나요?
+          title: 개발할 때 한 번에 실행하고 빌드하는 범위는 어느 정도인가요?
           options:
-            - { code: SMALL, content: 개인 프로젝트나 학습용 작은 프로젝트 }
-            - { code: SINGLE_SERVICE, content: 팀에서 만드는 서비스 하나 }
-            - { code: LARGE, content: 여러 앱이 모인 모노레포나 화면이 아주 많은 큰 서비스 }
+            - { code: SMALL, content: 작은 앱 하나 }
+            - { code: SINGLE_SERVICE, content: 기능이 많은 서비스 하나 }
+            - { code: LARGE, content: 여러 앱·패키지를 함께 실행하고 빌드한다 }
             - { code: UNKNOWN, content: 잘 모르겠다 }
 
     - title: 개발 도구를 알려주세요
@@ -100,12 +100,12 @@ survey:
           title: 개발하면서 함께 켜 두는 것을 모두 골라 주세요
           description: 여러 개를 선택할 수 있어요.
           input: MULTI
-          exclusive: FEW_TABS
+          exclusive: NONE
           options:
             - { code: MANY_TABS, content: 브라우저 탭 여러 개와 개발자 도구 }
             - { code: MULTI_BROWSER, content: "크롬, 사파리 등 여러 브라우저" }
             - { code: DESIGN_TOOL, content: Figma 같은 디자인 도구 }
-            - { code: FEW_TABS, content: 브라우저 탭 몇 개만 띄운다 }
+            - { code: NONE, content: 위 항목에 해당하지 않는다 }
 
     - questions:
         - code: RUN_TOGETHER
@@ -207,7 +207,7 @@ rules:
   - criterion: MEMORY
     weight: 1
     when: { question: RUN_TOGETHER, anyOf: [ E2E_TEST ] }
-    reason: E2E 테스트는 브라우저를 여러 개 띄워 메모리를 씁니다.
+    reason: E2E 테스트는 테스트용 브라우저를 따로 띄워 메모리를 더 씁니다.
   - criterion: MEMORY
     weight: 2
     when: { question: SLOWDOWN, anyOf: [ OFTEN ] }
@@ -303,7 +303,7 @@ rules:
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: RUN_TOGETHER, anyOf: [ E2E_TEST ] }
-    reason: E2E 테스트는 브라우저 여러 개를 동시에 돌려 코어가 더 필요합니다.
+    reason: E2E 테스트를 실행하는 데 필요한 CPU 자원을 고려했습니다.
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: RUN_TOGETHER, anyOf: [ LOCAL_BACKEND ] }
@@ -354,7 +354,7 @@ mappings:
     when: { all: [ { question: CURRENT_WINDOWS_CPU, anyOf: [ HX ] }, *discomfort ] }
 
 # 프론트엔드 개발은 개발 서버 하나와 브라우저가 기본이라 백엔드보다 CPU 구간을 넓게 잡는다.
-# 보통의 답(팀 서비스 하나, 탭 여러 개, 가끔 느려짐)은 메모리 3점·CPU 0점·저장 공간 1점으로 24GB·기본 칩·512GB 가 나온다
+# 보통의 답(기능이 많은 서비스 하나, 탭 여러 개, Storybook, 가끔 느려짐)은 메모리 3점·CPU 0점·저장 공간 0점으로 24GB·기본 칩·256GB 가 나온다
 # 기본 권장 사양(답이 없는 0점)은 16GB·기본 칩·256GB 다. 운영체제·브라우저·에디터·개발 서버를 가볍게 잡으면 7~12GB 라
 # 16GB 에 들어가고, 백엔드처럼 Docker 가 기본으로 깔리지 않아 백엔드(16GB)보다 높게 둘 이유가 없다.
 # 저장 공간도 운영체제·Node·캐시·node_modules 를 더하면 60~90GB 라, SSD 의 20% 를 비워 두어도 256GB 에 여유가 있다.
