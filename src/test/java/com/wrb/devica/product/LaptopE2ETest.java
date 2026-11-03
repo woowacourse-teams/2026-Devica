@@ -213,7 +213,7 @@ class LaptopE2ETest extends E2ETest {
             .body("hasNext", is(false));
     }
 
-    // UC-09: 추천순·가격 낮은 순·가격 높은 순으로 정렬한다. 검색 조건을 유지한 채 정렬된 목록을 표시한다.
+    // UC-09: 가격 낮은 순·가격 높은 순으로 정렬한다. 검색 조건을 유지한 채 정렬된 목록을 표시한다.
     @Test
     void 정렬_기준을_고르면_조건을_유지한_채_그_순서대로_받는다() {
         // given
@@ -223,13 +223,6 @@ class LaptopE2ETest extends E2ETest {
         onSaleLaptop(laptop().brand("Apple").name("브랜드 불일치"), 500_000L);
 
         // when & then
-        given()
-            .queryParam("brand", "LG")
-            .queryParam("sort", "RECOMMENDED")
-            .when().get(PATH)
-            .then().statusCode(200)
-            .body("content.name", contains("비쌈", "쌈", "중간"));
-
         given()
             .queryParam("brand", "LG")
             .queryParam("sort", "PRICE_ASC")
@@ -245,19 +238,18 @@ class LaptopE2ETest extends E2ETest {
             .body("content.name", contains("비쌈", "중간", "쌈"));
     }
 
-    // UC-09: 정렬 기준을 고르지 않으면 추천순으로 정렬한다
+    // UC-09: 정렬 기준을 고르지 않으면 가격 낮은 순으로 정렬한다
     @Test
-    void 정렬_기준을_고르지_않으면_추천순으로_받는다() {
+    void 정렬_기준을_고르지_않으면_가격_낮은_순으로_받는다() {
         // given
-        // 사양: 사양높음이 위. id 순이면 사양낮음이 앞선다
-        onSaleLaptop(laptop().name("사양낮음"), 1_000_000L);
-        onSaleLaptop(laptop().name("사양높음").memoryGb(32).storageGb(1024), saveCpu(40_000), 3_000_000L);
+        onSaleLaptop(laptop().name("비쌈"), 3_000_000L);
+        onSaleLaptop(laptop().name("쌈"), 1_000_000L);
 
         // when & then
         given()
             .when().get(PATH)
             .then().statusCode(200)
-            .body("content.name", contains("사양높음", "사양낮음"));
+            .body("content.name", contains("쌈", "비쌈"));
     }
 
     // UC-07: 판매 중인 구매처가 없는 제품도 목록에 넣고 가격은 비워둔다

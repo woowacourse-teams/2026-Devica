@@ -354,30 +354,13 @@ class LaptopRepositoryCustomTest {
     }
 
     @Test
-    void 추천순으로_조회하면_CPU_메모리_저장_공간_순으로_사양이_높은_노트북을_먼저_반환한다() {
-        // given
-        onSaleLaptop(laptop().name("저장_공간만_큼").memoryGb(16).storageGb(4096), saveCpu(21_000), DEFAULT_PRICE);
-        onSaleLaptop(laptop().name("메모리_큼").memoryGb(32).storageGb(512), saveCpu(21_000), DEFAULT_PRICE);
-        onSaleLaptop(laptop().name("CPU_큼").memoryGb(16).storageGb(512), saveCpu(24_000), 3_000_000L);
-        onSaleLaptop(laptop().name("메모리_같고_저장_공간_큼").memoryGb(32).storageGb(1024), saveCpu(21_000), DEFAULT_PRICE);
-
-        // when
-        Slice<ProductSummaryRow> found = findLaptops(SortType.RECOMMENDED);
-
-        // then
-        assertThat(found.getContent()).extracting(ProductSummaryRow::name)
-            .containsExactly("CPU_큼", "메모리_같고_저장_공간_큼", "메모리_큼", "저장_공간만_큼");
-    }
-
-    @ParameterizedTest
-    @EnumSource(value = SortType.class, names = {"RECOMMENDED", "PRICE_ASC"})
-    void 정렬_기준을_지정할_때_정렬_값이_같으면_id_오름차순으로_반환한다(SortType sort) {
+    void 가격_낮은_순으로_조회할_때_최저가가_같으면_id_오름차순으로_반환한다() {
         // given
         onSaleLaptop(laptop().name("먼저"), 1_000_000L);
         onSaleLaptop(laptop().name("나중"), 1_000_000L);
 
         // when
-        Slice<ProductSummaryRow> found = findLaptops(sort);
+        Slice<ProductSummaryRow> found = findLaptops(SortType.PRICE_ASC);
 
         // then
         assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("먼저", "나중");

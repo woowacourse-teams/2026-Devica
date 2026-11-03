@@ -16,7 +16,7 @@ public record PageCondition(
 
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 20;
-    private static final SortType DEFAULT_SORT = SortType.RECOMMENDED;
+    private static final SortType DEFAULT_SORT = SortType.PRICE_ASC;
 
     public PageCondition {
         page = Objects.requireNonNullElse(page, DEFAULT_PAGE);

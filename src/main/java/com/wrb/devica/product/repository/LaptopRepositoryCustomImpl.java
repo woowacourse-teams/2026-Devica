@@ -149,8 +149,6 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
         }
 
         return switch (sort) {
-            case RECOMMENDED -> new OrderSpecifier[]{
-                cpu.score.desc(), laptop.memoryGb.desc(), laptop.storageGb.desc(), laptop.id.asc()};
             case PRICE_ASC -> new OrderSpecifier[]{productMinPrice.minPrice.asc(), productMinPrice.productId.asc()};
             case PRICE_DESC -> new OrderSpecifier[]{productMinPrice.minPrice.desc(), productMinPrice.productId.desc()};
         };
