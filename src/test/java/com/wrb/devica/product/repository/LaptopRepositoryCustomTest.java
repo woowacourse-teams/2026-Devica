@@ -1,6 +1,7 @@
 package com.wrb.devica.product.repository;
 
 import static com.wrb.devica.fixture.CpuFixture.cpu;
+import static com.wrb.devica.fixture.GpuFixture.gpu;
 import static com.wrb.devica.fixture.LaptopFixture.laptop;
 import static com.wrb.devica.fixture.LaptopSearchConditionFixture.condition;
 import static com.wrb.devica.fixture.ProductOfferFixture.offer;
@@ -16,6 +17,8 @@ import com.wrb.devica.common.MinPriceRefresher;
 import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
 import com.wrb.devica.product.domain.Cpu;
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.Gpu;
+import com.wrb.devica.product.domain.GpuTier;
 import com.wrb.devica.product.domain.Laptop;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
@@ -48,6 +51,9 @@ class LaptopRepositoryCustomTest {
     private CpuRepository cpuRepository;
 
     @Autowired
+    private GpuRepository gpuRepository;
+
+    @Autowired
     private ProductOfferRepository productOfferRepository;
 
     @Autowired
@@ -59,6 +65,8 @@ class LaptopRepositoryCustomTest {
     private ProductCategory category;
 
     private Cpu cpu;
+
+    private Gpu gpu;
     @Autowired
     private LaptopRepository laptopRepository;
 
@@ -66,6 +74,7 @@ class LaptopRepositoryCustomTest {
     void setUpCategory() {
         category = productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP));
         cpu = saveCpu();
+        gpu = saveGpu(GpuTier.MID.getMinScore());
     }
 
     @Test
@@ -485,14 +494,18 @@ class LaptopRepositoryCustomTest {
     }
 
     private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, long price) {
-        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
+        return onSaleLaptop(builder, cpu, gpu, price);
+    }
+
+    private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, Gpu gpu, long price) {
+        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).gpu(gpu).build());
         productOfferRepository.save(onSaleOffer(laptop, price));
         minPriceRefresher.refresh(laptop.getId());
         return laptop;
     }
 
     private Laptop laptopOf(LaptopBuilder builder) {
-        return laptopRepository.save(builder.category(category).cpu(cpu).build());
+        return laptopRepository.save(builder.category(category).cpu(cpu).gpu(gpu).build());
     }
 
     private Cpu saveCpu() {
@@ -501,6 +514,10 @@ class LaptopRepositoryCustomTest {
 
     private Cpu saveCpu(int score) {
         return cpuRepository.save(cpu().score(score).build());
+    }
+
+    private Gpu saveGpu(int score) {
+        return gpuRepository.save(gpu().score(score).build());
     }
 
     private Slice<ProductSummaryRow> findLaptops(LaptopSearchCondition condition) {
