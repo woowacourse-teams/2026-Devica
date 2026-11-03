@@ -23,7 +23,7 @@ export type CpuTier = {
 export const MEMORY_STEPS = [16, 24, 32, 48];
 export const STORAGE_STEPS = [256, 512, 1024, 2048];
 
-export type SortType = 'RECOMMENDED' | 'PRICE_ASC' | 'PRICE_DESC';
+export type SortType = 'PRICE_ASC' | 'PRICE_DESC';
 
 export type SearchCondition = {
   // 서버가 브랜드와 제품명을 함께 훑는다.
@@ -109,6 +109,23 @@ export async function fetchProductPage(
     throw new Error(`제품 목록을 불러오지 못했습니다 (${response.status})`);
   }
   return response.json();
+}
+
+export async function fetchMinPrice(categoryCode: string, spec: Spec): Promise<number | null> {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(specCondition(spec))) {
+    if (value !== null) {
+      query.set(key, String(value));
+    }
+  }
+  const response = await fetch(`${BASE_URL}/api/product-categories/${categoryCode}/products/min-price?${query}`, {
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) {
+    throw new Error(`최저가를 불러오지 못했습니다 (${response.status})`);
+  }
+  const { minPrice }: { minPrice: number | null } = await response.json();
+  return minPrice;
 }
 
 /** 등급을 서버에서 받는다. 등급이나 표시명을 바꿔도 화면을 고치지 않는다. */

@@ -12,6 +12,7 @@ test('의견 남기기는 지금 결과 화면 주소를 채운 이슈 양식을
 
   render(
     <ResultView
+      categoryCode="LAPTOP"
       specs={[]}
       os="BOTH"
       edits={{}}
