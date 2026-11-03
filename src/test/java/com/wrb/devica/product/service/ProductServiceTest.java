@@ -112,6 +112,7 @@ class ProductServiceTest {
 
     @Test
     void 페이지의_판매처는_한번에_조회하고_빈_페이지는_추가_조회하지_않는다() {
+        // given
         for (int i = 0; i < 3; i++) {
             Laptop laptop = laptopOf(laptop());
             productOfferRepository.saveAndFlush(onSaleOffer(laptop, 1_000_000L + i));
@@ -123,17 +124,23 @@ class ProductServiceTest {
         boolean enabled = stats.isStatisticsEnabled();
         stats.setStatisticsEnabled(true);
         try {
+            // when: 제품이 있는 페이지
             stats.clear();
             var page = productService.findProductsByCategory("LAPTOP", condition().build(), new PageCondition(0, 10, null));
+
+            // then
             assertThat(page.getContent()).hasSize(3).allSatisfy(row -> {
                 assertThat(row.minPriceOffer()).isNotNull();
                 assertThat(row.minPriceOffer().price()).isEqualTo(row.minPrice());
             });
             assertThat(stats.getPrepareStatementCount()).isEqualTo(2);
 
+            // when: 빈 페이지
             stats.clear();
-            assertThat(productService.findProductsByCategory("LAPTOP", condition().build(), new PageCondition(5, 10, null)))
-                .isEmpty();
+            var emptyPage = productService.findProductsByCategory("LAPTOP", condition().build(), new PageCondition(5, 10, null));
+
+            // then
+            assertThat(emptyPage).isEmpty();
             assertThat(stats.getPrepareStatementCount()).isEqualTo(1);
         } finally {
             stats.setStatisticsEnabled(enabled);
@@ -142,8 +149,13 @@ class ProductServiceTest {
 
     @Test
     void 가격이_없는_제품에는_최저가_판매처도_없다() {
+        // given
         laptopOf(laptop());
+
+        // when
         var rows = productService.findProductsByCategory("LAPTOP", condition().build(), new PageCondition(0, 10, null));
+
+        // then
         assertThat(rows.getContent()).singleElement().satisfies(row -> {
             assertThat(row.minPrice()).isNull();
             assertThat(row.minPriceOffer()).isNull();

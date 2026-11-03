@@ -27,6 +27,7 @@ class OfferPriceContextTest {
 
     @Test
     void 조건부_판매가와_관측_최저가의_근거를_저장하고_다시_읽는다() {
+        // given
         var laptop = laptops.save(laptop().cpu(cpus.save(cpu().build()))
             .category(categories.save(ProductCategory.from(ProductCategoryCode.LAPTOP))).build());
         var student = offers.save(ProductOffer.builder().productId(laptop.getId()).name("학생복지스토어")
@@ -36,9 +37,12 @@ class OfferPriceContextTest {
             .price(900_000L).purchaseUrl("https://example.test/search").status(OfferStatus.ON_SALE)
             .priceCondition("판교 · 미개봉 · 확인 매물 중 최저가").checkedAt(LocalDate.of(2026, 10, 30))
             .priceBasis(OfferPriceBasis.OBSERVED_LOWEST).linkType(OfferLinkType.SEARCH).build());
+
+        // when
         em.flush();
         em.clear();
 
+        // then
         assertThat(offers.findById(student.getId()).orElseThrow())
             .extracting(ProductOffer::getPriceCondition, ProductOffer::getPriceBasis, ProductOffer::getLinkType)
             .containsExactly("학생 인증 필요", OfferPriceBasis.SELLER_PRICE, OfferLinkType.PURCHASE);

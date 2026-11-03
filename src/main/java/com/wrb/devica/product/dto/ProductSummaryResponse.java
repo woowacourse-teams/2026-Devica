@@ -14,6 +14,13 @@ public record ProductSummaryResponse(
 ) {
     public static ProductSummaryResponse from(ProductSummaryRow row, String imageUrl, ProductOffer minPriceOffer) {
         return new ProductSummaryResponse(row.id(), row.brand(), row.name(), imageUrl, row.minPrice(), row.specs(),
-            minPriceOffer == null ? null : OfferResponse.from(minPriceOffer));
+            toOfferResponse(minPriceOffer));
+    }
+
+    private static OfferResponse toOfferResponse(ProductOffer offer) {
+        if (offer == null) {
+            return null;
+        }
+        return OfferResponse.from(offer);
     }
 }

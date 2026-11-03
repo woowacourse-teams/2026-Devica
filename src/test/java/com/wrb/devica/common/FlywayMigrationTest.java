@@ -92,14 +92,13 @@ public class FlywayMigrationTest {
 
     @Test
     void 가격_조건을_추가해도_기존_가격과_구버전_입력을_보존한다() {
+        // given
         migrateTo("1.14");
         long productId = saveProduct("OFFER-CONTEXT");
         saveOffer(productId, 900_000L, "ON_SALE");
+
+        // when
         flyway.migrate();
-        assertThat(jdbcTemplate.queryForList("""
-            SELECT version FROM flyway_schema_history
-            WHERE script = 'V1.20__add_offer_price_context.sql' AND success = TRUE
-            """, String.class)).containsExactly("1.20");
         // 구버전 앱은 추가 컬럼 없이 계속 저장할 수 있다.
         saveOffer(productId, 1_000_000L, "ON_SALE");
 
@@ -107,6 +106,11 @@ public class FlywayMigrationTest {
             SELECT price, price_condition, price_basis, link_type
             FROM product_offer WHERE product_id = ? ORDER BY price
             """, productId);
+        // then
+        assertThat(jdbcTemplate.queryForList("""
+            SELECT version FROM flyway_schema_history
+            WHERE script = 'V1.20__add_offer_price_context.sql' AND success = TRUE
+            """, String.class)).containsExactly("1.20");
         assertThat(rows).extracting(row -> row.get("price")).containsExactly(900_000L, 1_000_000L);
         rows.forEach(row -> {
             assertThat(row.get("price_condition")).isEqualTo("일반 판매가");

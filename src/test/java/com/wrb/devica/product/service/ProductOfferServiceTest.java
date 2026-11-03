@@ -401,6 +401,7 @@ class ProductOfferServiceTest {
     @ParameterizedTest
     @ValueSource(strings = {"학생복지스토어", "당근"})
     void 조건부_가격도_최저가와_선택_판매처에_포함한다(String seller) {
+        // given
         Laptop laptop = saveLaptop();
         productOfferRepository.save(coupangOffer(laptop).build());
         var builder = coupangOffer(laptop).name(seller).externalItemId(null).price(900_000L)
@@ -415,13 +416,18 @@ class ProductOfferServiceTest {
         productOfferRepository.save(coupangOffer(laptop).price(50_000L).status(OfferStatus.SOLD_OUT).build());
         initializeMinPrice(laptop);
 
+        // when
+        var lowestOffers = productOfferService.findLowestOnSaleOffers(List.of(laptop.getId()));
+
+        // then
         assertThat(productMinPriceRepository.findById(laptop.getId()).orElseThrow().getMinPrice()).isEqualTo(900_000L);
-        assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId())))
+        assertThat(lowestOffers)
             .containsEntry(laptop.getId(), winner);
     }
 
     @Test
     void 여러_제품의_동률은_숨김을_제외한_가장_작은_오퍼_ID를_선택한다() {
+        // given
         Laptop first = saveLaptop();
         Laptop second = laptopRepository.save(laptop().category(first.getCategory()).cpu(first.getCpu()).build());
         productOfferRepository.save(coupangOffer(first).price(900_000L).status(OfferStatus.HIDDEN).build());
@@ -432,13 +438,17 @@ class ProductOfferServiceTest {
         initializeMinPrice(first);
         initializeMinPrice(second);
 
+        // when
         var winners = productOfferService.findLowestOnSaleOffers(List.of(first.getId(), second.getId()));
+
+        // then
         assertThat(winners).hasSize(2).containsEntry(first.getId(), winner).containsEntry(second.getId(), other);
         assertThat(productOfferService.findOnSaleOffers(first.getId())).containsExactly(winner, tied);
     }
 
     @Test
     void 쿠팡_가격_갱신_숨김_복구에_따라_선택_판매처도_바뀐다() {
+        // given: 학생몰이 최저가인 상태
         Laptop laptop = saveLaptop();
         ProductOffer coupang = productOfferRepository.save(coupangOffer(laptop).build());
         ProductOffer student = productOfferRepository.save(coupangOffer(laptop).name("학생복지스토어")
@@ -447,26 +457,46 @@ class ProductOfferServiceTest {
         assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId())))
             .containsEntry(laptop.getId(), student);
 
+        // when: 쿠팡 가격 하락
         productOfferService.refreshCoupangPrice(target(laptop, coupang), 800_000L, CHECKED_ON);
+
+        // then
         assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId())))
             .containsEntry(laptop.getId(), coupang);
+
+        // when: 쿠팡 숨김
         productOfferService.hideCoupangOffer(target(laptop, coupang), CHECKED_ON);
+
+        // then
         assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId())))
             .containsEntry(laptop.getId(), student);
+
+        // when: 쿠팡 복구
         productOfferService.refreshCoupangPrice(target(laptop, coupang), 900_000L, CHECKED_ON);
+
+        // then
         assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId())))
             .containsEntry(laptop.getId(), coupang);
     }
 
     @Test
     void 캐시와_일치하는_판매처가_없으면_다른_가격의_출처를_붙이지_않는다() {
+        // given
         Laptop laptop = saveLaptop();
         productOfferRepository.save(coupangOffer(laptop).build());
         initializeMinPrice(laptop);
+
+        // when: 캐시 가격 불일치
         entityManager.createNativeQuery("UPDATE product_min_price SET min_price = 1 WHERE product_id = :id")
             .setParameter("id", laptop.getId()).executeUpdate();
+
+        // then
         assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId()))).isEmpty();
+
+        // when: 캐시 삭제
         productMinPriceRepository.deleteForProduct(laptop.getId());
+
+        // then
         assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId()))).isEmpty();
         assertThat(productOfferService.findLowestOnSaleOffers(List.of())).isEmpty();
     }

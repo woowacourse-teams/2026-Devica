@@ -77,8 +77,13 @@ class ProductOfferTest {
 
     @Test
     void 기존_입력과_쿠팡_갱신은_일반_판매가의_의미를_유지한다() {
+        // given
         ProductOffer offer = offer(OfferStatus.ON_SALE);
+
+        // when
         offer.refreshPrice(900_000L, CHECKED_AT);
+
+        // then
         assertThat(offer).extracting(ProductOffer::getPriceCondition, ProductOffer::getPriceBasis,
                 ProductOffer::getLinkType)
             .containsExactly("일반 판매가", OfferPriceBasis.SELLER_PRICE, OfferLinkType.PURCHASE);
@@ -86,9 +91,14 @@ class ProductOfferTest {
 
     @Test
     void 관측_가격은_조건과_검색_링크를_보존한다() {
+        // given
         ProductOffer offer = observed().build();
+
+        // when
         offer.hide();
         offer.refreshPrice(800_000L, CHECKED_AT);
+
+        // then
         assertThat(offer).extracting(ProductOffer::getPriceCondition, ProductOffer::getPriceBasis,
                 ProductOffer::getLinkType, ProductOffer::getExternalItemId)
             .containsExactly("판교 · 미개봉 · 확인 매물 중 최저가", OfferPriceBasis.OBSERVED_LOWEST,
@@ -98,11 +108,13 @@ class ProductOfferTest {
     @ParameterizedTest
     @ValueSource(longs = {0L, -1L})
     void 미확인_가격을_0원_이하로_생성할_수_없다(long price) {
+        // when & then
         assertThatThrownBy(() -> observed().price(price).build()).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void 관측_범위와_확인일이_없거나_검색을_상품_ID로_등록하면_거절한다() {
+        // when & then
         assertThatThrownBy(() -> observed().priceCondition(null).build()).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> observed().checkedAt(null).build()).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> observed().externalItemId("search-query").build()).isInstanceOf(IllegalArgumentException.class);
