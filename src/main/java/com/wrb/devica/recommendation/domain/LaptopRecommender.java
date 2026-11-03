@@ -84,7 +84,6 @@ public class LaptopRecommender {
             return;
         }
 
-        // 상한에서 고를 수 없는 메모리가 나오면 메모리 보정이 CPU 를 상한 위로 다시 올린다
         int largest = MAC_MEMORY_BY_CPU.get(limit).getLast();
         memory.stream()
             .map(ScoreRange::value)
