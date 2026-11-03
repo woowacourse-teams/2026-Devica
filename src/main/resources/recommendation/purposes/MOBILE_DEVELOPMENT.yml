@@ -323,12 +323,14 @@ mappings:
     value: HX
     when: { all: [ { question: CURRENT_WINDOWS_CPU, anyOf: [ HX ] }, *discomfort ] }
 
+# 기본 권장 사양은 답이 없는 0점의 결과다. Mac 기본 칩·Windows H 급·24GB·512GB 가 되도록 구간을 둔다
 interpretation:
   cpu:
     MAC: [ { upTo: 2, value: BASIC }, { upTo: 4, value: PRO }, { value: MAX } ]
-    # Android Studio 권장 사양이 노트북에 H·HX 급을 권해 Android 를 만들면 Windows 는 H 부터 권한다
-    WINDOWS: [ { upTo: 0, value: P_HS }, { upTo: 4, value: H }, { value: HX } ]
-  memory: [ { upTo: 1, value: 16 }, { upTo: 3, value: 24 }, { upTo: 6, value: 32 }, { value: 48 } ]
+    # Android Studio 권장 사양이 노트북에 H·HX 급을 권해 Windows 는 H 부터 권한다
+    WINDOWS: [ { upTo: -1, value: P_HS }, { upTo: 4, value: H }, { value: HX } ]
+  # Android Studio 는 에뮬레이터를 쓰면 최소 16GB·권장 32GB 라 기본은 그 사이인 24GB 로 둔다
+  memory: [ { upTo: -1, value: 16 }, { upTo: 3, value: 24 }, { upTo: 6, value: 32 }, { value: 48 } ]
   # 가장 낮은 점수가 -2 라 256GB 는 나오지 않는다. Xcode·SDK 만으로도 수십 GB 를 차지해 256GB 는 권하지 않는다
   storage: [ { upTo: -3, value: 256 }, { upTo: 2, value: 512 }, { upTo: 6, value: 1024 }, { value: 2048 } ]
   # 예산을 고려해 Mac 권장 CPU 를 이 등급까지로 제한한다. M Max 칩은 권하지 않는다
