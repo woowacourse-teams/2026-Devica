@@ -340,8 +340,8 @@ mappings:
 interpretation:
   cpu:
     MAC: [ { upTo: 2, value: BASIC }, { upTo: 4, value: PRO }, { value: MAX } ]
-    # Android Studio 권장 사양이 노트북에 H·HX 급을 권하고 U 시리즈는 권하지 않아 Windows 는 H 부터 권한다
-    WINDOWS: [ { upTo: -1, value: P_HS }, { upTo: 4, value: H }, { value: HX } ]
+    # Android Studio 권장 사양이 노트북에 H·HX 급을 권하고 U 시리즈는 권하지 않아 Windows 는 점수가 낮아도 H 부터 권한다
+    WINDOWS: [ { upTo: 4, value: H }, { value: HX } ]
   memory: [ { upTo: -1, value: 24 }, { upTo: 6, value: 32 }, { value: 48 } ]
   # 가장 낮은 점수가 -2 라 256GB 는 나오지 않는다. Xcode·SDK 만으로도 수십 GB 를 차지해 256GB 는 권하지 않는다
   storage: [ { upTo: -3, value: 256 }, { upTo: 2, value: 512 }, { upTo: 6, value: 1024 }, { value: 2048 } ]
