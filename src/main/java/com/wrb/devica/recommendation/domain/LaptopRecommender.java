@@ -128,6 +128,9 @@ public class LaptopRecommender {
         CpuTier limit = interpretation.macCpuLimit();
         if (os == Os.MAC && tier.isHigherThan(limit)) {
             reasons.add("예산을 고려해 Mac 권장 CPU 는 " + limit.getDisplayName() + "으로 제한했습니다.");
+            if (limit == current) {
+                reasons.add("지금과 같은 " + limit.getDisplayName() + "이라도 최신 세대를 고르면 성능이 오릅니다.");
+            }
             tier = limit;
         }
         return tier;
@@ -173,7 +176,7 @@ public class LaptopRecommender {
 
         if (adjusted != memoryGb) {
             reasons.get(MEMORY_ITEM)
-                .add(tier.getDisplayName() + " 에서 고를 수 있는 가장 가까운 용량은 " + adjusted + "GB 입니다.");
+                .add(tier.getDisplayName() + "에서는 " + memoryGb + "GB 를 고를 수 없어 바로 위 용량인 " + adjusted + "GB 를 권합니다.");
         }
 
         return new LaptopSpec(os, tier, adjusted, storageGb);
