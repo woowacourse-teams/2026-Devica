@@ -81,6 +81,7 @@ survey:
             - { code: GRAPHIC, content: "편집·브랜딩·일러스트" }
             - { code: MOTION_VIDEO, content: "모션 그래픽·영상" }
             - { code: THREE_D, content: "3D 모델링·렌더링" }
+            - { code: THREE_D_LIGHT, content: 가끔 3D 작업도 한다 }
             - { code: UNDECIDED, content: 아직 정하지 않았다 }
 
     # 4K 이상은 Adobe 가 영상 작업에 메모리를 두 배로 권하는 기준이라 따로 묻는다
@@ -148,7 +149,7 @@ survey:
     - questions:
         - code: RENDER_WAIT
           title: 영상 내보내기나 렌더링이 끝나기를 기다리는 게 답답했나요?
-          showWhen: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO, THREE_D ] }
+          showWhen: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO, THREE_D, THREE_D_LIGHT ] }
           options:
             - { code: OFTEN, content: 자주 답답했다 }
             - { code: FINE, content: 참을 만했다 / 신경 안 쓰였다 }
@@ -183,9 +184,16 @@ rules:
     when: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO ] }
     reason: 모션·영상 작업은 미리보기를 위해 프레임을 메모리에 올려 둡니다.
   - criterion: MEMORY
-    weight: 3
+    weight: 4
     when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
     reason: 3D 작업은 장면과 텍스처를 메모리에 올려 두어 넉넉한 용량이 필요합니다.
+  - criterion: MEMORY
+    weight: 1
+    when:
+      all:
+        - { question: DESIGN_FIELD, anyOf: [ THREE_D_LIGHT ] }
+        - { not: { question: DESIGN_FIELD, anyOf: [ THREE_D ] } }
+    reason: 가끔 하는 3D 작업도 장면과 텍스처를 메모리에 올려 둡니다.
   - criterion: MEMORY
     weight: 2
     when: { question: VIDEO_RESOLUTION, anyOf: [ UHD ] }
@@ -306,9 +314,16 @@ rules:
     when: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO ] }
     reason: 영상을 내보내고 효과를 미리 볼 때 CPU 를 오래 씁니다.
   - criterion: REQUIRED_CPU
-    weight: 2
+    weight: 3
     when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
     reason: 3D 렌더링은 코어를 모두 오래 씁니다.
+  - criterion: REQUIRED_CPU
+    weight: 1
+    when:
+      all:
+        - { question: DESIGN_FIELD, anyOf: [ THREE_D_LIGHT ] }
+        - { not: { question: DESIGN_FIELD, anyOf: [ THREE_D ] } }
+    reason: 가끔 하는 3D 렌더링도 코어를 모두 씁니다.
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: VIDEO_RESOLUTION, anyOf: [ UHD ] }
