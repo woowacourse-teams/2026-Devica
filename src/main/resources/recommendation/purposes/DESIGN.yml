@@ -373,8 +373,9 @@ mappings:
     value: HX
     when: { all: [ { question: CURRENT_WINDOWS_CPU, anyOf: [ HX ] }, *discomfort ] }
 
-# 기본 권장 사양(답이 없는 0점)은 16GB·기본 칩·512GB 다. 디자이너 대부분이 Figma 로 화면 디자인을 하고,
+# 기본 권장 사양(답이 없는 0점)은 16GB·기본 칩·256GB 다. 디자이너 대부분이 Figma 로 화면 디자인을 하고,
 # Figma 는 파일 하나의 메모리가 2GB 로 제한되며 Adobe 도 16GB 를 권장하기 때문이다.
+# Figma 는 파일을 클라우드에 두어 운영체제와 앱을 더해도 약 75GB 라 256GB 에 여유가 있다. Adobe 를 쓰거나 원본을 노트북에 두면 512GB 이상이 된다.
 # 그래픽·영상·3D 처럼 부담이 큰 작업은 설문 답으로 올린다
 interpretation:
   cpu:
@@ -382,6 +383,6 @@ interpretation:
     WINDOWS: [ { upTo: 2, value: P_HS }, { upTo: 4, value: H }, { value: HX } ]
   # 화면 디자인만 하고 불편이 없으면 16GB, 가끔 느려지기만 해도 24GB 로 넘긴다
   memory: [ { upTo: 0, value: 16 }, { upTo: 3, value: 24 }, { upTo: 6, value: 32 }, { value: 48 } ]
-  storage: [ { upTo: -2, value: 256 }, { upTo: 1, value: 512 }, { upTo: 5, value: 1024 }, { value: 2048 } ]
+  storage: [ { upTo: 0, value: 256 }, { upTo: 1, value: 512 }, { upTo: 5, value: 1024 }, { value: 2048 } ]
   # 예산을 고려해 Mac 권장 CPU 를 이 등급까지로 제한한다. M Max 칩은 권하지 않는다
   macCpuLimit: PRO
