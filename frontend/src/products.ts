@@ -174,7 +174,7 @@ export function specCondition(
 }
 
 export function filterable(labels: Record<string, string>, value: string | null): string | null {
-  return value !== null && value in labels ? value : null;
+  return value !== null && Object.hasOwn(labels, value) ? value : null;
 }
 
 /** 거르기와 정렬은 서버가 한다. 같은 조건이면 같은 목록이고, 페이지만 달리해 이어 받는다. */

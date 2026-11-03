@@ -129,6 +129,13 @@ test('GPU·화면 권장은 목록 조건이 되고, 모든 제품이 갖춘 가
   });
 });
 
+test('주소의 색 영역·GPU 값이 등급 이름이 아니면 조건으로 받지 않는다', () => {
+  expect(conditionOf(new URLSearchParams('gpuTier=toString&colorGamut=constructor'))).toMatchObject({
+    gpuTier: null,
+    colorGamut: null,
+  });
+});
+
 test('등급을 받지 못했어도 고친 CPU 는 버리지 않는다', () => {
   const edited = editedSpec(MAC, { MAC: { REQUIRED_CPU: 'BASIC' } }, null);
   expect(specCondition(edited).cpuTier).toBe('BASIC');
