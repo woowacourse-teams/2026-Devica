@@ -176,6 +176,10 @@
     display: none;
 }
 
+.result-min-price__basis {
+    display: none;
+}
+
 .result-min-price--bar {
     display: grid;
     gap: 4px;
@@ -194,12 +198,45 @@
         position: sticky;
         top: var(--gutter);
         display: grid;
-        gap: var(--density-med);
+        gap: var(--gutter);
         padding: var(--gutter);
     }
 
+    .bordered-panel.result-min-price--side {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+    }
+
+    .result-min-price--side .result-min-price__title {
+        font-size: var(--body-md-font-size);
+        font-weight: 600;
+    }
+
+    .result-min-price--side .result-min-price__list {
+        gap: var(--density-med);
+    }
+
+    .result-min-price--side .result-min-price__list li {
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .result-min-price--side .result-min-price__list span {
+        color: var(--on-surface-variant);
+        font-size: var(--body-sm-font-size);
+    }
+
     .result-min-price--side strong {
-        font-size: var(--body-lg-font-size);
+        font-size: var(--headline-md-font-size);
+        font-weight: var(--headline-md-font-weight);
+        line-height: var(--headline-md-line-height);
+    }
+
+    .result-min-price--side .result-min-price__basis {
+        display: block;
+        margin: 0;
+        color: var(--on-surface-variant);
+        font-size: var(--body-sm-font-size);
     }
 
     .result-min-price--bar {

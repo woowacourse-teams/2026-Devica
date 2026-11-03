@@ -172,7 +172,7 @@ function MinPrices({ className, labels, prices }: MinPricesProps) {
 
   return (
     <div className={`result-min-price ${className}`} role="status">
-      <h3 className="result-min-price__title">최저가</h3>
+      <h3 className="result-min-price__title">이 사양으로 살 수 있는 최저가</h3>
       {prices.failed ? (
         <p className="result-min-price__failed">
           최저가를 불러오지 못했어요.{' '}
@@ -190,6 +190,7 @@ function MinPrices({ className, labels, prices }: MinPricesProps) {
           ))}
         </ul>
       )}
+      <p className="result-min-price__basis">추천 사양 이상, 지금 판매 중인 노트북 기준</p>
     </div>
   );
 }
