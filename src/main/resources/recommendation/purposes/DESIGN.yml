@@ -96,6 +96,7 @@ survey:
 
     - title: 작업 도구를 알려주세요
       questions:
+        # 도구는 OS 판단(Sketch 는 Mac)에만 쓴다. 작업 부담은 분야·무거운 파일 문항과 겹치므로 점수를 주지 않는다
         - code: DESIGN_TOOL
           title: 주로 쓰는 디자인 도구는 무엇인가요?
           description: 여러 개를 선택할 수 있어요.
@@ -105,7 +106,6 @@ survey:
             - { code: FIGMA, content: "Figma, Framer 등" }
             - { code: SKETCH, content: Sketch }
             - { code: ADOBE, content: "Photoshop, Illustrator 등 Adobe 도구" }
-            # 3D·영상 부담은 DESIGN_FIELD 에서 반영하므로 점수를 주지 않는다
             - { code: OTHER, content: "그 밖의 도구(Blender, After Effects 등)" }
             - { code: UNDECIDED, content: 아직 정하지 않았다 }
         - code: MULTITASKING
@@ -202,10 +202,6 @@ rules:
     reason: 4K 이상 영상은 FHD 보다 메모리를 훨씬 많이 씁니다.
   - criterion: MEMORY
     weight: 1
-    when: { question: DESIGN_TOOL, anyOf: [ ADOBE ] }
-    reason: Photoshop·Illustrator 는 큰 파일을 다룰수록 메모리를 많이 씁니다.
-  - criterion: MEMORY
-    weight: 1
     when: { question: MULTITASKING, anyOf: [ MANY ] }
     reason: 디자인 도구를 여러 개 함께 켜두면 그만큼 메모리를 더 씁니다.
   - criterion: MEMORY
@@ -245,10 +241,6 @@ rules:
     weight: 2
     when: { question: VIDEO_RESOLUTION, anyOf: [ UHD ] }
     reason: 4K 이상 영상은 소스와 캐시가 FHD 보다 훨씬 큽니다.
-  - criterion: STORAGE
-    weight: 1
-    when: { question: DESIGN_TOOL, anyOf: [ ADOBE ] }
-    reason: Photoshop 은 작업 중 임시 파일을 쓸 빈 공간이 넉넉해야 합니다.
   - criterion: STORAGE
     weight: 2
     when: { question: ASSET_LOCATION, anyOf: [ LOCAL_MANY ] }
