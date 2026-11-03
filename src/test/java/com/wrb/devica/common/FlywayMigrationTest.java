@@ -96,6 +96,10 @@ public class FlywayMigrationTest {
         long productId = saveProduct("OFFER-CONTEXT");
         saveOffer(productId, 900_000L, "ON_SALE");
         flyway.migrate();
+        assertThat(jdbcTemplate.queryForList("""
+            SELECT version FROM flyway_schema_history
+            WHERE script = 'V1.20__add_offer_price_context.sql' AND success = TRUE
+            """, String.class)).containsExactly("1.20");
         // 구버전 앱은 추가 컬럼 없이 계속 저장할 수 있다.
         saveOffer(productId, 1_000_000L, "ON_SALE");
 
