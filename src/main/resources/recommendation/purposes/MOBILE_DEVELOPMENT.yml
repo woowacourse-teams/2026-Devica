@@ -90,6 +90,9 @@ survey:
             - { code: EMULATOR_ONE, content: 에뮬레이터·시뮬레이터를 하나씩 띄운다 }
             - { code: PHYSICAL, content: 실제 기기를 연결해서 확인한다 }
             - { code: NO_EXPERIENCE, content: 아직 해본 적이 없다 }
+
+    # 같은 단계에 두면 앞 문항이 단일 문항 화면으로 보여 답하자마자 넘어가 이 문항에 답할 수 없다
+    - questions:
         - code: OS_VERSIONS
           title: 여러 OS 버전에서 앱을 확인하나요?
           showWhen: { question: TEST_DEVICE, anyOf: [ EMULATOR_MANY, EMULATOR_ONE ] }
