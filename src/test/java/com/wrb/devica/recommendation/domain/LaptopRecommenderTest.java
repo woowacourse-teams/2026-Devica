@@ -188,4 +188,17 @@ class LaptopRecommenderTest {
             "저장 공간 구간: 마지막 구간은 upTo 없이 나머지 점수를 모두 받아야 합니다",
             "Mac CPU 상한은 [BASIC, PRO] 중 하나여야 합니다: MAX");
     }
+
+    @Test
+    void Mac_CPU_상한에서_고를_수_없는_메모리가_구간에_있으면_오류를_낸다() {
+        // given
+        LaptopInterpretation interpretation = new LaptopInterpretation(
+            INTERPRETATION.cpu(), INTERPRETATION.memory(), INTERPRETATION.storage(), CpuTier.BASIC);
+
+        // when
+        List<String> errors = LaptopRecommender.findUnsupported(interpretation);
+
+        // then
+        assertThat(errors).containsExactly("Mac CPU 상한 BASIC 에서는 48GB 를 고를 수 없습니다. 최대 32GB 입니다");
+    }
 }

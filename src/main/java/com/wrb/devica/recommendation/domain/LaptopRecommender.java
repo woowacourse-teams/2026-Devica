@@ -36,7 +36,7 @@ public class LaptopRecommender {
         validateSteps(interpretation.memory(), LaptopSpec.MEMORY_STEPS, "메모리 구간", errors);
         validateSteps(interpretation.storage(), LaptopSpec.STORAGE_STEPS, "저장 공간 구간", errors);
 
-        validateMacCpuLimit(interpretation.macCpuLimit(), errors);
+        validateMacCpuLimit(interpretation.macCpuLimit(), interpretation.memory(), errors);
 
         return errors;
     }
@@ -73,11 +73,25 @@ public class LaptopRecommender {
         }
     }
 
-    private static void validateMacCpuLimit(CpuTier limit, List<String> errors) {
+    private static void validateMacCpuLimit(CpuTier limit, List<ScoreRange<Integer>> memory, List<String> errors) {
         if (limit == null || !MAC_MEMORY_BY_CPU.containsKey(limit)) {
             List<CpuTier> limits = CpuTier.inOrder().stream().filter(MAC_MEMORY_BY_CPU::containsKey).toList();
             errors.add("Mac CPU 상한은 " + limits + " 중 하나여야 합니다: " + limit);
+            return;
         }
+
+        if (memory == null) {
+            return;
+        }
+
+        // 상한에서 고를 수 없는 메모리가 나오면 메모리 보정이 CPU 를 상한 위로 다시 올린다
+        int largest = MAC_MEMORY_BY_CPU.get(limit).getLast();
+        memory.stream()
+            .map(ScoreRange::value)
+            .filter(value -> value != null && value > largest)
+            .max(Integer::compare)
+            .ifPresent(value -> errors.add(
+                "Mac CPU 상한 " + limit + " 에서는 " + value + "GB 를 고를 수 없습니다. 최대 " + largest + "GB 입니다"));
     }
 
     public List<RecommendedSpec> recommend(LaptopInterpretation interpretation, Requirements requirements,
