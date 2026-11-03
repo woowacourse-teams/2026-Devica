@@ -314,14 +314,14 @@ rules:
   - criterion: REQUIRED_CPU
     weight: 3
     when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
-    reason: 3D 렌더링은 코어를 모두 오래 씁니다.
+    reason: 3D 렌더링은 코어를 모두 오래 씁니다. 그래픽 성능은 아직 추천에 반영하지 않아 따로 확인해야 합니다.
   - criterion: REQUIRED_CPU
     weight: 1
     when:
       all:
         - { question: DESIGN_FIELD, anyOf: [ THREE_D_LIGHT ] }
         - { not: { question: DESIGN_FIELD, anyOf: [ THREE_D ] } }
-    reason: 가끔 하는 3D 렌더링도 코어를 모두 씁니다.
+    reason: 가끔 하는 3D 렌더링도 코어를 모두 씁니다. 그래픽 성능은 아직 추천에 반영하지 않아 따로 확인해야 합니다.
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: VIDEO_RESOLUTION, anyOf: [ UHD ] }
