@@ -110,21 +110,39 @@ def utc(iso):
     return t.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
-def history(ref, purpose, since=None):
+def interpretation_changed(d1, d2):
+    # 점수 해석 규칙(interpretation)은 규칙 점수의 뜻을 정해, 바뀌면 어느 답 조합의 결과든 달라질 수 있다.
+    # 한쪽에만 있으면 코드에 있던 같은 구간을 정의서로 옮긴 것(#295)이라 바뀐 것으로 보지 않는다
+    i1, i2 = (d1 or {}).get('interpretation'), (d2 or {}).get('interpretation')
+    return i1 is not None and i2 is not None and i1 != i2
+
+
+def definition_commits(ref, purpose, since=None):
     # 커밋 시각(%cI)을 그 변경이 ref 에 들어온 시각으로 본다. main 은 릴리스마다 squash 커밋 하나다
     path = DEF_PATH.format(purpose)
     lines = git('log', '--first-parent', '--format=%H%x1f%cI%x1f%s', ref, '--', path).stdout.splitlines()
-    out = []
     for line in lines:
         sha, time, subject = line.split('\x1f', 2)
         time = utc(time)
         if since and time < utc(since):
             continue
         parent = git('rev-parse', '--verify', '-q', sha + '^').stdout.strip()
-        changes = diff(definition(parent, purpose) if parent else None, definition(sha, purpose))
+        yield sha, time, subject, definition(parent, purpose) if parent else None, definition(sha, purpose)
+
+
+def history(ref, purpose, since=None):
+    out = []
+    for sha, time, subject, before, after in definition_commits(ref, purpose, since):
+        changes = diff(before, after)
         if changes:
             out.append({'commit': sha, 'time': time, 'subject': subject, 'changes': changes})
     return out
+
+
+def interpretation_history(ref, purpose, since=None):
+    # 점수 해석 규칙이 바뀐 커밋의 시각
+    return [time for _, time, _, before, after in definition_commits(ref, purpose, since)
+            if interpretation_changed(before, after)]
 
 
 def api(base, purpose, a):

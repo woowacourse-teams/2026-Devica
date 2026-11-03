@@ -1,7 +1,7 @@
 package com.wrb.devica.recommendation.service;
 
 import com.wrb.devica.purpose.domain.UsagePurposeCode;
-import com.wrb.devica.recommendation.domain.BackendDevelopmentRecommender;
+import com.wrb.devica.recommendation.domain.LaptopRecommender;
 import com.wrb.devica.recommendation.domain.Judgement;
 import com.wrb.devica.recommendation.domain.RecommendationDefinition;
 import com.wrb.devica.recommendation.domain.RecommendationDefinitions;
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
 public class RecommendationService {
 
     private final RecommendationDefinitions recommendationDefinitions;
-    private final BackendDevelopmentRecommender backendDevelopmentRecommender;
+    private final LaptopRecommender laptopRecommender;
 
     public List<RecommendedSpec> recommend(String purposeCode, Map<String, List<String>> answers) {
         UsagePurposeCode usagePurposeCode = UsagePurposeCode.from(purposeCode);
@@ -29,7 +29,7 @@ public class RecommendationService {
         Requirements requirements = Judgement.judge(purpose.rules(), response);
         Map<String, String> conditions = Judgement.map(purpose.mappings(), response);
 
-        return backendDevelopmentRecommender.recommend(requirements, conditions);
+        return laptopRecommender.recommend(purpose.interpretation(), requirements, conditions);
     }
 
     public Survey findSurvey(String purposeCode) {

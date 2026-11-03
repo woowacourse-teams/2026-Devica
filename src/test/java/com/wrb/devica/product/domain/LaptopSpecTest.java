@@ -37,8 +37,8 @@ class LaptopSpecTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"0, 512", "-1, 512", "24, 0", "24, -1"})
-    void 메모리나_저장_공간이_0_이하면_예외가_발생한다(int memoryGb, int storageGb) {
+    @CsvSource({"0, 512", "-1, 512", "20, 512", "24, 0", "24, -1", "24, 1000"})
+    void 메모리나_저장_공간이_권장_사양에_없는_값이면_예외가_발생한다(int memoryGb, int storageGb) {
         // when & then
         assertThatThrownBy(() -> new LaptopSpec(Os.MAC, CpuTier.BASIC, memoryGb, storageGb))
             .isInstanceOf(IllegalArgumentException.class);
