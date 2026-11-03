@@ -323,15 +323,15 @@ mappings:
     value: HX
     when: { all: [ { question: CURRENT_WINDOWS_CPU, anyOf: [ HX ] }, *discomfort ] }
 
-# 기본 권장 사양(답이 없는 0점)은 Mac 기본 칩·Windows H 급·16GB·512GB 다.
-# 운영체제·Android Studio·Gradle·에뮬레이터 하나를 가볍게 잡으면 약 14GB 라 백엔드(약 13GB)와 같은 16GB 에 들어가고,
-# Android Studio 도 에뮬레이터를 쓸 때 최소 16GB 를 요구한다
+# 기본 권장 사양(답이 없는 0점)은 Mac 기본 칩·Windows H 급·32GB·512GB 다.
+# Android Studio 는 에뮬레이터를 쓸 때 최소 16GB·권장 32GB 이고, 최소 구성만으로도 약 14GB 를 써 16GB 에는 여유가 없어
+# 공식 권장값인 32GB 를 기본으로 둔다. 짧게 쓸 계획이면 24GB 로 낮춘다
 interpretation:
   cpu:
     MAC: [ { upTo: 2, value: BASIC }, { upTo: 4, value: PRO }, { value: MAX } ]
     # Android Studio 권장 사양이 노트북에 H·HX 급을 권하고 U 시리즈는 권하지 않아 Windows 는 H 부터 권한다
     WINDOWS: [ { upTo: -1, value: P_HS }, { upTo: 4, value: H }, { value: HX } ]
-  memory: [ { upTo: 1, value: 16 }, { upTo: 3, value: 24 }, { upTo: 6, value: 32 }, { value: 48 } ]
+  memory: [ { upTo: -1, value: 24 }, { upTo: 6, value: 32 }, { value: 48 } ]
   # 가장 낮은 점수가 -2 라 256GB 는 나오지 않는다. Xcode·SDK 만으로도 수십 GB 를 차지해 256GB 는 권하지 않는다
   storage: [ { upTo: -3, value: 256 }, { upTo: 2, value: 512 }, { upTo: 6, value: 1024 }, { value: 2048 } ]
   # 예산을 고려해 Mac 권장 CPU 를 이 등급까지로 제한한다. M Max 칩은 권하지 않는다
