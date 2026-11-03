@@ -18,7 +18,7 @@ class UsagePurposeServiceTest {
         List<UsagePurposeCode> purposes = usagePurposeService.findByCategoryCode("LAPTOP");
 
         // then
-        assertThat(purposes).containsExactly(UsagePurposeCode.BACKEND_DEVELOPMENT);
+        assertThat(purposes).containsExactly(UsagePurposeCode.BACKEND_DEVELOPMENT, UsagePurposeCode.DESIGN);
     }
 
     @Test

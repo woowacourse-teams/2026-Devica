@@ -10,7 +10,8 @@ import lombok.Getter;
 @Getter
 public enum UsagePurposeCode {
 
-    BACKEND_DEVELOPMENT(ProductCategoryCode.LAPTOP, "백엔드 개발");
+    BACKEND_DEVELOPMENT(ProductCategoryCode.LAPTOP, "백엔드 개발"),
+    DESIGN(ProductCategoryCode.LAPTOP, "디자인");
 
     private final ProductCategoryCode category;
     private final String displayName;
