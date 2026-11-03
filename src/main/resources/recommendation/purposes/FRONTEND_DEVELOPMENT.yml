@@ -117,7 +117,7 @@ survey:
             - { code: DEV_TOOLS, content: "Storybook, 테스트 감시 모드 등" }
             - { code: LOCAL_BACKEND, content: 백엔드나 DB 를 로컬·도커로 함께 띄운다 }
             - { code: E2E_TEST, content: "Playwright, Cypress 로 E2E 테스트를 돌린다" }
-            - { code: NONE, content: 개발 서버만 띄운다 }
+            - { code: NONE, content: 따로 띄우는 것은 없다·잘 모르겠다 }
 
     - questions:
         - code: SLOWDOWN
