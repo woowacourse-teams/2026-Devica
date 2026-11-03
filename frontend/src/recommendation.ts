@@ -14,6 +14,7 @@ export type SpecItem = {
 export type Spec = {
   items: SpecItem[];
   preferred: boolean;
+  notes: string[];
 };
 
 type RecommendationResponse = {
