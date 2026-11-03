@@ -1,4 +1,4 @@
-# 결과 화면의 근거 문장 중 아래 8종은 이 파일이 아니라 LaptopRecommender 가 만든다.
+# 결과 화면의 근거 문장 중 아래 10종은 이 파일이 아니라 LaptopRecommender 가 만든다.
 # 피드백 받은 문장이 여기서 검색되지 않으면 그 클래스를 본다.
 #
 # 모든 결과에 붙는 안내
@@ -6,6 +6,8 @@
 #   - "권장 CPU 는 <CPU> 입니다."
 #   - "권장 메모리는 <N>GB 입니다."
 #   - "권장 저장 공간은 <용량> 입니다."
+#   - "권장 화면은 <색 영역> 입니다."                               interpretation.colorGamut 이 있을 때만
+#   - "권장 GPU 는 <GPU 등급> 입니다."                              interpretation.gpu 가 있을 때만
 # 점수로 고른 사양을 바꾸는 보정
 #   - "지금 쓰는 <CPU> 에서 불편을 겪어 그보다 위를 권합니다."      CURRENT_CPU_TIER 매핑이 있으면 CPU 를 한 단계 위로
 #   - "예산을 고려해 Mac 권장 CPU 는 <CPU>으로 제한했습니다."        Mac CPU 를 interpretation.macCpuLimit 까지로 제한
@@ -314,14 +316,14 @@ rules:
   - criterion: REQUIRED_CPU
     weight: 3
     when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
-    reason: 3D 렌더링은 코어를 모두 오래 씁니다. 그래픽 성능은 아직 추천에 반영하지 않아 따로 확인해야 합니다.
+    reason: 3D 렌더링은 코어를 모두 오래 씁니다.
   - criterion: REQUIRED_CPU
     weight: 1
     when:
       all:
         - { question: DESIGN_FIELD, anyOf: [ THREE_D_LIGHT ] }
         - { not: { question: DESIGN_FIELD, anyOf: [ THREE_D ] } }
-    reason: 가끔 하는 3D 렌더링도 코어를 모두 씁니다. 그래픽 성능은 아직 추천에 반영하지 않아 따로 확인해야 합니다.
+    reason: 가끔 하는 3D 렌더링도 코어를 모두 씁니다.
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: VIDEO_RESOLUTION, anyOf: [ UHD ] }
@@ -346,6 +348,42 @@ rules:
     weight: -1
     when: { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }
     reason: 짧게 쓸 계획이라 과한 사양을 피했습니다.
+
+  # 웹 화면은 sRGB 기준이라 화면 디자인만으로는 넓은 색 영역을 권하지 않는다.
+  # 인쇄·브랜딩과 영상은 Apple 이 각각 P3 계열 기준 모드(Design and Print, Digital Cinema)를 두는 작업이다
+  - criterion: COLOR_GAMUT
+    weight: 1
+    when: { question: DESIGN_FIELD, anyOf: [ GRAPHIC ] }
+    reason: 인쇄물과 브랜드 색은 웹 표준(sRGB)보다 넓은 색을 다뤄, 넓은 색 영역 화면이어야 색을 정확히 볼 수 있습니다.
+  - criterion: COLOR_GAMUT
+    weight: 1
+    when: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO ] }
+    reason: 영상은 DCI-P3 같은 넓은 색 영역으로 만들어, 화면이 그 색을 표현해야 색 보정을 정확히 할 수 있습니다.
+
+  # Blender 는 VRAM 8GB, Premiere Pro·After Effects 는 GPU 메모리 8GB 를 권장한다. 이 둘을 쓰는 작업은 VRAM 8GB 인 RTX 4060 급 이상(고성능)까지 올린다
+  - criterion: GPU
+    weight: 3
+    when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
+    reason: 3D 화면을 돌려 보고 GPU 로 렌더링하려면 장면이 그래픽 메모리에 다 올라가야 합니다. Blender 는 VRAM 8GB 를 권장합니다.
+  - criterion: GPU
+    weight: 1
+    when:
+      all:
+        - { question: DESIGN_FIELD, anyOf: [ THREE_D_LIGHT ] }
+        - { not: { question: DESIGN_FIELD, anyOf: [ THREE_D ] } }
+    reason: 가끔 하는 3D 작업도 화면을 돌려 보고 렌더링할 때 GPU 를 씁니다.
+  - criterion: GPU
+    weight: 1
+    when: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO ] }
+    reason: 영상 효과 미리보기와 내보내기는 GPU 로 빨라집니다.
+  - criterion: GPU
+    weight: 2
+    when: { question: VIDEO_RESOLUTION, anyOf: [ UHD ] }
+    reason: 4K 이상 영상은 GPU 메모리를 많이 씁니다. Premiere Pro 는 GPU 메모리 8GB 를 권장합니다.
+  - criterion: GPU
+    weight: 1
+    when: { question: RENDER_WAIT, anyOf: [ OFTEN ] }
+    reason: 내보내기·렌더링 대기가 답답했던 경험을 반영했습니다.
 
 mappings:
   - { criterion: PREFERRED_OS, value: MAC, when: { question: PREFERRED_OS, anyOf: [ MACOS ] } }
@@ -399,3 +437,8 @@ interpretation:
   storage: [ { upTo: 0, value: 256 }, { upTo: 1, value: 512 }, { upTo: 5, value: 1024 }, { value: 2048 } ]
   # 예산을 고려해 Mac 권장 CPU 를 이 등급까지로 제한한다. M Max 칩은 권하지 않는다
   macCpuLimit: PRO
+  # 화면 디자인만 하면 표준 색 영역, 인쇄·브랜딩이나 영상을 하면 넓은 색 영역을 권한다
+  colorGamut: [ { upTo: 0, value: STANDARD }, { value: WIDE } ]
+  # 화면 디자인·그래픽은 기본 GPU 로 충분하다(Photoshop 권장 GPU 메모리 4GB 는 4K 이상 모니터 기준).
+  # 영상이나 가끔 하는 3D 는 보급 외장 GPU 인 RTX 4050 급(중급), 3D 와 4K 영상은 VRAM 8GB 인 RTX 4060 급 이상(고성능)을 권한다
+  gpu: [ { upTo: 0, value: ENTRY }, { upTo: 2, value: MID }, { value: HIGH } ]
