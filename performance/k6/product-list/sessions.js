@@ -29,7 +29,7 @@ const SPECS = {
 // 맞춤 : 전체 = 1 : 1. 맞춤 목록은 맥·윈도우 탭 중 하나를 1 : 1로 보고, 그 탭의 권장 사양이 필터가 된다.
 // 전체 목록은 진입 직후처럼 필터 없이 본다. 두 비율과 전체 목록의 필터는 근거 없이 정한 가정이다(README의 가정 표)
 const SCREENS = {
-  MATCHED: { tabs: [SPECS.MAC, SPECS.WINDOWS], sorts: ['RECOMMENDED', 'PRICE_ASC', 'PRICE_DESC'] },
+  MATCHED: { tabs: [SPECS.MAC, SPECS.WINDOWS], sorts: ['PRICE_ASC', 'PRICE_DESC'] },
   ALL: { tabs: [[{}]], sorts: ['PRICE_ASC', 'PRICE_DESC'] },
 };
 
