@@ -146,7 +146,7 @@ survey:
 
     - questions:
         - code: OVERHEATING
-          title: 개발할 때 노트북이 뜨거워지거나 팬이 크게 도나요?
+          title: 개발할 때 노트북 바닥이나 키보드가 뜨겁게 느껴지나요?
           options:
             - { code: OFTEN, content: 자주 그렇다 }
             - { code: FINE, content: 가끔 / 별로 없다 }
