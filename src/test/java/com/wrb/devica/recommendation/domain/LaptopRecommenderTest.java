@@ -2,9 +2,12 @@ package com.wrb.devica.recommendation.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.wrb.devica.product.domain.ColorGamut;
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.GpuTier;
 import com.wrb.devica.product.domain.LaptopSpec;
 import com.wrb.devica.product.domain.Os;
+import com.wrb.devica.product.domain.SpecValue;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -159,6 +162,63 @@ class LaptopRecommenderTest {
     }
 
     @Test
+    void 점수_해석_규칙에_화면과_GPU_구간이_없으면_권장_항목에_넣지_않는다() {
+        // given
+        LaptopRecommender recommender = new LaptopRecommender();
+        Requirements requirements = new Requirements(Map.of("COLOR_GAMUT", 5, "GPU", 5), Map.of());
+
+        // when
+        List<RecommendedSpec> specs = recommender.recommend(INTERPRETATION, requirements, Map.of());
+
+        // then
+        assertThat(specs).allSatisfy(recommended -> assertThat(recommended.spec().values())
+            .extracting(SpecValue::code)
+            .containsExactly("OS", "REQUIRED_CPU", "MEMORY", "STORAGE"));
+    }
+
+    @Test
+    void 화면과_GPU_는_점수_구간대로_권하고_Mac_도_같은_GPU_등급을_받는다() {
+        // given
+        LaptopRecommender recommender = new LaptopRecommender();
+        LaptopInterpretation interpretation = withDisplayAndGpu(INTERPRETATION);
+        Requirements requirements = new Requirements(Map.of("COLOR_GAMUT", 1, "GPU", 2), Map.of());
+
+        // when
+        List<RecommendedSpec> specs = recommender.recommend(interpretation, requirements, Map.of());
+
+        // then
+        LaptopSpec mac = (LaptopSpec) specs.get(0).spec();
+        LaptopSpec windows = (LaptopSpec) specs.get(1).spec();
+        assertThat(mac.colorGamut()).isEqualTo(ColorGamut.WIDE);
+        assertThat(mac.gpuTier()).isEqualTo(GpuTier.MID);
+        assertThat(windows.gpuTier()).isEqualTo(GpuTier.MID);
+        assertThat(specs).allSatisfy(recommended -> assertThat(recommended.itemReasons().get("GPU"))
+            .containsExactly("권장 GPU 는 " + GpuTier.MID.getDisplayName() + " 입니다."));
+    }
+
+    @Test
+    void 화면이나_GPU_규칙에_점수_구간이_없으면_오류를_낸다() {
+        // given
+        Condition any = new Condition.Selected("Q", List.of("A"));
+        List<Rule> rules = List.of(new Rule("GPU", 1, any, "근거"), new Rule("MEMORY", 1, any, "근거"));
+
+        // when
+        List<String> missing = LaptopRecommender.findRulesWithoutRange(INTERPRETATION, rules);
+        List<String> present = LaptopRecommender.findRulesWithoutRange(withDisplayAndGpu(INTERPRETATION), rules);
+
+        // then
+        assertThat(missing).containsExactly("GPU 규칙이 있지만 점수 해석 규칙에 GPU 구간이 없습니다");
+        assertThat(present).isEmpty();
+    }
+
+    private static LaptopInterpretation withDisplayAndGpu(LaptopInterpretation base) {
+        return new LaptopInterpretation(base.cpu(), base.memory(), base.storage(), base.macCpuLimit(),
+            List.of(new ScoreRange<>(0, ColorGamut.STANDARD), new ScoreRange<>(null, ColorGamut.WIDE)),
+            List.of(new ScoreRange<>(1, GpuTier.ENTRY), new ScoreRange<>(3, GpuTier.MID),
+                new ScoreRange<>(null, GpuTier.HIGH)));
+    }
+
+    @Test
     void 정의서의_점수_해석_규칙은_검증을_통과한다() {
         // when
         List<String> errors = LaptopRecommender.findUnsupported(INTERPRETATION);
@@ -174,7 +234,7 @@ class LaptopRecommenderTest {
             Map.of(Os.MAC, List.of(new ScoreRange<>(2, CpuTier.BASIC), new ScoreRange<>(null, CpuTier.HX))),
             List.of(new ScoreRange<>(3, 16), new ScoreRange<>(1, 24), new ScoreRange<>(null, 20)),
             List.of(new ScoreRange<>(2, 512), new ScoreRange<>(6, 1024)),
-            CpuTier.MAX);
+            CpuTier.MAX, null, null);
 
         // when
         List<String> errors = LaptopRecommender.findUnsupported(interpretation);
@@ -193,7 +253,8 @@ class LaptopRecommenderTest {
     void Mac_CPU_상한에서_고를_수_없는_메모리가_구간에_있으면_오류를_낸다() {
         // given
         LaptopInterpretation interpretation = new LaptopInterpretation(
-            INTERPRETATION.cpu(), INTERPRETATION.memory(), INTERPRETATION.storage(), CpuTier.BASIC);
+            INTERPRETATION.cpu(), INTERPRETATION.memory(), INTERPRETATION.storage(), CpuTier.BASIC,
+            null, null);
 
         // when
         List<String> errors = LaptopRecommender.findUnsupported(interpretation);
