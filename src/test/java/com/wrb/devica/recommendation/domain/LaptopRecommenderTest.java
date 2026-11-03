@@ -101,6 +101,23 @@ class LaptopRecommenderTest {
     }
 
     @Test
+    void 지금_쓰는_Mac_CPU_가_상한보다_높으면_낮춰_권하는_이유를_알린다() {
+        // given
+        LaptopRecommender recommender = new LaptopRecommender();
+        Requirements requirements = new Requirements(Map.of(), Map.of());
+        Map<String, String> conditions = Map.of("CURRENT_CPU_TIER", "MAX");
+
+        // when
+        RecommendedSpec mac = recommender.recommend(INTERPRETATION, requirements, conditions).get(0);
+
+        // then
+        assertThat(((LaptopSpec) mac.spec()).cpuTier()).isEqualTo(CpuTier.PRO);
+        assertThat(mac.itemReasons().get("REQUIRED_CPU"))
+            .contains("지금 쓰는 M Max 칩보다 낮지만, 이 작업에는 M Pro 칩이면 충분해 예산을 고려해 제한했습니다.")
+            .doesNotContain("예산을 고려해 Mac 권장 CPU 는 M Pro 칩으로 제한했습니다.");
+    }
+
+    @Test
     void 지금_쓰는_Mac_CPU_가_상한과_같으면_같은_등급을_권하는_이유를_알린다() {
         // given
         LaptopRecommender recommender = new LaptopRecommender();

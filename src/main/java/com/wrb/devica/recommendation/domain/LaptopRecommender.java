@@ -127,7 +127,12 @@ public class LaptopRecommender {
         }
         CpuTier limit = interpretation.macCpuLimit();
         if (os == Os.MAC && tier.isHigherThan(limit)) {
-            reasons.add("예산을 고려해 Mac 권장 CPU 는 " + limit.getDisplayName() + "으로 제한했습니다.");
+            if (current != null && current.isHigherThan(limit)) {
+                reasons.add("지금 쓰는 " + current.getDisplayName() + "보다 낮지만, 이 작업에는 "
+                    + limit.getDisplayName() + "이면 충분해 예산을 고려해 제한했습니다.");
+            } else {
+                reasons.add("예산을 고려해 Mac 권장 CPU 는 " + limit.getDisplayName() + "으로 제한했습니다.");
+            }
             if (limit == current) {
                 reasons.add("지금과 같은 " + limit.getDisplayName() + "이라도 최신 세대를 고르면 성능이 오릅니다.");
             }

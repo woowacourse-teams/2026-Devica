@@ -282,7 +282,7 @@ rules:
   - criterion: REQUIRED_CPU
     weight: 2
     when: { question: OVERHEATING, anyOf: [ OFTEN ] }
-    reason: 지속 부하에서 발열로 성능이 떨어진 경험을 반영했습니다.
+    reason: 작업 중 노트북이 자주 뜨거워지는 것은 오래 이어지는 부하가 크다는 신호라 반영했습니다.
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: DEV_ENVIRONMENT_SETUP, anyOf: [ DOCKER_MANY ] }
