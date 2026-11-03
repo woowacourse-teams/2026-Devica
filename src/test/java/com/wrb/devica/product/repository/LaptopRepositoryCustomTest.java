@@ -15,6 +15,7 @@ import com.wrb.devica.category.repository.ProductCategoryRepository;
 import com.wrb.devica.common.JpaSliceTest;
 import com.wrb.devica.common.MinPriceRefresher;
 import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
+import com.wrb.devica.product.domain.ColorGamut;
 import com.wrb.devica.product.domain.Cpu;
 import com.wrb.devica.product.domain.CpuTier;
 import com.wrb.devica.product.domain.Gpu;
@@ -117,6 +118,50 @@ class LaptopRepositoryCustomTest {
 
         // then
         assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("중간", "높음");
+    }
+
+    @Test
+    void GPU_등급을_지정할_때_조회하면_그_등급의_최소_점수_이상만_반환한다() {
+        // given
+        int minScore = GpuTier.HIGH.getMinScore();
+        onSaleLaptop(laptop().name("낮음"), cpu, saveGpu(minScore - 1), DEFAULT_PRICE);
+        onSaleLaptop(laptop().name("같음"), cpu, saveGpu(minScore), DEFAULT_PRICE);
+        onSaleLaptop(laptop().name("높음"), cpu, saveGpu(minScore + 1), DEFAULT_PRICE);
+
+        // when
+        Slice<ProductSummaryRow> found = findLaptops(condition().gpuTier(GpuTier.HIGH).build());
+
+        // then
+        assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("같음", "높음");
+    }
+
+    @Test
+    void 가장_낮은_화면_색_영역과_GPU_등급은_조건으로_보지_않는다() {
+        // given
+        int lowestMinScore = GpuTier.ENTRY.getMinScore();
+        onSaleLaptop(laptop().name("넓음").colorGamut(ColorGamut.WIDE), cpu, saveGpu(lowestMinScore), DEFAULT_PRICE);
+        onSaleLaptop(laptop().name("모름"), cpu, saveGpu(lowestMinScore - 1), DEFAULT_PRICE);
+
+        // when
+        Slice<ProductSummaryRow> found = findLaptops(
+            condition().colorGamut(ColorGamut.STANDARD).gpuTier(GpuTier.ENTRY).build());
+
+        // then
+        assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("넓음", "모름");
+    }
+
+    @Test
+    void 화면_색_영역을_지정할_때_조회하면_그_색_영역_이상만_반환한다() {
+        // given
+        onSaleLaptop(laptop().name("표준").colorGamut(ColorGamut.STANDARD));
+        onSaleLaptop(laptop().name("넓음").colorGamut(ColorGamut.WIDE));
+        onSaleLaptop(laptop().name("모름"));
+
+        // when
+        Slice<ProductSummaryRow> found = findLaptops(condition().colorGamut(ColorGamut.WIDE).build());
+
+        // then
+        assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("넓음");
     }
 
     @ParameterizedTest
