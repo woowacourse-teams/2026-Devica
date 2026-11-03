@@ -26,6 +26,10 @@ record RecommendationDefinitionValidator(Set<String> requirements, Map<String, S
             validateMapping(mapping, questions, errors);
         }
 
+        for (Note note : definition.notes()) {
+            validateCondition(note.when(), questions, "안내 '" + note.message() + "'", errors);
+        }
+
         return errors;
     }
 
