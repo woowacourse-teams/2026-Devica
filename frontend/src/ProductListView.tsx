@@ -120,7 +120,6 @@ export function ProductListView({
   const condition =
     tiers === null ? state.condition : { ...state.condition, cpuTier: validTier(tiers, state.condition) };
   const matchedMode = mode === 'MATCHED';
-  // 맞춤 목록은 OS 탭 하나씩 서버 목록 하나를 본다. 두 OS 를 섞지 않으니 추천순을 늘 쓸 수 있다.
   // 사양 대조 화면이 보고 있는 OS 의 권장안을 보여 준다.
   const spec = specs.find((each) => osValueOf(each) === condition.os);
 
@@ -312,7 +311,7 @@ export function ProductListView({
               onChange={(event) => onChangeState((previous) => ({ ...previous, sort: event.target.value as SortType }))}
             >
               {SORT_LABELS.map(({ value, label }) => (
-                <option value={value} key={value} hidden={value === 'RECOMMENDED' && !matchedMode}>
+                <option value={value} key={value} hidden={value === 'RECOMMENDED'}>
                   {label}
                 </option>
               ))}

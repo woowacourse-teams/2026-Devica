@@ -512,7 +512,7 @@ function ResultPage({ params }: PageProps) {
   );
 }
 
-// 추천순은 권장 사양이 있는 맞춤 목록에서만 쓸 수 있다. 그때만 기본값이 추천순이다.
+// 추천순은 쓰지 않는다(#326). 주소에 추천순이 있으면 기본값으로 바꾼다.
 function listSortOf(params: URLSearchParams, defaultSort: SortType): SortType {
   const sort = sortOf(params) ?? defaultSort;
   return sort === 'RECOMMENDED' && defaultSort !== 'RECOMMENDED' ? defaultSort : sort;
@@ -599,7 +599,7 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
   }, [filled, search, recommendation.data]);
   const { state, onChangeState, navState } = useListState(
     search,
-    'RECOMMENDED',
+    'PRICE_ASC',
     matchedOsOf(params, recommendation.data ?? []),
   );
   const { category, purpose } = flowOf(params);
