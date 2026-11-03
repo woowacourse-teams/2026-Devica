@@ -189,7 +189,7 @@ rules:
   - criterion: MEMORY
     weight: 2
     when: { question: SLOWDOWN, anyOf: [ OFTEN ] }
-    reason: 자주 느려진 경험은 메모리가 부족하다는 가장 직접적인 신호입니다.
+    reason: 여러 프로그램을 함께 사용할 때 겪은 불편을 고려해 메모리에 여유를 두었습니다.
   - criterion: MEMORY
     weight: 1
     when: { question: SLOWDOWN, anyOf: [ SOMETIMES ] }
