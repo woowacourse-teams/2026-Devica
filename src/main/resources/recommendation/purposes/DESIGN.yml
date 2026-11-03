@@ -226,7 +226,7 @@ rules:
     reason: 짧게 쓸 계획이라 과한 용량을 피했습니다.
 
   - criterion: STORAGE
-    weight: 1
+    weight: 2
     when: { question: DESIGN_FIELD, anyOf: [ GRAPHIC ] }
     reason: 고해상도 이미지와 레이어가 많은 원본 파일은 자리를 많이 차지합니다.
   - criterion: STORAGE
