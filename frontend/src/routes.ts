@@ -1,5 +1,14 @@
 import { navigate } from 'wouter/use-browser-location';
-import { EMPTY_CONDITION, OSES, type SearchCondition, type SortType, type SpecEdits } from './products';
+import {
+  COLOR_GAMUT_FILTER_LABELS,
+  EMPTY_CONDITION,
+  filterable,
+  GPU_FILTER_LABELS,
+  OSES,
+  type SearchCondition,
+  type SortType,
+  type SpecEdits,
+} from './products';
 import type { Answers } from './questions';
 import type { ResultOs } from './ResultView';
 
@@ -247,6 +256,8 @@ export function conditionOf(params: URLSearchParams): SearchCondition {
     maxPrice: positive(params.get('maxPrice')),
     os: osOf(params),
     cpuTier: params.get('cpuTier'),
+    colorGamut: filterable(COLOR_GAMUT_FILTER_LABELS, params.get('colorGamut')),
+    gpuTier: filterable(GPU_FILTER_LABELS, params.get('gpuTier')),
     brand: params.get('brand'),
     memoryGb: positive(params.get('memoryGb')),
     storageGb: positive(params.get('storageGb')),

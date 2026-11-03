@@ -4,12 +4,14 @@ import { type CpuTier, editChoices, editedSpec, editProperties, type SpecEdits }
 import { osValueOf, type Spec, type SpecItem } from './recommendation';
 import './ResultView.css';
 
-// 원본은 OS 행과 나머지 세 항목을 이 순서로 보여준다.
+// 원본은 OS 행과 나머지 세 항목을 이 순서로 보여준다. GPU·화면은 원본에 없고, 정의서가 요구할 때만 서버가 준다.
 const ROWS: { code: string; label: string }[] = [
   { code: 'OS', label: 'OS' },
   { code: 'REQUIRED_CPU', label: 'PROCESSOR' },
   { code: 'MEMORY', label: 'MEMORY' },
   { code: 'STORAGE', label: 'STORAGE' },
+  { code: 'GPU', label: 'GPU' },
+  { code: 'COLOR_GAMUT', label: 'DISPLAY' },
 ];
 
 const OS_LABEL: Record<string, string> = { MAC: 'Mac', WINDOWS: 'Windows' };

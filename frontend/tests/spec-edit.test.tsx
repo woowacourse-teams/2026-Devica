@@ -11,7 +11,7 @@ import {
 } from '../src/products';
 import { ResultView } from '../src/ResultView';
 import type { Spec } from '../src/recommendation';
-import { editEntries, editsOf } from '../src/routes';
+import { conditionOf, editEntries, editsOf } from '../src/routes';
 
 afterEach(cleanup);
 
@@ -104,6 +104,29 @@ test('추천 결과 직접 수정을 누르면 항목을 고를 수 있고, 권�
 test('필터는 고른 값 그대로 걸린다. 맞춤 목록도 전체 목록과 같은 규칙이다', () => {
   const query = productListQuery('PRICE_ASC', { ...EMPTY_CONDITION, os: 'MAC', memoryGb: 16, cpuTier: 'BASIC' });
   expect(query.toString()).toBe('os=MAC&cpuTier=BASIC&memoryGb=16&sort=PRICE_ASC');
+});
+
+test('GPU·화면 권장은 목록 조건이 되고, 모든 제품이 갖춘 가장 낮은 값은 걸지 않는다', () => {
+  const windows: Spec = {
+    preferred: false,
+    items: [
+      item('OS', 'WINDOWS', 'Windows'),
+      item('GPU', 'MID', '중급 GPU (RTX 4050 급)'),
+      item('COLOR_GAMUT', 'WIDE', '넓은 색 영역'),
+    ],
+  };
+  const query = productListQuery('PRICE_ASC', { ...EMPTY_CONDITION, ...specCondition(windows) });
+  expect(query.toString()).toBe('os=WINDOWS&colorGamut=WIDE&gpuTier=MID&sort=PRICE_ASC');
+
+  const lowest = {
+    ...windows,
+    items: [item('GPU', 'ENTRY', '기본 GPU'), item('COLOR_GAMUT', 'STANDARD', '표준')],
+  };
+  expect(specCondition(lowest)).toMatchObject({ gpuTier: null, colorGamut: null });
+  expect(conditionOf(new URLSearchParams('gpuTier=ENTRY&colorGamut=WIDE'))).toMatchObject({
+    gpuTier: null,
+    colorGamut: 'WIDE',
+  });
 });
 
 test('등급을 받지 못했어도 고친 CPU 는 버리지 않는다', () => {

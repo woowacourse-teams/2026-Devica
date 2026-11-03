@@ -23,6 +23,13 @@ export type CpuTier = {
 export const MEMORY_STEPS = [16, 24, 32, 48];
 export const STORAGE_STEPS = [256, 512, 1024, 2048];
 
+// 서버 ColorGamut·GpuTier 중 걸러 낼 수 있는 값과 칩 라벨이다. 가장 낮은 값은 모든 제품이 갖춰 조건으로 걸지 않는다.
+export const COLOR_GAMUT_FILTER_LABELS: Record<string, string> = { WIDE: '넓은 색 영역(DCI-P3) 화면' };
+export const GPU_FILTER_LABELS: Record<string, string> = {
+  MID: '중급 GPU (RTX 4050 급) 이상',
+  HIGH: '고성능 GPU (RTX 4060 급 이상)',
+};
+
 export type SortType = 'RECOMMENDED' | 'PRICE_ASC' | 'PRICE_DESC';
 
 export type SearchCondition = {
@@ -32,6 +39,8 @@ export type SearchCondition = {
   // OS 와 CPU 등급은 따로 걸고 따로 지운다. 등급은 OS 마다 따로 매겨진다.
   os: string | null;
   cpuTier: string | null;
+  colorGamut: string | null;
+  gpuTier: string | null;
   brand: string | null;
   memoryGb: number | null;
   storageGb: number | null;
@@ -42,6 +51,8 @@ export const EMPTY_CONDITION: SearchCondition = {
   maxPrice: null,
   os: null,
   cpuTier: null,
+  colorGamut: null,
+  gpuTier: null,
   brand: null,
   memoryGb: null,
   storageGb: null,
@@ -146,16 +157,24 @@ export async function fetchProduct(id: number): Promise<ProductDetail> {
  * 권장 사양을 검색 조건으로 옮긴다. 맞춤 목록은 이 조건을 채운 채로 열고, 사용자는 필터로 이어서 고친다.
  * 권장 사양을 따로 깔지 않아 전체 목록과 같은 규칙으로 걸린다. 고른 값 그대로라 권장보다 낮게도 찾는다.
  */
-export function specCondition(spec: Spec): Pick<SearchCondition, 'os' | 'cpuTier' | 'memoryGb' | 'storageGb'> {
+export function specCondition(
+  spec: Spec,
+): Pick<SearchCondition, 'os' | 'cpuTier' | 'colorGamut' | 'gpuTier' | 'memoryGb' | 'storageGb'> {
   const itemValue = (code: string) => spec.items.find((item) => item.code === code)?.value || null;
   const memory = itemValue('MEMORY');
   const storage = itemValue('STORAGE');
   return {
     os: itemValue('OS'),
     cpuTier: itemValue('REQUIRED_CPU'),
+    colorGamut: filterable(COLOR_GAMUT_FILTER_LABELS, itemValue('COLOR_GAMUT')),
+    gpuTier: filterable(GPU_FILTER_LABELS, itemValue('GPU')),
     memoryGb: memory === null ? null : Number(memory),
     storageGb: storage === null ? null : Number(storage),
   };
+}
+
+export function filterable(labels: Record<string, string>, value: string | null): string | null {
+  return value !== null && value in labels ? value : null;
 }
 
 /** 거르기와 정렬은 서버가 한다. 같은 조건이면 같은 목록이고, 페이지만 달리해 이어 받는다. */
@@ -166,6 +185,12 @@ export function productListQuery(sort: SortType, condition: SearchCondition): UR
   }
   if (condition.cpuTier !== null) {
     query.set('cpuTier', condition.cpuTier);
+  }
+  if (condition.colorGamut !== null) {
+    query.set('colorGamut', condition.colorGamut);
+  }
+  if (condition.gpuTier !== null) {
+    query.set('gpuTier', condition.gpuTier);
   }
   if (condition.memoryGb !== null) {
     query.set('memoryGb', String(condition.memoryGb));
