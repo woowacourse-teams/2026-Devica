@@ -233,7 +233,8 @@ rules:
     weight: 1
     when: { question: RUN_TOGETHER, anyOf: [ LOCAL_BACKEND ] }
     reason: 백엔드와 DB 의 이미지·데이터가 자리를 차지합니다.
-  # 지금 쓰는 SSD 가 작다는 걸 아는 경우의 용량 부족은 디스크 크기 탓이라 상향 근거로 쓰지 않는다.
+  # 지금 쓰는 SSD 가 작다는 걸 아는 경우의 용량 부족은 디스크 크기 탓이라 크게 올리지 않고, 지금보다 큰 용량만 권한다.
+  # 기본값이 256GB 라 이 경우 감점(짧은 사용 기간 등)이 걸리면 다시 256GB 가 나오므로 감점을 적용하지 않는다.
   # 미입력은 작다는 근거가 없으므로 사용자의 자기 보고를 그대로 인정한다
   - criterion: STORAGE
     weight: 2
@@ -249,6 +250,13 @@ rules:
         - { not: { question: CURRENT_STORAGE, anyOf: [ GB_256_OR_LESS, TB_1_OR_MORE ] } }
         - { question: STORAGE_SHORTAGE, anyOf: [ ONCE_OR_TWICE ] }
     reason: 용량이 부족했던 경험을 반영했습니다.
+  - criterion: STORAGE
+    weight: 1
+    when: &smallDiskShortage
+      all:
+        - { question: CURRENT_STORAGE, anyOf: [ GB_256_OR_LESS ] }
+        - { question: STORAGE_SHORTAGE, anyOf: [ OFTEN, ONCE_OR_TWICE ] }
+    reason: 지금 256GB 이하에서 용량이 부족했던 경험을 반영해 그보다 큰 용량을 권합니다.
   # 1TB 로도 부족했다면 1TB 를 넘는 용량이 필요하다는 근거라 더 크게 반영한다
   - criterion: STORAGE
     weight: 4
@@ -277,15 +285,8 @@ rules:
     reason: 지금 1TB 를 쓰면서 용량이 부족한 적이 없었습니다.
   - criterion: STORAGE
     weight: -1
-    when: { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }
+    when: { all: [ { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }, { not: *smallDiskShortage } ] }
     reason: 짧게 쓸 계획이라 과한 용량을 피했습니다.
-  - criterion: STORAGE
-    weight: 0
-    when:
-      all:
-        - { question: CURRENT_STORAGE, anyOf: [ GB_256_OR_LESS ] }
-        - { question: STORAGE_SHORTAGE, anyOf: [ OFTEN, ONCE_OR_TWICE, NEVER ] }
-    reason: 지금 쓰는 SSD 가 작아 용량 부족은 디스크 크기 탓으로 보고 수치에 반영하지 않았습니다.
 
   - criterion: REQUIRED_CPU
     weight: 1
