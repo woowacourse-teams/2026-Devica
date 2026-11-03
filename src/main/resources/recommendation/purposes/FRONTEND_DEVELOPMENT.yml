@@ -354,13 +354,15 @@ mappings:
 
 # 프론트엔드 개발은 개발 서버 하나와 브라우저가 기본이라 백엔드보다 CPU 구간을 넓게 잡는다.
 # 보통의 답(팀 서비스 하나, 탭 여러 개, 가끔 느려짐)은 메모리 3점·CPU 0점·저장 공간 1점으로 24GB·기본 칩·512GB 가 나온다
-# 기본 권장 사양(답이 없는 0점)은 16GB·기본 칩·512GB 다. 운영체제·브라우저·에디터·개발 서버를 가볍게 잡으면 7~12GB 라
-# 16GB 에 들어가고, 백엔드처럼 Docker 가 기본으로 깔리지 않아 백엔드(16GB)보다 높게 둘 이유가 없다
+# 기본 권장 사양(답이 없는 0점)은 16GB·기본 칩·256GB 다. 운영체제·브라우저·에디터·개발 서버를 가볍게 잡으면 7~12GB 라
+# 16GB 에 들어가고, 백엔드처럼 Docker 가 기본으로 깔리지 않아 백엔드(16GB)보다 높게 둘 이유가 없다.
+# 저장 공간도 운영체제·Node·캐시·node_modules 를 더하면 60~90GB 라, SSD 의 20% 를 비워 두어도 256GB 에 여유가 있다.
+# 백엔드는 Docker 가 20~40GB 를 더 써 512GB 다. 저장 공간을 올리는 답이 하나라도 있으면 512GB 가 된다
 interpretation:
   cpu:
     MAC: [ { upTo: 2, value: BASIC }, { upTo: 5, value: PRO }, { value: MAX } ]
     WINDOWS: [ { upTo: 2, value: P_HS }, { upTo: 5, value: H }, { value: HX } ]
   memory: [ { upTo: 2, value: 16 }, { upTo: 5, value: 24 }, { upTo: 9, value: 32 }, { value: 48 } ]
-  storage: [ { upTo: -2, value: 256 }, { upTo: 2, value: 512 }, { upTo: 5, value: 1024 }, { value: 2048 } ]
+  storage: [ { upTo: 0, value: 256 }, { upTo: 2, value: 512 }, { upTo: 5, value: 1024 }, { value: 2048 } ]
   # 예산을 고려해 Mac 권장 CPU 를 이 등급까지로 제한한다. M Max 칩은 권하지 않는다
   macCpuLimit: PRO
