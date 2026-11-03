@@ -105,6 +105,8 @@ survey:
             - { code: FIGMA, content: "Figma, Framer 등" }
             - { code: SKETCH, content: Sketch }
             - { code: ADOBE, content: "Photoshop, Illustrator 등 Adobe 도구" }
+            # 3D·영상 부담은 DESIGN_FIELD 에서 반영하므로 점수를 주지 않는다
+            - { code: OTHER, content: "그 밖의 도구(Blender, After Effects 등)" }
             - { code: UNDECIDED, content: 아직 정하지 않았다 }
         - code: MULTITASKING
           title: 작업할 때 디자인 도구를 몇 개나 함께 켜두나요?
