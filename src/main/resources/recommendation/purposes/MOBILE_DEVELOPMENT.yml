@@ -155,6 +155,14 @@ survey:
 # 조건 하나로는 크게 오르지 않게 가중치를 나눈다 — 하나만 걸려도 최대로 올리면 답할수록 결과가 달라지지 않아
 # 설문이 무의미해지고, 필요보다 높은 사양이 나온다.
 rules:
+  # 기본값 32GB 는 Android Studio·에뮬레이터 권장이 근거라 iOS 만 만들면 한 단계 낮춘다
+  - criterion: MEMORY
+    weight: -1
+    when:
+      all:
+        - { question: TARGET_PLATFORM, anyOf: [ IOS ] }
+        - { not: { question: TARGET_PLATFORM, anyOf: [ ANDROID ] } }
+    reason: Android 에뮬레이터를 쓰지 않아 기본 메모리를 낮췄습니다.
   - criterion: MEMORY
     weight: 1
     when: { question: TARGET_PLATFORM, anyOf: [ ANDROID ] }
