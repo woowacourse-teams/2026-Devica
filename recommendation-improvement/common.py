@@ -139,9 +139,10 @@ def uses(d, question, criterion):
 
 def target(d, rule, question):
     # 사용자가 기댄 답(question)으로 rule 을 더할지. rule 은 사용자가 고른 선택지로 만든 새 규칙이다
-    #   exists  같은 규칙이 이미 있거나, 같은 질문들로 된 규칙이 사용자가 고른 선택지를 이미 담고 있다(rule 에 그 규칙)
+    #   exists  같은 규칙이 이미 있거나, 같은 질문들로 된 규칙이 모든 질문에서 사용자가 고른 선택지를 이미 담고 있다(rule 에 그 규칙)
     #   add     그 질문을 보는 그 항목의 규칙도 매핑도 없다
-    #   widen   그 질문을 보는 규칙이 같은 질문들로 된 규칙 하나뿐이다. 그 규칙의 선택지를 넓힌다(rule 에 그 규칙)
+    #   widen   그 질문을 보는 규칙이 같은 질문들로 된 규칙 하나뿐이고, 어느 질문에서 사용자가 고른 선택지를 담지 않는다.
+    #           그 규칙의 선택지를 넓힌다(rule 에 그 규칙)
     #   seen    그 밖. 다른 모양의 규칙이나 매핑이 그 답을 본다
     u, s = uses(d, question, rule['criterion']), same(d, rule)
     if s['same']:
@@ -153,7 +154,8 @@ def target(d, rule, question):
     shaped = {key(r) for r in s['same_questions']}
     if len(s['same_questions']) == 1 and all(key(r) in shaped for r in u['rules']):
         old = s['same_questions'][0]
-        return {'kind': 'exists' if options(rule['when'], question) <= options(old['when'], question) else 'widen', 'rule': old}
+        covered = all(options(rule['when'], q) <= options(old['when'], q) for q in questions(rule['when']))
+        return {'kind': 'exists' if covered else 'widen', 'rule': old}
     return {'kind': 'seen', 'rule': None}
 
 

@@ -107,6 +107,9 @@ class CommonTest(unittest.TestCase):
         both = {**DEF, 'rules': DEF['rules'] + [{**mem('GB_16'), 'when': {'all': [
             {'question': 'CURRENT_MEMORY', 'anyOf': ['GB_16', 'GB_32']}, {'question': 'SLOWDOWN', 'anyOf': ['OFTEN']}]}, 'weight': 1}]}
         self.assertEqual(common.target(both, mem('GB_32'), 'CURRENT_MEMORY')['kind'], 'exists')
+        sometimes = {'criterion': 'MEMORY', 'when': {'all': [{'question': 'CURRENT_MEMORY', 'anyOf': ['GB_32']},
+                                                             {'question': 'SLOWDOWN', 'anyOf': ['SOMETIMES']}]}}
+        self.assertEqual(common.target(d, sometimes, 'CURRENT_MEMORY')['kind'], 'widen')
         other = {**DEF, 'rules': d['rules'] + [{'criterion': 'MEMORY', 'when': {'question': 'CURRENT_MEMORY', 'anyOf': ['GB_8']}, 'weight': 2}]}
         self.assertEqual(common.target(other, mem('GB_24'), 'CURRENT_MEMORY')['kind'], 'seen')
         mapped = {**DEF, 'mappings': [{'criterion': 'CURRENT_CPU_TIER', 'value': 'X', 'when': {'question': 'CURRENT_MEMORY', 'anyOf': ['GB_8']}}]}
