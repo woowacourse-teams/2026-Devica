@@ -65,6 +65,15 @@ class ProductServiceTest {
     }
 
     @Test
+    void 없는_카테고리로_최저가를_조회하면_예외가_발생한다() {
+        // when & then
+        assertThatThrownBy(() -> productService.findMinPrice("UNKNOWN", condition().build()))
+            .isInstanceOf(BusinessException.class)
+            .extracting(exception -> ((BusinessException) exception).getErrorCode())
+            .isEqualTo(BusinessErrorCode.PRODUCT_CATEGORY_NOT_FOUND);
+    }
+
+    @Test
     void 없는_카테고리로_브랜드를_조회하면_예외가_발생한다() {
         // when & then
         assertThatThrownBy(() -> productService.findBrandsByCategory("UNKNOWN", null))

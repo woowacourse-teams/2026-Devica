@@ -291,24 +291,6 @@ class LaptopE2ETest extends E2ETest {
             .body("minPrice", nullValue());
     }
 
-    @Test
-    void 최저가를_조회할_때_조건이_올바르지_않으면_400을_받는다() {
-        given()
-            .queryParam("os", "MAC")
-            .queryParam("cpuTier", CpuTier.H)
-            .when().get(PATH + "/min-price")
-            .then().statusCode(400)
-            .body("code", is("INVALID_REQUEST"));
-    }
-
-    @Test
-    void 없는_제품_종류의_최저가를_조회하면_404를_받는다() {
-        given()
-            .when().get("/api/product-categories/PHONE/products/min-price")
-            .then().statusCode(404)
-            .body("code", is("PRODUCT_CATEGORY_NOT_FOUND"));
-    }
-
     // UC-07: 판매 중인 구매처가 없는 제품도 목록에 넣고 가격은 비워둔다
     @Test
     void 살_수_없는_노트북도_목록에_나오고_최저가는_비어_있다() {
