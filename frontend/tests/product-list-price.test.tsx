@@ -17,7 +17,7 @@ const offer: Offer = {
 };
 
 async function show(price: number | null, source?: Offer | null) {
-  forget('products:LAPTOP?sort=RECOMMENDED');
+  forget('products:LAPTOP?sort=PRICE_ASC');
   const product: Product = {
     id: 1,
     brand: '검증용',
@@ -40,7 +40,7 @@ async function show(price: number | null, source?: Offer | null) {
       mode="ALL"
       specs={[]}
       backLabel="뒤로"
-      state={{ sort: 'RECOMMENDED', condition: EMPTY_CONDITION, filterOpen: false }}
+      state={{ sort: 'PRICE_ASC', condition: EMPTY_CONDITION, filterOpen: false }}
       searching={false}
       onChangeState={vi.fn()}
       onSearched={vi.fn()}

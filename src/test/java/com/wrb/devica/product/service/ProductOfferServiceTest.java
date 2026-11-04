@@ -421,7 +421,7 @@ class ProductOfferServiceTest {
     void 여러_제품의_동률은_숨김을_제외한_가장_작은_오퍼_ID를_선택한다() {
         // given
         Laptop first = saveLaptop();
-        Laptop second = laptopRepository.save(laptop().category(first.getCategory()).cpu(first.getCpu()).build());
+        Laptop second = saveLaptop(first.getCategory());
         productOfferRepository.save(coupangOffer(first).price(900_000L).status(OfferStatus.HIDDEN).build());
         ProductOffer winner = productOfferRepository.save(coupangOffer(first).price(900_000L).build());
         ProductOffer tied = productOfferRepository.save(coupangOffer(first).name("학생복지스토어")
@@ -494,8 +494,12 @@ class ProductOfferServiceTest {
     }
 
     private Laptop saveLaptop() {
+        return saveLaptop(productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP)));
+    }
+
+    private Laptop saveLaptop(ProductCategory category) {
         return laptopRepository.save(laptop()
-            .category(productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP)))
+            .category(category)
             .cpu(cpuRepository.save(cpu().build()))
             .build());
     }

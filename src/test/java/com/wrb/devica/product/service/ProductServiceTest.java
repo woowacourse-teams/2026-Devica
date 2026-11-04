@@ -120,16 +120,18 @@ class ProductServiceTest {
         }
         entityManager.flush();
         entityManager.clear();
+        // 가격 없는 제품의 보충 조회가 아니라 판매처 조회 수를 비교한다.
+        var searchCondition = condition().minPrice(1L).build();
         var stats = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
         boolean enabled = stats.isStatisticsEnabled();
         stats.setStatisticsEnabled(true);
         try {
             // when: 한 제품을 조회한 뒤 페이지 크기를 늘린다.
             stats.clear();
-            productService.findProductsByCategory("LAPTOP", condition().build(), new PageCondition(0, 1, null));
+            productService.findProductsByCategory("LAPTOP", searchCondition, new PageCondition(0, 1, null));
             long singleProductQueries = stats.getPrepareStatementCount();
             stats.clear();
-            var page = productService.findProductsByCategory("LAPTOP", condition().build(), new PageCondition(0, 10, null));
+            var page = productService.findProductsByCategory("LAPTOP", searchCondition, new PageCondition(0, 10, null));
 
             // then
             assertThat(page.getContent()).hasSize(3).allSatisfy(row -> {
