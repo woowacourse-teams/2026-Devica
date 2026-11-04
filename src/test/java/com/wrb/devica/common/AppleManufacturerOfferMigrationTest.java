@@ -58,6 +58,7 @@ class AppleManufacturerOfferMigrationTest {
 
         // then
         assertThat(offerSnapshot()).containsAll(before);
+        assertNewOffersMatchTargets(before, List.of(productId));
         var apple = registeredOffer(productId);
         assertThat(apple).extracting(ProductOffer::getPrice, ProductOffer::getCheckedAt,
                 ProductOffer::getStatus, ProductOffer::getPriceBasis, ProductOffer::getLinkType)
@@ -128,6 +129,13 @@ class AppleManufacturerOfferMigrationTest {
         assertThat(offerSnapshot()).isEqualTo(before);
         assertThat(jdbcTemplate.queryForList("SELECT product_id, min_price FROM product_min_price ORDER BY product_id"))
             .isEqualTo(prices);
+    }
+
+    private void assertNewOffersMatchTargets(List<Map<String, Object>> before, List<Long> targetIds) {
+        var existingIds = before.stream().map(offer -> offer.get("id")).toList();
+        var added = offerSnapshot().stream().filter(offer -> !existingIds.contains(offer.get("id"))).toList();
+        assertThat(added).extracting(offer -> offer.get("product_id")).containsExactlyInAnyOrderElementsOf(targetIds);
+        assertThat(added).extracting(offer -> offer.get("name")).containsOnly("Apple 공홈");
     }
 
     private ProductOffer registeredOffer(long productId) {
