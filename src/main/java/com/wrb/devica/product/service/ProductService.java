@@ -5,12 +5,14 @@ import com.wrb.devica.common.exception.BusinessErrorCode;
 import com.wrb.devica.common.exception.BusinessException;
 import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.domain.Product;
+import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.dto.LaptopSearchCondition;
 import com.wrb.devica.product.dto.PageCondition;
 import com.wrb.devica.product.dto.ProductSummaryResponse;
 import com.wrb.devica.product.dto.ProductSummaryRow;
 import com.wrb.devica.product.repository.LaptopRepository;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -35,7 +37,7 @@ public class ProductService {
             pageCondition.sort(),
             PageRequest.of(pageCondition.page(), pageCondition.size())
         );
-        var sources = productOfferService.findLowestOnSaleOffers(rows.stream()
+        Map<Long, ProductOffer> sources = productOfferService.findLowestOnSaleOffers(rows.stream()
             .filter(row -> row.minPrice() != null).map(ProductSummaryRow::id).toList());
         return rows.map(row -> ProductSummaryResponse.from(
             row, imageUrlResolver.resolve(row.imageKey()), sources.get(row.id()))
