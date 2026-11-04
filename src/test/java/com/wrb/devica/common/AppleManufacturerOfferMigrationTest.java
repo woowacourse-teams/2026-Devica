@@ -22,6 +22,8 @@ import org.springframework.test.context.ActiveProfiles;
 @Import(FlywayTestConfiguration.class)
 class AppleManufacturerOfferMigrationTest {
 
+    private static final long VERIFIED_PRICE = 2_190_000L;
+
     @Autowired private Flyway flyway;
     @Autowired private JdbcTemplate jdbcTemplate;
     private Flyway appleMigration;
@@ -44,10 +46,10 @@ class AppleManufacturerOfferMigrationTest {
     void 추가_판매처가_있어도_기존_오퍼를_보존하고_검수한_가격을_등록한다() {
         // given: 판매처가 늘어나도 기존 가격을 덮어쓰지 않는다.
         long productId = targetProductId();
-        jdbcTemplate.update("UPDATE product_offer SET price = 50000000 WHERE product_id = ? AND status = 'ON_SALE'",
-            productId);
-        saveOffer(productId, "추가 판매처", 3_000_000L, "ON_SALE");
-        saveOffer(productId, "품절 판매처", 1L, "SOLD_OUT");
+        jdbcTemplate.update("UPDATE product_offer SET price = ? WHERE product_id = ? AND status = 'ON_SALE'",
+            VERIFIED_PRICE + 100_000L, productId);
+        saveOffer(productId, "추가 판매처", VERIFIED_PRICE + 200_000L, "ON_SALE");
+        saveOffer(productId, "품절 판매처", VERIFIED_PRICE - 100_000L, "SOLD_OUT");
         var before = offerSnapshot();
 
         // when
@@ -58,13 +60,13 @@ class AppleManufacturerOfferMigrationTest {
         assertNewOffersMatchTargets(before, List.of(productId));
         var apple = registeredOffer(productId);
         assertThat(apple)
-            .containsEntry("price", 2_190_000L)
+            .containsEntry("price", VERIFIED_PRICE)
             .containsEntry("checked_at", Date.valueOf("2026-11-02"))
             .containsEntry("status", "ON_SALE")
             .containsEntry("external_item_id", null)
             .containsEntry("purchase_url", "https://www.apple.com/kr/shop/buy-mac/macbook-air/"
                 + "13-모델-스카이-블루-m5-칩-10코어-cpu-8코어-gpu-16gb-메모리-512gb-저장-장치");
-        assertThat(minPrice(productId)).isEqualTo(2_190_000L);
+        assertThat(minPrice(productId)).isEqualTo(VERIFIED_PRICE);
     }
 
     @Test
