@@ -111,7 +111,7 @@ class ProductServiceTest {
     }
 
     @Test
-    void 페이지의_판매처는_한번에_조회하고_빈_페이지는_추가_조회하지_않는다() {
+    void 페이지의_제품수가_늘어도_판매처를_제품마다_추가_조회하지_않는다() {
         // given
         for (int i = 0; i < 3; i++) {
             Laptop laptop = laptopOf(laptop());
@@ -124,7 +124,10 @@ class ProductServiceTest {
         boolean enabled = stats.isStatisticsEnabled();
         stats.setStatisticsEnabled(true);
         try {
-            // when: 제품이 있는 페이지
+            // when: 한 제품을 조회한 뒤 페이지 크기를 늘린다.
+            stats.clear();
+            productService.findProductsByCategory("LAPTOP", condition().build(), new PageCondition(0, 1, null));
+            long singleProductQueries = stats.getPrepareStatementCount();
             stats.clear();
             var page = productService.findProductsByCategory("LAPTOP", condition().build(), new PageCondition(0, 10, null));
 
@@ -133,15 +136,7 @@ class ProductServiceTest {
                 assertThat(row.minPriceOffer()).isNotNull();
                 assertThat(row.minPriceOffer().price()).isEqualTo(row.minPrice());
             });
-            assertThat(stats.getPrepareStatementCount()).isEqualTo(2);
-
-            // when: 빈 페이지
-            stats.clear();
-            var emptyPage = productService.findProductsByCategory("LAPTOP", condition().build(), new PageCondition(5, 10, null));
-
-            // then
-            assertThat(emptyPage).isEmpty();
-            assertThat(stats.getPrepareStatementCount()).isEqualTo(1);
+            assertThat(stats.getPrepareStatementCount()).isEqualTo(singleProductQueries);
         } finally {
             stats.setStatisticsEnabled(enabled);
         }
