@@ -223,7 +223,7 @@ export function specOsOf(params: URLSearchParams): ResultOs | null {
   return RESULT_OS.find((os) => os === value) ?? null;
 }
 
-const SORTS: SortType[] = ['RECOMMENDED', 'PRICE_ASC', 'PRICE_DESC'];
+const SORTS: SortType[] = ['PRICE_ASC', 'PRICE_DESC'];
 
 export function sortOf(params: URLSearchParams): SortType | null {
   const value = params.get('sort');

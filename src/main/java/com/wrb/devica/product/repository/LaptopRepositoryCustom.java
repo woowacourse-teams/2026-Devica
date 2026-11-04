@@ -10,7 +10,10 @@ import org.springframework.data.domain.Slice;
 
 public interface LaptopRepositoryCustom {
 
-    Slice<ProductSummaryRow> findSummariesWithMinPrice(LaptopSearchCondition condition, SortType sort,
-                                                            Pageable pageable);
+    Slice<ProductSummaryRow> findSummariesWithMinPrice(
+        LaptopSearchCondition condition, SortType sort, Pageable pageable);
+
+    Long findMinPrice(LaptopSearchCondition condition);
+
     List<String> findBrands(Os os);
 }
