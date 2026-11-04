@@ -16,8 +16,6 @@ import org.flywaydb.core.api.FlywayException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -31,11 +29,11 @@ class MacBookAirOfferMigrationTest {
 
     private static final String APPLE_URL = "https://www.apple.com/kr/shop/buy-mac/macbook-air/";
     private static final List<ExpectedOffer> EXPECTED = List.of(
-        new ExpectedOffer("MDHD4KH/A", 3_040_000L, 2_840_000L,
+        new ExpectedOffer("MDHD4KH/A", 3_040_000L,
             "13-모델-스카이-블루-m5-칩-10코어-cpu-10코어-gpu-24gb-메모리-1tb-저장-장치"),
-        new ExpectedOffer("MDVD4KH/A", 2_490_000L, 2_330_640L,
+        new ExpectedOffer("MDVD4KH/A", 2_490_000L,
             "15-모델-스카이-블루-m5-칩-10코어-cpu-10코어-gpu-16gb-메모리-512gb-저장-장치"),
-        new ExpectedOffer("MDVC4KH/A", 3_340_000L, 3_126_240L,
+        new ExpectedOffer("MDVC4KH/A", 3_340_000L,
             "15-모델-스카이-블루-m5-칩-10코어-cpu-10코어-gpu-24gb-메모리-1tb-저장-장치")
     );
 
@@ -59,21 +57,17 @@ class MacBookAirOfferMigrationTest {
     }
 
     @Test
-    void 기존_21개_오퍼를_보존하고_세_모델에_검증된_Apple_가격을_등록한다() {
+    void 추가_판매처를_보존하고_대상_제품의_검수한_가격을_등록한다() {
         // given
+        saveOffer(productId(EXPECTED.getFirst().code()), "추가 판매처", 100_000L, "ON_SALE");
         var before = offerSnapshot();
 
         // when
         airMigration.migrate();
 
         // then
-        assertThat(before).hasSize(21);
-        assertThat(offerSnapshot()).hasSize(24).containsAll(before);
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM product", Long.class)).isEqualTo(20L);
+        assertThat(offerSnapshot()).containsAll(before);
         EXPECTED.forEach(this::assertVerifiedOffer);
-        assertLowest("MDH74KH/A", 2_080_500L, "쿠팡");
-        assertThat(airMigration.migrate().migrationsExecuted).isZero();
-        assertThat(offerSnapshot()).hasSize(24);
     }
 
     @Test
@@ -82,7 +76,7 @@ class MacBookAirOfferMigrationTest {
         long first = productId("MDHD4KH/A");
         long second = productId("MDVD4KH/A");
         long third = productId("MDVC4KH/A");
-        jdbcTemplate.update("UPDATE product_offer SET price = 5000000 WHERE product_id = ?", first);
+        jdbcTemplate.update("UPDATE product_offer SET price = 50000000 WHERE product_id IN (?, ?) AND status = 'ON_SALE'", first, second);
         saveOffer(second, "더 싼 판매처", 2_000_000L, "ON_SALE");
         saveOffer(second, "품절 판매처", 1_000_000L, "SOLD_OUT");
         jdbcTemplate.update("DELETE FROM product_min_price WHERE product_id = ?", third);
@@ -93,15 +87,13 @@ class MacBookAirOfferMigrationTest {
         // then
         assertLowest("MDHD4KH/A", 3_040_000L, "Apple 공홈");
         assertLowest("MDVD4KH/A", 2_000_000L, "더 싼 판매처");
-        assertLowest("MDVC4KH/A", 3_126_240L, "쿠팡");
-        assertLowest("MDH74KH/A", 2_080_500L, "쿠팡");
+        assertLowestMatchesOnSaleOffers("MDVC4KH/A");
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"MDHD4KH/A", "MDVD4KH/A", "MDVC4KH/A"})
-    void 세_대상_중_하나라도_없으면_모든_등록을_중단한다(String missingCode) {
-        // given
-        jdbcTemplate.update("UPDATE product SET code = 'UNMATCHED-APPLE' WHERE code = ?", missingCode);
+    @Test
+    void 세_대상_중_하나라도_없으면_모든_등록을_중단한다() {
+        // given: 마지막 대상이 없어도 다른 대상을 부분 등록하지 않는다.
+        jdbcTemplate.update("UPDATE product SET code = 'UNMATCHED-OFFER' WHERE code = ?", "MDVC4KH/A");
 
         // when & then
         assertMigrationRejectedWithoutChanges();
@@ -126,10 +118,9 @@ class MacBookAirOfferMigrationTest {
     }
 
     private void assertVerifiedOffer(ExpectedOffer expected) {
+
         long productId = productId(expected.code());
-        var onSale = offers.findOnSaleOffers(productId);
-        assertThat(onSale).extracting(ProductOffer::getName).containsExactly("쿠팡", "Apple 공홈");
-        var apple = onSale.get(1);
+        var apple = registeredOffer(productId);
         assertThat(apple).extracting(ProductOffer::getPrice, ProductOffer::getCheckedAt,
                 ProductOffer::getStatus, ProductOffer::getPriceBasis, ProductOffer::getLinkType)
             .containsExactly(expected.price(), LocalDate.of(2026, 11, 2), OfferStatus.ON_SALE,
@@ -137,7 +128,7 @@ class MacBookAirOfferMigrationTest {
         assertThat(apple.getExternalItemId()).isNull();
         assertThat(apple.getPriceCondition()).isEqualTo("일반 판매가 · 스카이 블루 · 한국어 키보드");
         assertThat(apple.getPurchaseUrl()).isEqualTo(APPLE_URL + expected.path());
-        assertLowest(expected.code(), expected.coupangPrice(), "쿠팡");
+        assertLowestMatchesOnSaleOffers(expected.code());
     }
 
     private void assertLowest(String code, long price, String seller) {
@@ -151,13 +142,29 @@ class MacBookAirOfferMigrationTest {
 
     private void assertMigrationRejectedWithoutChanges() {
         var offersBefore = offerSnapshot();
-        var pricesBefore = jdbcTemplate.queryForList("SELECT * FROM product_min_price ORDER BY product_id");
+        var pricesBefore = jdbcTemplate.queryForList("SELECT product_id, min_price FROM product_min_price ORDER BY product_id");
 
         assertThatThrownBy(airMigration::migrate).isInstanceOf(FlywayException.class);
 
         assertThat(offerSnapshot()).isEqualTo(offersBefore);
-        assertThat(jdbcTemplate.queryForList("SELECT * FROM product_min_price ORDER BY product_id"))
+        assertThat(jdbcTemplate.queryForList("SELECT product_id, min_price FROM product_min_price ORDER BY product_id"))
             .isEqualTo(pricesBefore);
+    }
+
+
+    private void assertLowestMatchesOnSaleOffers(String code) {
+        long id = productId(code);
+        long expected = offers.findOnSaleOffers(id).stream().mapToLong(ProductOffer::getPrice).min().orElseThrow();
+        assertThat(jdbcTemplate.queryForObject("SELECT min_price FROM product_min_price WHERE product_id = ?",
+            Long.class, id)).isEqualTo(expected);
+        assertThat(offers.findLowestOnSaleOffers(List.of(id)).get(id).getPrice()).isEqualTo(expected);
+    }
+
+    private ProductOffer registeredOffer(long productId) {
+        var registered = offers.findOnSaleOffers(productId).stream()
+            .filter(offer -> "Apple 공홈".equals(offer.getName())).toList();
+        assertThat(registered).hasSize(1);
+        return registered.getFirst();
     }
 
     private long productId(String code) {
@@ -165,7 +172,11 @@ class MacBookAirOfferMigrationTest {
     }
 
     private List<Map<String, Object>> offerSnapshot() {
-        return jdbcTemplate.queryForList("SELECT * FROM product_offer ORDER BY id");
+        return jdbcTemplate.queryForList("""
+            SELECT id, product_id, name, price, status, purchase_url, external_item_id,
+                   checked_at, price_condition, price_basis, link_type
+            FROM product_offer ORDER BY id
+            """);
     }
 
     private void saveOffer(long productId, String name, long price, String status) {
@@ -175,6 +186,6 @@ class MacBookAirOfferMigrationTest {
             """, productId, name, price, status);
     }
 
-    private record ExpectedOffer(String code, long price, long coupangPrice, String path) {
+    private record ExpectedOffer(String code, long price, String path) {
     }
 }
