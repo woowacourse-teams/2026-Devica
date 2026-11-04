@@ -111,12 +111,13 @@ survey:
 
     - questions:
         - code: SLOWDOWN
-          title: IDE 와 에뮬레이터를 함께 켜두면 멈추거나 껐다 켜야 했나요?
+          title: 앱 개발에 필요한 프로그램을 함께 켰을 때, 작업이 멈추거나 프로그램을 닫아야 했나요?
           options:
             - { code: OFTEN, content: 자주 그렇다 }
             - { code: SOMETIMES, content: 가끔 느려진다 }
             - { code: FINE, content: 괜찮다 }
             - { code: UNKNOWN, content: 잘 모르겠다 }
+            - { code: NO_EXPERIENCE, content: 아직 개발해 본 적이 없다 }
 
     - questions:
         - code: STORAGE_SHORTAGE
@@ -137,7 +138,7 @@ survey:
 
     - questions:
         - code: OVERHEATING
-          title: 개발할 때 노트북이 뜨거워지거나 팬이 크게 도나요?
+          title: 개발할 때 노트북 바닥이나 키보드가 뜨겁게 느껴지나요?
           options:
             - { code: OFTEN, content: 자주 그렇다 }
             - { code: FINE, content: 가끔 / 별로 없다 }
@@ -168,13 +169,6 @@ rules:
     when: { question: TARGET_PLATFORM, anyOf: [ ANDROID ] }
     reason: Android Studio 와 Gradle 빌드는 메모리를 많이 씁니다.
   - criterion: MEMORY
-    weight: 1
-    when:
-      all:
-        - { question: TARGET_PLATFORM, anyOf: [ ANDROID ] }
-        - { question: TARGET_PLATFORM, anyOf: [ IOS ] }
-    reason: 두 플랫폼의 개발 도구를 함께 띄우면 그만큼 더 듭니다.
-  - criterion: MEMORY
     weight: 2
     when: { question: TEST_DEVICE, anyOf: [ EMULATOR_MANY ] }
     reason: 에뮬레이터는 기기마다 메모리를 따로 잡아 여러 개 띄우면 크게 늘어납니다.
@@ -189,7 +183,7 @@ rules:
   - criterion: MEMORY
     weight: 2
     when: { question: SLOWDOWN, anyOf: [ OFTEN ] }
-    reason: 자주 느려진 경험은 메모리가 부족하다는 가장 직접적인 신호입니다.
+    reason: 여러 프로그램을 함께 사용할 때 겪은 불편을 고려해 메모리에 여유를 두었습니다.
   - criterion: MEMORY
     weight: 1
     when: { question: SLOWDOWN, anyOf: [ SOMETIMES ] }
@@ -282,7 +276,7 @@ rules:
   - criterion: REQUIRED_CPU
     weight: 2
     when: { question: OVERHEATING, anyOf: [ OFTEN ] }
-    reason: 지속 부하에서 발열로 성능이 떨어진 경험을 반영했습니다.
+    reason: 작업 중 노트북이 자주 뜨거워지는 것은 오래 이어지는 부하가 크다는 신호라 반영했습니다.
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: TEST_DEVICE, anyOf: [ EMULATOR_MANY ] }
@@ -342,7 +336,7 @@ notes:
     when: { question: TARGET_PLATFORM, anyOf: [ IOS ] }
     message: iOS 앱 빌드와 App Store 배포에는 Xcode 가 돌아가는 Mac 이 필요합니다.
 
-# 기본 권장 사양(답이 없는 0점)은 Mac 기본 칩·Windows H 급·32GB·512GB 다.
+# 기본 권장 사양(답이 없는 0점)은 Mac 기본 칩·Windows H 급·32GB·512GB 다. 노트북에서 IDE 와 에뮬레이터를 직접 쓰는 개발을 전제로 한다.
 # Android Studio 는 에뮬레이터를 쓸 때 최소 16GB·권장 32GB 이고, 최소 구성만으로도 약 14GB 를 써 16GB 에는 여유가 없어
 # 공식 권장값인 32GB 를 기본으로 둔다. 짧게 쓸 계획이면 24GB 로 낮춘다
 interpretation:
@@ -351,7 +345,8 @@ interpretation:
     # Android Studio 권장 사양이 노트북에 H·HX 급을 권하고 U 시리즈는 권하지 않아 Windows 는 점수가 낮아도 H 부터 권한다
     WINDOWS: [ { upTo: 4, value: H }, { value: HX } ]
   memory: [ { upTo: -1, value: 24 }, { upTo: 6, value: 32 }, { value: 48 } ]
-  # 가장 낮은 점수가 -2 라 256GB 는 나오지 않는다. Xcode·SDK 만으로도 수십 GB 를 차지해 256GB 는 권하지 않는다
+  # 가장 낮은 점수가 -2 라 256GB 는 나오지 않는다. SDK·시뮬레이터와 업데이트 여유를 고려해 이 서비스는 512GB 부터 권한다.
+  # Xcode 설치·업데이트 50GB, 런타임당 약 10GB 는 Apple 공식 요구가 아니라 2021년 개발자 포럼의 사용자 답변이다
   storage: [ { upTo: -3, value: 256 }, { upTo: 2, value: 512 }, { upTo: 6, value: 1024 }, { value: 2048 } ]
   # 예산을 고려해 Mac 권장 CPU 를 이 등급까지로 제한한다. M Max 칩은 권하지 않는다
   macCpuLimit: PRO
