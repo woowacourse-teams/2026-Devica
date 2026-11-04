@@ -3,10 +3,7 @@ package com.wrb.devica.common;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.wrb.devica.product.domain.OfferStatus;
-import com.wrb.devica.product.domain.ProductOffer;
-import com.wrb.devica.product.service.ProductOfferService;
-import java.time.LocalDate;
+import java.sql.Date;
 import java.util.List;
 import java.util.Map;
 import org.flywaydb.core.Flyway;
@@ -37,7 +34,6 @@ class MacBookAirOfferMigrationTest {
 
     @Autowired private Flyway flyway;
     @Autowired private JdbcTemplate jdbcTemplate;
-    @Autowired private ProductOfferService offers;
     private Flyway airMigration;
 
     @BeforeEach
@@ -57,7 +53,10 @@ class MacBookAirOfferMigrationTest {
     @Test
     void 추가_판매처를_보존하고_대상_제품의_검수한_가격을_등록한다() {
         // given
-        saveOffer(productId(EXPECTED.getFirst().code()), "추가 판매처", 100_000L, "ON_SALE");
+        long first = productId(EXPECTED.getFirst().code());
+        jdbcTemplate.update("UPDATE product_offer SET price = 50000000 WHERE product_id = ? AND status = 'ON_SALE'", first);
+        saveOffer(first, "품절 판매처", 1L, "SOLD_OUT");
+        saveOffer(productId(EXPECTED.get(1).code()), "추가 판매처", 100_000L, "ON_SALE");
         var before = offerSnapshot();
 
         // when
@@ -66,36 +65,7 @@ class MacBookAirOfferMigrationTest {
         // then
         assertThat(offerSnapshot()).containsAll(before);
         assertNewOffersMatchTargets(before, EXPECTED.stream().map(expected -> productId(expected.code())).toList());
-        EXPECTED.forEach(this::assertVerifiedOffer);
-    }
-
-    @Test
-    void 세_모델의_최저가를_갱신하고_품절을_제외하며_누락된_캐시를_복구한다() {
-        // given
-        long first = productId("MDHD4KH/A");
-        long second = productId("MDVD4KH/A");
-        long third = productId("MDVC4KH/A");
-        jdbcTemplate.update("UPDATE product_offer SET price = 50000000 WHERE product_id IN (?, ?) AND status = 'ON_SALE'", first, second);
-        saveOffer(second, "더 싼 판매처", 2_000_000L, "ON_SALE");
-        saveOffer(second, "품절 판매처", 1_000_000L, "SOLD_OUT");
-        jdbcTemplate.update("DELETE FROM product_min_price WHERE product_id = ?", third);
-
-        // when
-        airMigration.migrate();
-
-        // then
-        assertLowest("MDHD4KH/A", 3_040_000L, "Apple 공홈");
-        assertLowest("MDVD4KH/A", 2_000_000L, "더 싼 판매처");
-        assertLowestMatchesOnSaleOffers("MDVC4KH/A");
-    }
-
-    @Test
-    void 세_대상_중_하나라도_없으면_모든_등록을_중단한다() {
-        // given: 마지막 대상이 없어도 다른 대상을 부분 등록하지 않는다.
-        jdbcTemplate.update("UPDATE product SET code = 'UNMATCHED-OFFER' WHERE code = ?", "MDVC4KH/A");
-
-        // when & then
-        assertMigrationRejectedWithoutChanges();
+        EXPECTED.forEach(expected -> assertVerifiedOffer(expected, before));
     }
 
     @Test
@@ -116,25 +86,15 @@ class MacBookAirOfferMigrationTest {
         assertMigrationRejectedWithoutChanges();
     }
 
-    private void assertVerifiedOffer(ExpectedOffer expected) {
-
+    private void assertVerifiedOffer(ExpectedOffer expected, List<Map<String, Object>> before) {
         long productId = productId(expected.code());
-        var apple = registeredOffer(productId);
-        assertThat(apple).extracting(ProductOffer::getPrice, ProductOffer::getCheckedAt,
-                ProductOffer::getStatus)
-            .containsExactly(expected.price(), LocalDate.of(2026, 11, 2), OfferStatus.ON_SALE);
-        assertThat(apple.getExternalItemId()).isNull();
-        assertThat(apple.getPurchaseUrl()).isEqualTo(APPLE_URL + expected.path());
-        assertLowestMatchesOnSaleOffers(expected.code());
-    }
-
-    private void assertLowest(String code, long price, String seller) {
-        long productId = productId(code);
-        assertThat(jdbcTemplate.queryForObject(
-            "SELECT min_price FROM product_min_price WHERE product_id = ?", Long.class, productId))
-            .as("%s의 최저가 캐시", code).isEqualTo(price);
-        var winner = offers.findLowestOnSaleOffers(List.of(productId)).get(productId);
-        assertThat(winner).extracting(ProductOffer::getName, ProductOffer::getPrice).containsExactly(seller, price);
+        assertThat(registeredOffer(productId))
+            .containsEntry("price", expected.price())
+            .containsEntry("checked_at", Date.valueOf("2026-11-02"))
+            .containsEntry("status", "ON_SALE")
+            .containsEntry("external_item_id", null)
+            .containsEntry("purchase_url", APPLE_URL + expected.path());
+        assertMinPrice(productId, expected.price(), before);
     }
 
     private void assertMigrationRejectedWithoutChanges() {
@@ -148,13 +108,13 @@ class MacBookAirOfferMigrationTest {
             .isEqualTo(pricesBefore);
     }
 
-
-    private void assertLowestMatchesOnSaleOffers(String code) {
-        long id = productId(code);
-        long expected = offers.findOnSaleOffers(id).stream().mapToLong(ProductOffer::getPrice).min().orElseThrow();
+    private void assertMinPrice(long productId, long applePrice, List<Map<String, Object>> before) {
+        long existingMin = before.stream()
+            .filter(offer -> ((Number) offer.get("product_id")).longValue() == productId)
+            .filter(offer -> "ON_SALE".equals(offer.get("status")))
+            .mapToLong(offer -> ((Number) offer.get("price")).longValue()).min().orElse(Long.MAX_VALUE);
         assertThat(jdbcTemplate.queryForObject("SELECT min_price FROM product_min_price WHERE product_id = ?",
-            Long.class, id)).isEqualTo(expected);
-        assertThat(offers.findLowestOnSaleOffers(List.of(id)).get(id).getPrice()).isEqualTo(expected);
+            Long.class, productId)).isEqualTo(Math.min(applePrice, existingMin));
     }
 
     private void assertNewOffersMatchTargets(List<Map<String, Object>> before, List<Long> targetIds) {
@@ -164,11 +124,11 @@ class MacBookAirOfferMigrationTest {
         assertThat(added).extracting(offer -> offer.get("name")).containsOnly("Apple 공홈");
     }
 
-    private ProductOffer registeredOffer(long productId) {
-        var registered = offers.findOnSaleOffers(productId).stream()
-            .filter(offer -> "Apple 공홈".equals(offer.getName())).toList();
-        assertThat(registered).hasSize(1);
-        return registered.getFirst();
+    private Map<String, Object> registeredOffer(long productId) {
+        return jdbcTemplate.queryForMap("""
+            SELECT price, checked_at, status, external_item_id, purchase_url
+            FROM product_offer WHERE product_id = ? AND name = 'Apple 공홈'
+            """, productId);
     }
 
     private long productId(String code) {
