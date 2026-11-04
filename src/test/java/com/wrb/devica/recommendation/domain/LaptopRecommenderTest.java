@@ -81,7 +81,7 @@ class LaptopRecommenderTest {
 
         // then
         assertThat(((LaptopSpec) mac.spec()).memoryGb()).isEqualTo(48);
-        assertThat(mac.itemReasons().get("MEMORY")).contains("M Pro 칩 에서 고를 수 있는 가장 가까운 용량은 48GB 입니다.");
+        assertThat(mac.itemReasons().get("MEMORY")).contains("M Pro 칩에서는 32GB 를 고를 수 없어 바로 위 용량인 48GB 를 권합니다.");
         assertThat(((LaptopSpec) windows.spec()).memoryGb()).isEqualTo(32);
     }
 
@@ -98,6 +98,39 @@ class LaptopRecommenderTest {
         // then
         assertThat(((LaptopSpec) specs.get(0).spec()).cpuTier()).isEqualTo(CpuTier.PRO);
         assertThat(((LaptopSpec) specs.get(1).spec()).cpuTier()).isEqualTo(CpuTier.P_HS);
+    }
+
+    @Test
+    void 지금_쓰는_Mac_CPU_가_상한보다_높으면_낮춰_권하는_이유를_알린다() {
+        // given
+        LaptopRecommender recommender = new LaptopRecommender();
+        Requirements requirements = new Requirements(Map.of(), Map.of());
+        Map<String, String> conditions = Map.of("CURRENT_CPU_TIER", "MAX");
+
+        // when
+        RecommendedSpec mac = recommender.recommend(INTERPRETATION, requirements, conditions).get(0);
+
+        // then
+        assertThat(((LaptopSpec) mac.spec()).cpuTier()).isEqualTo(CpuTier.PRO);
+        assertThat(mac.itemReasons().get("REQUIRED_CPU"))
+            .contains("지금 쓰는 M Max 칩보다 낮지만, 이 작업에는 M Pro 칩이면 충분해 예산을 고려해 제한했습니다.")
+            .doesNotContain("예산을 고려해 Mac 권장 CPU 는 M Pro 칩으로 제한했습니다.");
+    }
+
+    @Test
+    void 지금_쓰는_Mac_CPU_가_상한과_같으면_같은_등급을_권하는_이유를_알린다() {
+        // given
+        LaptopRecommender recommender = new LaptopRecommender();
+        Requirements requirements = new Requirements(Map.of(), Map.of());
+        Map<String, String> conditions = Map.of("CURRENT_CPU_TIER", "PRO");
+
+        // when
+        RecommendedSpec mac = recommender.recommend(INTERPRETATION, requirements, conditions).get(0);
+
+        // then
+        assertThat(((LaptopSpec) mac.spec()).cpuTier()).isEqualTo(CpuTier.PRO);
+        assertThat(mac.itemReasons().get("REQUIRED_CPU"))
+            .contains("지금과 같은 M Pro 칩이라도 최신 세대를 고르면 성능이 오릅니다.");
     }
 
     @ParameterizedTest(name = "메모리 점수 {0} → {1}GB")
