@@ -81,7 +81,6 @@ survey:
             - { code: GRAPHIC, content: "편집·브랜딩·일러스트" }
             - { code: MOTION_VIDEO, content: "모션 그래픽·영상" }
             - { code: THREE_D, content: "3D 모델링·렌더링" }
-            - { code: THREE_D_LIGHT, content: 가끔 3D 작업도 한다 }
             - { code: UNDECIDED, content: 아직 정하지 않았다 }
 
     # 4K 이상은 Adobe 가 Windows 에서 영상 작업 메모리를 두 배(32GB 이상)로 권하는 기준이라 따로 묻는다
@@ -92,6 +91,17 @@ survey:
           options:
             - { code: HD, content: FHD(1080p) 이하 }
             - { code: UHD, content: 4K 이상 }
+            - { code: UNKNOWN, content: 잘 모르겠다 }
+
+    # 3D 는 하는 빈도보다 한 번에 다루는 장면의 크기가 메모리를 정해 작업 내용을 따로 묻는다
+    - questions:
+        - code: THREE_D_WORK
+          title: 주로 하는 3D 작업은 어느 정도인가요?
+          showWhen: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
+          options:
+            - { code: SIMPLE, content: 단순한 모델을 만들거나 고친다 }
+            - { code: DETAILED, content: 여러 모델과 고해상도 텍스처를 다룬다 }
+            - { code: COMPLEX, content: 복잡한 장면이나 애니메이션을 렌더링한다 }
             - { code: UNKNOWN, content: 잘 모르겠다 }
 
     - title: 작업 도구를 알려주세요
@@ -151,7 +161,7 @@ survey:
     - questions:
         - code: RENDER_WAIT
           title: 영상 내보내기나 렌더링이 끝나기를 기다리는 게 답답했나요?
-          showWhen: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO, THREE_D, THREE_D_LIGHT ] }
+          showWhen: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO, THREE_D ] }
           options:
             - { code: OFTEN, content: 자주 답답했다 }
             - { code: FINE, content: 참을 만했다 / 신경 안 쓰였다 }
@@ -186,16 +196,18 @@ rules:
     when: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO ] }
     reason: 모션·영상 작업은 미리보기를 위해 프레임을 메모리에 올려 둡니다.
   - criterion: MEMORY
-    weight: 4
-    when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
-    reason: 3D 작업은 장면과 텍스처를 메모리에 올려 두어 넉넉한 용량이 필요합니다.
-  - criterion: MEMORY
     weight: 1
-    when:
-      all:
-        - { question: DESIGN_FIELD, anyOf: [ THREE_D_LIGHT ] }
-        - { not: { question: DESIGN_FIELD, anyOf: [ THREE_D ] } }
-    reason: 가끔 하는 3D 작업도 장면과 텍스처를 메모리에 올려 둡니다.
+    when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
+    reason: 3D 작업은 장면과 텍스처를 메모리에 올려 둡니다.
+  - criterion: MEMORY
+    weight: 2
+    when: { question: THREE_D_WORK, anyOf: [ DETAILED ] }
+    reason: 여러 모델과 고해상도 텍스처를 한 번에 올려 두어 메모리를 더 씁니다.
+  # 복잡한 장면은 Blender 권장(32GB·8코어)에 닿도록 분야 점수와 합쳐 메모리 4점·CPU 3점을 준다
+  - criterion: MEMORY
+    weight: 3
+    when: { question: THREE_D_WORK, anyOf: [ COMPLEX ] }
+    reason: 복잡한 장면과 애니메이션은 렌더링할 때 장면 전체를 메모리에 올려 넉넉한 용량이 필요합니다.
   - criterion: MEMORY
     weight: 3
     when: { question: VIDEO_RESOLUTION, anyOf: [ UHD ] }
@@ -235,7 +247,7 @@ rules:
     reason: 영상 소스와 미리보기 캐시가 저장 공간을 크게 씁니다.
   - criterion: STORAGE
     weight: 1
-    when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
+    when: { question: THREE_D_WORK, anyOf: [ DETAILED, COMPLEX ] }
     reason: 3D 장면과 텍스처, 렌더링 결과물이 자리를 차지합니다.
   - criterion: STORAGE
     weight: 2
@@ -312,16 +324,17 @@ rules:
     when: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO ] }
     reason: 영상을 내보내고 효과를 미리 볼 때 CPU 를 오래 씁니다.
   - criterion: REQUIRED_CPU
-    weight: 3
+    weight: 1
     when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
-    reason: 3D 렌더링은 코어를 모두 오래 씁니다. 그래픽 성능은 아직 추천에 반영하지 않아 따로 확인해야 합니다.
+    reason: 3D 렌더링은 코어를 모두 씁니다. 그래픽 성능은 아직 추천에 반영하지 않아 따로 확인해야 합니다.
   - criterion: REQUIRED_CPU
     weight: 1
-    when:
-      all:
-        - { question: DESIGN_FIELD, anyOf: [ THREE_D_LIGHT ] }
-        - { not: { question: DESIGN_FIELD, anyOf: [ THREE_D ] } }
-    reason: 가끔 하는 3D 렌더링도 코어를 모두 씁니다. 그래픽 성능은 아직 추천에 반영하지 않아 따로 확인해야 합니다.
+    when: { question: THREE_D_WORK, anyOf: [ DETAILED ] }
+    reason: 여러 모델을 다루면 화면을 돌려 보고 렌더링하는 데 CPU 를 더 씁니다.
+  - criterion: REQUIRED_CPU
+    weight: 2
+    when: { question: THREE_D_WORK, anyOf: [ COMPLEX ] }
+    reason: 복잡한 장면과 애니메이션 렌더링은 코어를 모두 오래 씁니다.
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: VIDEO_RESOLUTION, anyOf: [ UHD ] }
