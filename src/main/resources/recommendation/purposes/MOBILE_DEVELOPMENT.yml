@@ -111,12 +111,13 @@ survey:
 
     - questions:
         - code: SLOWDOWN
-          title: IDE 와 에뮬레이터를 함께 켜두면 멈추거나 껐다 켜야 했나요?
+          title: 앱 개발에 필요한 프로그램을 함께 켰을 때, 작업이 멈추거나 프로그램을 닫아야 했나요?
           options:
             - { code: OFTEN, content: 자주 그렇다 }
             - { code: SOMETIMES, content: 가끔 느려진다 }
             - { code: FINE, content: 괜찮다 }
             - { code: UNKNOWN, content: 잘 모르겠다 }
+            - { code: NO_EXPERIENCE, content: 아직 개발해 본 적이 없다 }
 
     - questions:
         - code: STORAGE_SHORTAGE
@@ -343,7 +344,8 @@ interpretation:
     # Android Studio 권장 사양이 노트북에 H·HX 급을 권하고 U 시리즈는 권하지 않아 Windows 는 점수가 낮아도 H 부터 권한다
     WINDOWS: [ { upTo: 4, value: H }, { value: HX } ]
   memory: [ { upTo: -1, value: 24 }, { upTo: 6, value: 32 }, { value: 48 } ]
-  # 가장 낮은 점수가 -2 라 256GB 는 나오지 않는다. Xcode·SDK 만으로도 수십 GB 를 차지해 256GB 는 권하지 않는다
+  # 가장 낮은 점수가 -2 라 256GB 는 나오지 않는다. SDK·시뮬레이터와 업데이트 여유를 고려해 이 서비스는 512GB 부터 권한다.
+  # Xcode 설치·업데이트 50GB, 런타임당 약 10GB 는 Apple 공식 요구가 아니라 2021년 개발자 포럼의 사용자 답변이다
   storage: [ { upTo: -3, value: 256 }, { upTo: 2, value: 512 }, { upTo: 6, value: 1024 }, { value: 2048 } ]
   # 예산을 고려해 Mac 권장 CPU 를 이 등급까지로 제한한다. M Max 칩은 권하지 않는다
   macCpuLimit: PRO
