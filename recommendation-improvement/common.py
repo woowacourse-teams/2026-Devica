@@ -88,9 +88,10 @@ def key(rule):
     return rule['criterion'] + ' ' + json.dumps(rule['when'], sort_keys=True, ensure_ascii=False, separators=(',', ':'))
 
 
-def hits(d, a):
+def hits(d, a, os_=None):
+    # 규칙의 os 는 그 OS 권장안에만 붙는다는 뜻이라, 권장안을 주면 다른 OS 전용 규칙을 뺀다
     v = visible(d, a)
-    return [r for r in d['rules'] if ev(r['when'], v)]
+    return [r for r in d['rules'] if ev(r['when'], v) and (os_ is None or r.get('os') in (None, os_))]
 
 
 def hit(d, rule, a):
@@ -384,7 +385,7 @@ def read(path):
 
 COMMANDS = {
     'def': lambda r: definition(r[0], r[1]),
-    'hits': lambda r: hits(definition(r[0], r[1]), arg(r[2])),
+    'hits': lambda r: hits(definition(r[0], r[1]), arg(r[2]), r[3] if len(r) > 3 else None),
     'visible': lambda r: visible(definition(r[0], r[1]), arg(r[2])),
     'diff': lambda r: diff(definition(r[0], r[2]), definition(r[1], r[2]), r[3] if len(r) > 3 else None),
     'history': lambda r: history(*r),

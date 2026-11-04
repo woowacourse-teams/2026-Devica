@@ -77,6 +77,13 @@ class CommonTest(unittest.TestCase):
         self.assertEqual([r['criterion'] for r in hits(DEF, {'SLOWDOWN': ['OFTEN'], 'VIDEO': ['YES']})], ['MEMORY', 'STORAGE'])
         self.assertEqual(hits(DEF, {'SLOWDOWN': ['NEVER'], 'VIDEO': ['YES']}), [])
 
+    def test_권장안을_주면_다른_OS_전용_규칙은_빠진다(self):
+        d = {**DEF, 'rules': [{**r, 'os': 'MAC'} if r['criterion'] == 'STORAGE' else r for r in DEF['rules']]}
+        a = {'SLOWDOWN': ['OFTEN'], 'VIDEO': ['YES']}
+        self.assertEqual([r['criterion'] for r in hits(d, a, 'WINDOWS')], ['MEMORY'])
+        self.assertEqual([r['criterion'] for r in hits(d, a, 'MAC')], ['MEMORY', 'STORAGE'])
+        self.assertEqual([r['criterion'] for r in hits(d, a)], ['MEMORY', 'STORAGE'])
+
     def test_정의서_차이는_규칙_단위다(self):
         d2 = json.loads(json.dumps(DEF))
         d2['rules'][0]['weight'] = 3

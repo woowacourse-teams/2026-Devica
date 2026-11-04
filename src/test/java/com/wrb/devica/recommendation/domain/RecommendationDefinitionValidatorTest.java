@@ -203,4 +203,31 @@ class RecommendationDefinitionValidatorTest {
         // then
         assertThat(errors).containsExactly("질문 OS: 선택지 코드가 겹칩니다: MAC");
     }
+
+    @Test
+    void 안내가_없는_질문이나_선택지를_가리키거나_조건이_없으면_오류를_낸다() {
+        // given
+        RecommendationDefinitionValidator validator = new RecommendationDefinitionValidator(Set.of(), Map.of());
+        RecommendationDefinition definition = read("""
+            survey:
+              steps:
+                - questions:
+                    - { code: OS, options: [ { code: MAC } ] }
+            rules: []
+            mappings: []
+            notes:
+              - { os: WINDOWS, when: { question: GPU, anyOf: [ RTX ] }, message: 없는 질문 }
+              - { os: WINDOWS, when: { question: OS, anyOf: [ LINUX ] }, message: 없는 선택지 }
+              - { os: MAC, message: 조건 없음 }
+            """);
+
+        // when
+        List<String> errors = validator.validate(definition);
+
+        // then
+        assertThat(errors).containsExactly(
+            "안내 '없는 질문': 가리킬 수 없는 질문입니다: GPU",
+            "안내 '없는 선택지': OS 에 없는 선택지입니다: LINUX",
+            "안내 '조건 없음': 조건이 없습니다");
+    }
 }

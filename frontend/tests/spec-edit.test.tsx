@@ -40,6 +40,7 @@ const item = (code: string, value: string, displayValue: string) => ({
 
 const MAC: Spec = {
   preferred: true,
+  notes: [],
   items: [
     item('OS', 'MAC', 'Mac'),
     item('REQUIRED_CPU', 'PRO', 'M Pro 칩'),
@@ -147,6 +148,7 @@ test('등급을 받지 못하면 CPU 칸에 실패를 알리고 다시 시도할
 test('되돌리기는 고친 OS 카드에만 보이고, 그 OS 의 고친 값만 지운다', () => {
   const WINDOWS: Spec = {
     preferred: false,
+    notes: [],
     items: [
       item('OS', 'WINDOWS', 'Windows'),
       item('REQUIRED_CPU', 'U', '저전력 Core Ultra 5 / Ryzen 5'),
@@ -207,5 +209,33 @@ test('최저가는 보이는 OS 마다 고친 사양으로 조회해 보여 준�
   expect(fetchMock).toHaveBeenLastCalledWith(
     '/api/product-categories/LAPTOP/products/min-price?os=MAC&cpuTier=PRO&memoryGb=48&storageGb=1024',
     expect.anything(),
+  );
+});
+
+test('OS 권장안의 안내는 그 OS 카드에만 보인다', () => {
+  const WINDOWS: Spec = {
+    preferred: false,
+    notes: ['iOS 앱 빌드에는 Mac 이 필요합니다.'],
+    items: [item('OS', 'WINDOWS', 'Windows')],
+  };
+  render(
+    <ResultView
+      categoryCode="LAPTOP"
+      specs={[MAC, WINDOWS]}
+      os="BOTH"
+      edits={{}}
+      tiers={TIERS}
+      tiersFailed={false}
+      onRetryTiers={() => {}}
+      onChangeOs={() => {}}
+      onEdit={() => {}}
+      onResetEdits={() => {}}
+      onSearch={() => {}}
+    />,
+  );
+  const [macCard, windowsCard] = screen.getAllByRole('article');
+  expect(within(macCard).queryByRole('region', { name: '안내' })).toBeNull();
+  expect(within(windowsCard).getByRole('region', { name: '안내' }).textContent).toBe(
+    'iOS 앱 빌드에는 Mac 이 필요합니다.',
   );
 });

@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Component;
 
@@ -93,10 +94,11 @@ public class LaptopRecommender {
                 "Mac CPU 상한 " + limit + " 에서는 " + value + "GB 를 고를 수 없습니다. 최대 " + largest + "GB 입니다"));
     }
 
-    public List<RecommendedSpec> recommend(LaptopInterpretation interpretation, Requirements requirements,
+    public List<RecommendedSpec> recommend(LaptopInterpretation interpretation,
+                                           Function<Os, Requirements> requirementsOf,
                                            Map<String, String> conditions) {
         return Stream.of(Os.MAC, Os.WINDOWS)
-            .map(os -> recommendFor(interpretation, os, requirements, conditions))
+            .map(os -> recommendFor(interpretation, os, requirementsOf.apply(os), conditions))
             .toList();
     }
 
@@ -116,21 +118,39 @@ public class LaptopRecommender {
         LaptopSpec spec = buyableSpec(os, cpuTier, memoryGb, storageGb, reasons);
         addResultReasons(spec, current, reasons);
         boolean preferred = os.name().equals(conditions.get(LaptopCondition.PREFERRED_OS.name()));
-        return new RecommendedSpec(spec, reasons, preferred);
+        return new RecommendedSpec(spec, reasons, requirements.notes(), preferred);
     }
 
     private CpuTier calculateCpu(LaptopInterpretation interpretation, Os os, int score, CpuTier current,
                                  List<String> reasons) {
         CpuTier tier = ScoreRange.valueFor(interpretation.cpu().get(os), score);
+
         if (current != null) {
             tier = current.stepUp().higherOf(tier);
         }
+
         CpuTier limit = interpretation.macCpuLimit();
-        if (os == Os.MAC && tier.isHigherThan(limit)) {
-            reasons.add("예산을 고려해 Mac 권장 CPU 는 " + limit.getDisplayName() + "으로 제한했습니다.");
-            tier = limit;
+
+        if (os != Os.MAC || !tier.isHigherThan(limit)) {
+            return tier;
         }
-        return tier;
+
+        addMacCpuLimitReasons(limit, current, reasons);
+        return limit;
+    }
+
+    private void addMacCpuLimitReasons(CpuTier limit, CpuTier current, List<String> reasons) {
+        if (current != null && current.isHigherThan(limit)) {
+            reasons.add("지금 쓰는 " + current.getDisplayName() + "보다 낮지만, 이 작업에는 "
+                + limit.getDisplayName() + "이면 충분해 예산을 고려해 제한했습니다.");
+            return;
+        }
+
+        reasons.add("예산을 고려해 Mac 권장 CPU 는 " + limit.getDisplayName() + "으로 제한했습니다.");
+
+        if (limit == current) {
+            reasons.add("지금과 같은 " + limit.getDisplayName() + "이라도 최신 세대를 고르면 성능이 오릅니다.");
+        }
     }
 
     private CpuTier currentCpuTier(Os os, Map<String, String> conditions) {
@@ -173,7 +193,7 @@ public class LaptopRecommender {
 
         if (adjusted != memoryGb) {
             reasons.get(MEMORY_ITEM)
-                .add(tier.getDisplayName() + " 에서 고를 수 있는 가장 가까운 용량은 " + adjusted + "GB 입니다.");
+                .add(tier.getDisplayName() + "에서는 " + memoryGb + "GB 를 고를 수 없어 바로 위 용량인 " + adjusted + "GB 를 권합니다.");
         }
 
         return new LaptopSpec(os, tier, adjusted, storageGb);

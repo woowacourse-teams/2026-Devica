@@ -6,7 +6,6 @@ import com.wrb.devica.recommendation.domain.Judgement;
 import com.wrb.devica.recommendation.domain.RecommendationDefinition;
 import com.wrb.devica.recommendation.domain.RecommendationDefinitions;
 import com.wrb.devica.recommendation.domain.RecommendedSpec;
-import com.wrb.devica.recommendation.domain.Requirements;
 import com.wrb.devica.recommendation.domain.Survey;
 import com.wrb.devica.recommendation.domain.SurveyResponse;
 import java.util.List;
@@ -26,10 +25,10 @@ public class RecommendationService {
         RecommendationDefinition purpose = recommendationDefinitions.get(usagePurposeCode);
         SurveyResponse response = SurveyResponse.from(answers, purpose.survey());
 
-        Requirements requirements = Judgement.judge(purpose.rules(), response);
         Map<String, String> conditions = Judgement.map(purpose.mappings(), response);
 
-        return laptopRecommender.recommend(purpose.interpretation(), requirements, conditions);
+        return laptopRecommender.recommend(purpose.interpretation(),
+            os -> Judgement.judge(purpose.rules(), purpose.notes(), response, os), conditions);
     }
 
     public Survey findSurvey(String purposeCode) {
