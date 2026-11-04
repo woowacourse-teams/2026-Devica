@@ -3,7 +3,7 @@ START TRANSACTION;
 
 INSERT INTO product_offer
     (product_id, name, price, external_item_id, purchase_url, status, checked_at,
-     price_condition, price_basis, link_type, created_at, updated_at)
+     created_at, updated_at)
 -- 대상 사양이 없거나 학생복지스토어 오퍼가 이미 있으면 NOT NULL 제약으로 중단한다.
 -- product.code는 UNIQUE이며 집계는 대상이 없어도 한 행을 반환한다.
 SELECT CASE WHEN COUNT(*) = 1 AND COUNT(existing.id) = 0 THEN MIN(p.id) END,
@@ -13,9 +13,6 @@ SELECT CASE WHEN COUNT(*) = 1 AND COUNT(existing.id) = 0 THEN MIN(p.id) END,
        'https://www.univstore.com/item/138935',
        'ON_SALE',
        '2026-11-02',
-       '학생 인증 필요 · 스카이 블루 · 한국어 키보드 · MDHH4KH/A',
-       'SELLER_PRICE',
-       'PURCHASE',
        CURRENT_TIMESTAMP,
        CURRENT_TIMESTAMP
 FROM product p

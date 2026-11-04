@@ -3,8 +3,6 @@ package com.wrb.devica.common;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.wrb.devica.product.domain.OfferLinkType;
-import com.wrb.devica.product.domain.OfferPriceBasis;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.service.ProductOfferService;
@@ -61,12 +59,9 @@ class StudentStoreOfferMigrationTest {
         assertNewOffersMatchTargets(before, List.of(productId));
         var student = registeredOffer(productId);
         assertThat(student.getPrice()).isEqualTo(2_023_600L);
-        assertThat(student).extracting(ProductOffer::getCheckedAt, ProductOffer::getStatus,
-                ProductOffer::getPriceBasis, ProductOffer::getLinkType)
-            .containsExactly(LocalDate.of(2026, 11, 2), OfferStatus.ON_SALE,
-                OfferPriceBasis.SELLER_PRICE, OfferLinkType.PURCHASE);
+        assertThat(student).extracting(ProductOffer::getCheckedAt, ProductOffer::getStatus)
+            .containsExactly(LocalDate.of(2026, 11, 2), OfferStatus.ON_SALE);
         assertThat(student.getExternalItemId()).isNull();
-        assertThat(student.getPriceCondition()).isEqualTo("학생 인증 필요 · 스카이 블루 · 한국어 키보드 · MDHH4KH/A");
         assertThat(student.getPurchaseUrl()).isEqualTo("https://www.univstore.com/item/138935");
         assertThat(minPrice(productId)).isEqualTo(100_000L);
         assertThat(offers.findLowestOnSaleOffers(List.of(productId)).get(productId).getName())
@@ -152,7 +147,7 @@ class StudentStoreOfferMigrationTest {
     private List<Map<String, Object>> offerSnapshot() {
         return jdbcTemplate.queryForList("""
             SELECT id, product_id, name, price, status, purchase_url, external_item_id,
-                   checked_at, price_condition, price_basis, link_type
+                   checked_at
             FROM product_offer ORDER BY id
             """);
     }
