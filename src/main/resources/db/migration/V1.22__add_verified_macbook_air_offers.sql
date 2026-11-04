@@ -3,7 +3,7 @@ START TRANSACTION;
 
 INSERT INTO product_offer
     (product_id, name, price, external_item_id, purchase_url, status, checked_at,
-     price_condition, price_basis, link_type, created_at, updated_at)
+     created_at, updated_at)
 -- 세 사양이 모두 일치하고 기존 Apple 오퍼가 없어야 한다.
 -- 하나라도 실패하면 모든 행의 product_id가 NULL이 되어 첫 INSERT 전체가 중단된다.
 SELECT CASE WHEN COUNT(c.id) OVER () = 3 AND COUNT(existing.id) OVER () = 0 THEN p.id END,
@@ -13,9 +13,6 @@ SELECT CASE WHEN COUNT(c.id) OVER () = 3 AND COUNT(existing.id) OVER () = 0 THEN
        verified.purchase_url,
        'ON_SALE',
        '2026-11-02',
-       '일반 판매가 · 스카이 블루 · 한국어 키보드',
-       'SELLER_PRICE',
-       'PURCHASE',
        CURRENT_TIMESTAMP,
        CURRENT_TIMESTAMP
 FROM (

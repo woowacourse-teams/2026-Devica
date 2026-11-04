@@ -3,7 +3,7 @@ START TRANSACTION;
 
 INSERT INTO product_offer
     (product_id, name, price, external_item_id, purchase_url, status, checked_at,
-     price_condition, price_basis, link_type, created_at, updated_at)
+     created_at, updated_at)
 -- 대상 사양이 없거나 Apple 공홈 오퍼가 이미 있으면 NOT NULL 제약으로 중단한다.
 -- product.code는 UNIQUE이며 집계는 대상이 없어도 한 행을 반환한다.
 SELECT CASE WHEN COUNT(*) = 1 AND COUNT(existing.id) = 0 THEN MIN(p.id) END,
@@ -13,9 +13,6 @@ SELECT CASE WHEN COUNT(*) = 1 AND COUNT(existing.id) = 0 THEN MIN(p.id) END,
        'https://www.apple.com/kr/shop/buy-mac/macbook-air/13-모델-스카이-블루-m5-칩-10코어-cpu-8코어-gpu-16gb-메모리-512gb-저장-장치',
        'ON_SALE',
        '2026-11-02',
-       '일반 판매가 · 스카이 블루 · 한국어 키보드',
-       'SELLER_PRICE',
-       'PURCHASE',
        CURRENT_TIMESTAMP,
        CURRENT_TIMESTAMP
 FROM product p
