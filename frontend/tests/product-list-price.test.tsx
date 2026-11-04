@@ -2,21 +2,14 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vitest';
 import { forget } from '../src/fetched';
 import { ProductListView } from '../src/ProductListView';
-import { EMPTY_CONDITION, type Offer, type Product } from '../src/products';
+import { EMPTY_CONDITION, type Product } from '../src/products';
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
 
-const offer: Offer = {
-  id: 10,
-  name: '학생복지스토어',
-  price: 900_000,
-  purchaseUrl: 'https://example.test/product',
-};
-
-async function show(price: number | null, source?: Offer | null) {
+async function show(price: number | null) {
   forget('products:LAPTOP?sort=PRICE_ASC');
   const product: Product = {
     id: 1,
@@ -25,7 +18,6 @@ async function show(price: number | null, source?: Offer | null) {
     imageUrl: null,
     specs: [],
     minPrice: price,
-    minPriceOffer: source,
   };
   vi.stubGlobal(
     'fetch',
@@ -52,33 +44,20 @@ async function show(price: number | null, source?: Offer | null) {
   await screen.findByRole('heading', { name: product.name });
 }
 
-test.each(['쿠팡', '학생복지스토어', 'Apple 공홈'])('대표 가격 옆에 %s를 표시한다', async (name) => {
+test('목록에 대표 가격과 상세 보기 버튼을 표시한다', async () => {
   // when
-  await show(900_000, { ...offer, name });
+  await show(900_000);
 
   // then
   expect(screen.getByText('900,000원')).toBeTruthy();
-  expect(screen.getByText(name)).toBeTruthy();
   expect(screen.getByRole('button', { name: '상세 보기' })).toBeTruthy();
+  expect(screen.queryByText('판매처 정보 없음')).toBeNull();
 });
 
-test.each([undefined, null, { ...offer, price: 800_000 }])(
-  '출처가 없거나 가격이 일치하지 않으면 판매처를 추정하지 않는다: %j',
-  async (source) => {
-    // when
-    await show(900_000, source);
-
-    // then
-    expect(screen.getByText('판매처 정보 없음')).toBeTruthy();
-    expect(screen.queryByText('학생복지스토어')).toBeNull();
-  },
-);
-
-test('가격이 없는 제품에는 판매처를 표시하지 않는다', async () => {
+test('가격이 없는 제품에는 가격 정보 없음을 표시한다', async () => {
   // when
-  await show(null, offer);
+  await show(null);
 
   // then
   expect(screen.getByText('가격 정보 없음')).toBeTruthy();
-  expect(screen.queryByText(/학생복지스토어|판매처 정보 없음/)).toBeNull();
 });

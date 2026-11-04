@@ -428,7 +428,7 @@ class LaptopE2ETest extends E2ETest {
 
     @ParameterizedTest
     @ValueSource(strings = {"학생복지스토어", "Apple 공홈"})
-    void 새_판매처의_가격과_출처가_목록_상세_예산_정렬에_일관되게_반영된다(String seller) {
+    void 새_판매처의_가격이_목록_상세_예산_정렬에_일관되게_반영된다(String seller) {
         Laptop subject = laptopOf(laptop().name("새판매처가격"));
         productOfferRepository.save(offer().product(subject).name("쿠팡").price(500_000L)
             .status(OfferStatus.HIDDEN).build());
@@ -439,12 +439,7 @@ class LaptopE2ETest extends E2ETest {
 
         given().queryParam("sort", "PRICE_ASC").when().get(PATH).then().statusCode(200)
             .body("content.name", contains("새판매처가격", "일반가격"))
-            .body("content[0].minPrice", is(900_000))
-            .body("content[0].minPriceOffer.id", is(winner.getId().intValue()))
-            .body("content[0].minPriceOffer.name", is(seller))
-            .body("content[0].minPriceOffer.price", is(900_000))
-            .body("content[0].minPriceOffer.checkedAt", is("2026-10-30"))
-            .body("content[0].minPriceOffer.purchaseUrl", is("https://example.test/product"));
+            .body("content[0].minPrice", is(900_000));
         given().queryParam("sort", "PRICE_DESC").when().get(PATH).then().statusCode(200)
             .body("content.name", contains("일반가격", "새판매처가격"));
         given().queryParam("maxPrice", 950_000).when().get(PATH).then().statusCode(200)
@@ -458,16 +453,6 @@ class LaptopE2ETest extends E2ETest {
             .body("offers[0].price", is(900_000))
             .body("offers[0].purchaseUrl", is("https://example.test/product"))
             .body("offers[0].checkedAt", is("2026-10-30"));
-    }
-
-    @Test
-    void 가격이_없거나_빈_페이지이면_선택_판매처를_만들지_않는다() {
-        laptopOf(laptop().name("미등록"));
-        given().when().get(PATH).then().statusCode(200)
-            .body("content[0].minPrice", is((Object) null))
-            .body("content[0].minPriceOffer", is((Object) null));
-        given().queryParam("page", 1).when().get(PATH).then().statusCode(200)
-            .body("content", is(List.of()));
     }
 
     private ProductOffer saveSellerOffer(Laptop laptop, String seller) {

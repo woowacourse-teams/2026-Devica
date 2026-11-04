@@ -3,7 +3,6 @@ package com.wrb.devica.product.service;
 import static com.wrb.devica.fixture.CpuFixture.cpu;
 import static com.wrb.devica.fixture.LaptopFixture.laptop;
 import static com.wrb.devica.fixture.LaptopSearchConditionFixture.condition;
-import static com.wrb.devica.fixture.ProductOfferFixture.onSaleOffer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -19,19 +18,16 @@ import com.wrb.devica.product.domain.Laptop;
 import com.wrb.devica.product.dto.PageCondition;
 import com.wrb.devica.product.repository.CpuRepository;
 import com.wrb.devica.product.repository.LaptopRepository;
-import com.wrb.devica.product.repository.ProductMinPriceRepository;
-import com.wrb.devica.product.repository.ProductOfferRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.hibernate.Hibernate;
-import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
 @JpaSliceTest
-@Import({ProductService.class, ProductImageUrlResolver.class, ProductOfferService.class})
+@Import({ProductService.class, ProductImageUrlResolver.class})
 class ProductServiceTest {
 
     @Autowired
@@ -51,12 +47,6 @@ class ProductServiceTest {
     private Cpu cpu;
     @Autowired
     private ProductService productService;
-
-    @Autowired
-    private ProductOfferRepository productOfferRepository;
-
-    @Autowired
-    private ProductMinPriceRepository productMinPriceRepository;
 
     @BeforeEach
     void setUpCategory() {
@@ -108,55 +98,6 @@ class ProductServiceTest {
 
         // then
         assertThat(Hibernate.isInitialized(found.getCpu())).isTrue();
-    }
-
-    @Test
-    void 페이지의_제품수가_늘어도_판매처를_제품마다_추가_조회하지_않는다() {
-        // given
-        for (int i = 0; i < 3; i++) {
-            Laptop laptop = laptopOf(laptop());
-            productOfferRepository.saveAndFlush(onSaleOffer(laptop, 1_000_000L + i));
-            productMinPriceRepository.refresh(laptop.getId());
-        }
-        entityManager.flush();
-        entityManager.clear();
-        // 가격 없는 제품의 보충 조회가 아니라 판매처 조회 수를 비교한다.
-        var searchCondition = condition().minPrice(1L).build();
-        var stats = entityManager.getEntityManagerFactory().unwrap(SessionFactory.class).getStatistics();
-        boolean enabled = stats.isStatisticsEnabled();
-        stats.setStatisticsEnabled(true);
-        try {
-            // when: 한 제품을 조회한 뒤 페이지 크기를 늘린다.
-            stats.clear();
-            productService.findProductsByCategory("LAPTOP", searchCondition, new PageCondition(0, 1, null));
-            long singleProductQueries = stats.getPrepareStatementCount();
-            stats.clear();
-            var page = productService.findProductsByCategory("LAPTOP", searchCondition, new PageCondition(0, 10, null));
-
-            // then
-            assertThat(page.getContent()).hasSize(3).allSatisfy(row -> {
-                assertThat(row.minPriceOffer()).isNotNull();
-                assertThat(row.minPriceOffer().price()).isEqualTo(row.minPrice());
-            });
-            assertThat(stats.getPrepareStatementCount()).isEqualTo(singleProductQueries);
-        } finally {
-            stats.setStatisticsEnabled(enabled);
-        }
-    }
-
-    @Test
-    void 가격이_없는_제품에는_최저가_판매처도_없다() {
-        // given
-        laptopOf(laptop());
-
-        // when
-        var rows = productService.findProductsByCategory("LAPTOP", condition().build(), new PageCondition(0, 10, null));
-
-        // then
-        assertThat(rows.getContent()).singleElement().satisfies(row -> {
-            assertThat(row.minPrice()).isNull();
-            assertThat(row.minPriceOffer()).isNull();
-        });
     }
 
     private Cpu saveCpu() {

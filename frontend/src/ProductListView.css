@@ -59,23 +59,12 @@
 }
 
 .product-card__heading-row .product-card__price {
-    margin: 0;
-    text-align: right;
-}
-
-.product-card__pricing {
     flex: 0 1 auto;
+    margin: 0;
     margin-inline-start: auto;
     min-width: 0;
     max-width: 100%;
-}
-
-.product-card__price-context {
-    margin: var(--unit) 0 0;
-    color: var(--on-surface-variant);
-    font-size: var(--body-sm-font-size);
     text-align: right;
-    overflow-wrap: anywhere;
 }
 
 .product-card__action {

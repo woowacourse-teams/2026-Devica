@@ -72,8 +72,6 @@ export type Product = {
   imageUrl: string | null;
   // 판매 중인 판매처가 없으면 비어 온다.
   minPrice: number | null;
-  // 구버전 응답에는 출처가 없을 수 있다.
-  minPriceOffer?: Offer | null;
   specs: ProductSpecItem[];
 };
 

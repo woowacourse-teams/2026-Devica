@@ -1,6 +1,5 @@
 package com.wrb.devica.product.dto;
 
-import com.wrb.devica.product.domain.ProductOffer;
 import java.util.List;
 
 public record ProductSummaryResponse(
@@ -9,18 +8,9 @@ public record ProductSummaryResponse(
     String name,
     String imageUrl,
     Long minPrice,
-    List<SpecItemResponse> specs,
-    OfferResponse minPriceOffer
+    List<SpecItemResponse> specs
 ) {
-    public static ProductSummaryResponse from(ProductSummaryRow row, String imageUrl, ProductOffer minPriceOffer) {
-        return new ProductSummaryResponse(row.id(), row.brand(), row.name(), imageUrl, row.minPrice(), row.specs(),
-            toOfferResponse(minPriceOffer));
-    }
-
-    private static OfferResponse toOfferResponse(ProductOffer offer) {
-        if (offer == null) {
-            return null;
-        }
-        return OfferResponse.from(offer);
+    public static ProductSummaryResponse from(ProductSummaryRow row, String imageUrl) {
+        return new ProductSummaryResponse(row.id(), row.brand(), row.name(), imageUrl, row.minPrice(), row.specs());
     }
 }
