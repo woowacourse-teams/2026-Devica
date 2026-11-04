@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import {
   type CpuTier,
   EMPTY_CONDITION,
@@ -13,7 +13,16 @@ import { ResultView } from '../src/ResultView';
 import type { Spec } from '../src/recommendation';
 import { conditionOf, editEntries, editsOf } from '../src/routes';
 
-afterEach(cleanup);
+const fetchMock = vi.fn(async () => new Response(JSON.stringify({ minPrice: 1240000 })));
+
+beforeEach(() => {
+  vi.stubGlobal('fetch', fetchMock);
+});
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 const TIERS: CpuTier[] = [
   { code: 'BASIC', name: 'M 칩', os: 'MAC' },
@@ -31,6 +40,7 @@ const item = (code: string, value: string, displayValue: string) => ({
 
 const MAC: Spec = {
   preferred: true,
+  notes: [],
   items: [
     item('OS', 'MAC', 'Mac'),
     item('REQUIRED_CPU', 'PRO', 'M Pro 칩'),
@@ -48,7 +58,7 @@ test('고친 사양은 주소에 남았다가 그대로 읽힌다', () => {
 
 test('맞춤 목록의 검색 조건은 고친 사양으로 채워져, 권장보다 낮게도 찾는다', () => {
   const edited = editedSpec(MAC, { MAC: { MEMORY: '16', REQUIRED_CPU: 'BASIC', STORAGE: '512' } }, TIERS);
-  const query = productListQuery('RECOMMENDED', { ...EMPTY_CONDITION, ...specCondition(edited) });
+  const query = productListQuery('PRICE_ASC', { ...EMPTY_CONDITION, ...specCondition(edited) });
   expect(query.get('os')).toBe('MAC');
   expect(query.get('memoryGb')).toBe('16');
   expect(query.get('cpuTier')).toBe('BASIC');
@@ -78,6 +88,7 @@ test('추천 결과 직접 수정을 누르면 항목을 고를 수 있고, 권�
   const onEdit = vi.fn();
   render(
     <ResultView
+      categoryCode="LAPTOP"
       specs={[MAC]}
       os="MAC"
       edits={{ MAC: { MEMORY: '32' } }}
@@ -109,6 +120,7 @@ test('필터는 고른 값 그대로 걸린다. 맞춤 목록도 전체 목록�
 test('GPU·화면 권장은 목록 조건이 되고, 모든 제품이 갖춘 가장 낮은 값은 걸지 않는다', () => {
   const windows: Spec = {
     preferred: false,
+    notes: [],
     items: [
       item('OS', 'WINDOWS', 'Windows'),
       item('GPU', 'MID', '중급 GPU (RTX 4050 급)'),
@@ -146,6 +158,7 @@ test('등급을 받지 못하면 CPU 칸에 실패를 알리고 다시 시도할
   const onRetryTiers = vi.fn();
   render(
     <ResultView
+      categoryCode="LAPTOP"
       specs={[MAC]}
       os="MAC"
       edits={{ MAC: { REQUIRED_CPU: 'BASIC' } }}
@@ -166,6 +179,7 @@ test('등급을 받지 못하면 CPU 칸에 실패를 알리고 다시 시도할
 test('되돌리기는 고친 OS 카드에만 보이고, 그 OS 의 고친 값만 지운다', () => {
   const WINDOWS: Spec = {
     preferred: false,
+    notes: [],
     items: [
       item('OS', 'WINDOWS', 'Windows'),
       item('REQUIRED_CPU', 'U', '저전력 Core Ultra 5 / Ryzen 5'),
@@ -176,6 +190,7 @@ test('되돌리기는 고친 OS 카드에만 보이고, 그 OS 의 고친 값만
   const onResetEdits = vi.fn();
   const view = (os: 'MAC' | 'WINDOWS') => (
     <ResultView
+      categoryCode="LAPTOP"
       specs={[MAC, WINDOWS]}
       os={os}
       edits={{ MAC: { MEMORY: '32' } }}
@@ -202,4 +217,56 @@ test('검색 중 화면은 실제 검색 조건을 보여 줘, 고친 값이 보
   // 등급을 받기 전이면 제품 추천 결과의 이름을 빌리고, 다른 등급이면 코드를 그대로 쓴다.
   expect(searchingLine(condition, null, MAC, {})).toBe('M Pro 칩 · 16GB · 1TB · Mac');
   expect(searchingLine({ ...condition, cpuTier: 'BASIC' }, null, MAC, {})).toBe('BASIC · 16GB · 1TB · Mac');
+});
+
+test('최저가는 보이는 OS 마다 고친 사양으로 조회해 보여 준다', async () => {
+  render(
+    <ResultView
+      categoryCode="LAPTOP"
+      specs={[MAC]}
+      os="MAC"
+      edits={{ MAC: { MEMORY: '48' } }}
+      tiers={TIERS}
+      tiersFailed={false}
+      onRetryTiers={() => {}}
+      onChangeOs={() => {}}
+      onEdit={() => {}}
+      onResetEdits={() => {}}
+      onSearch={() => {}}
+    />,
+  );
+
+  expect((await screen.findAllByText('1,240,000원부터')).length).toBeGreaterThan(0);
+  expect(fetchMock).toHaveBeenLastCalledWith(
+    '/api/product-categories/LAPTOP/products/min-price?os=MAC&cpuTier=PRO&memoryGb=48&storageGb=1024',
+    expect.anything(),
+  );
+});
+
+test('OS 권장안의 안내는 그 OS 카드에만 보인다', () => {
+  const WINDOWS: Spec = {
+    preferred: false,
+    notes: ['iOS 앱 빌드에는 Mac 이 필요합니다.'],
+    items: [item('OS', 'WINDOWS', 'Windows')],
+  };
+  render(
+    <ResultView
+      categoryCode="LAPTOP"
+      specs={[MAC, WINDOWS]}
+      os="BOTH"
+      edits={{}}
+      tiers={TIERS}
+      tiersFailed={false}
+      onRetryTiers={() => {}}
+      onChangeOs={() => {}}
+      onEdit={() => {}}
+      onResetEdits={() => {}}
+      onSearch={() => {}}
+    />,
+  );
+  const [macCard, windowsCard] = screen.getAllByRole('article');
+  expect(within(macCard).queryByRole('region', { name: '안내' })).toBeNull();
+  expect(within(windowsCard).getByRole('region', { name: '안내' }).textContent).toBe(
+    'iOS 앱 빌드에는 Mac 이 필요합니다.',
+  );
 });

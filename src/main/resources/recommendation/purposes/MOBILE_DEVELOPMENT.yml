@@ -201,10 +201,12 @@ rules:
     weight: 1
     when: { question: TARGET_PLATFORM, anyOf: [ ANDROID ] }
     reason: Android SDK 와 에뮬레이터 이미지가 자리를 차지합니다.
+  # Xcode 는 macOS 에서만 돌아 Windows 권장안에는 점수와 근거 모두 넣지 않는다
   - criterion: STORAGE
     weight: 2
     when: { question: TARGET_PLATFORM, anyOf: [ IOS ] }
     reason: Xcode 와 시뮬레이터는 설치와 업데이트에 큰 여유 공간이 필요합니다.
+    os: MAC
   - criterion: STORAGE
     weight: 2
     when: { question: OS_VERSIONS, anyOf: [ MANY ] }
@@ -327,6 +329,12 @@ mappings:
   - criterion: CURRENT_CPU_TIER
     value: HX
     when: { all: [ { question: CURRENT_WINDOWS_CPU, anyOf: [ HX ] }, *discomfort ] }
+
+# 사양 값과 관계없이 그 OS 권장안에 붙이는 안내다. os 를 적지 않으면 모든 권장안에 붙는다
+notes:
+  - os: WINDOWS
+    when: { question: TARGET_PLATFORM, anyOf: [ IOS ] }
+    message: iOS 앱 빌드와 App Store 배포에는 Xcode 가 돌아가는 Mac 이 필요합니다.
 
 # 기본 권장 사양(답이 없는 0점)은 Mac 기본 칩·Windows H 급·32GB·512GB 다. 노트북에서 IDE 와 에뮬레이터를 직접 쓰는 개발을 전제로 한다.
 # Android Studio 는 에뮬레이터를 쓸 때 최소 16GB·권장 32GB 이고, 최소 구성만으로도 약 14GB 를 써 16GB 에는 여유가 없어

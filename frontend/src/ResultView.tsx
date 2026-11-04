@@ -1,6 +1,16 @@
 import { useState } from 'react';
 import { ChoiceGroup } from './ChoiceGroup';
-import { type CpuTier, editChoices, editedSpec, editProperties, type SpecEdits } from './products';
+import { type Fetched, useFetched } from './fetched';
+import {
+  type CpuTier,
+  editChoices,
+  editedSpec,
+  editProperties,
+  fetchMinPrice,
+  formatPrice,
+  type SpecEdits,
+  specCondition,
+} from './products';
 import { osValueOf, type Spec, type SpecItem } from './recommendation';
 import './ResultView.css';
 
@@ -33,6 +43,7 @@ function feedbackUrl(): string {
 export type ResultOs = 'MAC' | 'WINDOWS' | 'BOTH';
 
 type Props = {
+  categoryCode: string;
   specs: Spec[];
   os: ResultOs;
   // 사용자가 고친 사양과, CPU 선택지를 만들 등급이다. 등급을 받지 못했으면 CPU 는 고칠 수 없다.
@@ -49,6 +60,7 @@ type Props = {
 };
 
 export function ResultView({
+  categoryCode,
   specs,
   os,
   edits,
@@ -62,6 +74,11 @@ export function ResultView({
 }: Props) {
   const [editing, setEditing] = useState(false);
   const visible = os === 'BOTH' ? specs : specs.filter((spec) => osValueOf(spec) === os);
+  const edited = visible.map((spec) => editedSpec(spec, edits, tiers));
+  const minPrices = useFetched(`min-price:${categoryCode}:${JSON.stringify(edited.map(specCondition))}`, () =>
+    Promise.all(edited.map((spec) => fetchMinPrice(categoryCode, spec))),
+  );
+  const minPriceLabels = visible.map((spec) => OS_LABEL[osValueOf(spec)] ?? osValueOf(spec));
 
   const choices = [
     ...specs.map((spec) => ({ value: osValueOf(spec), label: OS_LABEL[osValueOf(spec)] ?? osValueOf(spec) })),
@@ -88,26 +105,29 @@ export function ResultView({
         </span>
       </div>
 
-      <div className="spec-list" id="spec-list">
-        {visible.map((spec) => (
-          <SpecCard
-            key={osValueOf(spec)}
-            spec={spec}
-            edited={editedSpec(spec, edits, tiers)}
-            tiers={tiers}
-            tiersFailed={tiersFailed}
-            onRetryTiers={onRetryTiers}
-            editing={editing}
-            onReset={() => onResetEdits(osValueOf(spec))}
-            onEdit={(code, value) =>
-              onEdit(
-                osValueOf(spec),
-                code,
-                value === spec.items.find((item) => item.code === code)?.value ? null : value,
-              )
-            }
-          />
-        ))}
+      <div className="result-body">
+        <div className="spec-list" id="spec-list">
+          {visible.map((spec, index) => (
+            <SpecCard
+              key={osValueOf(spec)}
+              spec={spec}
+              edited={edited[index]}
+              tiers={tiers}
+              tiersFailed={tiersFailed}
+              onRetryTiers={onRetryTiers}
+              editing={editing}
+              onReset={() => onResetEdits(osValueOf(spec))}
+              onEdit={(code, value) =>
+                onEdit(
+                  osValueOf(spec),
+                  code,
+                  value === spec.items.find((item) => item.code === code)?.value ? null : value,
+                )
+              }
+            />
+          ))}
+        </div>
+        <MinPrices className="bordered-panel result-min-price--side" labels={minPriceLabels} prices={minPrices} />
       </div>
 
       <p className="result-feedback">
@@ -119,6 +139,7 @@ export function ResultView({
       </p>
 
       <div className="sticky-actions">
+        <MinPrices className="result-min-price--bar" labels={minPriceLabels} prices={minPrices} />
         <button
           className="button button--secondary button--wide"
           id="edit-spec-button"
@@ -133,6 +154,46 @@ export function ResultView({
         </button>
       </div>
     </section>
+  );
+}
+
+type MinPricesProps = {
+  className: string;
+  labels: string[];
+  prices: Fetched<(number | null)[]>;
+};
+
+function MinPrices({ className, labels, prices }: MinPricesProps) {
+  const priceText = (index: number) => {
+    if (prices.data === null) {
+      return '계산 중…';
+    }
+    const price = prices.data[index];
+    return price === null ? '판매 중인 제품 없음' : `${formatPrice(price)}부터`;
+  };
+
+  return (
+    <div className={`result-min-price ${className}`} role="status">
+      <h3 className="result-min-price__title">이 사양으로 살 수 있는 최저가</h3>
+      {prices.failed ? (
+        <p className="result-min-price__failed">
+          최저가를 불러오지 못했어요.{' '}
+          <button className="text-button" type="button" onClick={prices.retry}>
+            다시 시도
+          </button>
+        </p>
+      ) : (
+        <ul className="result-min-price__list">
+          {labels.map((label, index) => (
+            <li key={label}>
+              <span>{label}</span>
+              <strong>{priceText(index)}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="result-min-price__basis">추천 사양 이상, 지금 판매 중인 노트북 기준</p>
+    </div>
   );
 }
 
@@ -161,6 +222,15 @@ function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, editing, onE
           </button>
         )}
       </div>
+      {spec.notes.length > 0 && (
+        <section className="bordered-panel spec-row" aria-label="안내">
+          {spec.notes.map((note) => (
+            <p className="spec-row__reason" key={note}>
+              {note}
+            </p>
+          ))}
+        </section>
+      )}
       {ROWS.map(({ code, label }) => {
         const recommended = itemOf(spec, code);
         const item = itemOf(edited, code);

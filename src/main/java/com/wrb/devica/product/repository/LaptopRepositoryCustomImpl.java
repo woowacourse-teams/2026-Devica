@@ -69,6 +69,10 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             .fetch();
     }
 
+    private boolean isPriceSort(SortType sort) {
+        return sort == SortType.PRICE_ASC || sort == SortType.PRICE_DESC;
+    }
+
     private List<ProductSummaryRow> findSortedPageByPrice(LaptopSearchCondition condition,
                                                           SortType sort, long offset, int limit) {
         List<ProductSummaryRow> priced = findPriced(condition, sort, offset, limit);
@@ -102,6 +106,21 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             .fetch();
     }
 
+    private boolean hasPriceCondition(LaptopSearchCondition condition) {
+        return condition.minPrice() != null || condition.maxPrice() != null;
+    }
+
+    private long countPriced(LaptopSearchCondition condition) {
+        return queryFactory
+            .select(productMinPrice.count())
+            .from(productMinPrice)
+            .join(laptop).on(laptop.id.eq(productMinPrice.productId))
+            .join(laptop.cpu, cpu)
+            .join(laptop.gpu, gpu)
+            .where(conditions(condition))
+            .fetchOne();
+    }
+
     private List<ProductSummaryRow> findUnpriced(LaptopSearchCondition condition, long offset, int limit) {
         return selectSummary()
             .from(laptop)
@@ -116,17 +135,6 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             .fetch();
     }
 
-    private long countPriced(LaptopSearchCondition condition) {
-        return queryFactory
-            .select(productMinPrice.count())
-            .from(productMinPrice)
-            .join(laptop).on(laptop.id.eq(productMinPrice.productId))
-            .join(laptop.cpu, cpu)
-            .join(laptop.gpu, gpu)
-            .where(conditions(condition))
-            .fetchOne();
-    }
-
     private JPAQuery<ProductSummaryRow> selectSummary() {
         return queryFactory.select(new QProductSummaryRow(
             laptop.id,
@@ -139,6 +147,41 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             laptop.memoryGb,
             laptop.storageGb
         ));
+    }
+
+    // 정렬 값이 같으면 id 순으로 둔다. 가격순은 인덱스를 읽는 방향을 따라야 정렬 없이 인덱스만으로 읽힌다
+    private OrderSpecifier<?>[] orders(SortType sort) {
+        if (sort == null) {
+            return new OrderSpecifier[]{laptop.id.asc()};
+        }
+
+        return switch (sort) {
+            case PRICE_ASC -> new OrderSpecifier[]{productMinPrice.minPrice.asc(), productMinPrice.productId.asc()};
+            case PRICE_DESC -> new OrderSpecifier[]{productMinPrice.minPrice.desc(), productMinPrice.productId.desc()};
+        };
+    }
+
+    @Override
+    public Long findMinPrice(LaptopSearchCondition condition) {
+        return queryFactory
+            .select(productMinPrice.minPrice.min())
+            .from(productMinPrice)
+            .join(laptop).on(laptop.id.eq(productMinPrice.productId))
+            .join(laptop.cpu, cpu)
+            .join(laptop.gpu, gpu)
+            .where(conditions(condition))
+            .fetchOne();
+    }
+
+    @Override
+    public List<String> findBrands(Os os) {
+        return queryFactory
+            .select(laptop.brand)
+            .distinct()
+            .from(laptop)
+            .where(osEq(os), visibleProduct())
+            .orderBy(laptop.brand.asc())
+            .fetch();
     }
 
     private Predicate[] conditions(LaptopSearchCondition condition) {
@@ -157,74 +200,12 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
         };
     }
 
-    private boolean isPriceSort(SortType sort) {
-        return sort == SortType.PRICE_ASC || sort == SortType.PRICE_DESC;
-    }
-
-    private boolean hasPriceCondition(LaptopSearchCondition condition) {
-        return condition.minPrice() != null || condition.maxPrice() != null;
-    }
-
-    // 정렬 값이 같으면 id 순으로 둔다. 가격순은 인덱스를 읽는 방향을 따라야 정렬 없이 인덱스만으로 읽힌다
-    private OrderSpecifier<?>[] orders(SortType sort) {
-        if (sort == null) {
-            return new OrderSpecifier[]{laptop.id.asc()};
-        }
-
-        return switch (sort) {
-            case RECOMMENDED -> new OrderSpecifier[]{
-                cpu.score.desc(), laptop.memoryGb.desc(), laptop.storageGb.desc(), laptop.id.asc()};
-            case PRICE_ASC -> new OrderSpecifier[]{productMinPrice.minPrice.asc(), productMinPrice.productId.asc()};
-            case PRICE_DESC -> new OrderSpecifier[]{productMinPrice.minPrice.desc(), productMinPrice.productId.desc()};
-        };
-    }
-
-    @Override
-    public List<String> findBrands(Os os) {
-        return queryFactory
-            .select(laptop.brand)
-            .distinct()
-            .from(laptop)
-            .where(osEq(os), visibleProduct())
-            .orderBy(laptop.brand.asc())
-            .fetch();
-    }
-
     private BooleanExpression visibleProduct() {
         QProductOffer offer = new QProductOffer("visibilityOffer");
         return JPAExpressions.selectOne().from(offer)
             .where(offer.productId.eq(laptop.id), offer.status.eq(OfferStatus.HIDDEN)).notExists()
             .or(JPAExpressions.selectOne().from(offer)
                 .where(offer.productId.eq(laptop.id), offer.status.eq(OfferStatus.ON_SALE)).exists());
-    }
-
-    private BooleanExpression minPriceGoe(Long minPrice) {
-        if (minPrice == null) {
-            return null;
-        }
-        return productMinPrice.minPrice.goe(minPrice);
-    }
-
-    private BooleanExpression minPriceLoe(Long maxPrice) {
-        if (maxPrice == null) {
-            return null;
-        }
-        return productMinPrice.minPrice.loe(maxPrice);
-    }
-
-    private BooleanExpression keywordContains(String keyword) {
-        if (!StringUtils.hasText(keyword)) {
-            return null;
-        }
-        return laptop.brand.containsIgnoreCase(keyword)
-            .or(laptop.name.containsIgnoreCase(keyword));
-    }
-
-    private BooleanExpression brandEq(String brand) {
-        if (!StringUtils.hasText(brand)) {
-            return null;
-        }
-        return laptop.brand.eq(brand);
     }
 
     private BooleanExpression osEq(Os os) {
@@ -267,5 +248,34 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             return null;
         }
         return laptop.storageGb.goe(storageGb);
+    }
+
+    private BooleanExpression keywordContains(String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return null;
+        }
+        return laptop.brand.containsIgnoreCase(keyword)
+            .or(laptop.name.containsIgnoreCase(keyword));
+    }
+
+    private BooleanExpression brandEq(String brand) {
+        if (!StringUtils.hasText(brand)) {
+            return null;
+        }
+        return laptop.brand.eq(brand);
+    }
+
+    private BooleanExpression minPriceGoe(Long minPrice) {
+        if (minPrice == null) {
+            return null;
+        }
+        return productMinPrice.minPrice.goe(minPrice);
+    }
+
+    private BooleanExpression minPriceLoe(Long maxPrice) {
+        if (maxPrice == null) {
+            return null;
+        }
+        return productMinPrice.minPrice.loe(maxPrice);
     }
 }

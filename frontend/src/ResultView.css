@@ -135,3 +135,111 @@
 .spec-row .choice-group {
     margin-top: var(--density-high);
 }
+
+/* 최저가는 넓은 화면에서는 추천 사양 오른쪽에 따라다니고, 좁은 화면에서는 하단 버튼 위에 붙는다. */
+.result-body {
+    margin: var(--gutter) 0;
+}
+
+.result-body .spec-list {
+    margin: 0;
+}
+
+.result-min-price__title {
+    margin: 0;
+    font-size: var(--label-md-font-size);
+    font-weight: var(--label-md-font-weight);
+    letter-spacing: var(--label-md-letter-spacing);
+}
+
+.result-min-price__list {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.result-min-price__list li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--density-med);
+}
+
+.result-min-price__failed {
+    margin: 0;
+    color: var(--on-surface-variant);
+    font-size: var(--body-md-font-size);
+}
+
+.result-min-price--side {
+    display: none;
+}
+
+.result-min-price__basis {
+    display: none;
+}
+
+.result-min-price--bar {
+    display: grid;
+    gap: 4px;
+    font-size: var(--body-md-font-size);
+}
+
+@media (min-width: 1024px) {
+    .result-body {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 240px;
+        align-items: start;
+        gap: var(--density-med);
+    }
+
+    .result-min-price--side {
+        position: sticky;
+        top: var(--gutter);
+        display: grid;
+        gap: var(--gutter);
+        padding: var(--gutter);
+    }
+
+    .bordered-panel.result-min-price--side {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+    }
+
+    .result-min-price--side .result-min-price__title {
+        font-size: var(--body-md-font-size);
+        font-weight: 600;
+    }
+
+    .result-min-price--side .result-min-price__list {
+        gap: var(--density-med);
+    }
+
+    .result-min-price--side .result-min-price__list li {
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .result-min-price--side .result-min-price__list span {
+        color: var(--on-surface-variant);
+        font-size: var(--body-sm-font-size);
+    }
+
+    .result-min-price--side strong {
+        font-size: var(--headline-md-font-size);
+        font-weight: var(--headline-md-font-weight);
+        line-height: var(--headline-md-line-height);
+    }
+
+    .result-min-price--side .result-min-price__basis {
+        display: block;
+        margin: 0;
+        color: var(--on-surface-variant);
+        font-size: var(--body-sm-font-size);
+    }
+
+    .result-min-price--bar {
+        display: none;
+    }
+}

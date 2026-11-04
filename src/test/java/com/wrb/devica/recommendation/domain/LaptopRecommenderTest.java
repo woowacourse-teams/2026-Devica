@@ -24,12 +24,12 @@ class LaptopRecommenderTest {
     void CPU_점수가_2에서_3이_되면_한_단계_오른다() {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
-        Requirements two = new Requirements(Map.of("REQUIRED_CPU", 2), Map.of());
-        Requirements three = new Requirements(Map.of("REQUIRED_CPU", 3), Map.of());
+        Requirements two = new Requirements(Map.of("REQUIRED_CPU", 2), Map.of(), List.of());
+        Requirements three = new Requirements(Map.of("REQUIRED_CPU", 3), Map.of(), List.of());
 
         // when
-        List<RecommendedSpec> atTwo = recommender.recommend(INTERPRETATION, two, Map.of());
-        List<RecommendedSpec> atThree = recommender.recommend(INTERPRETATION, three, Map.of());
+        List<RecommendedSpec> atTwo = recommender.recommend(INTERPRETATION, os -> two, Map.of());
+        List<RecommendedSpec> atThree = recommender.recommend(INTERPRETATION, os -> three, Map.of());
 
         // then
         assertThat(((LaptopSpec) atTwo.get(0).spec()).cpuTier()).isEqualTo(CpuTier.BASIC);
@@ -42,12 +42,12 @@ class LaptopRecommenderTest {
     void CPU_점수가_4에서_5가_되면_Windows_는_한_단계_오르고_Mac_은_M_Pro_칩으로_제한한다() {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
-        Requirements four = new Requirements(Map.of("REQUIRED_CPU", 4), Map.of());
-        Requirements five = new Requirements(Map.of("REQUIRED_CPU", 5), Map.of());
+        Requirements four = new Requirements(Map.of("REQUIRED_CPU", 4), Map.of(), List.of());
+        Requirements five = new Requirements(Map.of("REQUIRED_CPU", 5), Map.of(), List.of());
 
         // when
-        List<RecommendedSpec> atFour = recommender.recommend(INTERPRETATION, four, Map.of());
-        List<RecommendedSpec> atFive = recommender.recommend(INTERPRETATION, five, Map.of());
+        List<RecommendedSpec> atFour = recommender.recommend(INTERPRETATION, os -> four, Map.of());
+        List<RecommendedSpec> atFive = recommender.recommend(INTERPRETATION, os -> five, Map.of());
 
         // then
         assertThat(((LaptopSpec) atFour.get(1).spec()).cpuTier()).isEqualTo(CpuTier.H);
@@ -62,10 +62,10 @@ class LaptopRecommenderTest {
     void Mac_은_메모리가_CPU_등급의_상한을_넘으면_CPU_를_올린다() {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
-        Requirements requirements = new Requirements(Map.of("MEMORY", 7), Map.of());
+        Requirements requirements = new Requirements(Map.of("MEMORY", 7), Map.of(), List.of());
 
         // when
-        LaptopSpec mac = (LaptopSpec) recommender.recommend(INTERPRETATION, requirements, Map.of()).get(0).spec();
+        LaptopSpec mac = (LaptopSpec) recommender.recommend(INTERPRETATION, os -> requirements, Map.of()).get(0).spec();
 
         // then
         assertThat(mac.cpuTier()).isEqualTo(CpuTier.PRO);
@@ -76,11 +76,11 @@ class LaptopRecommenderTest {
     void Mac_은_CPU_등급에_없는_메모리를_가장_가까운_큰_용량으로_맞춘다() {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
-        Requirements requirements = new Requirements(Map.of("REQUIRED_CPU", 3, "MEMORY", 4), Map.of());
+        Requirements requirements = new Requirements(Map.of("REQUIRED_CPU", 3, "MEMORY", 4), Map.of(), List.of());
 
         // when
-        RecommendedSpec mac = recommender.recommend(INTERPRETATION, requirements, Map.of()).get(0);
-        RecommendedSpec windows = recommender.recommend(INTERPRETATION, requirements, Map.of()).get(1);
+        RecommendedSpec mac = recommender.recommend(INTERPRETATION, os -> requirements, Map.of()).get(0);
+        RecommendedSpec windows = recommender.recommend(INTERPRETATION, os -> requirements, Map.of()).get(1);
 
         // then
         assertThat(((LaptopSpec) mac.spec()).memoryGb()).isEqualTo(48);
@@ -92,11 +92,11 @@ class LaptopRecommenderTest {
     void 지금_쓰는_CPU_가_같은_OS_면_그보다_한_단계_위를_권한다() {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
-        Requirements requirements = new Requirements(Map.of(), Map.of());
+        Requirements requirements = new Requirements(Map.of(), Map.of(), List.of());
         Map<String, String> conditions = Map.of("CURRENT_CPU_TIER", "BASIC");
 
         // when
-        List<RecommendedSpec> specs = recommender.recommend(INTERPRETATION, requirements, conditions);
+        List<RecommendedSpec> specs = recommender.recommend(INTERPRETATION, os -> requirements, conditions);
 
         // then
         assertThat(((LaptopSpec) specs.get(0).spec()).cpuTier()).isEqualTo(CpuTier.PRO);
@@ -107,11 +107,11 @@ class LaptopRecommenderTest {
     void 지금_쓰는_Mac_CPU_가_상한보다_높으면_낮춰_권하는_이유를_알린다() {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
-        Requirements requirements = new Requirements(Map.of(), Map.of());
+        Requirements requirements = new Requirements(Map.of(), Map.of(), List.of());
         Map<String, String> conditions = Map.of("CURRENT_CPU_TIER", "MAX");
 
         // when
-        RecommendedSpec mac = recommender.recommend(INTERPRETATION, requirements, conditions).get(0);
+        RecommendedSpec mac = recommender.recommend(INTERPRETATION, os -> requirements, conditions).get(0);
 
         // then
         assertThat(((LaptopSpec) mac.spec()).cpuTier()).isEqualTo(CpuTier.PRO);
@@ -124,11 +124,11 @@ class LaptopRecommenderTest {
     void 지금_쓰는_Mac_CPU_가_상한과_같으면_같은_등급을_권하는_이유를_알린다() {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
-        Requirements requirements = new Requirements(Map.of(), Map.of());
+        Requirements requirements = new Requirements(Map.of(), Map.of(), List.of());
         Map<String, String> conditions = Map.of("CURRENT_CPU_TIER", "PRO");
 
         // when
-        RecommendedSpec mac = recommender.recommend(INTERPRETATION, requirements, conditions).get(0);
+        RecommendedSpec mac = recommender.recommend(INTERPRETATION, os -> requirements, conditions).get(0);
 
         // then
         assertThat(((LaptopSpec) mac.spec()).cpuTier()).isEqualTo(CpuTier.PRO);
@@ -141,10 +141,10 @@ class LaptopRecommenderTest {
     void 메모리_점수가_구간_경계를_넘으면_한_단계_오른다(int score, int memoryGb) {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
-        Requirements requirements = new Requirements(Map.of("MEMORY", score), Map.of());
+        Requirements requirements = new Requirements(Map.of("MEMORY", score), Map.of(), List.of());
 
         // when
-        RecommendedSpec windows = recommender.recommend(INTERPRETATION, requirements, Map.of()).get(1);
+        RecommendedSpec windows = recommender.recommend(INTERPRETATION, os -> requirements, Map.of()).get(1);
 
         // then
         assertThat(((LaptopSpec) windows.spec()).memoryGb()).isEqualTo(memoryGb);
@@ -155,10 +155,10 @@ class LaptopRecommenderTest {
     void 저장_공간_점수가_구간_경계를_넘으면_한_단계_오른다(int score, int storageGb) {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
-        Requirements requirements = new Requirements(Map.of("STORAGE", score), Map.of());
+        Requirements requirements = new Requirements(Map.of("STORAGE", score), Map.of(), List.of());
 
         // when
-        RecommendedSpec windows = recommender.recommend(INTERPRETATION, requirements, Map.of()).get(1);
+        RecommendedSpec windows = recommender.recommend(INTERPRETATION, os -> requirements, Map.of()).get(1);
 
         // then
         assertThat(((LaptopSpec) windows.spec()).storageGb()).isEqualTo(storageGb);
@@ -168,12 +168,12 @@ class LaptopRecommenderTest {
     void 저장_공간_점수가_6에서_7이_되면_1TB_에서_2TB_로_오른다() {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
-        Requirements six = new Requirements(Map.of("STORAGE", 6), Map.of());
-        Requirements seven = new Requirements(Map.of("STORAGE", 7), Map.of());
+        Requirements six = new Requirements(Map.of("STORAGE", 6), Map.of(), List.of());
+        Requirements seven = new Requirements(Map.of("STORAGE", 7), Map.of(), List.of());
 
         // when
-        RecommendedSpec atSix = recommender.recommend(INTERPRETATION, six, Map.of()).get(0);
-        RecommendedSpec atSeven = recommender.recommend(INTERPRETATION, seven, Map.of()).get(0);
+        RecommendedSpec atSix = recommender.recommend(INTERPRETATION, os -> six, Map.of()).get(0);
+        RecommendedSpec atSeven = recommender.recommend(INTERPRETATION, os -> seven, Map.of()).get(0);
 
         // then
         assertThat(((LaptopSpec) atSix.spec()).storageGb()).isEqualTo(1024);
@@ -185,23 +185,42 @@ class LaptopRecommenderTest {
     void 요구_항목의_근거_뒤에_결과_문장을_붙인다() {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
-        Requirements requirements = new Requirements(Map.of("MEMORY", 2), Map.of("MEMORY", List.of("자주 느려집니다.")));
+        Requirements requirements = new Requirements(
+            Map.of("MEMORY", 2), Map.of("MEMORY", List.of("자주 느려집니다.")), List.of());
 
         // when
-        RecommendedSpec mac = recommender.recommend(INTERPRETATION, requirements, Map.of()).get(0);
+        RecommendedSpec mac = recommender.recommend(INTERPRETATION, os -> requirements, Map.of()).get(0);
 
         // then
         assertThat(mac.itemReasons().get("MEMORY")).containsExactly("자주 느려집니다.", "권장 메모리는 24GB 입니다.");
     }
 
     @Test
+    void OS_권장안마다_그_OS_의_판정_결과로_근거와_안내를_붙인다() {
+        // given
+        LaptopRecommender recommender = new LaptopRecommender();
+        Requirements mac = new Requirements(Map.of(), Map.of("STORAGE", List.of("Mac 근거")), List.of());
+        Requirements windows = new Requirements(Map.of(), Map.of(), List.of("Mac 이 필요합니다."));
+
+        // when
+        List<RecommendedSpec> specs = recommender.recommend(
+            INTERPRETATION, os -> os == Os.MAC ? mac : windows, Map.of());
+
+        // then
+        assertThat(specs.get(0).itemReasons().get("STORAGE")).contains("Mac 근거");
+        assertThat(specs.get(0).notes()).isEmpty();
+        assertThat(specs.get(1).itemReasons().get("STORAGE")).doesNotContain("Mac 근거");
+        assertThat(specs.get(1).notes()).containsExactly("Mac 이 필요합니다.");
+    }
+
+    @Test
     void 점수_해석_규칙에_화면과_GPU_구간이_없으면_권장_항목에_넣지_않는다() {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
-        Requirements requirements = new Requirements(Map.of("COLOR_GAMUT", 5, "GPU", 5), Map.of());
+        Requirements requirements = new Requirements(Map.of("COLOR_GAMUT", 5, "GPU", 5), Map.of(), List.of());
 
         // when
-        List<RecommendedSpec> specs = recommender.recommend(INTERPRETATION, requirements, Map.of());
+        List<RecommendedSpec> specs = recommender.recommend(INTERPRETATION, os -> requirements, Map.of());
 
         // then
         assertThat(specs).allSatisfy(recommended -> assertThat(recommended.spec().values())
@@ -214,10 +233,10 @@ class LaptopRecommenderTest {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
         LaptopInterpretation interpretation = withDisplayAndGpu(INTERPRETATION);
-        Requirements requirements = new Requirements(Map.of("COLOR_GAMUT", 1, "GPU", 2), Map.of());
+        Requirements requirements = new Requirements(Map.of("COLOR_GAMUT", 1, "GPU", 2), Map.of(), List.of());
 
         // when
-        List<RecommendedSpec> specs = recommender.recommend(interpretation, requirements, Map.of());
+        List<RecommendedSpec> specs = recommender.recommend(interpretation, os -> requirements, Map.of());
 
         // then
         LaptopSpec mac = (LaptopSpec) specs.get(0).spec();
@@ -233,7 +252,7 @@ class LaptopRecommenderTest {
     void 화면이나_GPU_규칙에_점수_구간이_없으면_오류를_낸다() {
         // given
         Condition any = new Condition.Selected("Q", List.of("A"));
-        List<Rule> rules = List.of(new Rule("GPU", 1, any, "근거"), new Rule("MEMORY", 1, any, "근거"));
+        List<Rule> rules = List.of(new Rule("GPU", 1, any, "근거", null), new Rule("MEMORY", 1, any, "근거", null));
 
         // when
         List<String> missing = LaptopRecommender.findRulesWithoutRange(INTERPRETATION, rules);

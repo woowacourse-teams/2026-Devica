@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.springframework.stereotype.Component;
 
@@ -121,10 +122,11 @@ public class LaptopRecommender {
             .toList();
     }
 
-    public List<RecommendedSpec> recommend(LaptopInterpretation interpretation, Requirements requirements,
+    public List<RecommendedSpec> recommend(LaptopInterpretation interpretation,
+                                           Function<Os, Requirements> requirementsOf,
                                            Map<String, String> conditions) {
         return Stream.of(Os.MAC, Os.WINDOWS)
-            .map(os -> recommendFor(interpretation, os, requirements, conditions))
+            .map(os -> recommendFor(interpretation, os, requirementsOf.apply(os), conditions))
             .toList();
     }
 
@@ -147,7 +149,7 @@ public class LaptopRecommender {
         LaptopSpec spec = buyableSpec(os, cpuTier, memoryGb, storageGb, colorGamut, gpuTier, reasons);
         addResultReasons(spec, current, reasons);
         boolean preferred = os.name().equals(conditions.get(LaptopCondition.PREFERRED_OS.name()));
-        return new RecommendedSpec(spec, reasons, preferred);
+        return new RecommendedSpec(spec, reasons, requirements.notes(), preferred);
     }
 
     private CpuTier currentCpuTier(Os os, Map<String, String> conditions) {

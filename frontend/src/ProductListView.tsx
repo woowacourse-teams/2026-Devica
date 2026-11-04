@@ -45,7 +45,6 @@ const PREFETCH_MARGIN = '0px 0px 600px 0px';
 const PRICE_STEPS = [1500000, 2000000, 2500000, 3000000, 4000000, 5000000];
 
 const SORT_LABELS: { value: SortType; label: string }[] = [
-  { value: 'RECOMMENDED', label: '추천순' },
   { value: 'PRICE_ASC', label: '가격 낮은 순' },
   { value: 'PRICE_DESC', label: '가격 높은 순' },
 ];
@@ -314,7 +313,7 @@ export function ProductListView({
               onChange={(event) => onChangeState((previous) => ({ ...previous, sort: event.target.value as SortType }))}
             >
               {SORT_LABELS.map(({ value, label }) => (
-                <option value={value} key={value} hidden={value === 'RECOMMENDED' && !matchedMode}>
+                <option value={value} key={value}>
                   {label}
                 </option>
               ))}

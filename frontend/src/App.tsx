@@ -495,6 +495,7 @@ function ResultPage({ params }: PageProps) {
   };
   return (
     <ResultView
+      categoryCode={category}
       specs={specs}
       os={os}
       edits={edits}
@@ -512,29 +513,29 @@ function ResultPage({ params }: PageProps) {
   );
 }
 
-// 추천순은 권장 사양이 있는 맞춤 목록에서만 쓸 수 있다. 그때만 기본값이 추천순이다.
-function listSortOf(params: URLSearchParams, defaultSort: SortType): SortType {
-  const sort = sortOf(params) ?? defaultSort;
-  return sort === 'RECOMMENDED' && defaultSort !== 'RECOMMENDED' ? defaultSort : sort;
+const DEFAULT_SORT: SortType = 'PRICE_ASC';
+
+function listSortOf(params: URLSearchParams): SortType {
+  return sortOf(params) ?? DEFAULT_SORT;
 }
 
 /**
  * 목록의 정렬·검색 조건은 주소에, 조건 패널을 펼쳤는지는 방문 기록 칸에 둔다.
  * 조건을 바꿀 때는 기록을 쌓지 않는다. 목록의 뒤로 버튼은 이전 조건이 아니라 들어오기 전 화면으로 간다.
  */
-function useListState(search: string, defaultSort: SortType, defaultOs: string | null = null) {
+function useListState(search: string, defaultOs: string | null = null) {
   const navState = useHistoryState<NavState | null>();
   const state = useMemo<Omit<ProductListState, 'filterOpen'>>(() => {
     const parsed = new URLSearchParams(search);
-    return { sort: listSortOf(parsed, defaultSort), condition: withOs(conditionOf(parsed), defaultOs) };
-  }, [search, defaultSort, defaultOs]);
+    return { sort: listSortOf(parsed), condition: withOs(conditionOf(parsed), defaultOs) };
+  }, [search, defaultOs]);
 
   // 늘 같은 함수여야 한다. 목록이 검색어 입력을 기다리는 effect 의 의존성으로 쓴다. 그래서 값은 호출할 때 주소에서 읽는다.
   const onChangeState = useCallback(
     (update: (previous: ProductListState) => ProductListState) => {
       const current = new URLSearchParams(window.location.search);
       const next = update({
-        sort: listSortOf(current, defaultSort),
+        sort: listSortOf(current),
         condition: withOs(conditionOf(current), defaultOs),
         filterOpen: currentNavState().filterOpen === true,
       });
@@ -547,7 +548,7 @@ function useListState(search: string, defaultSort: SortType, defaultOs: string |
       }
       replace(`${window.location.pathname}?${current}`, { ...currentNavState(), filterOpen: next.filterOpen });
     },
-    [defaultSort, defaultOs],
+    [defaultOs],
   );
 
   return { state: { ...state, filterOpen: navState?.filterOpen === true }, onChangeState, navState: navState ?? {} };
@@ -597,11 +598,7 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
       replace(`${PATHS.matched}?${withSpecCondition(new URLSearchParams(search), recommendation.data)}`);
     }
   }, [filled, search, recommendation.data]);
-  const { state, onChangeState, navState } = useListState(
-    search,
-    'RECOMMENDED',
-    matchedOsOf(params, recommendation.data ?? []),
-  );
+  const { state, onChangeState, navState } = useListState(search, matchedOsOf(params, recommendation.data ?? []));
   const { category, purpose } = flowOf(params);
 
   if (category === null || purpose === null) {
@@ -658,7 +655,7 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
 }
 
 function AllListPage({ params, search }: PageProps & { search: string }) {
-  const { state, onChangeState, navState } = useListState(search, 'PRICE_ASC');
+  const { state, onChangeState, navState } = useListState(search);
   const category = params.get('category');
   const onBack = () => goBack(PATHS.home);
 

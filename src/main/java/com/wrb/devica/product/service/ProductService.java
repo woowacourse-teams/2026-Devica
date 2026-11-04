@@ -39,6 +39,11 @@ public class ProductService {
         );
     }
 
+    public Long findMinPrice(String categoryCode, LaptopSearchCondition condition) {
+        validateCategoryExists(categoryCode);
+        return laptopRepository.findMinPrice(condition);
+    }
+
     public List<String> findBrandsByCategory(String categoryCode, Os os) {
         validateCategoryExists(categoryCode);
         return laptopRepository.findBrands(os);
