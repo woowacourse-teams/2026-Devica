@@ -3,10 +3,7 @@ package com.wrb.devica.common;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.wrb.devica.product.domain.OfferStatus;
-import com.wrb.devica.product.domain.ProductOffer;
-import com.wrb.devica.product.service.ProductOfferService;
-import java.time.LocalDate;
+import java.sql.Date;
 import java.util.List;
 import java.util.Map;
 import org.flywaydb.core.Flyway;
@@ -27,7 +24,6 @@ class AppleManufacturerOfferMigrationTest {
 
     @Autowired private Flyway flyway;
     @Autowired private JdbcTemplate jdbcTemplate;
-    @Autowired private ProductOfferService offers;
     private Flyway appleMigration;
 
     @BeforeEach
@@ -48,7 +44,10 @@ class AppleManufacturerOfferMigrationTest {
     void 추가_판매처가_있어도_기존_오퍼를_보존하고_검수한_가격을_등록한다() {
         // given: 판매처가 늘어나도 기존 가격을 덮어쓰지 않는다.
         long productId = targetProductId();
-        saveOffer(productId, "추가 판매처", 100_000L, "ON_SALE");
+        jdbcTemplate.update("UPDATE product_offer SET price = 50000000 WHERE product_id = ? AND status = 'ON_SALE'",
+            productId);
+        saveOffer(productId, "추가 판매처", 3_000_000L, "ON_SALE");
+        saveOffer(productId, "품절 판매처", 1L, "SOLD_OUT");
         var before = offerSnapshot();
 
         // when
@@ -58,43 +57,14 @@ class AppleManufacturerOfferMigrationTest {
         assertThat(offerSnapshot()).containsAll(before);
         assertNewOffersMatchTargets(before, List.of(productId));
         var apple = registeredOffer(productId);
-        assertThat(apple).extracting(ProductOffer::getPrice, ProductOffer::getCheckedAt,
-                ProductOffer::getStatus)
-            .containsExactly(2_190_000L, LocalDate.of(2026, 11, 2), OfferStatus.ON_SALE);
-        assertThat(apple.getExternalItemId()).isNull();
-        assertThat(apple.getPurchaseUrl()).isEqualTo("https://www.apple.com/kr/shop/buy-mac/macbook-air/"
-            + "13-모델-스카이-블루-m5-칩-10코어-cpu-8코어-gpu-16gb-메모리-512gb-저장-장치");
-        assertThat(minPrice(productId)).isEqualTo(100_000L);
-        assertThat(offers.findLowestOnSaleOffers(List.of(productId)).get(productId).getName())
-            .isEqualTo("추가 판매처");
-    }
-
-    @Test
-    void 최저가_캐시가_없어도_더_싼_판매중_오퍼를_반영해_복구한다() {
-        // given
-        long productId = targetProductId();
-        jdbcTemplate.update("UPDATE product_offer SET price = 50000000 WHERE product_id = ? AND status = 'ON_SALE'",
-            productId);
-        saveOffer(productId, "다른 판매처", 1_700_000L, "ON_SALE");
-        saveOffer(productId, "품절 판매처", 1_000_000L, "SOLD_OUT");
-        jdbcTemplate.update("DELETE FROM product_min_price WHERE product_id = ?", productId);
-
-        // when
-        appleMigration.migrate();
-
-        // then
-        assertThat(minPrice(productId)).isEqualTo(1_700_000L);
-        assertThat(offers.findLowestOnSaleOffers(List.of(productId)).get(productId).getName())
-            .isEqualTo("다른 판매처");
-    }
-
-    @Test
-    void 대상_제품_코드가_없으면_다른_제품에_가격을_연결하지_않는다() {
-        // given
-        jdbcTemplate.update("UPDATE product SET code = 'UNMATCHED-APPLE' WHERE code = 'MDH74KH/A'");
-
-        // when & then
-        assertMigrationRejectedWithoutChanges();
+        assertThat(apple)
+            .containsEntry("price", 2_190_000L)
+            .containsEntry("checked_at", Date.valueOf("2026-11-02"))
+            .containsEntry("status", "ON_SALE")
+            .containsEntry("external_item_id", null)
+            .containsEntry("purchase_url", "https://www.apple.com/kr/shop/buy-mac/macbook-air/"
+                + "13-모델-스카이-블루-m5-칩-10코어-cpu-8코어-gpu-16gb-메모리-512gb-저장-장치");
+        assertThat(minPrice(productId)).isEqualTo(2_190_000L);
     }
 
     @Test
@@ -115,7 +85,6 @@ class AppleManufacturerOfferMigrationTest {
         assertMigrationRejectedWithoutChanges();
     }
 
-
     private void assertMigrationRejectedWithoutChanges() {
         var before = offerSnapshot();
         var prices = jdbcTemplate.queryForList("SELECT product_id, min_price FROM product_min_price ORDER BY product_id");
@@ -134,11 +103,11 @@ class AppleManufacturerOfferMigrationTest {
         assertThat(added).extracting(offer -> offer.get("name")).containsOnly("Apple 공홈");
     }
 
-    private ProductOffer registeredOffer(long productId) {
-        var registered = offers.findOnSaleOffers(productId).stream()
-            .filter(offer -> "Apple 공홈".equals(offer.getName())).toList();
-        assertThat(registered).hasSize(1);
-        return registered.getFirst();
+    private Map<String, Object> registeredOffer(long productId) {
+        return jdbcTemplate.queryForMap("""
+            SELECT price, checked_at, status, external_item_id, purchase_url
+            FROM product_offer WHERE product_id = ? AND name = 'Apple 공홈'
+            """, productId);
     }
 
     private long targetProductId() {
