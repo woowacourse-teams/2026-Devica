@@ -18,6 +18,12 @@
 #   common.py metric  BODY_FILE                         지표 피드백 → 주소(번호·answers), 주소별 건수, 고친 값, 주소별 바꾼 답
 #   common.py cluster ITEMS_JSON                       주소마다 가리키는 규칙 [{address, count, rules}] → 함께 가리키는 규칙과 그 주소 묶음
 #   common.py block   COMMENT_FILE                      산출물 댓글 → 표시(첫 줄), 첫 ```yaml 블록(JSON), 스키마 검증 오류(errors)
+#   common.py key     RULE                              규칙을 구분하는 값(조건 안의 순서 무시, os 포함). RULE 은 {criterion, when, os?} JSON
+#   common.py same    REF PURPOSE RULE                  같은 규칙(same)과 같은 항목·OS 에서 같은 질문들로 된 규칙(same_questions)
+#   common.py uses    REF PURPOSE QUESTION CRITERION    그 질문을 보는 그 항목의 규칙(점수 0 포함)과 매핑
+#   common.py hit     REF PURPOSE RULE ANSWERS          답 조합이 RULE 의 조건에 걸리는지(노출 조건을 적용한 답 기준)
+#   common.py ends    REF PURPOSE PLAN ITEM             권장안·항목에서 낼 수 있는 가장 낮은·높은 값과 rank
+#   common.py target  REF PURPOSE RULE QUESTION         기댄 답(QUESTION)으로 RULE 을 더할지: exists | add | widen(넓힐 규칙) | seen
 #
 # 테스트는 test.py 에 있다.
 # 스키마(interface/artifacts/*.schema.yml)는 이 파일과 같은 디렉터리나 그 아래 interface/artifacts/ 에서 찾는다.
@@ -84,8 +90,86 @@ def visible(d, a):
     return out
 
 
+def canon(c):
+    # 같은 조건을 같은 모양으로: 선택지와 all·any 의 항목 순서를 무시하고, 안에 든 같은 종류(all 안의 all)와 항목 하나뿐인 all·any 를 편다
+    if 'question' in c:
+        return {'question': c['question'], 'anyOf': sorted(set(c['anyOf']))}
+    if 'not' in c:
+        return {'not': canon(c['not'])}
+    k = 'all' if 'all' in c else 'any'
+    items = []
+    for x in map(canon, c[k]):
+        items += x[k] if k in x else [x]
+    items = sorted({json.dumps(x, sort_keys=True): x for x in items}.values(), key=lambda x: json.dumps(x, sort_keys=True))
+    return items[0] if len(items) == 1 else {k: items}
+
+
 def key(rule):
-    return rule['criterion'] + ' ' + json.dumps(rule['when'], sort_keys=True, ensure_ascii=False, separators=(',', ':'))
+    # 규칙을 구분하는 값. os 가 다르면 다른 규칙이다
+    k = rule['criterion'] + ' ' + json.dumps(canon(rule['when']), sort_keys=True, ensure_ascii=False, separators=(',', ':'))
+    return k + (' os=' + rule['os'] if rule.get('os') else '')
+
+
+def questions(c):
+    if 'question' in c:
+        return {c['question']}
+    return set().union(*(questions(x) for x in (c.get('all') or c.get('any') or [c.get('not')])))
+
+
+def same(d, rule):
+    # 같은 규칙(key 가 같은 것)과, 같은 항목·OS 에서 같은 질문들로 된 규칙
+    rules = d['rules']
+    return {'same': [r for r in rules if key(r) == key(rule)],
+            'same_questions': [r for r in rules if r['criterion'] == rule['criterion'] and r.get('os') == rule.get('os')
+                               and questions(r['when']) == questions(rule['when']) and key(r) != key(rule)]}
+
+
+def options(c, question):
+    # 조건에서 그 질문에 쓴 선택지
+    if 'question' in c:
+        return set(c['anyOf']) if c['question'] == question else set()
+    return set().union(*(options(x, question) for x in ([c['not']] if 'not' in c else c.get('all') or c.get('any') or [])))
+
+
+def uses(d, question, criterion):
+    # 그 질문을 보는 규칙(점수 0 포함)과 매핑. 하나라도 있으면 그 답으로 규칙을 추가하지 않는다
+    return {'rules': [r for r in d['rules'] if r['criterion'] == criterion and question in questions(r['when'])],
+            'mappings': [m for m in d.get('mappings') or [] if question in questions(m['when'])]}
+
+
+def target(d, rule, question):
+    # 사용자가 기댄 답(question)으로 rule 을 더할지. rule 은 사용자가 고른 선택지로 만든 새 규칙이다
+    #   exists  같은 규칙이 이미 있거나, 같은 질문들로 된 규칙이 모든 질문에서 사용자가 고른 선택지를 이미 담고 있다(rule 에 그 규칙)
+    #   add     그 질문을 보는 그 항목의 규칙도 매핑도 없다
+    #   widen   그 질문을 보는 규칙이 같은 질문들로 된 규칙 하나뿐이고, 어느 질문에서 사용자가 고른 선택지를 담지 않는다.
+    #           그 규칙의 선택지를 넓힌다(rule 에 그 규칙)
+    #   seen    그 밖. 다른 모양의 규칙이나 매핑이 그 답을 본다
+    u, s = uses(d, question, rule['criterion']), same(d, rule)
+    if s['same']:
+        return {'kind': 'exists', 'rule': s['same'][0]}
+    if u['mappings']:
+        return {'kind': 'seen', 'rule': None}
+    if not u['rules']:
+        return {'kind': 'add', 'rule': None}
+    shaped = {key(r) for r in s['same_questions']}
+    if len(s['same_questions']) == 1 and all(key(r) in shaped for r in u['rules']):
+        old = s['same_questions'][0]
+        covered = all(options(rule['when'], q) <= options(old['when'], q) for q in questions(rule['when']))
+        return {'kind': 'exists' if covered else 'widen', 'rule': old}
+    return {'kind': 'seen', 'rule': None}
+
+
+def ends(d, plan, item):
+    # 권장안·항목에서 정의서가 낼 수 있는 가장 낮은·높은 값. 사용자가 본 값이 그 방향의 끝이면 규칙을 더해도 바뀌지 않는다
+    it = d['interpretation']
+    if item == 'REQUIRED_CPU':
+        vs = [r['value'] for r in it['cpu'][plan]]
+        if plan == 'MAC' and it.get('macCpuLimit'):
+            vs = [v for v in vs if CPU_RANK[v] <= CPU_RANK[it['macCpuLimit']]]
+        ranks = [CPU_RANK[v] for v in vs]
+    else:
+        vs = ranks = [r['value'] for r in it['memory' if item == 'MEMORY' else 'storage']]
+    return {'min': {'value': vs[0], 'rank': ranks[0]}, 'max': {'value': vs[-1], 'rank': ranks[-1]}}
 
 
 def hits(d, a, os_=None):
@@ -397,6 +481,12 @@ COMMANDS = {
     'metric': lambda r: metric(read(r[0])),
     'cluster': lambda r: cluster(arg(r[0])),
     'block': lambda r: block(read(r[0])),
+    'key': lambda r: key(arg(r[0])),
+    'same': lambda r: same(definition(r[0], r[1]), arg(r[2])),
+    'uses': lambda r: uses(definition(r[0], r[1]), r[2], r[3]),
+    'hit': lambda r: hit(definition(r[0], r[1]), arg(r[2]), arg(r[3])),
+    'ends': lambda r: ends(definition(r[0], r[1]), r[2], r[3]),
+    'target': lambda r: target(definition(r[0], r[1]), arg(r[2]), r[3]),
 }
 
 

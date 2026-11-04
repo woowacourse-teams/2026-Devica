@@ -6,6 +6,7 @@ from common import COMMANDS, json, sys
 
 #   snapshot.py add-cases SNAPSHOT INSTRUCTION      지시의 재현 사례를 스냅숏에 더한다(이미 있는 이름은 건너뛴다). 더한 이름 목록
 #   snapshot.py compare   BEFORE AFTER INSTRUCTION  수정 전후 스냅숏 비교: 기대 결과 판정, 결과 변화, 영향 범위
+#   snapshot.py check     DEF PURPOSE INSTRUCTION   지시를 지금 정의서에 그대로 실행할 수 있는지. {ok, errors, rule(고칠 규칙, add 면 null)}
 # INSTRUCTION 은 개선 지시 yaml 블록을 JSON 으로 바꾼 파일 경로다.
 from collections import Counter
 
@@ -69,9 +70,55 @@ def row(name, v1, v2, criterion):
                         for p in v1 if criterion in ITEMS and v1[p][criterion]['reasons'] != v2[p][criterion]['reasons']}}
 
 
+def options(d):
+    return {q['code']: {o['code'] for o in q.get('options') or []} for step in d['survey']['steps'] for q in step['questions']}
+
+
+def unknown(c, opts):
+    if 'question' in c:
+        if c['question'] not in opts:
+            return [c['question']]
+        return [f"{c['question']}.{o}" for o in c['anyOf'] if o not in opts[c['question']]]
+    return [x for y in (c.get('all') or c.get('any') or [c.get('not')]) for x in unknown(y, opts)]
+
+
+def check(def_ref, purpose, instruction_path):
+    ins = json.loads(read(instruction_path))
+    d = definition(def_ref, purpose)
+    rule, change = ins['rule'], ins['change']
+    found = same(d, rule)['same']
+    errors, target = [], None
+    if 'add' in change:
+        if rule['criterion'] not in ITEMS:
+            errors.append(f"더할 수 있는 항목이 아니다: {rule['criterion']}")
+        if found:
+            errors.append('추가할 규칙과 같은 규칙이 이미 있다')
+        flat = lambda t: ' '.join(t.split())
+        taken = {flat(r['reason']) for r in d['rules'] if r['criterion'] == rule['criterion']}
+        if flat(change['reason']['to']) in taken:
+            errors.append('새 근거 문장이 같은 항목의 다른 규칙과 같다')
+    elif len(found) != 1:
+        other_os = [r.get('os') for r in d['rules'] if key({**r, 'os': rule.get('os')}) == key(rule)]
+        hint = f", os 만 다른 규칙이 있다: {other_os}" if not found and other_os else ''
+        errors.append(f'지시한 규칙이 정확히 하나가 아니다({len(found)}개{hint})')
+    else:
+        target = found[0]
+        for k in ('weight', 'when', 'reason'):
+            same_value = (lambda a, b: canon(a) == canon(b)) if k == 'when' else (lambda a, b: a == b)
+            if k in change and 'from' in change[k] and not same_value(change[k]['from'], target[k]):
+                errors.append(f"지시 뒤에 develop 의 규칙이 바뀌었다({k}: 지시 {change[k]['from']}, 지금 {target[k]})")
+    new_when = rule['when'] if 'add' in change else change.get('when', {}).get('to')
+    if new_when:
+        bad = unknown(new_when, options(d))
+        if bad:
+            errors.append(f"설문에 없는 질문·선택지: {', '.join(bad)}")
+    return {'ok': not errors, 'errors': errors, 'rule': target}
+
+
 def compare(before_path, after_path, instruction_path):
     ins = json.loads(read(instruction_path))
     criterion, change = ins['rule']['criterion'], ins['change']
+    rule_os = ins['rule'].get('os')
     before = {case_id(c): c for c in snapshot_lines(before_path)}
     after = {case_id(c): c for c in snapshot_lines(after_path)}
     val = lambda c: values(c['response'])
@@ -94,13 +141,24 @@ def compare(before_path, after_path, instruction_path):
             fails.append('결과 값을 바꾸는 지시인데 기대 결과(expected)가 없다')
         for e in c.get('expected') or []:
             a, b = v1[e['plan']][e['item']]['rank'], v2[e['plan']][e['item']]['rank']
+            shown = f"({v1[e['plan']][e['item']]['display']} → {v2[e['plan']][e['item']]['display']})"
             if not (b > a if e['direction'] == 'UP' else b < a):
-                fails.append(f"{e['plan']} {e['item']} 이 {e['direction']} 쪽으로 바뀌지 않았다"
-                             f" ({v1[e['plan']][e['item']]['display']} → {v2[e['plan']][e['item']]['display']})")
+                fails.append(f"{e['plan']} {e['item']} 이 {e['direction']} 쪽으로 바뀌지 않았다 {shown}")
+            elif 'current' in e and not (b > e['current'] if e['direction'] == 'UP' else b <= e['current']):
+                # 지금 사양에서 불편했다면 그보다 높아야 하고, 지금 사양으로 충분했다면 그보다 높지 않아야 한다
+                fails.append(f"{e['plan']} {e['item']} 이 지금 사양({e['current']})을 "
+                             f"{'넘지' if e['direction'] == 'UP' else '넘지 않게 내려가지'} 않았다 {shown}")
+        if rule_os:
+            # OS 전용 규칙은 다른 OS 권장안을 바꾸지 않는다
+            for p in v2:
+                if p != rule_os and plain({p: v1[p]}) != plain({p: v2[p]}):
+                    fails.append(f'{rule_os} 전용 규칙인데 {p} 결과 값이 바뀌었다')
         if 'reason' in change and not change.get('delete'):
             for p in v2:
+                if rule_os and p != rule_os:
+                    continue
                 rs = v2[p][criterion]['reasons'] if criterion in ITEMS else []
-                if change['reason']['to'] not in rs or change['reason']['from'] in rs:
+                if change['reason']['to'] not in rs or change['reason'].get('from') in rs:
                     fails.append(f'{p} 의 {criterion} 근거 문장이 지시한 문장으로 바뀌지 않았다')
         checks.append({'case': name, 'ok': not fails, 'why': '; '.join(fails)})
 
@@ -133,6 +191,7 @@ def compare(before_path, after_path, instruction_path):
 COMMANDS.update({
     'add-cases': lambda r: add_cases(*r),
     'compare': lambda r: compare(*r),
+    'check': lambda r: check(*r),
 })
 
 if __name__ == '__main__':

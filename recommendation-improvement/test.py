@@ -84,6 +84,63 @@ class CommonTest(unittest.TestCase):
         self.assertEqual([r['criterion'] for r in hits(d, a, 'MAC')], ['MEMORY', 'STORAGE'])
         self.assertEqual([r['criterion'] for r in hits(d, a)], ['MEMORY', 'STORAGE'])
 
+    def test_규칙_구분은_조건_안의_순서를_무시하고_os_가_다르면_다르다(self):
+        a = {'criterion': 'MEMORY', 'when': {'all': [{'question': 'A', 'anyOf': ['X', 'Y']}, {'question': 'B', 'anyOf': ['Z']}]}}
+        b = {'criterion': 'MEMORY', 'when': {'all': [{'question': 'B', 'anyOf': ['Z']}, {'question': 'A', 'anyOf': ['Y', 'X']}]}}
+        self.assertEqual(common.key(a), common.key(b))
+        self.assertNotEqual(common.key(a), common.key({**a, 'os': 'WINDOWS'}))
+        self.assertNotEqual(common.key(a), common.key({**a, 'criterion': 'STORAGE'}))
+        nested = {'criterion': 'MEMORY', 'when': {'all': [{'all': [{'question': 'A', 'anyOf': ['X', 'Y']}]}, {'question': 'B', 'anyOf': ['Z']}]}}
+        self.assertEqual(common.key(a), common.key(nested))
+        single = {'criterion': 'MEMORY', 'when': {'all': [{'question': 'B', 'anyOf': ['Z']}]}}
+        self.assertEqual(common.key(single), common.key({'criterion': 'MEMORY', 'when': {'question': 'B', 'anyOf': ['Z']}}))
+
+    def test_기댄_답으로_더할지_넓힐지(self):
+        mem = lambda gb: {'criterion': 'MEMORY', 'when': {'all': [{'question': 'CURRENT_MEMORY', 'anyOf': [gb]},
+                                                                   {'question': 'SLOWDOWN', 'anyOf': ['OFTEN']}]}}
+        self.assertEqual(common.target(DEF, mem('GB_32'), 'CURRENT_MEMORY'), {'kind': 'add', 'rule': None})
+        self.assertEqual(common.target(DEF, mem('GB_32'), 'SLOWDOWN')['kind'], 'seen')
+        d = {**DEF, 'rules': DEF['rules'] + [{**mem('GB_32'), 'weight': 1}]}
+        self.assertEqual(common.target(d, mem('GB_32'), 'CURRENT_MEMORY')['kind'], 'exists')
+        widen = common.target(d, mem('GB_24'), 'CURRENT_MEMORY')
+        self.assertEqual((widen['kind'], widen['rule']['weight']), ('widen', 1))
+        both = {**DEF, 'rules': DEF['rules'] + [{**mem('GB_16'), 'when': {'all': [
+            {'question': 'CURRENT_MEMORY', 'anyOf': ['GB_16', 'GB_32']}, {'question': 'SLOWDOWN', 'anyOf': ['OFTEN']}]}, 'weight': 1}]}
+        self.assertEqual(common.target(both, mem('GB_32'), 'CURRENT_MEMORY')['kind'], 'exists')
+        sometimes = {'criterion': 'MEMORY', 'when': {'all': [{'question': 'CURRENT_MEMORY', 'anyOf': ['GB_32']},
+                                                             {'question': 'SLOWDOWN', 'anyOf': ['SOMETIMES']}]}}
+        self.assertEqual(common.target(d, sometimes, 'CURRENT_MEMORY')['kind'], 'widen')
+        other = {**DEF, 'rules': d['rules'] + [{'criterion': 'MEMORY', 'when': {'question': 'CURRENT_MEMORY', 'anyOf': ['GB_8']}, 'weight': 2}]}
+        self.assertEqual(common.target(other, mem('GB_24'), 'CURRENT_MEMORY')['kind'], 'seen')
+        mapped = {**DEF, 'mappings': [{'criterion': 'CURRENT_CPU_TIER', 'value': 'X', 'when': {'question': 'CURRENT_MEMORY', 'anyOf': ['GB_8']}}]}
+        self.assertEqual(common.target(mapped, mem('GB_32'), 'CURRENT_MEMORY')['kind'], 'seen')
+
+    def test_같은_규칙과_같은_질문들로_된_규칙(self):
+        d = {**DEF, 'rules': DEF['rules'] + [
+            {'criterion': 'MEMORY', 'when': {'question': 'SLOWDOWN', 'anyOf': ['SOMETIMES']}, 'weight': 1},
+            {'criterion': 'MEMORY', 'when': {'question': 'SLOWDOWN', 'anyOf': ['NEVER']}, 'weight': -1, 'os': 'MAC'}]}
+        out = common.same(d, {'criterion': 'MEMORY', 'when': {'question': 'SLOWDOWN', 'anyOf': ['OFTEN']}})
+        self.assertEqual([r['weight'] for r in out['same']], [2])
+        self.assertEqual([r['weight'] for r in out['same_questions']], [1])
+        new = common.same(d, {'criterion': 'MEMORY', 'when': {'question': 'SLOWDOWN', 'anyOf': ['FINE']}, 'os': 'MAC'})
+        self.assertEqual((new['same'], [r['weight'] for r in new['same_questions']]), ([], [-1]))
+
+    def test_답을_보는_규칙은_점수_0_과_매핑도_포함한다(self):
+        d = {**DEF, 'rules': DEF['rules'] + [{'criterion': 'MEMORY', 'when': {'question': 'VIDEO', 'anyOf': ['YES']}, 'weight': 0}],
+             'mappings': [{'criterion': 'CURRENT_CPU_TIER', 'value': 'BASIC', 'when': {'question': 'CPU', 'anyOf': ['BASIC']}}]}
+        self.assertEqual([r['weight'] for r in common.uses(d, 'VIDEO', 'MEMORY')['rules']], [0])
+        self.assertEqual(common.uses(d, 'VIDEO', 'REQUIRED_CPU'), {'rules': [], 'mappings': []})
+        self.assertEqual(len(common.uses(d, 'CPU', 'REQUIRED_CPU')['mappings']), 1)
+
+    def test_끝_구간은_점수_구간과_Mac_CPU_상한으로_정한다(self):
+        d = {'interpretation': {'cpu': {'MAC': [{'upTo': 2, 'value': 'BASIC'}, {'upTo': 4, 'value': 'PRO'}, {'value': 'MAX'}],
+                                        'WINDOWS': [{'upTo': 2, 'value': 'P_HS'}, {'value': 'HX'}]},
+                                'memory': [{'upTo': 1, 'value': 16}, {'value': 48}], 'storage': [{'value': 512}],
+                                'macCpuLimit': 'PRO'}}
+        self.assertEqual(common.ends(d, 'MAC', 'REQUIRED_CPU')['max'], {'value': 'PRO', 'rank': 1})
+        self.assertEqual(common.ends(d, 'WINDOWS', 'REQUIRED_CPU')['max'], {'value': 'HX', 'rank': 3})
+        self.assertEqual((common.ends(d, 'MAC', 'MEMORY')['min']['rank'], common.ends(d, 'MAC', 'MEMORY')['max']['rank']), (16, 48))
+
     def test_정의서_차이는_규칙_단위다(self):
         d2 = json.loads(json.dumps(DEF))
         d2['rules'][0]['weight'] = 3
@@ -261,6 +318,25 @@ class ValidateTest(unittest.TestCase):
         for c in ins['cases']:
             c.pop('expected')
         self.assertEqual(validate(s, ins), [])
+
+    def test_규칙_추가_지시는_새_근거_문장만_있고_다른_변경과_함께_오지_않는다(self):
+        s = schema('improvement-instruction')
+        add = next(e for e in s['examples'] if 'add' in e['change'])
+        self.assertEqual(validate(s, add), [])
+        bad = [
+            {'add': {'direction': 'UP'}},
+            {'add': {'direction': 'UP'}, 'reason': {'from': '옛 문장', 'to': '새 문장'}},
+            {'add': {'direction': 'UP'}, 'weight': {'from': 1, 'to': 2}, 'reason': {'to': '새 문장'}},
+            {'weight': {'from': 1, 'to': 2}, 'reason': {'to': '새 문장'}},
+        ]
+        for change in bad:
+            with self.subTest(change=change):
+                self.assertTrue(validate(s, {**add, 'change': change}))
+        no_expected = json.loads(json.dumps(add))
+        no_expected['cases'][0].pop('expected')
+        self.assertTrue(validate(s, no_expected))
+        self.assertTrue(validate(s, {**add, 'rule': {**add['rule'], 'os': 'LINUX'}}))
+        self.assertEqual(validate(s, {**add, 'rule': {**add['rule'], 'os': 'WINDOWS'}}), [])
 
     def test_맞는_데이터는_통과한다(self):
         for data in VALID:
@@ -620,6 +696,69 @@ class ImproverTest(unittest.TestCase):
         out = improver.compare(tmp(before), tmp(after), tmp(json.dumps(INSTRUCTION)))
         self.assertTrue(out['ok'])
         self.assertEqual([r['case'] for r in out['other_feedback_rows']], ['피드백 #300'])
+
+
+    def test_지시를_지금_정의서에_실행할_수_있는지_본다(self):
+        d = {**DEF, 'survey': {'steps': [{'questions': [
+            {'code': 'SLOWDOWN', 'options': [{'code': 'OFTEN'}, {'code': 'NEVER'}]},
+            {'code': 'CURRENT_MEMORY', 'options': [{'code': 'GB_32'}]},
+            {'code': 'VIDEO', 'options': [{'code': 'YES'}]}]}]},
+            'rules': [{**r, 'reason': f"{r['criterion']} 근거"} for r in DEF['rules']]}
+        path = tmp(json.dumps(d))
+        run = lambda ins: improver.check(path, 'DEV', tmp(json.dumps(ins)))
+        new = {'criterion': 'MEMORY', 'when': {'all': [{'question': 'SLOWDOWN', 'anyOf': ['OFTEN']},
+                                                        {'question': 'CURRENT_MEMORY', 'anyOf': ['GB_32']}]}}
+        add = {'rule': new, 'change': {'add': {'direction': 'UP'}, 'reason': {'to': '새 근거'}}}
+        self.assertEqual(run(add), {'ok': True, 'errors': [], 'rule': None})
+        self.assertIn('새 근거 문장이 같은 항목의 다른 규칙과 같다',
+                      run({**add, 'change': {**add['change'], 'reason': {'to': 'MEMORY 근거'}}})['errors'])
+        self.assertIn('설문에 없는 질문·선택지: CURRENT_MEMORY.GB_64',
+                      run({**add, 'rule': {**new, 'when': {'question': 'CURRENT_MEMORY', 'anyOf': ['GB_64']}}})['errors'])
+        existing = {**add, 'rule': {'criterion': 'MEMORY', 'when': {'question': 'SLOWDOWN', 'anyOf': ['OFTEN']}}}
+        self.assertIn('추가할 규칙과 같은 규칙이 이미 있다', run(existing)['errors'])
+        self.assertTrue(run({**existing, 'rule': {**existing['rule'], 'os': 'MAC'}})['ok'])
+        modify = {'rule': existing['rule'], 'change': {'weight': {'from': 2, 'to': 1}}}
+        self.assertEqual(run(modify)['rule']['weight'], 2)
+        self.assertIn('지시 뒤에 develop 의 규칙이 바뀌었다(weight: 지시 3, 지금 2)',
+                      run({**modify, 'change': {'weight': {'from': 3, 'to': 1}}})['errors'])
+        self.assertIn('지시한 규칙이 정확히 하나가 아니다(0개)', run({**modify, 'rule': new})['errors'])
+        multi = {**DEF, 'survey': d['survey'], 'rules': [{'criterion': 'MEMORY', 'weight': 1, 'reason': 'r',
+                                                         'when': {'question': 'SLOWDOWN', 'anyOf': ['OFTEN', 'NEVER']}}]}
+        reorder = {'question': 'SLOWDOWN', 'anyOf': ['NEVER', 'OFTEN']}
+        self.assertTrue(improver.check(tmp(json.dumps(multi)), 'DEV', tmp(json.dumps(
+            {'rule': {'criterion': 'MEMORY', 'when': reorder}, 'change': {'when': {'from': reorder, 'to': reorder}}})))['ok'])
+        self.assertIn("지시한 규칙이 정확히 하나가 아니다(0개, os 만 다른 규칙이 있다: [None])",
+                      run({**modify, 'rule': {**existing['rule'], 'os': 'MAC'}})['errors'])
+        self.assertIn('새 근거 문장이 같은 항목의 다른 규칙과 같다',
+                      run({**add, 'change': {**add['change'], 'reason': {'to': ' MEMORY  근거 '}}})['errors'])
+        self.assertIn('더할 수 있는 항목이 아니다: GPU', run({**add, 'rule': {**new, 'criterion': 'GPU'}})['errors'])
+
+    def test_규칙_추가는_새_근거_문장이_생기면_통과하고_OS_전용이면_다른_권장안은_그대로여야_한다(self):
+        ins = {'rule': {'criterion': 'MEMORY', 'when': {'question': 'CURRENT_MEMORY', 'anyOf': ['GB_32']}, 'os': 'WINDOWS'},
+               'change': {'add': {'direction': 'UP'}, 'reason': {'to': '새 근거'}},
+               'cases': [{'issue': 300, 'answers': {}, 'expected': [{'plan': 'WINDOWS', 'item': 'MEMORY', 'direction': 'UP'}]}]}
+        before = snapshot([{'name': '피드백 #300', 'answers': {}, 'response': body(win=('P_HS', 32, 512))}])
+        good = snapshot([{'name': '피드백 #300', 'answers': {}, 'response': {'specs': [
+            body()['specs'][0], body(win=('P_HS', 48, 512), reasons=['새 근거'])['specs'][1]]}}])
+        out = improver.compare(tmp(before), tmp(good), tmp(json.dumps(ins)))
+        self.assertTrue(out['ok'], out['checks'])
+        both = snapshot([{'name': '피드백 #300', 'answers': {}, 'response': body(mac=('PRO', 48, 512), win=('P_HS', 48, 512), reasons=['새 근거'])}])
+        self.assertIn('WINDOWS 전용 규칙인데 MAC 결과 값이 바뀌었다',
+                      improver.compare(tmp(before), tmp(both), tmp(json.dumps(ins)))['checks'][0]['why'])
+
+    def test_지금_사양이_있으면_그보다_높아야_한다(self):
+        case = lambda cur: {'rule': {'criterion': 'MEMORY', 'when': {'question': 'CURRENT_MEMORY', 'anyOf': ['GB_32']}},
+                            'change': {'add': {'direction': 'UP'}, 'reason': {'to': '새 근거'}},
+                            'cases': [{'issue': 300, 'answers': {}, 'expected': [
+                                {'plan': 'WINDOWS', 'item': 'MEMORY', 'direction': 'UP', 'current': cur}]}]}
+        snap = lambda gb: tmp(snapshot([{'name': '피드백 #300', 'answers': {}, 'response': body(win=('P_HS', gb, 512), reasons=['새 근거'])}]))
+        before = snap(24)
+        self.assertIn('지금 사양(32)을 넘지 않았다', improver.compare(before, snap(32), tmp(json.dumps(case(32))))['checks'][0]['why'])
+        self.assertTrue(improver.compare(before, snap(48), tmp(json.dumps(case(32))))['ok'])
+        down = case(16)
+        down['cases'][0]['expected'][0]['direction'] = 'DOWN'
+        self.assertIn('지금 사양(16)을 넘지 않게 내려가지 않았다', improver.compare(snap(32), snap(24), tmp(json.dumps(down)))['checks'][0]['why'])
+        self.assertTrue(improver.compare(snap(32), snap(16), tmp(json.dumps(down)))['ok'])
 
 
 class RunShTest(unittest.TestCase):
