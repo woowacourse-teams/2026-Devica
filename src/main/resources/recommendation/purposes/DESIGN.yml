@@ -232,9 +232,16 @@ rules:
     weight: 1
     when: { question: USAGE_PERIOD, anyOf: [ FIVE_PLUS_YEARS ] }
     reason: 오래 쓸 계획이라 여유를 두었습니다.
+  # 짧은 사용 기간은 여유분만 덜어낸다. 공식 권장에 맞춘 작업(3D 복잡한 장면·4K 영상)의 기준 사양까지 낮추지 않는다
   - criterion: MEMORY
     weight: -1
-    when: { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }
+    when:
+      all:
+        - { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }
+        - not: &officialWorkload
+            any:
+              - { question: THREE_D_WORK, anyOf: [ COMPLEX ] }
+              - { question: VIDEO_RESOLUTION, anyOf: [ UHD ] }
     reason: 짧게 쓸 계획이라 과한 용량을 피했습니다.
 
   - criterion: STORAGE
@@ -357,7 +364,7 @@ rules:
     reason: 오래 쓸 계획이라 여유를 두었습니다.
   - criterion: REQUIRED_CPU
     weight: -1
-    when: { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }
+    when: { all: [ { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }, { not: *officialWorkload } ] }
     reason: 짧게 쓸 계획이라 과한 사양을 피했습니다.
 
 mappings:
