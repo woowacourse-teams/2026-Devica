@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ProductImage } from './ProductImage';
-import { fetchProduct, formatPrice, type Offer, offerCondition, type ProductDetail } from './products';
+import { fetchProduct, formatPrice, type Offer, type ProductDetail } from './products';
 import './ProductDetailView.css';
 
 // 원본 상세는 이 넷만 보여준다. 서버는 코어 수·화면 크기·무게까지 주지만 원본에 없는 항목이다.
@@ -86,11 +86,7 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
           {/* 설명이 없는 제품이 있다. 빈 문단을 두면 왼쪽 세로선만 남는다. */}
           {description !== '' && <p className="product-detail__description">{description}</p>}
           <strong className="product-detail__price">{formatPrice(lowest?.price ?? null)}</strong>
-          {lowest !== undefined && (
-            <p className="product-detail__source">
-              {lowest.name} · {offerCondition(lowest)}
-            </p>
-          )}
+          {lowest !== undefined && <p className="product-detail__source">{lowest.name}</p>}
         </section>
 
         <section className="product-detail__offers">
@@ -128,20 +124,11 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
 
 function OfferRow({ offer, lowest }: { offer: Offer; lowest: boolean }) {
   const url = webUrl(offer.purchaseUrl);
-  const action = offer.linkType === 'SEARCH' ? '검색' : offer.linkType === 'PURCHASE' ? '구매하기' : '판매처 보기';
-  const observed = offer.priceBasis === 'OBSERVED_LOWEST';
-  const basis = observed
-    ? '확인 매물 중 최저가'
-    : offer.priceBasis === 'SELLER_PRICE'
-      ? '판매처 제시 가격'
-      : '가격 근거 미기록';
   const date = offer.checkedAt && /^\d{4}-\d{2}-\d{2}$/.test(offer.checkedAt) ? offer.checkedAt : null;
   return (
     <li className="product-offer">
       <strong className="product-offer__name">{offer.name}</strong>
       <div className="product-offer__details">
-        <p className="product-offer__context">{offerCondition(offer)}</p>
-        <p className="product-offer__context">{basis}</p>
         <p className="product-offer__context">
           {date ? (
             <>
@@ -151,11 +138,6 @@ function OfferRow({ offer, lowest }: { offer: Offer; lowest: boolean }) {
             '확인일 미기록'
           )}
         </p>
-        {observed && (
-          <p className="product-offer__context">
-            관측 시점의 매물 기준이며 검색 결과에 같은 가격의 매물이 없을 수 있습니다.
-          </p>
-        )}
       </div>
       <strong className="product-offer__price">{formatPrice(offer.price)}</strong>
       {url ? (
@@ -164,9 +146,9 @@ function OfferRow({ offer, lowest }: { offer: Offer; lowest: boolean }) {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={`${offer.linkType === 'SEARCH' ? `${offer.name}에서 검색` : `${offer.name} ${action}`} (새 창)`}
+          aria-label={`${offer.name} 판매처 보기 (새 창)`}
         >
-          {offer.linkType === 'SEARCH' ? `${offer.name}에서 검색` : action}
+          판매처 보기
         </a>
       ) : (
         <span className="product-offer__buy">링크 확인 필요</span>

@@ -12,8 +12,6 @@ import com.wrb.devica.category.domain.ProductCategoryCode;
 import com.wrb.devica.category.repository.ProductCategoryRepository;
 import com.wrb.devica.common.JpaSliceTest;
 import com.wrb.devica.product.domain.Laptop;
-import com.wrb.devica.product.domain.OfferLinkType;
-import com.wrb.devica.product.domain.OfferPriceBasis;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.dto.PriceRefreshTarget;
@@ -399,19 +397,13 @@ class ProductOfferServiceTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"학생복지스토어", "당근"})
-    void 조건부_가격도_최저가와_선택_판매처에_포함한다(String seller) {
+    @ValueSource(strings = {"학생복지스토어", "Apple 공홈"})
+    void 판매_중인_판매처의_최저가와_출처를_선택한다(String seller) {
         // given
         Laptop laptop = saveLaptop();
         productOfferRepository.save(coupangOffer(laptop).build());
-        var builder = coupangOffer(laptop).name(seller).externalItemId(null).price(900_000L)
-            .priceCondition("학생 인증 필요");
-        if (seller.equals("당근")) {
-            builder.priceCondition("판교 · 미개봉 · 확인 매물 중 최저가")
-                .priceBasis(OfferPriceBasis.OBSERVED_LOWEST).linkType(OfferLinkType.SEARCH)
-                .purchaseUrl("https://example.test/search");
-        }
-        ProductOffer winner = productOfferRepository.save(builder.build());
+        ProductOffer winner = productOfferRepository.save(coupangOffer(laptop).name(seller)
+            .externalItemId(null).price(900_000L).build());
         productOfferRepository.save(coupangOffer(laptop).price(100_000L).status(OfferStatus.HIDDEN).build());
         productOfferRepository.save(coupangOffer(laptop).price(50_000L).status(OfferStatus.SOLD_OUT).build());
         initializeMinPrice(laptop);
@@ -433,7 +425,7 @@ class ProductOfferServiceTest {
         productOfferRepository.save(coupangOffer(first).price(900_000L).status(OfferStatus.HIDDEN).build());
         ProductOffer winner = productOfferRepository.save(coupangOffer(first).price(900_000L).build());
         ProductOffer tied = productOfferRepository.save(coupangOffer(first).name("학생복지스토어")
-            .priceCondition("학생 인증 필요").price(900_000L).build());
+            .price(900_000L).build());
         ProductOffer other = productOfferRepository.save(coupangOffer(second).price(800_000L).build());
         initializeMinPrice(first);
         initializeMinPrice(second);
@@ -452,7 +444,7 @@ class ProductOfferServiceTest {
         Laptop laptop = saveLaptop();
         ProductOffer coupang = productOfferRepository.save(coupangOffer(laptop).build());
         ProductOffer student = productOfferRepository.save(coupangOffer(laptop).name("학생복지스토어")
-            .priceCondition("학생 인증 필요").price(900_000L).build());
+            .price(900_000L).build());
         initializeMinPrice(laptop);
         assertThat(productOfferService.findLowestOnSaleOffers(List.of(laptop.getId())))
             .containsEntry(laptop.getId(), student);

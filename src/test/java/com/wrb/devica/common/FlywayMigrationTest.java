@@ -2,11 +2,7 @@ package com.wrb.devica.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.wrb.devica.product.domain.OfferLinkType;
-import com.wrb.devica.product.domain.OfferPriceBasis;
-import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.infra.coupang.CoupangProductUrl;
-import com.wrb.devica.product.service.ProductOfferService;
 import java.util.List;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
@@ -26,9 +22,6 @@ public class FlywayMigrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
-
-    @Autowired
-    private ProductOfferService offers;
 
     @Test
     void 전체_마이그레이션을_적용하고_엔티티_매핑을_검증한다() {
@@ -95,27 +88,6 @@ public class FlywayMigrationTest {
             .load();
         partial.clean();
         partial.migrate();
-    }
-
-    @Test
-    void 기존_판매가와_구버전_입력을_판매처_비교로_조회할_수_있다() {
-        // given
-        migrateTo("1.14");
-        long productId = saveProduct("OFFER-CONTEXT");
-        saveOffer(productId, 900_000L, "ON_SALE");
-
-        // when
-        flyway.migrate();
-        saveOffer(productId, 1_000_000L, "ON_SALE");
-        var onSale = offers.findOnSaleOffers(productId);
-
-        // then
-        assertThat(onSale).extracting(ProductOffer::getPrice).containsExactly(900_000L, 1_000_000L);
-        assertThat(onSale).allSatisfy(offer -> {
-            assertThat(offer.getPriceCondition()).isEqualTo("일반 판매가");
-            assertThat(offer.getPriceBasis()).isEqualTo(OfferPriceBasis.SELLER_PRICE);
-            assertThat(offer.getLinkType()).isEqualTo(OfferLinkType.PURCHASE);
-        });
     }
 
     private long saveProduct(String code) {
