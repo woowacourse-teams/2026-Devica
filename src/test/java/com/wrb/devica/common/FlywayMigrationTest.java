@@ -2,7 +2,11 @@ package com.wrb.devica.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.wrb.devica.product.domain.OfferLinkType;
+import com.wrb.devica.product.domain.OfferPriceBasis;
+import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.infra.coupang.CoupangProductUrl;
+import com.wrb.devica.product.service.ProductOfferService;
 import java.util.List;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
@@ -22,6 +26,9 @@ public class FlywayMigrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private ProductOfferService offers;
 
     @Test
     void 전체_마이그레이션을_적용하고_엔티티_매핑을_검증한다() {
@@ -91,7 +98,7 @@ public class FlywayMigrationTest {
     }
 
     @Test
-    void 가격_조건을_추가해도_기존_가격과_구버전_입력을_보존한다() {
+    void 기존_판매가와_구버전_입력을_판매처_비교로_조회할_수_있다() {
         // given
         migrateTo("1.14");
         long productId = saveProduct("OFFER-CONTEXT");
@@ -99,23 +106,15 @@ public class FlywayMigrationTest {
 
         // when
         flyway.migrate();
-        // 구버전 앱은 추가 컬럼 없이 계속 저장할 수 있다.
         saveOffer(productId, 1_000_000L, "ON_SALE");
+        var onSale = offers.findOnSaleOffers(productId);
 
-        var rows = jdbcTemplate.queryForList("""
-            SELECT price, price_condition, price_basis, link_type
-            FROM product_offer WHERE product_id = ? ORDER BY price
-            """, productId);
         // then
-        assertThat(jdbcTemplate.queryForList("""
-            SELECT version FROM flyway_schema_history
-            WHERE script = 'V1.20__add_offer_price_context.sql' AND success = TRUE
-            """, String.class)).containsExactly("1.20");
-        assertThat(rows).extracting(row -> row.get("price")).containsExactly(900_000L, 1_000_000L);
-        rows.forEach(row -> {
-            assertThat(row.get("price_condition")).isEqualTo("일반 판매가");
-            assertThat(row.get("price_basis")).isEqualTo("SELLER_PRICE");
-            assertThat(row.get("link_type")).isEqualTo("PURCHASE");
+        assertThat(onSale).extracting(ProductOffer::getPrice).containsExactly(900_000L, 1_000_000L);
+        assertThat(onSale).allSatisfy(offer -> {
+            assertThat(offer.getPriceCondition()).isEqualTo("일반 판매가");
+            assertThat(offer.getPriceBasis()).isEqualTo(OfferPriceBasis.SELLER_PRICE);
+            assertThat(offer.getLinkType()).isEqualTo(OfferLinkType.PURCHASE);
         });
     }
 
