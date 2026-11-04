@@ -104,6 +104,9 @@ class CommonTest(unittest.TestCase):
         self.assertEqual(common.target(d, mem('GB_32'), 'CURRENT_MEMORY')['kind'], 'exists')
         widen = common.target(d, mem('GB_24'), 'CURRENT_MEMORY')
         self.assertEqual((widen['kind'], widen['rule']['weight']), ('widen', 1))
+        both = {**DEF, 'rules': DEF['rules'] + [{**mem('GB_16'), 'when': {'all': [
+            {'question': 'CURRENT_MEMORY', 'anyOf': ['GB_16', 'GB_32']}, {'question': 'SLOWDOWN', 'anyOf': ['OFTEN']}]}, 'weight': 1}]}
+        self.assertEqual(common.target(both, mem('GB_32'), 'CURRENT_MEMORY')['kind'], 'exists')
         other = {**DEF, 'rules': d['rules'] + [{'criterion': 'MEMORY', 'when': {'question': 'CURRENT_MEMORY', 'anyOf': ['GB_8']}, 'weight': 2}]}
         self.assertEqual(common.target(other, mem('GB_24'), 'CURRENT_MEMORY')['kind'], 'seen')
         mapped = {**DEF, 'mappings': [{'criterion': 'CURRENT_CPU_TIER', 'value': 'X', 'when': {'question': 'CURRENT_MEMORY', 'anyOf': ['GB_8']}}]}
@@ -716,6 +719,11 @@ class ImproverTest(unittest.TestCase):
         self.assertIn('지시 뒤에 develop 의 규칙이 바뀌었다(weight: 지시 3, 지금 2)',
                       run({**modify, 'change': {'weight': {'from': 3, 'to': 1}}})['errors'])
         self.assertIn('지시한 규칙이 정확히 하나가 아니다(0개)', run({**modify, 'rule': new})['errors'])
+        multi = {**DEF, 'survey': d['survey'], 'rules': [{'criterion': 'MEMORY', 'weight': 1, 'reason': 'r',
+                                                         'when': {'question': 'SLOWDOWN', 'anyOf': ['OFTEN', 'NEVER']}}]}
+        reorder = {'question': 'SLOWDOWN', 'anyOf': ['NEVER', 'OFTEN']}
+        self.assertTrue(improver.check(tmp(json.dumps(multi)), 'DEV', tmp(json.dumps(
+            {'rule': {'criterion': 'MEMORY', 'when': reorder}, 'change': {'when': {'from': reorder, 'to': reorder}}})))['ok'])
         self.assertIn("지시한 규칙이 정확히 하나가 아니다(0개, os 만 다른 규칙이 있다: [None])",
                       run({**modify, 'rule': {**existing['rule'], 'os': 'MAC'}})['errors'])
         self.assertIn('새 근거 문장이 같은 항목의 다른 규칙과 같다',

@@ -104,7 +104,8 @@ def check(def_ref, purpose, instruction_path):
     else:
         target = found[0]
         for k in ('weight', 'when', 'reason'):
-            if k in change and 'from' in change[k] and change[k]['from'] != target[k]:
+            same_value = (lambda a, b: canon(a) == canon(b)) if k == 'when' else (lambda a, b: a == b)
+            if k in change and 'from' in change[k] and not same_value(change[k]['from'], target[k]):
                 errors.append(f"지시 뒤에 develop 의 규칙이 바뀌었다({k}: 지시 {change[k]['from']}, 지금 {target[k]})")
     new_when = rule['when'] if 'add' in change else change.get('when', {}).get('to')
     if new_when:

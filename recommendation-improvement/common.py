@@ -124,6 +124,13 @@ def same(d, rule):
                                and questions(r['when']) == questions(rule['when']) and key(r) != key(rule)]}
 
 
+def options(c, question):
+    # 조건에서 그 질문에 쓴 선택지
+    if 'question' in c:
+        return set(c['anyOf']) if c['question'] == question else set()
+    return set().union(*(options(x, question) for x in ([c['not']] if 'not' in c else c.get('all') or c.get('any') or [])))
+
+
 def uses(d, question, criterion):
     # 그 질문을 보는 규칙(점수 0 포함)과 매핑. 하나라도 있으면 그 답으로 규칙을 추가하지 않는다
     return {'rules': [r for r in d['rules'] if r['criterion'] == criterion and question in questions(r['when'])],
@@ -132,7 +139,7 @@ def uses(d, question, criterion):
 
 def target(d, rule, question):
     # 사용자가 기댄 답(question)으로 rule 을 더할지. rule 은 사용자가 고른 선택지로 만든 새 규칙이다
-    #   exists  같은 규칙이 이미 있다
+    #   exists  같은 규칙이 이미 있거나, 같은 질문들로 된 규칙이 사용자가 고른 선택지를 이미 담고 있다(rule 에 그 규칙)
     #   add     그 질문을 보는 그 항목의 규칙도 매핑도 없다
     #   widen   그 질문을 보는 규칙이 같은 질문들로 된 규칙 하나뿐이다. 그 규칙의 선택지를 넓힌다(rule 에 그 규칙)
     #   seen    그 밖. 다른 모양의 규칙이나 매핑이 그 답을 본다
@@ -145,7 +152,8 @@ def target(d, rule, question):
         return {'kind': 'add', 'rule': None}
     shaped = {key(r) for r in s['same_questions']}
     if len(s['same_questions']) == 1 and all(key(r) in shaped for r in u['rules']):
-        return {'kind': 'widen', 'rule': s['same_questions'][0]}
+        old = s['same_questions'][0]
+        return {'kind': 'exists' if options(rule['when'], question) <= options(old['when'], question) else 'widen', 'rule': old}
     return {'kind': 'seen', 'rule': None}
 
 
