@@ -34,9 +34,7 @@ public class ProductService {
             pageCondition.sort(),
             PageRequest.of(pageCondition.page(), pageCondition.size())
         );
-        return rows.map(row -> ProductSummaryResponse.from(
-            row, imageUrlResolver.resolve(row.imageKey()))
-        );
+        return rows.map(row -> ProductSummaryResponse.from(row, imageUrlResolver.resolve(row.imageKey())));
     }
 
     public Long findMinPrice(String categoryCode, LaptopSearchCondition condition) {

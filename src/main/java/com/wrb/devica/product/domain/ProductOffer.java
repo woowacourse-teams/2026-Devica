@@ -50,6 +50,7 @@ public class ProductOffer extends BaseTimeEntity {
     @Builder
     private ProductOffer(Long productId, String name, long price, String externalItemId,
                          String purchaseUrl, OfferStatus status, LocalDate checkedAt) {
+        validatePrice(price);
         this.productId = productId;
         this.name = name;
         this.price = price;
@@ -57,6 +58,12 @@ public class ProductOffer extends BaseTimeEntity {
         this.purchaseUrl = purchaseUrl;
         this.status = status;
         this.checkedAt = checkedAt;
+    }
+
+    private void validatePrice(long price) {
+        if (price <= 0) {
+            throw new IllegalArgumentException("확인하지 않은 가격을 0원 이하로 등록할 수 없습니다.");
+        }
     }
 
     public void hide() {

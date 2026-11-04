@@ -61,7 +61,10 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
 
   const description = product.description ?? '';
   // 싼 곳이 위로 오게 둔다. 판매처를 한눈에 견주는 것이 이 목록의 목적이다.
-  const offers = [...product.offers].sort((one, other) => one.price - other.price);
+  const offers = [...product.offers].sort(
+    (one, other) =>
+      one.price - other.price || (one.id ?? Number.MAX_SAFE_INTEGER) - (other.id ?? Number.MAX_SAFE_INTEGER),
+  );
   const lowest: Offer | undefined = offers[0];
 
   return (
@@ -83,8 +86,7 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
           {/* 설명이 없는 제품이 있다. 빈 문단을 두면 왼쪽 세로선만 남는다. */}
           {description !== '' && <p className="product-detail__description">{description}</p>}
           <strong className="product-detail__price">{formatPrice(lowest?.price ?? null)}</strong>
-          {/* 원본은 여기에 확인일도 적었다. offers 에 그 값이 아직 없다. */}
-          {lowest !== undefined && <p className="product-detail__source">{lowest.name} 일반 판매가</p>}
+          {lowest !== undefined && <p className="product-detail__source">{lowest.name}</p>}
         </section>
 
         <section className="product-detail__offers">
@@ -94,19 +96,11 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
           ) : (
             <ul className="product-offers">
               {offers.map((offer) => (
-                <li className="product-offer" key={offer.purchaseUrl}>
-                  <span className="product-offer__name">{offer.name}</span>
-                  <strong className="product-offer__price">{formatPrice(offer.price)}</strong>
-                  <a
-                    // 판매처가 여러 곳이면 강조색 버튼이 몰리므로 최저가 한 곳만 강조한다.
-                    className={`button ${offer === lowest ? 'button--primary' : 'button--neutral'} product-offer__buy`}
-                    href={offer.purchaseUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    구매하기
-                  </a>
-                </li>
+                <OfferRow
+                  offer={offer}
+                  lowest={offer === lowest}
+                  key={offer.id ?? `${offer.name}:${offer.purchaseUrl}:${offer.price}`}
+                />
               ))}
             </ul>
           )}
@@ -126,4 +120,48 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
       </article>
     </section>
   );
+}
+
+function OfferRow({ offer, lowest }: { offer: Offer; lowest: boolean }) {
+  const url = webUrl(offer.purchaseUrl);
+  const date = offer.checkedAt && /^\d{4}-\d{2}-\d{2}$/.test(offer.checkedAt) ? offer.checkedAt : null;
+  return (
+    <li className="product-offer">
+      <strong className="product-offer__name">{offer.name}</strong>
+      <div className="product-offer__details">
+        <p className="product-offer__context">
+          {date ? (
+            <>
+              확인일 <time dateTime={date}>{date}</time>
+            </>
+          ) : (
+            '확인일 미기록'
+          )}
+        </p>
+      </div>
+      <strong className="product-offer__price">{formatPrice(offer.price)}</strong>
+      {url ? (
+        <a
+          className={`button ${lowest ? 'button--primary' : 'button--neutral'} product-offer__buy`}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`${offer.name} 판매처 보기 (새 창)`}
+        >
+          판매처 보기
+        </a>
+      ) : (
+        <span className="product-offer__buy">링크 확인 필요</span>
+      )}
+    </li>
+  );
+}
+
+function webUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+  } catch {
+    return null;
+  }
 }

@@ -74,4 +74,13 @@ class ProductOfferTest {
             .checkedAt(PREVIOUS_CHECKED_AT)
             .build();
     }
+
+    @ParameterizedTest
+    @ValueSource(longs = {0L, -1L})
+    void 가격이_0원_이하인_판매처를_생성할_수_없다(long price) {
+        // when & then
+        assertThatThrownBy(() -> ProductOffer.builder().productId(1L).name("판매처").price(price)
+            .purchaseUrl("https://example.test/product").status(OfferStatus.ON_SALE).build())
+            .isInstanceOf(IllegalArgumentException.class);
+    }
 }

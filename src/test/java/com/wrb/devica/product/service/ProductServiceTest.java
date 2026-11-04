@@ -30,7 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
 @JpaSliceTest
-@Import({ProductService.class, ProductImageUrlResolver.class, ProductOfferService.class})
+@Import({ProductService.class, ProductImageUrlResolver.class})
 class ProductServiceTest {
 
     @Autowired

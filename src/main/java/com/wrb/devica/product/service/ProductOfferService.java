@@ -20,7 +20,7 @@ public class ProductOfferService {
     private final ProductMinPriceRepository productMinPriceRepository;
 
     public List<ProductOffer> findOnSaleOffers(Long productId) {
-        return productOfferRepository.findAllByProductIdAndStatusOrderByPriceAsc(productId, OfferStatus.ON_SALE);
+        return productOfferRepository.findAllByProductIdAndStatusOrderByPriceAscIdAsc(productId, OfferStatus.ON_SALE);
     }
 
     public List<PriceRefreshTarget> findCoupangPriceRefreshTargets() {

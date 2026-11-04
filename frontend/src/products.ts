@@ -87,9 +87,11 @@ export type Product = {
 };
 
 export type Offer = {
+  id?: number;
   name: string;
   price: number;
   purchaseUrl: string;
+  checkedAt?: string | null;
 };
 
 export type ProductDetail = {
