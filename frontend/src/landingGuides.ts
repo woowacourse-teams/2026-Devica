@@ -27,7 +27,7 @@ export const LANDING_GUIDES = [
       {
         step: '02 / 사용 목적 선택',
         title: '어떤 용도로\n사용하시나요?',
-        description: '제품을 주로 사용할 목적을 선택해요.\n지금은 백엔드 개발을 지원해요.',
+        description: '제품을 주로 사용할 목적을 선택해요.\n백엔드·프론트엔드 개발 등 직군별로 고를 수 있어요.',
         note: '선택한 목적에 맞는 질문으로 이어져요.',
         capture: {
           src: '/landing/actual-purpose.jpg',

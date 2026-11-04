@@ -83,10 +83,9 @@ survey:
             - { code: GRAPHIC, content: "편집·브랜딩·일러스트" }
             - { code: MOTION_VIDEO, content: "모션 그래픽·영상" }
             - { code: THREE_D, content: "3D 모델링·렌더링" }
-            - { code: THREE_D_LIGHT, content: 가끔 3D 작업도 한다 }
             - { code: UNDECIDED, content: 아직 정하지 않았다 }
 
-    # 4K 이상은 Adobe 가 영상 작업에 메모리를 두 배로 권하는 기준이라 따로 묻는다
+    # 4K 이상은 Adobe 가 Windows 에서 영상 작업 메모리를 두 배(32GB 이상)로 권하는 기준이라 따로 묻는다
     - questions:
         - code: VIDEO_RESOLUTION
           title: 주로 다루는 영상의 해상도는 어느 정도인가요?
@@ -94,6 +93,17 @@ survey:
           options:
             - { code: HD, content: FHD(1080p) 이하 }
             - { code: UHD, content: 4K 이상 }
+            - { code: UNKNOWN, content: 잘 모르겠다 }
+
+    # 3D 는 하는 빈도보다 한 번에 다루는 장면의 크기가 메모리를 정해 작업 내용을 따로 묻는다
+    - questions:
+        - code: THREE_D_WORK
+          title: 주로 하는 3D 작업은 어느 정도인가요?
+          showWhen: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
+          options:
+            - { code: SIMPLE, content: 단순한 모델을 만들거나 고친다 }
+            - { code: DETAILED, content: 여러 모델과 고해상도 텍스처를 다룬다 }
+            - { code: COMPLEX, content: 복잡한 장면이나 애니메이션을 렌더링한다 }
             - { code: UNKNOWN, content: 잘 모르겠다 }
 
     - title: 작업 도구를 알려주세요
@@ -106,9 +116,9 @@ survey:
           exclusive: UNDECIDED
           options:
             - { code: FIGMA, content: "Figma, Framer 등" }
-            - { code: SKETCH, content: Sketch }
-            - { code: ADOBE, content: "Photoshop, Illustrator 등 Adobe 도구" }
-            - { code: OTHER, content: "그 밖의 도구(Blender, After Effects 등)" }
+            - { code: SKETCH, content: Sketch 로 직접 디자인을 편집한다 }
+            - { code: ADOBE, content: "Photoshop, Illustrator, After Effects 등 Adobe 도구" }
+            - { code: OTHER, content: "그 밖의 도구(Blender, Cinema 4D 등)" }
             - { code: UNDECIDED, content: 아직 정하지 않았다 }
         - code: MULTITASKING
           title: 작업할 때 디자인 도구를 몇 개나 함께 켜두나요?
@@ -153,7 +163,7 @@ survey:
     - questions:
         - code: RENDER_WAIT
           title: 영상 내보내기나 렌더링이 끝나기를 기다리는 게 답답했나요?
-          showWhen: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO, THREE_D, THREE_D_LIGHT ] }
+          showWhen: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO, THREE_D ] }
           options:
             - { code: OFTEN, content: 자주 답답했다 }
             - { code: FINE, content: 참을 만했다 / 신경 안 쓰였다 }
@@ -188,18 +198,20 @@ rules:
     when: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO ] }
     reason: 모션·영상 작업은 미리보기를 위해 프레임을 메모리에 올려 둡니다.
   - criterion: MEMORY
-    weight: 4
-    when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
-    reason: 3D 작업은 장면과 텍스처를 메모리에 올려 두어 넉넉한 용량이 필요합니다.
-  - criterion: MEMORY
     weight: 1
-    when:
-      all:
-        - { question: DESIGN_FIELD, anyOf: [ THREE_D_LIGHT ] }
-        - { not: { question: DESIGN_FIELD, anyOf: [ THREE_D ] } }
-    reason: 가끔 하는 3D 작업도 장면과 텍스처를 메모리에 올려 둡니다.
+    when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
+    reason: 3D 작업은 장면과 텍스처를 메모리에 올려 둡니다.
   - criterion: MEMORY
     weight: 2
+    when: { question: THREE_D_WORK, anyOf: [ DETAILED ] }
+    reason: 여러 모델과 고해상도 텍스처를 한 번에 올려 두어 메모리를 더 씁니다.
+  # 복잡한 장면은 Blender 권장(32GB·8코어)에 닿도록 분야 점수와 합쳐 메모리 4점·CPU 3점을 준다
+  - criterion: MEMORY
+    weight: 3
+    when: { question: THREE_D_WORK, anyOf: [ COMPLEX ] }
+    reason: 복잡한 장면과 애니메이션은 렌더링할 때 장면 전체를 메모리에 올려 넉넉한 용량이 필요합니다.
+  - criterion: MEMORY
+    weight: 3
     when: { question: VIDEO_RESOLUTION, anyOf: [ UHD ] }
     reason: 4K 이상 영상은 FHD 보다 메모리를 훨씬 많이 씁니다.
   - criterion: MEMORY
@@ -213,7 +225,7 @@ rules:
   - criterion: MEMORY
     weight: 2
     when: { question: SLOWDOWN, anyOf: [ OFTEN ] }
-    reason: 자주 느려진 경험은 메모리가 부족하다는 가장 직접적인 신호입니다.
+    reason: 여러 프로그램을 함께 사용할 때 겪은 불편을 고려해 메모리에 여유를 두었습니다.
   - criterion: MEMORY
     weight: 1
     when: { question: SLOWDOWN, anyOf: [ SOMETIMES ] }
@@ -222,9 +234,16 @@ rules:
     weight: 1
     when: { question: USAGE_PERIOD, anyOf: [ FIVE_PLUS_YEARS ] }
     reason: 오래 쓸 계획이라 여유를 두었습니다.
+  # 짧은 사용 기간은 여유분만 덜어낸다. 공식 권장에 맞춘 작업(3D 복잡한 장면·4K 영상)의 기준 사양까지 낮추지 않는다
   - criterion: MEMORY
     weight: -1
-    when: { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }
+    when:
+      all:
+        - { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }
+        - not: &officialWorkload
+            any:
+              - { question: THREE_D_WORK, anyOf: [ COMPLEX ] }
+              - { question: VIDEO_RESOLUTION, anyOf: [ UHD ] }
     reason: 짧게 쓸 계획이라 과한 용량을 피했습니다.
 
   - criterion: STORAGE
@@ -237,7 +256,7 @@ rules:
     reason: 영상 소스와 미리보기 캐시가 저장 공간을 크게 씁니다.
   - criterion: STORAGE
     weight: 1
-    when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
+    when: { question: THREE_D_WORK, anyOf: [ DETAILED, COMPLEX ] }
     reason: 3D 장면과 텍스처, 렌더링 결과물이 자리를 차지합니다.
   - criterion: STORAGE
     weight: 2
@@ -314,16 +333,17 @@ rules:
     when: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO ] }
     reason: 영상을 내보내고 효과를 미리 볼 때 CPU 를 오래 씁니다.
   - criterion: REQUIRED_CPU
-    weight: 3
+    weight: 1
     when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
-    reason: 3D 렌더링은 코어를 모두 오래 씁니다.
+    reason: 3D 렌더링은 코어를 모두 씁니다.
   - criterion: REQUIRED_CPU
     weight: 1
-    when:
-      all:
-        - { question: DESIGN_FIELD, anyOf: [ THREE_D_LIGHT ] }
-        - { not: { question: DESIGN_FIELD, anyOf: [ THREE_D ] } }
-    reason: 가끔 하는 3D 렌더링도 코어를 모두 씁니다.
+    when: { question: THREE_D_WORK, anyOf: [ DETAILED ] }
+    reason: 여러 모델을 다루면 화면을 돌려 보고 렌더링하는 데 CPU 를 더 씁니다.
+  - criterion: REQUIRED_CPU
+    weight: 2
+    when: { question: THREE_D_WORK, anyOf: [ COMPLEX ] }
+    reason: 복잡한 장면과 애니메이션 렌더링은 코어를 모두 오래 씁니다.
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: VIDEO_RESOLUTION, anyOf: [ UHD ] }
@@ -346,7 +366,7 @@ rules:
     reason: 오래 쓸 계획이라 여유를 두었습니다.
   - criterion: REQUIRED_CPU
     weight: -1
-    when: { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }
+    when: { all: [ { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }, { not: *officialWorkload } ] }
     reason: 짧게 쓸 계획이라 과한 사양을 피했습니다.
 
   # 웹 화면은 sRGB 기준이라 화면 디자인만으로는 넓은 색 영역을 권하지 않는다.
@@ -360,18 +380,19 @@ rules:
     when: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO ] }
     reason: 영상은 DCI-P3 같은 넓은 색 영역으로 만들어, 화면이 그 색을 표현해야 색 보정을 정확히 할 수 있습니다.
 
-  # Blender 는 VRAM 8GB, Premiere Pro·After Effects 는 GPU 메모리 8GB 를 권장한다. 이 둘을 쓰는 작업은 VRAM 8GB 인 RTX 4060 급 이상(고성능)까지 올린다
-  - criterion: GPU
-    weight: 3
-    when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
-    reason: 3D 화면을 돌려 보고 GPU 로 렌더링하려면 장면이 그래픽 메모리에 다 올라가야 합니다. Blender 는 VRAM 8GB 를 권장합니다.
+  # Blender 는 VRAM 8GB, Premiere Pro·After Effects 는 GPU 메모리 8GB 를 권장한다. 복잡한 3D 장면과 4K 영상은 VRAM 8GB 인 RTX 4060 급 이상(고성능)까지 올린다
   - criterion: GPU
     weight: 1
-    when:
-      all:
-        - { question: DESIGN_FIELD, anyOf: [ THREE_D_LIGHT ] }
-        - { not: { question: DESIGN_FIELD, anyOf: [ THREE_D ] } }
-    reason: 가끔 하는 3D 작업도 화면을 돌려 보고 렌더링할 때 GPU 를 씁니다.
+    when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
+    reason: 3D 작업은 화면을 돌려 보고 렌더링할 때 GPU 를 씁니다.
+  - criterion: GPU
+    weight: 1
+    when: { question: THREE_D_WORK, anyOf: [ DETAILED ] }
+    reason: 여러 모델과 고해상도 텍스처는 그래픽 메모리를 더 씁니다.
+  - criterion: GPU
+    weight: 2
+    when: { question: THREE_D_WORK, anyOf: [ COMPLEX ] }
+    reason: 복잡한 장면을 GPU 로 렌더링하려면 장면이 그래픽 메모리에 다 올라가야 합니다. Blender 는 VRAM 8GB 를 권장합니다.
   - criterion: GPU
     weight: 1
     when: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO ] }
@@ -388,7 +409,7 @@ rules:
 mappings:
   - { criterion: PREFERRED_OS, value: MAC, when: { question: PREFERRED_OS, anyOf: [ MACOS ] } }
   - { criterion: PREFERRED_OS, value: WINDOWS, when: { question: PREFERRED_OS, anyOf: [ WINDOWS ] } }
-  # Sketch 는 Mac 에서만 돌아가 OS 를 정하지 않았다면 Mac 권장안을 앞세운다. 직접 고른 OS 는 덮어쓰지 않는다
+  # Sketch 는 디자인 편집을 Mac 앱에서만 할 수 있어 OS 를 정하지 않았다면 Mac 권장안을 앞세운다. 직접 고른 OS 는 덮어쓰지 않는다
   - criterion: PREFERRED_OS
     value: MAC
     when:
@@ -424,10 +445,13 @@ mappings:
     value: HX
     when: { all: [ { question: CURRENT_WINDOWS_CPU, anyOf: [ HX ] }, *discomfort ] }
 
-# 기본 권장 사양(답이 없는 0점)은 16GB·기본 칩·256GB 다. 디자이너 대부분이 Figma 로 화면 디자인을 하고,
-# Figma 는 파일 하나의 메모리가 2GB 로 제한되며 Adobe 도 16GB 를 권장하기 때문이다.
+# 기본 권장 사양(답이 없는 0점)은 16GB·기본 칩·256GB 로, 가벼운 앱·웹 화면 디자인을 기준으로 삼는다.
+# 그래픽·영상·3D 처럼 부담이 큰 작업은 설문 답으로 올린다.
+# UI 디자인은 대부분 Figma 로 하고, Adobe 도 16GB 를 권장한다. Figma 의 2GB 는 앱 전체 메모리가 아니라 브라우저 탭 하나의
+# WASM 메모리 한도라, 노트북 메모리는 여러 도구를 함께 켤 때 차이를 만든다.
 # Figma 는 파일을 클라우드에 두어 운영체제와 앱을 더해도 약 75GB 라 256GB 에 여유가 있다. Adobe 를 쓰거나 원본을 노트북에 두면 512GB 이상이 된다.
-# 그래픽·영상·3D 처럼 부담이 큰 작업은 설문 답으로 올린다
+# 4K 영상의 32GB 는 After Effects 의 Windows 권장이다. Mac 은 M Pro 칩에서 고를 수 있는 용량에 맞춰 48GB 가 나오며,
+# 이는 공식 요구가 아니라 이 서비스의 추천 기준이다
 interpretation:
   cpu:
     MAC: [ { upTo: 2, value: BASIC }, { upTo: 4, value: PRO }, { value: MAX } ]
@@ -440,5 +464,5 @@ interpretation:
   # 화면 디자인만 하면 표준 색 영역, 인쇄·브랜딩이나 영상을 하면 넓은 색 영역을 권한다
   colorGamut: [ { upTo: 0, value: STANDARD }, { value: WIDE } ]
   # 화면 디자인·그래픽은 기본 GPU 로 충분하다(Photoshop 권장 GPU 메모리 4GB 는 4K 이상 모니터 기준).
-  # 영상이나 가끔 하는 3D 는 보급 외장 GPU 인 RTX 4050 급(중급), 3D 와 4K 영상은 VRAM 8GB 인 RTX 4060 급 이상(고성능)을 권한다
+  # 영상이나 단순한 3D 작업은 보급 외장 GPU 인 RTX 4050 급(중급), 복잡한 3D 장면과 4K 영상은 VRAM 8GB 인 RTX 4060 급 이상(고성능)을 권한다
   gpu: [ { upTo: 0, value: ENTRY }, { upTo: 2, value: MID }, { value: HIGH } ]

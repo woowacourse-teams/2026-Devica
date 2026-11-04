@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { BaselineCard } from './BaselineCard';
 import { fetchRecommendation, type Spec } from './recommendation';
+import { PURPOSE_DISPLAY } from './selection';
 import './IntroView.css';
 
 type Props = {
@@ -22,6 +23,7 @@ export function IntroView({
   questionsLoading,
   onBaseline,
 }: Props) {
+  const purposeName = PURPOSE_DISPLAY.find((purpose) => purpose.code === purposeCode)?.name ?? '선택한 사용 목적';
   // 아직 받지 못한 상태(null)를 빈 목록과 구분한다.
   const [specs, setSpecs] = useState<Spec[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -54,7 +56,7 @@ export function IntroView({
         ← 사용 목적 다시 고르기
       </button>
       <h1 id="intro-title">기본 권장 사양</h1>
-      <p className="section-description">백엔드 개발에 필요한 기본 사양입니다.</p>
+      <p className="section-description">{purposeName}에 필요한 기본 사양입니다.</p>
 
       <section className="baseline-list" id="initial-spec-list" aria-label="OS별 기본 권장 사양">
         {specs === null && !failed && <p className="section-description">기본 권장 사양을 불러오는 중입니다…</p>}
