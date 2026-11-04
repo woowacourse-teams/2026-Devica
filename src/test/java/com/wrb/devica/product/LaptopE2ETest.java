@@ -1,6 +1,7 @@
 package com.wrb.devica.product;
 
 import static com.wrb.devica.fixture.CpuFixture.cpu;
+import static com.wrb.devica.fixture.GpuFixture.gpu;
 import static com.wrb.devica.fixture.LaptopFixture.laptop;
 import static com.wrb.devica.fixture.ProductOfferFixture.offer;
 import static com.wrb.devica.fixture.ProductOfferFixture.onSaleOffer;
@@ -20,6 +21,7 @@ import com.wrb.devica.common.MinPriceRefresher;
 import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
 import com.wrb.devica.product.domain.Cpu;
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.Gpu;
 import com.wrb.devica.product.domain.Laptop;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
@@ -30,6 +32,7 @@ import com.wrb.devica.product.infra.coupang.CoupangProductSearchClient;
 import com.wrb.devica.product.infra.coupang.CoupangPriceRefreshJob;
 import com.wrb.devica.product.service.ProductOfferService;
 import com.wrb.devica.product.repository.CpuRepository;
+import com.wrb.devica.product.repository.GpuRepository;
 import com.wrb.devica.product.repository.LaptopRepository;
 import com.wrb.devica.product.repository.ProductOfferRepository;
 import java.time.LocalDate;
@@ -55,6 +58,9 @@ class LaptopE2ETest extends E2ETest {
     private CpuRepository cpuRepository;
 
     @Autowired
+    private GpuRepository gpuRepository;
+
+    @Autowired
     private LaptopRepository laptopRepository;
 
     @Autowired
@@ -70,17 +76,20 @@ class LaptopE2ETest extends E2ETest {
 
     private Cpu cpu;
 
+    private Gpu gpu;
+
     @BeforeEach
     void setUpCategory() {
         category = productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP));
         cpu = saveCpu();
+        gpu = gpuRepository.save(gpu().build());
     }
 
     // UC-07: 전체 제품을 조회한다
     @Test
     void 노트북_목록을_조회하면_사양과_최저가를_함께_받는다() {
         // given
-        Laptop saved = laptopRepository.save(laptop().category(category)
+        Laptop saved = laptopRepository.save(laptop().category(category).gpu(gpu)
             .brand("LG")
             .name("gram Pro 16")
             .cpu(cpuRepository.save(cpu().name("Intel Core Ultra 7 255H").coreCount(16).score(20000).build()))
@@ -104,7 +113,7 @@ class LaptopE2ETest extends E2ETest {
 
     @Test
     void 목록과_상세에서_이미지_주소만_반환한다() {
-        Laptop saved = laptopRepository.save(laptop().category(category).cpu(cpu)
+        Laptop saved = laptopRepository.save(laptop().category(category).gpu(gpu).cpu(cpu)
             .imageKey("/devica/products/sample.webp").build());
 
         String imageUrl = "https://images.example.test/devica/products/sample.webp";
@@ -129,7 +138,7 @@ class LaptopE2ETest extends E2ETest {
 
         // 조건을 하나씩만 어긋나게 둔다
         onSaleLaptop(laptop().brand("LG").name("os 프로").os(Os.MAC), 2_500_000L);
-        addOnSaleOffer(laptopRepository.save(laptop().category(category).cpu(cpu).brand("LG").name("cpu 프로")
+        addOnSaleOffer(laptopRepository.save(laptop().category(category).gpu(gpu).cpu(cpu).brand("LG").name("cpu 프로")
             .cpu(cpuRepository.save(cpu().score(5000).build())).build()), 2_500_000L);
         onSaleLaptop(laptop().brand("LG").name("메모리 프로").memoryGb(8), 2_500_000L);
         onSaleLaptop(laptop().brand("LG").name("저장장치 프로").storageGb(256), 2_500_000L);
@@ -380,7 +389,7 @@ class LaptopE2ETest extends E2ETest {
     @Test
     void 상세를_조회하면_판매_중인_판매처를_싼_순으로_받는다() {
         // given
-        Laptop laptop = laptopRepository.save(laptop().category(category)
+        Laptop laptop = laptopRepository.save(laptop().category(category).gpu(gpu)
             .brand("LG")
             .name("gram Pro 16")
             .cpu(cpuRepository.save(cpu().name("Intel Core Ultra 7 255H").coreCount(16).score(20000).build()))
@@ -474,11 +483,11 @@ class LaptopE2ETest extends E2ETest {
     }
 
     private Laptop laptopOf(LaptopBuilder builder) {
-        return laptopRepository.save(builder.category(category).cpu(cpu).build());
+        return laptopRepository.save(builder.category(category).cpu(cpu).gpu(gpu).build());
     }
 
     private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, long price) {
-        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
+        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).gpu(gpu).build());
         productOfferRepository.save(onSaleOffer(laptop, price));
         minPriceRefresher.refresh(laptop.getId());
         return laptop;

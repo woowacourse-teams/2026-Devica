@@ -1,16 +1,19 @@
 package com.wrb.devica.product.repository;
 
 import static com.wrb.devica.product.domain.QCpu.cpu;
+import static com.wrb.devica.product.domain.QGpu.gpu;
 import static com.wrb.devica.product.domain.QLaptop.laptop;
 import static com.wrb.devica.product.domain.QProductMinPrice.productMinPrice;
 
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import com.querydsl.jpa.JPAExpressions;
+import com.wrb.devica.product.domain.ColorGamut;
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.GpuTier;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.domain.QProductOffer;
@@ -57,6 +60,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
         return selectSummary()
             .from(laptop)
             .join(laptop.cpu, cpu)
+            .join(laptop.gpu, gpu)
             .leftJoin(productMinPrice).on(productMinPrice.productId.eq(laptop.id))
             .where(conditions(condition))
             .orderBy(orders(sort))
@@ -94,6 +98,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             .from(productMinPrice)
             .join(laptop).on(laptop.id.eq(productMinPrice.productId))
             .join(laptop.cpu, cpu)
+            .join(laptop.gpu, gpu)
             .where(conditions(condition))
             .orderBy(orders(sort))
             .offset(offset)
@@ -111,6 +116,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             .from(productMinPrice)
             .join(laptop).on(laptop.id.eq(productMinPrice.productId))
             .join(laptop.cpu, cpu)
+            .join(laptop.gpu, gpu)
             .where(conditions(condition))
             .fetchOne();
     }
@@ -119,6 +125,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
         return selectSummary()
             .from(laptop)
             .join(laptop.cpu, cpu)
+            .join(laptop.gpu, gpu)
             .leftJoin(productMinPrice).on(productMinPrice.productId.eq(laptop.id))
             .where(conditions(condition))
             .where(productMinPrice.productId.isNull())
@@ -161,6 +168,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             .from(productMinPrice)
             .join(laptop).on(laptop.id.eq(productMinPrice.productId))
             .join(laptop.cpu, cpu)
+            .join(laptop.gpu, gpu)
             .where(conditions(condition))
             .fetchOne();
     }
@@ -181,6 +189,8 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             visibleProduct(),
             osEq(condition.os()),
             cpuTierAtLeast(condition.cpuTier()),
+            colorGamutAtLeast(condition.colorGamut()),
+            gpuTierAtLeast(condition.gpuTier()),
             memoryGbGoe(condition.memoryGb()),
             storageGbGoe(condition.storageGb()),
             keywordContains(condition.keyword()),
@@ -205,12 +215,25 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
         return laptop.os.eq(os);
     }
 
-    // 등급은 우리가 정의한 분류라 실제 비교는 그 등급의 최소 점수로 한다
     private BooleanExpression cpuTierAtLeast(CpuTier cpuTier) {
         if (cpuTier == null) {
             return null;
         }
         return cpu.score.goe(cpuTier.getMinScore());
+    }
+
+    private BooleanExpression colorGamutAtLeast(ColorGamut colorGamut) {
+        if (colorGamut == null || colorGamut == ColorGamut.STANDARD) {
+            return null;
+        }
+        return laptop.colorGamut.in(colorGamut.andAbove());
+    }
+
+    private BooleanExpression gpuTierAtLeast(GpuTier gpuTier) {
+        if (gpuTier == null || gpuTier.isLowest()) {
+            return null;
+        }
+        return gpu.score.goe(gpuTier.getMinScore());
     }
 
     private BooleanExpression memoryGbGoe(Integer memoryGb) {

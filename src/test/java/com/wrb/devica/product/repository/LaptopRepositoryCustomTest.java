@@ -1,6 +1,7 @@
 package com.wrb.devica.product.repository;
 
 import static com.wrb.devica.fixture.CpuFixture.cpu;
+import static com.wrb.devica.fixture.GpuFixture.gpu;
 import static com.wrb.devica.fixture.LaptopFixture.laptop;
 import static com.wrb.devica.fixture.LaptopSearchConditionFixture.condition;
 import static com.wrb.devica.fixture.ProductOfferFixture.offer;
@@ -14,8 +15,11 @@ import com.wrb.devica.category.repository.ProductCategoryRepository;
 import com.wrb.devica.common.JpaSliceTest;
 import com.wrb.devica.common.MinPriceRefresher;
 import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
+import com.wrb.devica.product.domain.ColorGamut;
 import com.wrb.devica.product.domain.Cpu;
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.Gpu;
+import com.wrb.devica.product.domain.GpuTier;
 import com.wrb.devica.product.domain.Laptop;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
@@ -48,6 +52,9 @@ class LaptopRepositoryCustomTest {
     private CpuRepository cpuRepository;
 
     @Autowired
+    private GpuRepository gpuRepository;
+
+    @Autowired
     private ProductOfferRepository productOfferRepository;
 
     @Autowired
@@ -59,6 +66,8 @@ class LaptopRepositoryCustomTest {
     private ProductCategory category;
 
     private Cpu cpu;
+
+    private Gpu gpu;
     @Autowired
     private LaptopRepository laptopRepository;
 
@@ -66,6 +75,7 @@ class LaptopRepositoryCustomTest {
     void setUpCategory() {
         category = productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP));
         cpu = saveCpu();
+        gpu = saveGpu(GpuTier.MID.getMinScore());
     }
 
     @Test
@@ -108,6 +118,50 @@ class LaptopRepositoryCustomTest {
 
         // then
         assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("중간", "높음");
+    }
+
+    @Test
+    void GPU_등급을_지정할_때_조회하면_그_등급의_최소_점수_이상만_반환한다() {
+        // given
+        int minScore = GpuTier.HIGH.getMinScore();
+        onSaleLaptop(laptop().name("낮음"), cpu, saveGpu(minScore - 1), DEFAULT_PRICE);
+        onSaleLaptop(laptop().name("같음"), cpu, saveGpu(minScore), DEFAULT_PRICE);
+        onSaleLaptop(laptop().name("높음"), cpu, saveGpu(minScore + 1), DEFAULT_PRICE);
+
+        // when
+        Slice<ProductSummaryRow> found = findLaptops(condition().gpuTier(GpuTier.HIGH).build());
+
+        // then
+        assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("같음", "높음");
+    }
+
+    @Test
+    void 가장_낮은_화면_색_영역과_GPU_등급은_조건으로_보지_않는다() {
+        // given
+        int lowestMinScore = GpuTier.ENTRY.getMinScore();
+        onSaleLaptop(laptop().name("넓음").colorGamut(ColorGamut.WIDE), cpu, saveGpu(lowestMinScore), DEFAULT_PRICE);
+        onSaleLaptop(laptop().name("모름"), cpu, saveGpu(lowestMinScore - 1), DEFAULT_PRICE);
+
+        // when
+        Slice<ProductSummaryRow> found = findLaptops(
+            condition().colorGamut(ColorGamut.STANDARD).gpuTier(GpuTier.ENTRY).build());
+
+        // then
+        assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("넓음", "모름");
+    }
+
+    @Test
+    void 화면_색_영역을_지정할_때_조회하면_그_색_영역_이상만_반환한다() {
+        // given
+        onSaleLaptop(laptop().name("표준").colorGamut(ColorGamut.STANDARD));
+        onSaleLaptop(laptop().name("넓음").colorGamut(ColorGamut.WIDE));
+        onSaleLaptop(laptop().name("모름"));
+
+        // when
+        Slice<ProductSummaryRow> found = findLaptops(condition().colorGamut(ColorGamut.WIDE).build());
+
+        // then
+        assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("넓음");
     }
 
     @ParameterizedTest
@@ -436,6 +490,20 @@ class LaptopRepositoryCustomTest {
     }
 
     @Test
+    void GPU_등급을_지정해_최저가를_조회하면_그_등급_이상_노트북의_최저가를_반환한다() {
+        // given
+        int minScore = GpuTier.HIGH.getMinScore();
+        onSaleLaptop(laptop().name("등급_미달"), cpu, saveGpu(minScore - 1), 500_000L);
+        onSaleLaptop(laptop().name("맞음"), cpu, saveGpu(minScore), 1_500_000L);
+
+        // when
+        Long minPrice = findMinPrice(condition().gpuTier(GpuTier.HIGH).build());
+
+        // then
+        assertThat(minPrice).isEqualTo(1_500_000L);
+    }
+
+    @Test
     void 조건에_맞는_판매_중인_노트북이_없을_때_최저가를_조회하면_null을_반환한다() {
         // given
         onSaleLaptop(laptop().name("윈도우").os(Os.WINDOWS));
@@ -498,14 +566,18 @@ class LaptopRepositoryCustomTest {
     }
 
     private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, long price) {
-        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
+        return onSaleLaptop(builder, cpu, gpu, price);
+    }
+
+    private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, Gpu gpu, long price) {
+        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).gpu(gpu).build());
         productOfferRepository.save(onSaleOffer(laptop, price));
         minPriceRefresher.refresh(laptop.getId());
         return laptop;
     }
 
     private Laptop laptopOf(LaptopBuilder builder) {
-        return laptopRepository.save(builder.category(category).cpu(cpu).build());
+        return laptopRepository.save(builder.category(category).cpu(cpu).gpu(gpu).build());
     }
 
     private Cpu saveCpu() {
@@ -514,6 +586,10 @@ class LaptopRepositoryCustomTest {
 
     private Cpu saveCpu(int score) {
         return cpuRepository.save(cpu().score(score).build());
+    }
+
+    private Gpu saveGpu(int score) {
+        return gpuRepository.save(gpu().score(score).build());
     }
 
     private Slice<ProductSummaryRow> findLaptops(LaptopSearchCondition condition) {

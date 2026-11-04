@@ -1,8 +1,10 @@
 package com.wrb.devica.product.domain;
 
+import java.util.ArrayList;
 import java.util.List;
 
-public record LaptopSpec(Os os, CpuTier cpuTier, int memoryGb, int storageGb) implements Spec {
+public record LaptopSpec(Os os, CpuTier cpuTier, int memoryGb, int storageGb,
+                         ColorGamut colorGamut, GpuTier gpuTier) implements Spec {
 
     public static final List<Integer> MEMORY_STEPS = List.of(16, 24, 32, 48);
     public static final List<Integer> STORAGE_STEPS = List.of(256, 512, 1024, 2048);
@@ -19,10 +21,20 @@ public record LaptopSpec(Os os, CpuTier cpuTier, int memoryGb, int storageGb) im
 
     @Override
     public List<SpecValue> values() {
-        return List.of(
+        List<SpecValue> values = new ArrayList<>(List.of(
             new SpecValue("OS", os.name()),
             new SpecValue("REQUIRED_CPU", cpuTier.name()),
             new SpecValue("MEMORY", String.valueOf(memoryGb)),
-            new SpecValue("STORAGE", String.valueOf(storageGb)));
+            new SpecValue("STORAGE", String.valueOf(storageGb))));
+
+        if (colorGamut != null) {
+            values.add(new SpecValue("COLOR_GAMUT", colorGamut.name()));
+        }
+
+        if (gpuTier != null) {
+            values.add(new SpecValue("GPU", gpuTier.name()));
+        }
+
+        return values;
     }
 }

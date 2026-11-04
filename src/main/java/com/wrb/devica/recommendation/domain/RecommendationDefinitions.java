@@ -22,6 +22,10 @@ public class RecommendationDefinitions {
             LaptopRecommender.findUnsupported(definition.interpretation())
                 .forEach(error -> errors.add(code + ": " + error)));
 
+        purposes.forEach((code, definition) ->
+            LaptopRecommender.findRulesWithoutRange(definition.interpretation(), definition.rules())
+                .forEach(error -> errors.add(code + ": " + error)));
+
         if (!errors.isEmpty()) {
             throw new IllegalStateException("추천 콘텐츠가 올바르지 않습니다.\n" + String.join("\n", errors));
         }

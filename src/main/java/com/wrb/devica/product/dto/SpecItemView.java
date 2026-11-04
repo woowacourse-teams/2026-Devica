@@ -1,6 +1,8 @@
 package com.wrb.devica.product.dto;
 
+import com.wrb.devica.product.domain.ColorGamut;
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.GpuTier;
 import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.domain.StorageSize;
 import java.util.function.UnaryOperator;
@@ -18,7 +20,9 @@ public enum SpecItemView {
     STORAGE("저장 공간", value -> StorageSize.display(Integer.parseInt(value))),
     CPU_CORE("코어 수", value -> value + "코어"),
     SCREEN_SIZE("화면 크기", value -> value + "인치"),
-    WEIGHT("무게", value -> value + "g");
+    WEIGHT("무게", value -> value + "g"),
+    COLOR_GAMUT("화면 색 영역", value -> ColorGamut.valueOf(value).getDisplayName()),
+    GPU("GPU", value -> GpuTier.valueOf(value).getDisplayName());
 
     private final String displayName;
     private final UnaryOperator<String> displayValue;

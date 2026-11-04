@@ -1,6 +1,7 @@
 package com.wrb.devica.product.service;
 
 import static com.wrb.devica.fixture.CpuFixture.cpu;
+import static com.wrb.devica.fixture.GpuFixture.gpu;
 import static com.wrb.devica.fixture.LaptopFixture.laptop;
 import static com.wrb.devica.fixture.ProductOfferFixture.offer;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,6 +17,7 @@ import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.dto.PriceRefreshTarget;
 import com.wrb.devica.product.repository.CpuRepository;
+import com.wrb.devica.product.repository.GpuRepository;
 import com.wrb.devica.product.repository.LaptopRepository;
 import com.wrb.devica.product.repository.ProductMinPriceRepository;
 import com.wrb.devica.product.repository.ProductOfferRepository;
@@ -50,6 +52,9 @@ class ProductOfferServiceTest {
     private CpuRepository cpuRepository;
 
     @Autowired
+    private GpuRepository gpuRepository;
+
+    @Autowired
     private LaptopRepository laptopRepository;
 
     @Autowired
@@ -73,6 +78,7 @@ class ProductOfferServiceTest {
         Laptop laptop = laptopRepository.save(laptop()
             .category(productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP)))
             .cpu(cpuRepository.save(cpu().build()))
+            .gpu(gpuRepository.save(gpu().build()))
             .build());
 
         productOfferRepository.save(offer().product(laptop).price(2_990_000L).status(OfferStatus.ON_SALE).build());
@@ -399,6 +405,7 @@ class ProductOfferServiceTest {
         return laptopRepository.save(laptop()
             .category(productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP)))
             .cpu(cpuRepository.save(cpu().build()))
+            .gpu(gpuRepository.save(gpu().build()))
             .build());
     }
 

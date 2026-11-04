@@ -1,6 +1,8 @@
 package com.wrb.devica.recommendation.domain;
 
+import com.wrb.devica.product.domain.ColorGamut;
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.GpuTier;
 import com.wrb.devica.product.domain.LaptopSpec;
 import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.domain.StorageSize;
@@ -19,6 +21,8 @@ public class LaptopRecommender {
     private static final String CPU_ITEM = LaptopRequirement.REQUIRED_CPU.name();
     private static final String MEMORY_ITEM = LaptopRequirement.MEMORY.name();
     private static final String STORAGE_ITEM = LaptopRequirement.STORAGE.name();
+    private static final String COLOR_GAMUT_ITEM = LaptopRequirement.COLOR_GAMUT.name();
+    private static final String GPU_ITEM = LaptopRequirement.GPU.name();
 
     private static final Map<CpuTier, List<Integer>> MAC_MEMORY_BY_CPU = Map.of(
         CpuTier.BASIC, List.of(16, 24, 32),
@@ -38,6 +42,9 @@ public class LaptopRecommender {
         validateSteps(interpretation.storage(), LaptopSpec.STORAGE_STEPS, "저장 공간 구간", errors);
 
         validateMacCpuLimit(interpretation.macCpuLimit(), interpretation.memory(), errors);
+
+        validateOptional(interpretation.colorGamut(), "화면 색 영역 구간", errors);
+        validateOptional(interpretation.gpu(), "GPU 구간", errors);
 
         return errors;
     }
@@ -94,6 +101,27 @@ public class LaptopRecommender {
                 "Mac CPU 상한 " + limit + " 에서는 " + value + "GB 를 고를 수 없습니다. 최대 " + largest + "GB 입니다"));
     }
 
+    private static <T> void validateOptional(List<ScoreRange<T>> ranges, String where, List<String> errors) {
+        if (ranges == null) {
+            return;
+        }
+
+        ScoreRange.validate(ranges, where, errors);
+    }
+
+    public static List<String> findRulesWithoutRange(LaptopInterpretation interpretation, List<Rule> rules) {
+        Map<String, Boolean> interpreted = Map.of(
+            COLOR_GAMUT_ITEM, interpretation != null && interpretation.colorGamut() != null,
+            GPU_ITEM, interpretation != null && interpretation.gpu() != null);
+
+        return rules.stream()
+            .map(Rule::criterion)
+            .filter(criterion -> !interpreted.getOrDefault(criterion, true))
+            .distinct()
+            .map(criterion -> criterion + " 규칙이 있지만 점수 해석 규칙에 " + criterion + " 구간이 없습니다")
+            .toList();
+    }
+
     public List<RecommendedSpec> recommend(LaptopInterpretation interpretation,
                                            Function<Os, Requirements> requirementsOf,
                                            Map<String, String> conditions) {
@@ -115,10 +143,25 @@ public class LaptopRecommender {
         CpuTier current = currentCpuTier(os, conditions);
         CpuTier cpuTier = calculateCpu(interpretation, os, requirements.valueOf(CPU_ITEM), current, reasons.get(CPU_ITEM));
 
-        LaptopSpec spec = buyableSpec(os, cpuTier, memoryGb, storageGb, reasons);
+        ColorGamut colorGamut = optionalValue(interpretation.colorGamut(), requirements.valueOf(COLOR_GAMUT_ITEM));
+        GpuTier gpuTier = optionalValue(interpretation.gpu(), requirements.valueOf(GPU_ITEM));
+
+        LaptopSpec spec = buyableSpec(os, cpuTier, memoryGb, storageGb, colorGamut, gpuTier, reasons);
         addResultReasons(spec, current, reasons);
         boolean preferred = os.name().equals(conditions.get(LaptopCondition.PREFERRED_OS.name()));
         return new RecommendedSpec(spec, reasons, requirements.notes(), preferred);
+    }
+
+    private CpuTier currentCpuTier(Os os, Map<String, String> conditions) {
+        String current = conditions.get(LaptopCondition.CURRENT_CPU_TIER.name());
+        if (current == null) {
+            return null;
+        }
+        CpuTier tier = CpuTier.valueOf(current);
+        if (tier.getOs() != os) {
+            return null;
+        }
+        return tier;
     }
 
     private CpuTier calculateCpu(LaptopInterpretation interpretation, Os os, int score, CpuTier current,
@@ -153,32 +196,17 @@ public class LaptopRecommender {
         }
     }
 
-    private CpuTier currentCpuTier(Os os, Map<String, String> conditions) {
-        String current = conditions.get(LaptopCondition.CURRENT_CPU_TIER.name());
-        if (current == null) {
+    private <T> T optionalValue(List<ScoreRange<T>> ranges, int score) {
+        if (ranges == null) {
             return null;
         }
-        CpuTier tier = CpuTier.valueOf(current);
-        if (tier.getOs() != os) {
-            return null;
-        }
-        return tier;
-    }
-
-    private void addResultReasons(LaptopSpec spec, CpuTier current, Map<String, List<String>> reasons) {
-        List<String> cpuReasons = reasons.get(CPU_ITEM);
-        if (current != null && spec.cpuTier().isHigherThan(current)) {
-            cpuReasons.add("지금 쓰는 " + current.getDisplayName() + " 에서 불편을 겪어 그보다 위를 권합니다.");
-        }
-        cpuReasons.add("권장 CPU 는 " + spec.cpuTier().getDisplayName() + " 입니다.");
-        reasons.get(MEMORY_ITEM).add("권장 메모리는 " + spec.memoryGb() + "GB 입니다.");
-        reasons.get(STORAGE_ITEM).add("권장 저장 공간은 " + StorageSize.display(spec.storageGb()) + " 입니다.");
+        return ScoreRange.valueFor(ranges, score);
     }
 
     private LaptopSpec buyableSpec(Os os, CpuTier cpuTier, int memoryGb, int storageGb,
-                                   Map<String, List<String>> reasons) {
+                                   ColorGamut colorGamut, GpuTier gpuTier, Map<String, List<String>> reasons) {
         if (os != Os.MAC) {
-            return new LaptopSpec(os, cpuTier, memoryGb, storageGb);
+            return new LaptopSpec(os, cpuTier, memoryGb, storageGb, colorGamut, gpuTier);
         }
 
         CpuTier tier = cpuTier;
@@ -196,7 +224,7 @@ public class LaptopRecommender {
                 .add(tier.getDisplayName() + "에서는 " + memoryGb + "GB 를 고를 수 없어 바로 위 용량인 " + adjusted + "GB 를 권합니다.");
         }
 
-        return new LaptopSpec(os, tier, adjusted, storageGb);
+        return new LaptopSpec(os, tier, adjusted, storageGb, colorGamut, gpuTier);
     }
 
     private int largestMemoryOf(CpuTier tier) {
@@ -208,5 +236,25 @@ public class LaptopRecommender {
             .filter(option -> option >= memoryGb)
             .findFirst()
             .orElseGet(() -> largestMemoryOf(tier));
+    }
+
+    private void addResultReasons(LaptopSpec spec, CpuTier current, Map<String, List<String>> reasons) {
+        List<String> cpuReasons = reasons.get(CPU_ITEM);
+
+        if (current != null && spec.cpuTier().isHigherThan(current)) {
+            cpuReasons.add("지금 쓰는 " + current.getDisplayName() + " 에서 불편을 겪어 그보다 위를 권합니다.");
+        }
+
+        cpuReasons.add("권장 CPU 는 " + spec.cpuTier().getDisplayName() + " 입니다.");
+        reasons.get(MEMORY_ITEM).add("권장 메모리는 " + spec.memoryGb() + "GB 입니다.");
+        reasons.get(STORAGE_ITEM).add("권장 저장 공간은 " + StorageSize.display(spec.storageGb()) + " 입니다.");
+
+        if (spec.colorGamut() != null) {
+            reasons.get(COLOR_GAMUT_ITEM).add("권장 화면은 " + spec.colorGamut().getDisplayName() + " 입니다.");
+        }
+
+        if (spec.gpuTier() != null) {
+            reasons.get(GPU_ITEM).add("권장 GPU 는 " + spec.gpuTier().getDisplayName() + " 입니다.");
+        }
     }
 }

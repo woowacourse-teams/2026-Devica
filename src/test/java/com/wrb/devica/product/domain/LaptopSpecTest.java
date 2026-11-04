@@ -14,7 +14,7 @@ class LaptopSpecTest {
     @Test
     void 사양을_항목_코드와_원본_값으로_변환한다() {
         // given
-        LaptopSpec spec = new LaptopSpec(Os.MAC, CpuTier.BASIC, 24, 512);
+        LaptopSpec spec = new LaptopSpec(Os.MAC, CpuTier.BASIC, 24, 512, null, null);
 
         // when
         List<SpecValue> values = spec.values();
@@ -32,7 +32,7 @@ class LaptopSpecTest {
     @Test
     void CPU_등급이_OS_와_맞지_않으면_예외가_발생한다() {
         // when & then
-        assertThatThrownBy(() -> new LaptopSpec(Os.MAC, CpuTier.HX, 24, 512))
+        assertThatThrownBy(() -> new LaptopSpec(Os.MAC, CpuTier.HX, 24, 512, null, null))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -40,7 +40,30 @@ class LaptopSpecTest {
     @CsvSource({"0, 512", "-1, 512", "20, 512", "24, 0", "24, -1", "24, 1000"})
     void 메모리나_저장_공간이_권장_사양에_없는_값이면_예외가_발생한다(int memoryGb, int storageGb) {
         // when & then
-        assertThatThrownBy(() -> new LaptopSpec(Os.MAC, CpuTier.BASIC, memoryGb, storageGb))
+        assertThatThrownBy(() -> new LaptopSpec(Os.MAC, CpuTier.BASIC, memoryGb, storageGb, null, null))
             .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void 화면과_GPU_는_정해졌을_때만_사양_항목에_더한다() {
+        // given
+        LaptopSpec spec = new LaptopSpec(Os.WINDOWS, CpuTier.H, 32, 1024, ColorGamut.WIDE, GpuTier.MID);
+
+        // when
+        List<SpecValue> values = spec.values();
+
+        // then
+        assertThat(values)
+            .extracting(SpecValue::code, SpecValue::value)
+            .endsWith(tuple("COLOR_GAMUT", "WIDE"), tuple("GPU", "MID"));
+    }
+
+    @Test
+    void Mac_도_GPU_등급을_가린다() {
+        // when
+        LaptopSpec spec = new LaptopSpec(Os.MAC, CpuTier.PRO, 24, 512, null, GpuTier.HIGH);
+
+        // then
+        assertThat(spec.values()).extracting(SpecValue::code, SpecValue::value).endsWith(tuple("GPU", "HIGH"));
     }
 }

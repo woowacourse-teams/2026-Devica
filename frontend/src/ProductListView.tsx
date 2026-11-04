@@ -3,6 +3,7 @@ import { ChoiceGroup } from './ChoiceGroup';
 import { useFetched, usePaged } from './fetched';
 import { ProductImage } from './ProductImage';
 import {
+  COLOR_GAMUT_FILTER_LABELS,
   type CpuTier,
   cpuFilterLabel,
   EMPTY_CONDITION,
@@ -11,6 +12,7 @@ import {
   fetchProductPage,
   formatPrice,
   formatStorage,
+  GPU_FILTER_LABELS,
   MEMORY_STEPS,
   OSES,
   osOfTier,
@@ -608,7 +610,7 @@ function CpuFilter({ groups, value, unavailable, onChange }: CpuFilterProps) {
 }
 
 function conditionLabels(
-  { keyword, maxPrice, os, cpuTier, brand, memoryGb, storageGb }: SearchCondition,
+  { keyword, maxPrice, os, cpuTier, colorGamut, gpuTier, brand, memoryGb, storageGb }: SearchCondition,
   tiers: CpuTier[] | null,
 ): { field: keyof SearchCondition; label: string }[] {
   const tier = tiers?.find((each) => each.code === cpuTier);
@@ -618,6 +620,8 @@ function conditionLabels(
     { field: 'os', label: os !== null ? (OS_GROUP_LABELS[os] ?? os) : null },
     { field: 'brand', label: brand !== null ? `브랜드 ${brand}` : null },
     { field: 'cpuTier', label: tier !== undefined ? cpuFilterLabel(tier) : null },
+    { field: 'gpuTier', label: gpuTier !== null ? GPU_FILTER_LABELS[gpuTier] : null },
+    { field: 'colorGamut', label: colorGamut !== null ? COLOR_GAMUT_FILTER_LABELS[colorGamut] : null },
     { field: 'memoryGb', label: memoryGb !== null ? `RAM ${memoryGb}GB 이상` : null },
     { field: 'storageGb', label: storageGb !== null ? `저장장치 ${formatStorage(storageGb)} 이상` : null },
   ];

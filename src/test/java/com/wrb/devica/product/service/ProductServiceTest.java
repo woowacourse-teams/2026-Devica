@@ -1,6 +1,7 @@
 package com.wrb.devica.product.service;
 
 import static com.wrb.devica.fixture.CpuFixture.cpu;
+import static com.wrb.devica.fixture.GpuFixture.gpu;
 import static com.wrb.devica.fixture.LaptopFixture.laptop;
 import static com.wrb.devica.fixture.LaptopSearchConditionFixture.condition;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -14,9 +15,11 @@ import com.wrb.devica.common.exception.BusinessErrorCode;
 import com.wrb.devica.common.exception.BusinessException;
 import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
 import com.wrb.devica.product.domain.Cpu;
+import com.wrb.devica.product.domain.Gpu;
 import com.wrb.devica.product.domain.Laptop;
 import com.wrb.devica.product.dto.PageCondition;
 import com.wrb.devica.product.repository.CpuRepository;
+import com.wrb.devica.product.repository.GpuRepository;
 import com.wrb.devica.product.repository.LaptopRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -36,6 +39,9 @@ class ProductServiceTest {
     @Autowired
     private CpuRepository cpuRepository;
 
+    @Autowired
+    private GpuRepository gpuRepository;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -45,6 +51,8 @@ class ProductServiceTest {
     private ProductCategory category;
 
     private Cpu cpu;
+
+    private Gpu gpu;
     @Autowired
     private ProductService productService;
 
@@ -52,6 +60,7 @@ class ProductServiceTest {
     void setUpCategory() {
         category = productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP));
         cpu = saveCpu();
+        gpu = gpuRepository.save(gpu().build());
     }
 
     @Test
@@ -114,6 +123,6 @@ class ProductServiceTest {
     }
 
     private Laptop laptopOf(LaptopBuilder builder) {
-        return laptopRepository.save(builder.category(category).cpu(cpu).build());
+        return laptopRepository.save(builder.category(category).cpu(cpu).gpu(gpu).build());
     }
 }

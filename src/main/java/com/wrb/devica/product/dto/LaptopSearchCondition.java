@@ -1,6 +1,8 @@
 package com.wrb.devica.product.dto;
 
+import com.wrb.devica.product.domain.ColorGamut;
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.GpuTier;
 import com.wrb.devica.product.domain.Os;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Positive;
@@ -9,6 +11,8 @@ import jakarta.validation.constraints.PositiveOrZero;
 public record LaptopSearchCondition(
     Os os,
     CpuTier cpuTier,
+    ColorGamut colorGamut,
+    GpuTier gpuTier,
     @Positive(message = "메모리 용량은 1GB 이상이어야 합니다.")
     Integer memoryGb,
     @Positive(message = "스토리지 용량은 1GB 이상이어야 합니다.")

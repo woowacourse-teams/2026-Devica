@@ -42,11 +42,19 @@ public class Laptop extends Product {
     @Column(nullable = false, precision = 3, scale = 1)
     private BigDecimal screenSizeInch;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private ColorGamut colorGamut;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "gpu_id", nullable = false)
+    private Gpu gpu;
+
     @Builder
     private Laptop(ProductCategory category, String brand, String name, String code,
                    String description, LocalDate releasedAt, String imageKey,
                    Cpu cpu, Os os, int memoryGb, int storageGb, int weightG,
-                   BigDecimal screenSizeInch) {
+                   BigDecimal screenSizeInch, ColorGamut colorGamut, Gpu gpu) {
         super(category, brand, name, code, description, releasedAt, imageKey);
         this.cpu = cpu;
         this.os = os;
@@ -54,6 +62,8 @@ public class Laptop extends Product {
         this.storageGb = storageGb;
         this.weightG = weightG;
         this.screenSizeInch = screenSizeInch;
+        this.colorGamut = colorGamut;
+        this.gpu = gpu;
     }
 
     public static List<SpecValue> summarySpecValues(Os os, String cpuName, int memoryGb, int storageGb) {
