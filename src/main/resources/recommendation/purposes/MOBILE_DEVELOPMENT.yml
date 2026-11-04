@@ -169,13 +169,6 @@ rules:
     when: { question: TARGET_PLATFORM, anyOf: [ ANDROID ] }
     reason: Android Studio 와 Gradle 빌드는 메모리를 많이 씁니다.
   - criterion: MEMORY
-    weight: 1
-    when:
-      all:
-        - { question: TARGET_PLATFORM, anyOf: [ ANDROID ] }
-        - { question: TARGET_PLATFORM, anyOf: [ IOS ] }
-    reason: 두 플랫폼의 개발 도구를 함께 띄우면 그만큼 더 듭니다.
-  - criterion: MEMORY
     weight: 2
     when: { question: TEST_DEVICE, anyOf: [ EMULATOR_MANY ] }
     reason: 에뮬레이터는 기기마다 메모리를 따로 잡아 여러 개 띄우면 크게 늘어납니다.
@@ -335,7 +328,7 @@ mappings:
     value: HX
     when: { all: [ { question: CURRENT_WINDOWS_CPU, anyOf: [ HX ] }, *discomfort ] }
 
-# 기본 권장 사양(답이 없는 0점)은 Mac 기본 칩·Windows H 급·32GB·512GB 다.
+# 기본 권장 사양(답이 없는 0점)은 Mac 기본 칩·Windows H 급·32GB·512GB 다. 노트북에서 IDE 와 에뮬레이터를 직접 쓰는 개발을 전제로 한다.
 # Android Studio 는 에뮬레이터를 쓸 때 최소 16GB·권장 32GB 이고, 최소 구성만으로도 약 14GB 를 써 16GB 에는 여유가 없어
 # 공식 권장값인 32GB 를 기본으로 둔다. 짧게 쓸 계획이면 24GB 로 낮춘다
 interpretation:
