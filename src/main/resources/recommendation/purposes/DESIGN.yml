@@ -197,7 +197,7 @@ rules:
         - { not: { question: DESIGN_FIELD, anyOf: [ THREE_D ] } }
     reason: 가끔 하는 3D 작업도 장면과 텍스처를 메모리에 올려 둡니다.
   - criterion: MEMORY
-    weight: 2
+    weight: 3
     when: { question: VIDEO_RESOLUTION, anyOf: [ UHD ] }
     reason: 4K 이상 영상은 FHD 보다 메모리를 훨씬 많이 씁니다.
   - criterion: MEMORY
