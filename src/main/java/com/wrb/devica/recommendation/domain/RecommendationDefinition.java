@@ -14,7 +14,9 @@ public record RecommendationDefinition(Survey survey, List<Rule> rules, List<Con
         .build();
 
     public RecommendationDefinition {
-        notes = notes == null ? List.of() : notes;
+        if (notes == null) {
+            notes = List.of();
+        }
     }
 
     public static RecommendationDefinition read(InputStream input) {
