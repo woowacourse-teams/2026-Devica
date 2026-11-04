@@ -53,10 +53,13 @@ class MacBookAirOfferMigrationTest {
     @Test
     void 추가_판매처를_보존하고_대상_제품의_검수한_가격을_등록한다() {
         // given
-        long first = productId(EXPECTED.getFirst().code());
-        jdbcTemplate.update("UPDATE product_offer SET price = 50000000 WHERE product_id = ? AND status = 'ON_SALE'", first);
-        saveOffer(first, "품절 판매처", 1L, "SOLD_OUT");
-        saveOffer(productId(EXPECTED.get(1).code()), "추가 판매처", 100_000L, "ON_SALE");
+        ExpectedOffer first = EXPECTED.getFirst();
+        long firstId = productId(first.code());
+        jdbcTemplate.update("UPDATE product_offer SET price = ? WHERE product_id = ? AND status = 'ON_SALE'",
+            first.price() + 100_000L, firstId);
+        saveOffer(firstId, "품절 판매처", first.price() - 100_000L, "SOLD_OUT");
+        ExpectedOffer second = EXPECTED.get(1);
+        saveOffer(productId(second.code()), "추가 판매처", second.price() - 100_000L, "ON_SALE");
         var before = offerSnapshot();
 
         // when
