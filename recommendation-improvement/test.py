@@ -752,6 +752,10 @@ class ImproverTest(unittest.TestCase):
         before = snap(24)
         self.assertIn('지금 사양(32)을 넘지 않았다', improver.compare(before, snap(32), tmp(json.dumps(case(32))))['checks'][0]['why'])
         self.assertTrue(improver.compare(before, snap(48), tmp(json.dumps(case(32))))['ok'])
+        down = case(16)
+        down['cases'][0]['expected'][0]['direction'] = 'DOWN'
+        self.assertIn('지금 사양(16)을 넘지 않게 내려가지 않았다', improver.compare(snap(32), snap(24), tmp(json.dumps(down)))['checks'][0]['why'])
+        self.assertTrue(improver.compare(snap(32), snap(16), tmp(json.dumps(down)))['ok'])
 
 
 class RunShTest(unittest.TestCase):
