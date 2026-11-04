@@ -3,7 +3,7 @@ package com.wrb.devica.recommendation.domain;
 import java.util.List;
 import java.util.Map;
 
-public record Requirements(Map<String, Integer> values, Map<String, List<String>> reasons) {
+public record Requirements(Map<String, Integer> values, Map<String, List<String>> reasons, List<String> notes) {
 
     public int valueOf(String criterion) {
         return values.getOrDefault(criterion, 0);

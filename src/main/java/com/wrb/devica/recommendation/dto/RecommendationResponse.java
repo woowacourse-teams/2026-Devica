@@ -13,7 +13,7 @@ public record RecommendationResponse(List<SpecResponse> specs) {
             .toList());
     }
 
-    public record SpecResponse(List<ItemResponse> items, boolean preferred) {
+    public record SpecResponse(List<ItemResponse> items, boolean preferred, List<String> notes) {
 
         private static SpecResponse from(RecommendedSpec recommended) {
             return new SpecResponse(
@@ -22,7 +22,8 @@ public record RecommendationResponse(List<SpecResponse> specs) {
                         value,
                         recommended.itemReasons().getOrDefault(value.code(), List.of())))
                     .toList(),
-                recommended.preferred());
+                recommended.preferred(),
+                recommended.notes());
         }
     }
 

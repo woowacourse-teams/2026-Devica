@@ -159,6 +159,15 @@ function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, editing, onE
           </button>
         )}
       </div>
+      {spec.notes.length > 0 && (
+        <section className="bordered-panel spec-row" aria-label="안내">
+          {spec.notes.map((note) => (
+            <p className="spec-row__reason" key={note}>
+              {note}
+            </p>
+          ))}
+        </section>
+      )}
       {ROWS.map(({ code, label }) => {
         const recommended = itemOf(spec, code);
         const item = itemOf(edited, code);
