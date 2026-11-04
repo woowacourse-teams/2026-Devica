@@ -83,14 +83,7 @@ export type Offer = {
   price: number;
   purchaseUrl: string;
   checkedAt?: string | null;
-  priceCondition?: string | null;
-  priceBasis?: 'SELLER_PRICE' | 'OBSERVED_LOWEST';
-  linkType?: 'PURCHASE' | 'SEARCH';
 };
-
-export function offerCondition(offer: Offer): string {
-  return offer.priceCondition?.trim() || '조건 정보 없음';
-}
 
 export type ProductDetail = {
   id: number;

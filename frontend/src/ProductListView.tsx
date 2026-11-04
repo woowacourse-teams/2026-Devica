@@ -13,7 +13,6 @@ import {
   formatStorage,
   MEMORY_STEPS,
   OSES,
-  offerCondition,
   osOfTier,
   type Product,
   type ProductSpecItem,
@@ -449,9 +448,7 @@ function ProductCard({ product, onDetail }: { product: Product; onDetail: (produ
           <div className="product-card__pricing">
             <strong className="product-card__price">{formatPrice(product.minPrice)}</strong>
             {product.minPrice !== null && (
-              <p className="product-card__price-context">
-                {source ? `${source.name} · ${offerCondition(source)}` : '판매처·조건 정보 없음'}
-              </p>
+              <p className="product-card__price-context">{source ? source.name : '판매처 정보 없음'}</p>
             )}
           </div>
         </div>

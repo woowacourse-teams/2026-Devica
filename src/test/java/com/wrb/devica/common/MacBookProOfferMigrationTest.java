@@ -3,8 +3,6 @@ package com.wrb.devica.common;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.wrb.devica.product.domain.OfferLinkType;
-import com.wrb.devica.product.domain.OfferPriceBasis;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.service.ProductOfferService;
@@ -133,11 +131,9 @@ class MacBookProOfferMigrationTest {
         long productId = productId(expected.code());
         var apple = registeredOffer(productId);
         assertThat(apple).extracting(ProductOffer::getPrice, ProductOffer::getCheckedAt,
-                ProductOffer::getStatus, ProductOffer::getPriceBasis, ProductOffer::getLinkType)
-            .containsExactly(expected.price(), LocalDate.of(2026, 11, 2), OfferStatus.ON_SALE,
-                OfferPriceBasis.SELLER_PRICE, OfferLinkType.PURCHASE);
+                ProductOffer::getStatus)
+            .containsExactly(expected.price(), LocalDate.of(2026, 11, 2), OfferStatus.ON_SALE);
         assertThat(apple.getExternalItemId()).isNull();
-        assertThat(apple.getPriceCondition()).isEqualTo("일반 판매가 · 스페이스 블랙 · 스탠다드 디스플레이 · 한국어 키보드");
         assertThat(apple.getPurchaseUrl()).isEqualTo(APPLE_URL + expected.path());
         assertLowestMatchesOnSaleOffers(expected.code());
     }
@@ -192,7 +188,7 @@ class MacBookProOfferMigrationTest {
     private List<Map<String, Object>> offerSnapshot() {
         return jdbcTemplate.queryForList("""
             SELECT id, product_id, name, price, status, purchase_url, external_item_id,
-                   checked_at, price_condition, price_basis, link_type
+                   checked_at
             FROM product_offer ORDER BY id
             """);
     }

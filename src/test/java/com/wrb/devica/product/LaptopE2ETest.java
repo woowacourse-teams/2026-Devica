@@ -20,8 +20,6 @@ import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
 import com.wrb.devica.product.domain.Cpu;
 import com.wrb.devica.product.domain.CpuTier;
 import com.wrb.devica.product.domain.Laptop;
-import com.wrb.devica.product.domain.OfferLinkType;
-import com.wrb.devica.product.domain.OfferPriceBasis;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.domain.Product;
@@ -43,6 +41,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
@@ -428,35 +427,28 @@ class LaptopE2ETest extends E2ETest {
     }
 
     @ParameterizedTest
-    @CsvSource({
-        "학생복지스토어, SELLER_PRICE, PURCHASE, 학생 인증 필요",
-        "당근, OBSERVED_LOWEST, SEARCH, 판교 · 미개봉 · 확인 매물 중 최저가"
-    })
-    void 새_판매처의_가격과_조건이_목록_상세_예산_정렬에_일관되게_반영된다(
-        String seller, OfferPriceBasis basis, OfferLinkType linkType, String condition) {
-        Laptop subject = laptopOf(laptop().name("조건가격"));
+    @ValueSource(strings = {"학생복지스토어", "Apple 공홈"})
+    void 새_판매처의_가격과_출처가_목록_상세_예산_정렬에_일관되게_반영된다(String seller) {
+        Laptop subject = laptopOf(laptop().name("새판매처가격"));
         productOfferRepository.save(offer().product(subject).name("쿠팡").price(500_000L)
             .status(OfferStatus.HIDDEN).build());
-        ProductOffer winner = saveContextOffer(subject, seller, basis, linkType, condition);
-        ProductOffer tied = saveContextOffer(subject, seller, basis, linkType, condition);
+        ProductOffer winner = saveSellerOffer(subject, seller);
+        ProductOffer tied = saveSellerOffer(subject, seller);
         minPriceRefresher.refresh(subject.getId());
         onSaleLaptop(laptop().name("일반가격"), 1_200_000L);
 
         given().queryParam("sort", "PRICE_ASC").when().get(PATH).then().statusCode(200)
-            .body("content.name", contains("조건가격", "일반가격"))
+            .body("content.name", contains("새판매처가격", "일반가격"))
             .body("content[0].minPrice", is(900_000))
             .body("content[0].minPriceOffer.id", is(winner.getId().intValue()))
             .body("content[0].minPriceOffer.name", is(seller))
             .body("content[0].minPriceOffer.price", is(900_000))
-            .body("content[0].minPriceOffer.priceCondition", is(condition))
-            .body("content[0].minPriceOffer.priceBasis", is(basis.name()))
-            .body("content[0].minPriceOffer.linkType", is(linkType.name()))
             .body("content[0].minPriceOffer.checkedAt", is("2026-10-30"))
-            .body("content[0].minPriceOffer.purchaseUrl", is("https://example.test/context"));
+            .body("content[0].minPriceOffer.purchaseUrl", is("https://example.test/product"));
         given().queryParam("sort", "PRICE_DESC").when().get(PATH).then().statusCode(200)
-            .body("content.name", contains("일반가격", "조건가격"));
+            .body("content.name", contains("일반가격", "새판매처가격"));
         given().queryParam("maxPrice", 950_000).when().get(PATH).then().statusCode(200)
-            .body("content.name", contains("조건가격"));
+            .body("content.name", contains("새판매처가격"));
         given().queryParam("minPrice", 950_000).when().get(PATH).then().statusCode(200)
             .body("content.name", contains("일반가격"));
 
@@ -464,11 +456,8 @@ class LaptopE2ETest extends E2ETest {
             .body("offers.id", contains(winner.getId().intValue(), tied.getId().intValue()))
             .body("offers[0].name", is(seller))
             .body("offers[0].price", is(900_000))
-            .body("offers[0].purchaseUrl", is("https://example.test/context"))
-            .body("offers[0].checkedAt", is("2026-10-30"))
-            .body("offers[0].priceCondition", is(condition))
-            .body("offers[0].priceBasis", is(basis.name()))
-            .body("offers[0].linkType", is(linkType.name()));
+            .body("offers[0].purchaseUrl", is("https://example.test/product"))
+            .body("offers[0].checkedAt", is("2026-10-30"));
     }
 
     @Test
@@ -481,12 +470,10 @@ class LaptopE2ETest extends E2ETest {
             .body("content", is(List.of()));
     }
 
-    private ProductOffer saveContextOffer(Laptop laptop, String seller, OfferPriceBasis basis,
-                                         OfferLinkType linkType, String condition) {
+    private ProductOffer saveSellerOffer(Laptop laptop, String seller) {
         return productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).name(seller)
-            .price(900_000L).purchaseUrl("https://example.test/context").status(OfferStatus.ON_SALE)
-            .checkedAt(LocalDate.of(2026, 10, 30)).priceCondition(condition).priceBasis(basis)
-            .linkType(linkType).build());
+            .price(900_000L).purchaseUrl("https://example.test/product").status(OfferStatus.ON_SALE)
+            .checkedAt(LocalDate.of(2026, 10, 30)).build());
     }
 
     private void addOnSaleOffer(Product product, long price) {

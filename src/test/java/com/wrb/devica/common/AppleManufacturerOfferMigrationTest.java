@@ -3,8 +3,6 @@ package com.wrb.devica.common;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.wrb.devica.product.domain.OfferLinkType;
-import com.wrb.devica.product.domain.OfferPriceBasis;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.service.ProductOfferService;
@@ -34,7 +32,7 @@ class AppleManufacturerOfferMigrationTest {
 
     @BeforeEach
     void 가격_등록_이전_상태로_복원한다() {
-        Flyway previous = Flyway.configure().configuration(flyway.getConfiguration()).target("1.20").load();
+        Flyway previous = Flyway.configure().configuration(flyway.getConfiguration()).target("1.14").load();
         previous.clean();
         previous.migrate();
         appleMigration = Flyway.configure().configuration(flyway.getConfiguration()).target("1.21").load();
@@ -61,11 +59,9 @@ class AppleManufacturerOfferMigrationTest {
         assertNewOffersMatchTargets(before, List.of(productId));
         var apple = registeredOffer(productId);
         assertThat(apple).extracting(ProductOffer::getPrice, ProductOffer::getCheckedAt,
-                ProductOffer::getStatus, ProductOffer::getPriceBasis, ProductOffer::getLinkType)
-            .containsExactly(2_190_000L, LocalDate.of(2026, 11, 2), OfferStatus.ON_SALE,
-                OfferPriceBasis.SELLER_PRICE, OfferLinkType.PURCHASE);
+                ProductOffer::getStatus)
+            .containsExactly(2_190_000L, LocalDate.of(2026, 11, 2), OfferStatus.ON_SALE);
         assertThat(apple.getExternalItemId()).isNull();
-        assertThat(apple.getPriceCondition()).isEqualTo("일반 판매가 · 스카이 블루 · 한국어 키보드");
         assertThat(apple.getPurchaseUrl()).isEqualTo("https://www.apple.com/kr/shop/buy-mac/macbook-air/"
             + "13-모델-스카이-블루-m5-칩-10코어-cpu-8코어-gpu-16gb-메모리-512gb-저장-장치");
         assertThat(minPrice(productId)).isEqualTo(100_000L);
@@ -152,7 +148,7 @@ class AppleManufacturerOfferMigrationTest {
     private List<Map<String, Object>> offerSnapshot() {
         return jdbcTemplate.queryForList("""
             SELECT id, product_id, name, price, status, purchase_url, external_item_id,
-                   checked_at, price_condition, price_basis, link_type
+                   checked_at
             FROM product_offer ORDER BY id
             """);
     }
