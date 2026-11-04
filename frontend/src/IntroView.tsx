@@ -66,7 +66,7 @@ export function IntroView({
       </section>
 
       <p className="section-description">
-        지금 쓰는 노트북과 개발 방식, 겪어 본 불편을 알려주시면 내 작업에 맞게 사양을 조정해 드려요. 모든 질문은 건너뛸
+        지금 쓰는 노트북과 작업 방식, 겪어 본 불편을 알려주시면 내 작업에 맞게 사양을 조정해 드려요. 모든 질문은 건너뛸
         수 있어요.
       </p>
 
@@ -84,7 +84,7 @@ export function IntroView({
           disabled={unavailable || !canStart}
           onClick={onStart}
         >
-          {questionsLoading ? '질문을 불러오는 중…' : '내 개발 환경에 맞게 조정하기'}
+          {questionsLoading ? '질문을 불러오는 중…' : '내 작업 환경에 맞게 조정하기'}
         </button>
         <button
           className="button button--neutral button--wide"

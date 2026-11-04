@@ -12,7 +12,8 @@ public enum UsagePurposeCode {
 
     BACKEND_DEVELOPMENT(ProductCategoryCode.LAPTOP, "백엔드 개발"),
     FRONTEND_DEVELOPMENT(ProductCategoryCode.LAPTOP, "프론트엔드 개발"),
-    MOBILE_DEVELOPMENT(ProductCategoryCode.LAPTOP, "모바일 개발");
+    MOBILE_DEVELOPMENT(ProductCategoryCode.LAPTOP, "모바일 개발"),
+    DESIGN(ProductCategoryCode.LAPTOP, "디자인");
 
     private final ProductCategoryCode category;
     private final String displayName;

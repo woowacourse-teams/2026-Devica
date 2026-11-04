@@ -43,7 +43,7 @@ export const LANDING_GUIDES = [
       {
         step: '03 / 내 환경 알려주기',
         title: '내 환경을\n알려주세요.',
-        description: '사용 목적과 개발 환경에 대한\n몇 가지 질문에 답해요.',
+        description: '사용 목적과 작업 환경에 대한\n몇 가지 질문에 답해요.',
         note: '사용 언어 · 개발 도구 · 작업 환경',
         capture: {
           src: '/landing/actual-question.jpg',
