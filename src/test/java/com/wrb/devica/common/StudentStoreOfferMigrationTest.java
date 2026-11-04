@@ -47,23 +47,20 @@ class StudentStoreOfferMigrationTest {
     }
 
     @Test
-    void 기존_가격을_보존하고_학생_인증_판매가를_최저가로_반영한다() {
-        // given
+    void 추가_판매처가_있어도_기존_오퍼를_보존하고_검수한_가격을_등록한다() {
+        // given: 판매처가 늘어나도 기존 가격을 덮어쓰지 않는다.
         long productId = targetProductId();
-        var existingBefore = existingOfferSnapshot();
+        saveOffer(productId, "추가 판매처", 100_000L, "ON_SALE");
+        var before = offerSnapshot();
 
         // when
         studentMigration.migrate();
 
         // then
-        assertThat(existingBefore).hasSize(29);
-        assertThat(existingOfferSnapshot()).isEqualTo(existingBefore);
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM product", Long.class)).isEqualTo(20L);
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM product_offer", Long.class)).isEqualTo(30L);
-        var onSale = offers.findOnSaleOffers(productId);
-        assertThat(onSale).extracting(ProductOffer::getName).containsExactly("학생복지스토어", "쿠팡", "Apple 공홈");
-        assertThat(onSale).extracting(ProductOffer::getPrice).containsExactly(2_023_600L, 2_080_500L, 2_190_000L);
-        var student = onSale.getFirst();
+        assertThat(offerSnapshot()).containsAll(before);
+        assertNewOffersMatchTargets(before, List.of(productId));
+        var student = registeredOffer(productId);
+        assertThat(student.getPrice()).isEqualTo(2_023_600L);
         assertThat(student).extracting(ProductOffer::getCheckedAt, ProductOffer::getStatus,
                 ProductOffer::getPriceBasis, ProductOffer::getLinkType)
             .containsExactly(LocalDate.of(2026, 11, 2), OfferStatus.ON_SALE,
@@ -71,18 +68,17 @@ class StudentStoreOfferMigrationTest {
         assertThat(student.getExternalItemId()).isNull();
         assertThat(student.getPriceCondition()).isEqualTo("학생 인증 필요 · 스카이 블루 · 한국어 키보드 · MDHH4KH/A");
         assertThat(student.getPurchaseUrl()).isEqualTo("https://www.univstore.com/item/138935");
-        assertThat(minPrice(productId)).isEqualTo(2_023_600L);
+        assertThat(minPrice(productId)).isEqualTo(100_000L);
         assertThat(offers.findLowestOnSaleOffers(List.of(productId)).get(productId).getName())
-            .isEqualTo("학생복지스토어");
-
-        assertThat(studentMigration.migrate().migrationsExecuted).isZero();
-        assertThat(offers.findOnSaleOffers(productId)).hasSize(3);
+            .isEqualTo("추가 판매처");
     }
 
     @Test
     void 더_싼_판매중_오퍼를_유지하고_품절_가격은_최저가에서_제외한다() {
         // given
         long productId = targetProductId();
+        jdbcTemplate.update("UPDATE product_offer SET price = 50000000 WHERE product_id = ? AND status = 'ON_SALE'",
+            productId);
         saveOffer(productId, "다른 판매처", 1_700_000L, "ON_SALE");
         saveOffer(productId, "품절 판매처", 1_000_000L, "SOLD_OUT");
         jdbcTemplate.update("UPDATE product_min_price SET min_price = 1700000 WHERE product_id = ?", productId);
@@ -100,30 +96,18 @@ class StudentStoreOfferMigrationTest {
     void 대상_제품_코드가_없으면_기존_오퍼를_보존하고_등록을_중단한다() {
         // given
         jdbcTemplate.update("UPDATE product SET code = 'UNMATCHED-APPLE' WHERE code = 'MDH74KH/A'");
-        var before = existingOfferSnapshot();
 
         // when & then
-        assertThatThrownBy(studentMigration::migrate).isInstanceOf(FlywayException.class);
-
-        // then
-        assertThat(existingOfferSnapshot()).isEqualTo(before);
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM product_offer", Long.class)).isEqualTo(29L);
+        assertMigrationRejectedWithoutChanges();
     }
 
     @Test
     void 기존_학생몰_오퍼가_있으면_덮어쓰거나_중복_등록하지_않는다() {
         // given
-        long productId = targetProductId();
-        saveOffer(productId, "학생복지스토어", 2_100_000L, "ON_SALE");
-        var before = jdbcTemplate.queryForList("SELECT * FROM product_offer ORDER BY id");
-        long cachedPrice = minPrice(productId);
+        saveOffer(targetProductId(), "학생복지스토어", 2_300_000L, "ON_SALE");
 
         // when & then
-        assertThatThrownBy(studentMigration::migrate).isInstanceOf(FlywayException.class);
-
-        // then
-        assertThat(jdbcTemplate.queryForList("SELECT * FROM product_offer ORDER BY id")).isEqualTo(before);
-        assertThat(minPrice(productId)).isEqualTo(cachedPrice);
+        assertMigrationRejectedWithoutChanges();
     }
 
     @Test
@@ -132,19 +116,45 @@ class StudentStoreOfferMigrationTest {
         jdbcTemplate.update("UPDATE laptop SET memory_gb = 24 WHERE id = ?", targetProductId());
 
         // when & then
+        assertMigrationRejectedWithoutChanges();
+    }
+
+
+    private void assertMigrationRejectedWithoutChanges() {
+        var before = offerSnapshot();
+        var prices = jdbcTemplate.queryForList("SELECT product_id, min_price FROM product_min_price ORDER BY product_id");
+
         assertThatThrownBy(studentMigration::migrate).isInstanceOf(FlywayException.class);
 
-        // then
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM product_offer", Long.class)).isEqualTo(29L);
+        assertThat(offerSnapshot()).isEqualTo(before);
+        assertThat(jdbcTemplate.queryForList("SELECT product_id, min_price FROM product_min_price ORDER BY product_id"))
+            .isEqualTo(prices);
+    }
+
+    private void assertNewOffersMatchTargets(List<Map<String, Object>> before, List<Long> targetIds) {
+        var existingIds = before.stream().map(offer -> offer.get("id")).toList();
+        var added = offerSnapshot().stream().filter(offer -> !existingIds.contains(offer.get("id"))).toList();
+        assertThat(added).extracting(offer -> offer.get("product_id")).containsExactlyInAnyOrderElementsOf(targetIds);
+        assertThat(added).extracting(offer -> offer.get("name")).containsOnly("학생복지스토어");
+    }
+
+    private ProductOffer registeredOffer(long productId) {
+        var registered = offers.findOnSaleOffers(productId).stream()
+            .filter(offer -> "학생복지스토어".equals(offer.getName())).toList();
+        assertThat(registered).hasSize(1);
+        return registered.getFirst();
     }
 
     private long targetProductId() {
         return jdbcTemplate.queryForObject("SELECT id FROM product WHERE code = 'MDH74KH/A'", Long.class);
     }
 
-    private List<Map<String, Object>> existingOfferSnapshot() {
-        return jdbcTemplate.queryForList(
-            "SELECT * FROM product_offer WHERE name IN ('쿠팡', 'Apple 공홈') ORDER BY id");
+    private List<Map<String, Object>> offerSnapshot() {
+        return jdbcTemplate.queryForList("""
+            SELECT id, product_id, name, price, status, purchase_url, external_item_id,
+                   checked_at, price_condition, price_basis, link_type
+            FROM product_offer ORDER BY id
+            """);
     }
 
     private long minPrice(long productId) {
