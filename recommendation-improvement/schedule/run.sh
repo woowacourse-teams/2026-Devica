@@ -50,7 +50,7 @@ if ! mkdir "$ST/lock" 2>/dev/null; then
   { rm -rf "$ST/lock" && mkdir "$ST/lock"; } || exit 1
   STALE="- 6시간 넘게 남은 잠금을 지우고 다시 잡았다. 앞선 실행이 비정상으로 끝난 것이다."
 fi
-trap 'rm -rf "$ST/lock" "$ST/tmp"' EXIT
+trap 'rm -rf "$ST/tmp"; rm -rf "$ST/lock"' EXIT
 rm -rf "$ST/tmp" && mkdir "$ST/tmp" || exit 1
 
 # 실행 기록. 에이전트는 이 파일에 단계마다 무엇을 보고 무엇을 했는지 이어 적는다
