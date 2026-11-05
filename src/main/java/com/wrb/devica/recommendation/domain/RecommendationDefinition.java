@@ -1,6 +1,12 @@
 package com.wrb.devica.recommendation.domain;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.List;
 import org.yaml.snakeyaml.Yaml;
 import tools.jackson.databind.DeserializationFeature;
@@ -20,6 +26,24 @@ public record RecommendationDefinition(Survey survey, List<Rule> rules, List<Con
     }
 
     public static RecommendationDefinition read(InputStream input) {
-        return MAPPER.convertValue(new Yaml().load(input), RecommendationDefinition.class);
+        try {
+            byte[] bytes = input.readAllBytes();
+            RecommendationDefinition definition =
+                MAPPER.convertValue(new Yaml().load(new String(bytes, StandardCharsets.UTF_8)),
+                    RecommendationDefinition.class);
+            Survey survey = definition.survey().withVersion(versionOf(bytes));
+            return new RecommendationDefinition(survey, definition.rules(), definition.mappings(), definition.notes(),
+                definition.interpretation());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static String versionOf(byte[] bytes) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes)).substring(0, 12);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

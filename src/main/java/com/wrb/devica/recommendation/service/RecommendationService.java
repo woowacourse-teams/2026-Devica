@@ -2,6 +2,7 @@ package com.wrb.devica.recommendation.service;
 
 import com.wrb.devica.purpose.domain.UsagePurposeCode;
 import com.wrb.devica.recommendation.domain.LaptopRecommender;
+import com.wrb.devica.recommendation.domain.Recommendation;
 import com.wrb.devica.recommendation.domain.Judgement;
 import com.wrb.devica.recommendation.domain.RecommendationDefinition;
 import com.wrb.devica.recommendation.domain.RecommendationDefinitions;
@@ -20,15 +21,16 @@ public class RecommendationService {
     private final RecommendationDefinitions recommendationDefinitions;
     private final LaptopRecommender laptopRecommender;
 
-    public List<RecommendedSpec> recommend(String purposeCode, Map<String, List<String>> answers) {
+    public Recommendation recommend(String purposeCode, Map<String, List<String>> answers) {
         UsagePurposeCode usagePurposeCode = UsagePurposeCode.from(purposeCode);
         RecommendationDefinition purpose = recommendationDefinitions.get(usagePurposeCode);
         SurveyResponse response = SurveyResponse.from(answers, purpose.survey());
 
         Map<String, String> conditions = Judgement.map(purpose.mappings(), response);
 
-        return laptopRecommender.recommend(purpose.interpretation(),
+        List<RecommendedSpec> specs = laptopRecommender.recommend(purpose.interpretation(),
             os -> Judgement.judge(purpose.rules(), purpose.notes(), response, os), conditions);
+        return new Recommendation(specs, response.outdated());
     }
 
     public Survey findSurvey(String purposeCode) {

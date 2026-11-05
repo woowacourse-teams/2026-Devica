@@ -30,7 +30,93 @@ record RecommendationDefinitionValidator(Set<String> requirements, Map<String, S
             validateCondition(note.when(), questions, "안내 '" + note.message() + "'", errors);
         }
 
+        validateRetired(definition.survey().retired(), questions, errors);
+
         return errors;
+    }
+
+    private void validateRetired(List<RetiredCode> retired, Map<String, Question> questions, List<String> errors) {
+        Set<String> keys = new HashSet<>();
+
+        for (RetiredCode line : retired) {
+            String where = "지운 코드 " + line.question() + (line.isOptionLine() ? "." + line.option() : "");
+
+            if (!keys.add(line.question() + "." + line.option() + "." + line.dropInvalid())) {
+                errors.add(where + ": 같은 코드의 줄이 겹칩니다");
+            }
+
+            if (line.dropInvalid()) {
+                validateDropInvalidLine(line, questions, where, errors);
+                continue;
+            }
+
+            if (line.drop() == (line.to() != null)) {
+                errors.add(where + ": to 와 drop 중 하나만 씁니다");
+            }
+
+            if (line.isQuestionLine()) {
+                validateQuestionLine(line, retired, questions, where, errors);
+            } else {
+                validateOptionLine(line, questions.get(line.question()), where, errors);
+            }
+        }
+    }
+
+    private void validateDropInvalidLine(RetiredCode line, Map<String, Question> questions, String where,
+                                         List<String> errors) {
+        if (!questions.containsKey(line.question())) {
+            errors.add(where + ": 지금 질문이 아닙니다");
+        }
+
+        if (line.option() != null || line.to() != null || line.drop()) {
+            errors.add(where + ": dropInvalid 줄에는 다른 값을 쓰지 않습니다");
+        }
+    }
+
+    private void validateQuestionLine(RetiredCode line, List<RetiredCode> retired, Map<String, Question> questions,
+                                      String where, List<String> errors) {
+        if (questions.containsKey(line.question())) {
+            errors.add(where + ": 지금 있는 질문입니다");
+            return;
+        }
+
+        if (line.to() != null && !leadsToCurrentQuestion(line, retired, questions)) {
+            errors.add(where + ": to 가 지금 질문으로 이어지지 않습니다: " + line.to());
+        }
+    }
+
+    private boolean leadsToCurrentQuestion(RetiredCode line, List<RetiredCode> retired,
+                                           Map<String, Question> questions) {
+        Set<String> seen = new HashSet<>();
+        RetiredCode next = line;
+
+        while (next != null && next.to() != null && seen.add(next.question())) {
+            if (questions.containsKey(next.to())) {
+                return true;
+            }
+            String code = next.to();
+            next = retired.stream()
+                .filter(candidate -> candidate.isQuestionLine() && candidate.question().equals(code))
+                .findFirst()
+                .orElse(null);
+        }
+
+        return false;
+    }
+
+    private void validateOptionLine(RetiredCode line, Question question, String where, List<String> errors) {
+        if (question == null) {
+            errors.add(where + ": 지금 질문이 아닙니다");
+            return;
+        }
+
+        if (question.hasOption(line.option())) {
+            errors.add(where + ": 지금 있는 선택지입니다");
+        }
+
+        if (line.to() != null && !question.hasOption(line.to())) {
+            errors.add(where + ": to 가 지금 선택지가 아닙니다: " + line.to());
+        }
     }
 
     private void validateQuestionInOrder(Question question, Map<String, Question> before, List<String> errors) {
