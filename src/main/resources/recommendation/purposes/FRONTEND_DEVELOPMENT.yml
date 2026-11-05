@@ -224,6 +224,13 @@ rules:
     weight: -1
     when: { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }
     reason: 짧게 쓸 계획이라 과한 용량을 피했습니다.
+  - criterion: MEMORY
+    weight: 1
+    when:
+      all:
+        - { question: CURRENT_MEMORY, anyOf: [ GB_16 ] }
+        - { question: SLOWDOWN, anyOf: [ OFTEN ] }
+    reason: 지금 16GB 에서도 여러 프로그램을 함께 쓸 때 자주 멈춘 점을 반영했습니다.
 
   - criterion: STORAGE
     weight: 1
