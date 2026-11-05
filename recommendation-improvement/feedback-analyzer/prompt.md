@@ -13,6 +13,7 @@
 | 상태 디렉터리 | `ST` | `$HOME/.devica-product-recommendation/feedback-analyzer`. `SELF_REF` 에서 복사한 스크립트와 스키마 3개(`analysis-result`, `improvement-instruction`, `improvement-result`)가 있다 |
 | 지시문·스크립트 ref | `SELF_REF` | `run.sh` 가 넘긴다. 기본은 `origin/develop` |
 | 실행 기록 | `RUN` | `$ST/runs/<UTC 시각>.md`. 단계마다 무엇을 보고 무엇을 했는지 이어 적는다 |
+| 임시 디렉터리 | | `$ST/tmp`. 이번 실행에서만 쓰는 파일은 여기에 둔다. `run.sh` 가 실행마다 비워 두고 끝나면 지운다 |
 | 판단 기준 정의서 | | `origin/develop` |
 | 운영 정의서 이력 | | `origin/main` |
 
@@ -279,4 +280,4 @@ reason: <조건 N. 근거 한두 문장>
 
 ## 7. 마치기
 
-실행 기록에 대상별 판단, 낸 개선 지시(이슈 번호·규칙·변경), 확정하지 않은 후보와 이유를 적는다. 이번 실행의 임시 파일을 지우고(실행 기록은 남긴다) 끝낸다. 잠금은 `run.sh` 가 푼다.
+실행 기록에 대상별 판단, 낸 개선 지시(이슈 번호·규칙·변경), 확정하지 않은 후보와 이유를 적는다. 임시 파일은 `run.sh` 가 지운다. 잠금은 `run.sh` 가 푼다.

@@ -15,6 +15,7 @@
 | 레포 clone | `REPO` | `$ST/repo`. 이 구성 요소만 쓴다. `git fetch` 는 끝났다 |
 | 지시문·스크립트 ref | `SELF_REF` | `run.sh` 가 넘긴다. 기본은 `origin/develop` |
 | 실행 기록 | `RUN` | `$ST/runs/<UTC 시각>.md`. 단계마다 무엇을 보고 무엇을 했는지 이어 적는다 |
+| 임시 디렉터리 | | `$ST/tmp`. 이번 실행에서만 쓰는 파일은 여기에 둔다. `run.sh` 가 실행마다 비워 두고 끝나면 지운다 |
 | 운영 정의서 | | `origin/main` |
 | 개발 정의서 | | `origin/develop` |
 
@@ -84,7 +85,7 @@ LIMIT 500 OFFSET 0
 - 결과가 500행이면 `OFFSET` 을 500씩 늘려 행이 500보다 적게 올 때까지 읽는다.
 - 쿼리가 함수 이름 등으로 실패하면 같은 뜻을 지키는 범위에서 고쳐 한 번 더 시도하고, 고친 내용을 기록한다. 그래도 실패하면 멈춘다.
 
-모든 행의 `views` 값(세션마다 하나, `[유닉스 초, 이벤트, 경로, purpose, category, 답]` 의 배열)을 하나의 JSON 배열로 `$ST/sessions.json` 에 쓴다. 다른 값은 넣지 않는다.
+모든 행의 `views` 값(세션마다 하나, `[유닉스 초, 이벤트, 경로, purpose, category, 답]` 의 배열)을 하나의 JSON 배열로 `$ST/tmp/sessions.json` 에 쓴다. 다른 값은 넣지 않는다.
 
 ### 1-3. 추천 결과를 고친 기록 가져오기
 
@@ -122,12 +123,12 @@ LIMIT 500 OFFSET 0
 - 고치지 않은 항목의 `_edited` 는 비어 있다(빈 문자열이나 `null`). 스크립트가 고친 항목만 신호로 쓴다.
 - 500행이면 1-2 와 같이 `OFFSET` 을 늘려 끝까지 읽고, 실패하면 1-2 와 같이 한 번 고쳐 다시 시도한다.
 
-모든 행의 `edit` 값(`[유닉스 초, purpose, category, 답, OS, CPU 추천, CPU 고친 값, 메모리 추천, 메모리 고친 값, 저장 공간 추천, 저장 공간 고친 값]`)을 하나의 JSON 배열로 `$ST/edits.json` 에 쓴다.
+모든 행의 `edit` 값(`[유닉스 초, purpose, category, 답, OS, CPU 추천, CPU 고친 값, 메모리 추천, 메모리 고친 값, 저장 공간 추천, 저장 공간 고친 값]`)을 하나의 JSON 배열로 `$ST/tmp/edits.json` 에 쓴다.
 
 ### 1-4. 신호 계산
 
 ```bash
-python3 "$ST/signals.py" signals "$ST/sessions.json" https://api.devica.co.kr <DAYS> "$ST/edits.json" > "$ST/signals.json"
+python3 "$ST/signals.py" signals "$ST/tmp/sessions.json" https://api.devica.co.kr <DAYS> "$ST/tmp/edits.json" > "$ST/signals.json"
 ```
 
 `<DAYS>` 에는 0. 준비의 기준값에서 계산한 숫자를 그대로 적는다. 셸에 `DAYS` 변수는 없다.
@@ -164,7 +165,7 @@ gh api --paginate "repos/$GH_REPO/issues?labels=product-recommendation-feedback&
 제목이 `[제품 추천 지표]` 로 시작하고 작성자가 팀원인 이슈가 Metric Collector 의 지표 피드백이다. 닫힌 것은 `closed_at` 이 `<SINCE>` 이후인 것만 쓴다. 이슈마다 본문을 파일로 써서 키를 만든다.
 
 ```bash
-python3 "$ST/signals.py" issue "$ST/issue-<번호>.md"
+python3 "$ST/signals.py" issue "$ST/tmp/issue-<번호>.md"
 ```
 
 결과의 `key` 가 신호 키, `pending` 이 그 이슈의 세션(처음 답 조합과, 바꾼 답을 적용한 마지막 답 조합)에 걸린 배포 대기 규칙이다. 점수 해석 규칙이 배포를 기다리면 `interpretation` 이 함께 들어 있다.
@@ -173,9 +174,9 @@ python3 "$ST/signals.py" issue "$ST/issue-<번호>.md"
 
 `signals.json` 의 묶음 중 `count ≥ MIN` 인 것마다:
 
-- 2 의 열린 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않는다. 그 이슈에 분석 결과가 없거나 가장 최근 분석 결과의 `judgment` 가 `ON_HOLD` 이면, 묶음의 `body` 를 `$ST/new-body.md` 로 쓰고 `python3 "$ST/signals.py" stale "$ST/issue-<번호>.md" "$ST/new-body.md"` 의 `stale` 이 참일 때 본문을 바꾼다. 조회 기간 말고 주소·건수·바꾼 답·고친 값 중 하나라도 달라진 것이다. 새 주소가 없어도 한 주소의 건수만 늘어 가장 큰 묶음이 바뀔 수 있어, 바뀐 근거로 Feedback Analyzer 가 다시 판단하게 하기 위해서다. 그 밖은 근거를 바꾸지 않고 기록만 한다. 분석 결과는 첫 줄이 `<!-- product-recommendation:analysis -->` 인 팀원 댓글이고, 댓글은 4-1 의 명령으로 읽어 `block` 으로 yaml 을 읽는다.
+- 2 의 열린 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않는다. 그 이슈에 분석 결과가 없거나 가장 최근 분석 결과의 `judgment` 가 `ON_HOLD` 이면, 묶음의 `body` 를 `$ST/tmp/new-body.md` 로 쓰고 `python3 "$ST/signals.py" stale "$ST/tmp/issue-<번호>.md" "$ST/tmp/new-body.md"` 의 `stale` 이 참일 때 본문을 바꾼다. 조회 기간 말고 주소·건수·바꾼 답·고친 값 중 하나라도 달라진 것이다. 새 주소가 없어도 한 주소의 건수만 늘어 가장 큰 묶음이 바뀔 수 있어, 바뀐 근거로 Feedback Analyzer 가 다시 판단하게 하기 위해서다. 그 밖은 근거를 바꾸지 않고 기록만 한다. 분석 결과는 첫 줄이 `<!-- product-recommendation:analysis -->` 인 팀원 댓글이고, 댓글은 4-1 의 명령으로 읽어 `block` 으로 yaml 을 읽는다.
   ```bash
-  gh issue edit <번호> --repo "$GH_REPO" --body-file "$ST/new-body.md"
+  gh issue edit <번호> --repo "$GH_REPO" --body-file "$ST/tmp/new-body.md"
   ```
 - 2 의 닫힌 지표 피드백 중 `key` 가 같은 것이 있으면 만들지 않고 기록한다. 팀원이 닫은 것이다. 단 수집기가 닫은 것이면 만든다. 수집기가 닫은 것은 마지막 팀원 댓글이 4-5 의 닫는 문구(`신호 최소 건수 … 보다 적어 닫습니다`)이고, 이슈의 `closed_at` 이 그 댓글의 `created_at` 뒤 10분 안인 것이다. 수집기는 댓글을 남기고 바로 닫는다. 팀원이 다시 열었다가 댓글 없이 닫았으면 마지막 댓글은 그대로 닫는 문구지만 `closed_at` 이 그보다 한참 뒤다. 개선 PR 머지로 닫힌 것도 만든다. 이슈를 닫은 것이 머지된 PR 이면(아래 명령의 `merged` 가 참) 그렇다. 개선 결과 댓글은 근거 피드백 중 번호가 가장 작은 이슈에만 달려, 같은 PR 이 닫은 다른 피드백에는 없다. 그래서 댓글이 아니라 이슈를 닫은 PR 을 본다. 고친 규칙에 걸린 세션은 1-4 에서 이미 버려져, 다시 모인 것은 그 개선이 다루지 못한 세션이다. 댓글은 4-1 의 명령으로 읽는다.
   ```bash
@@ -183,7 +184,7 @@ python3 "$ST/signals.py" issue "$ST/issue-<번호>.md"
   ```
 - 없으면 묶음의 `body` 를 파일로 쓰고 이슈를 만든다.
   ```bash
-  gh issue create --repo "$GH_REPO" --title "<title>" --body-file "$ST/new-body.md" --label product-recommendation-feedback
+  gh issue create --repo "$GH_REPO" --title "<title>" --body-file "$ST/tmp/new-body.md" --label product-recommendation-feedback
   ```
   만들기 전에 본문에 세션 ID 나 `answer`·`category`·`purpose` 밖의 주소 쿼리가 없는지 확인한다.
 
@@ -205,10 +206,10 @@ python3 "$ST/signals.py" issue "$ST/issue-<번호>.md"
    조회 기간(<signals.json 의 period>)에 같은 신호가 <c>건으로, 신호 최소 건수 <MIN>보다 적어 닫습니다.
    ```
    ```bash
-   gh issue comment <번호> --repo "$GH_REPO" --body-file "$ST/close-comment.md"
+   gh issue comment <번호> --repo "$GH_REPO" --body-file "$ST/tmp/close-comment.md"
    gh issue close <번호> --repo "$GH_REPO" --reason "not planned"
    ```
 
 ## 5. 마치기
 
-실행 기록에 만든 이슈, 열어 둔 이슈와 이유, 닫은 이슈와 건수를 적는다. `$ST/sessions.json`, `$ST/edits.json`, `$ST/issue-*.md` 등 이번 실행의 임시 파일을 지우고(`signals.json` 과 실행 기록은 남긴다) 끝낸다. 잠금은 `run.sh` 가 푼다.
+실행 기록에 만든 이슈, 열어 둔 이슈와 이유, 닫은 이슈와 건수를 적는다. 임시 파일은 `run.sh` 가 지운다. 잠금은 `run.sh` 가 푼다.
