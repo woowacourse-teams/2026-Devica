@@ -381,27 +381,27 @@ rules:
     reason: 영상은 DCI-P3 같은 넓은 색 영역으로 만들어, 화면이 그 색을 표현해야 색 보정을 정확히 할 수 있습니다.
 
   # Blender 는 VRAM 8GB, Premiere Pro·After Effects 는 GPU 메모리 8GB 를 권장한다. 복잡한 3D 장면과 4K 영상은 VRAM 8GB 인 RTX 4060 급 이상(고성능)까지 올린다
-  - criterion: GPU
+  - criterion: REQUIRED_GPU
     weight: 1
     when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
     reason: 3D 작업은 화면을 돌려 보고 렌더링할 때 GPU 를 씁니다.
-  - criterion: GPU
+  - criterion: REQUIRED_GPU
     weight: 1
     when: { question: THREE_D_WORK, anyOf: [ DETAILED ] }
     reason: 여러 모델과 고해상도 텍스처는 그래픽 메모리를 더 씁니다.
-  - criterion: GPU
+  - criterion: REQUIRED_GPU
     weight: 2
     when: { question: THREE_D_WORK, anyOf: [ COMPLEX ] }
     reason: 복잡한 장면을 GPU 로 렌더링하려면 장면이 그래픽 메모리에 다 올라가야 합니다. Blender 는 VRAM 8GB 를 권장합니다.
-  - criterion: GPU
+  - criterion: REQUIRED_GPU
     weight: 1
     when: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO ] }
     reason: 영상 효과 미리보기와 내보내기는 GPU 로 빨라집니다.
-  - criterion: GPU
+  - criterion: REQUIRED_GPU
     weight: 2
     when: { question: VIDEO_RESOLUTION, anyOf: [ UHD ] }
     reason: 4K 이상 영상은 GPU 메모리를 많이 씁니다. Premiere Pro 는 GPU 메모리 8GB 를 권장합니다.
-  - criterion: GPU
+  - criterion: REQUIRED_GPU
     weight: 1
     when: { question: RENDER_WAIT, anyOf: [ OFTEN ] }
     reason: 내보내기·렌더링 대기가 답답했던 경험을 반영했습니다.

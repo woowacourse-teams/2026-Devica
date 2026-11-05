@@ -3,8 +3,8 @@ package com.wrb.devica.product.domain;
 import java.util.ArrayList;
 import java.util.List;
 
-public record LaptopSpec(Os os, CpuTier cpuTier, int memoryGb, int storageGb,
-                         ColorGamut colorGamut, GpuTier gpuTier) implements Spec {
+public record LaptopSpec(Os os, CpuTier cpuTier,
+                         int memoryGb, int storageGb, ColorGamut colorGamut, GpuTier gpuTier) implements Spec {
 
     public static final List<Integer> MEMORY_STEPS = List.of(16, 24, 32, 48);
     public static final List<Integer> STORAGE_STEPS = List.of(256, 512, 1024, 2048);
@@ -12,6 +12,10 @@ public record LaptopSpec(Os os, CpuTier cpuTier, int memoryGb, int storageGb,
     public LaptopSpec {
         if (cpuTier.getOs() != os) {
             throw new IllegalArgumentException("CPU 등급이 OS 와 맞지 않습니다: " + os + ", " + cpuTier);
+        }
+
+        if (gpuTier != null && gpuTier.getOs() != os) {
+            throw new IllegalArgumentException("GPU 등급이 OS 와 맞지 않습니다: " + os + ", " + gpuTier);
         }
 
         if (!MEMORY_STEPS.contains(memoryGb) || !STORAGE_STEPS.contains(storageGb)) {
@@ -32,7 +36,7 @@ public record LaptopSpec(Os os, CpuTier cpuTier, int memoryGb, int storageGb,
         }
 
         if (gpuTier != null) {
-            values.add(new SpecValue("GPU", gpuTier.name()));
+            values.add(new SpecValue("REQUIRED_GPU", gpuTier.name()));
         }
 
         return values;
