@@ -24,14 +24,19 @@
 #   common.py hit     REF PURPOSE RULE ANSWERS          답 조합이 RULE 의 조건에 걸리는지(노출 조건을 적용한 답 기준)
 #   common.py ends    REF PURPOSE PLAN ITEM             권장안·항목에서 낼 수 있는 가장 낮은·높은 값과 rank
 #   common.py target  REF PURPOSE RULE QUESTION         기댄 답(QUESTION)으로 RULE 을 더할지: exists | add | widen(넓힐 규칙) | seen
+#   common.py retired REF PURPOSE                       지운 코드 목록의 줄(없으면 [])
+#   common.py convert REF PURPOSE ANSWERS [TODAY]       서버처럼 지운 코드를 지금 코드로 바꿔 읽은 답 {answers, outdated} 또는 {error}
 #
 # 테스트는 test.py 에 있다.
 # 스키마(interface/artifacts/*.schema.yml)는 이 파일과 같은 디렉터리나 그 아래 interface/artifacts/ 에서 찾는다.
-import http.client, json, os, re, subprocess, sys, urllib.parse
-from datetime import datetime, timezone
+import calendar, http.client, json, os, re, subprocess, sys, urllib.parse
+from datetime import date, datetime, timedelta, timezone
 from time import sleep
 
 DEF_PATH = 'src/main/resources/recommendation/purposes/{}.yml'
+RETIRED_PATH = 'src/main/resources/recommendation/purposes/{}.retired.yml'
+KEEP_MONTHS = 6  # 지운 코드 줄의 보관 기간. RetiredCodes.KEEP_MONTHS 와 같다
+SEOUL = timezone(timedelta(hours=9))
 Y2J = ('f=lambda{|o| case o when Hash then o.map{|k,v|[k.to_s,f.(v)]}.to_h when Array then o.map{|v|f.(v)} '
        'when Time then o.utc.iso8601 when Date then o.iso8601 else o end}; '
        'puts JSON.generate(f.(YAML.safe_load($stdin.read, permitted_classes: [Date, Time], aliases: true)))')
@@ -41,7 +46,9 @@ RESULT_PREFIXES = ('https://devica.co.kr/result', 'https://2026-devica.vercel.ap
 MARKER_PREFIX = '<!-- product-recommendation:'
 API_TRIES = 5  # 끊김(#259) 때 api 가 보내는 최대 횟수
 # 댓글 표시 → 그 블록이 따라야 하는 스키마 (interface/binding.md)
-MARKER_SCHEMAS = {'analysis': 'analysis-result', 'decision': 'improvement-instruction', 'result': 'improvement-result'}
+MARKER_SCHEMAS = {'analysis': 'analysis-result', 'decision': 'improvement-instruction', 'result': 'improvement-result',
+                  'survey-analysis': 'survey-analysis', 'survey-decision': 'survey-instruction', 'survey-result': 'improvement-result',
+                  'handover': 'handover'}
 TYPES = {'object': dict, 'array': list, 'string': str, 'integer': int, 'number': (int, float), 'boolean': bool, 'null': type(None)}
 
 
@@ -66,6 +73,94 @@ def definition(ref, purpose):
             return y2j(f.read())
     r = git('show', f'{ref}:{DEF_PATH.format(purpose)}')
     return y2j(r.stdout) if r.returncode == 0 else None
+
+
+def retired(ref, purpose):
+    # ref 가 정의서 파일이면 그 옆의 지운 코드 목록 파일을 읽는다
+    if os.path.isfile(ref):
+        path = re.sub(r'\.yml$', '.retired.yml', ref)
+        text = read(path) if os.path.isfile(path) else None
+    else:
+        r = git('show', f'{ref}:{RETIRED_PATH.format(purpose)}')
+        text = r.stdout if r.returncode == 0 else None
+    return ((y2j(text) if text else None) or {}).get('codes') or []
+
+
+def today():
+    return datetime.now(SEOUL).date()
+
+
+def expiry(retired_at):
+    # RetiredCodes.activeOn 과 같다: LocalDate.plusMonths 는 그 달에 같은 날이 없으면 말일이다
+    d = date.fromisoformat(retired_at)
+    m = d.month - 1 + KEEP_MONTHS
+    y, m = d.year + m // 12, m % 12 + 1
+    return date(y, m, min(d.day, calendar.monthrange(y, m)[1]))
+
+
+def expired(line, on):
+    return expiry(line['retiredAt']) < on
+
+
+class Rejected(Exception):
+    pass
+
+
+def current_code(qs, lines, q, o=None):
+    # Survey.currentQuestionCode·currentOptionCode 와 같다. 지금 코드 (질문, 선택지), 버리면 None, 줄이 없으면 Rejected
+    while q not in qs:
+        line = next((l for l in lines if l['question'] == q and 'option' not in l), None)
+        if line is None:
+            raise Rejected('QUESTION_NOT_FOUND')
+        if line.get('drop'):
+            return None
+        q = line['to']
+    if o is None or any(x['code'] == o for x in qs[q]['options']):
+        return q, o
+    line = next((l for l in lines if l['question'] == q and l.get('option') == o), None)
+    if line is None:
+        raise Rejected('ANSWER_NOT_ALLOWED')
+    return None if line.get('drop') else (q, line['to'])
+
+
+def convert(d, lines, params, on):
+    # SurveyResponse.from 과 같다. 같은 변환 사례표(retired-cases.json)로 테스트한다
+    qs = {q['code']: q for step in d['survey']['steps'] for q in step['questions']}
+    live = [l for l in lines if not expired(l, on)]
+    convertible = [l for l in live if not l.get('dropInvalid')]
+    current, given, converted = {}, set(), False
+    for code, opts in params.items():
+        found = current_code(qs, convertible, code)
+        converted |= found is None or found[0] != code
+        if found is None or opts is None:
+            continue
+        q = found[0]
+        for o in opts:
+            if o == qs[q].get('exclusive'):
+                given.add(q)
+            c = current_code(qs, convertible, q, o)
+            converted |= c is None or c[1] != o
+            if c is not None and c[1] not in current.setdefault(q, []):
+                current[q].append(c[1])
+    selected = {}
+    for q, opts in current.items():
+        question, ex = qs[q], qs[q].get('exclusive')
+        absorbed = question.get('input') == 'MULTI' and len(opts) > 1 and ex in opts and q not in given
+        if absorbed:
+            opts = [o for o in opts if o != ex]
+        if not ((question.get('input') or 'SINGLE') == 'SINGLE' and len(opts) > 1 or len(opts) > 1 and ex in opts):
+            selected[q] = opts
+            converted |= absorbed
+        elif any(l.get('dropInvalid') and l['question'] == q for l in live):
+            converted = True
+        else:
+            raise Rejected('ANSWER_NOT_ALLOWED')
+    shown = {}
+    for step in d['survey']['steps']:
+        for q in step['questions']:
+            if q['code'] in selected and (q.get('showWhen') is None or ev(q['showWhen'], shown)):
+                shown[q['code']] = selected[q['code']]
+    return {'answers': shown, 'outdated': converted or len(shown) < len(selected)}
 
 
 def ev(c, a):
@@ -451,11 +546,21 @@ def block(text):
     first = text.lstrip().split('\n', 1)[0].strip()
     marker = first if first.startswith(MARKER_PREFIX) else None
     name = MARKER_SCHEMAS.get(marker[len(MARKER_PREFIX):-len(' -->')].strip()) if marker else None
-    data = y2j(m.group(1)) if m else None
-    errors = None
-    if name:
+    data, errors = None, None
+    try:
+        data = y2j(m.group(1)) if m else None
+    except subprocess.CalledProcessError:
+        errors = ['yaml 블록을 읽지 못했다']
+    if name and errors is None:
         errors = validate(schema(name), data) if m else ['```yaml 블록이 없다']
     return {'marker': marker, 'schema': name, 'data': data, 'errors': errors}
+
+
+def convert_or_error(d, lines, params, on):
+    try:
+        return convert(d, lines, params, on)
+    except Rejected as e:
+        return {'error': str(e)}
 
 
 def arg(s):
@@ -487,6 +592,9 @@ COMMANDS = {
     'hit': lambda r: hit(definition(r[0], r[1]), arg(r[2]), arg(r[3])),
     'ends': lambda r: ends(definition(r[0], r[1]), r[2], r[3]),
     'target': lambda r: target(definition(r[0], r[1]), arg(r[2]), r[3]),
+    'retired': lambda r: retired(r[0], r[1]),
+    'convert': lambda r: convert_or_error(definition(r[0], r[1]), retired(r[0], r[1]), arg(r[2]),
+                                          date.fromisoformat(r[3]) if len(r) > 3 else today()),
 }
 
 

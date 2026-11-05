@@ -29,13 +29,13 @@ TOOLS=(
   'Read' 'Edit(~/.devica-product-recommendation/**)'
 )
 # SELF_REF 에서 상태 디렉터리로 평평하게 복사할 파일. 스크립트는 common.py 를 같은 디렉터리에서 import 한다
-FILES=(common.py interface/artifacts/{analysis-result,improvement-instruction,improvement-result}.schema.yml)
+FILES=(common.py interface/artifacts/{analysis-result,improvement-instruction,improvement-result,survey-instruction,survey-analysis,handover}.schema.yml)
 case $C in
   metric-collector) TOOLS+=('mcp__claude_ai_PostHog__exec'); FILES+=(metric-collector/signals.py) ;;
   feedback-analyzer) ;;
   recommendation-improver)
-    TOOLS+=('Bash(docker *)' 'Bash(./gradlew *)' 'Bash(cd *)' 'Bash(cp *)' 'Bash(UPDATE_SNAPSHOT=true *)')
-    FILES+=(recommendation-improver/snapshot.py)
+    TOOLS+=('Bash(docker *)' 'Bash(./gradlew *)' 'Bash(cd *)' 'Bash(cp *)' 'Bash(UPDATE_SNAPSHOT=true *)' 'Bash(REGENERATE_SNAPSHOT=true *)')
+    FILES+=(recommendation-improver/snapshot.py recommendation-improver/survey.py)
     export WT="$ST/worktree" ;;
   *) echo "알 수 없는 구성 요소: $C" >&2; exit 2 ;;
 esac

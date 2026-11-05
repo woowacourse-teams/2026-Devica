@@ -15,6 +15,7 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 os.sys.path.insert(0, HERE)
 
+os.sys.path.insert(0, os.path.join(HERE, 'recommendation-improver'))
 import common  # noqa: E402
 from common import ITEMS, block, diff, ev, fields, hits, parse_url, result_url, schema, validate, values, visible  # noqa: E402
 
@@ -29,6 +30,7 @@ def load(component, script):
 
 collector = load('metric-collector', 'signals.py')
 improver = load('recommendation-improver', 'snapshot.py')
+survey = load('recommendation-improver', 'survey.py')
 
 
 def body(preferred='MAC', mac=('PRO', 16, 512), win=('P_HS', 16, 512), reasons=()):
@@ -216,6 +218,8 @@ class CommonTest(unittest.TestCase):
         self.assertTrue(bad['errors'])
         self.assertEqual(block('<!-- product-recommendation:result -->\n표만 있음\n')['errors'], ['```yaml 블록이 없다'])
         self.assertEqual(block('그냥 댓글')['schema'], None)
+        self.assertEqual(block('<!-- product-recommendation:survey-result -->\n```yaml\noutcome: [\n```\n')['errors'], ['yaml 블록을 읽지 못했다'])
+        self.assertEqual(block('<!-- product-recommendation:survey-decision -->\n```yaml\na: 1\n```\n')['schema'], 'survey-instruction')
 
 
 # ---- 스키마 검증기 ----
@@ -302,7 +306,7 @@ class ApiTest(unittest.TestCase):
 
 class ValidateTest(unittest.TestCase):
     def test_실제_스키마의_예시는_통과한다(self):
-        for name in ('improvement-instruction', 'analysis-result'):
+        for name in ('improvement-instruction', 'analysis-result', 'survey-instruction', 'survey-analysis', 'handover'):
             for data in schema(name)['examples']:
                 with self.subTest(name=name):
                     self.assertEqual(validate(schema(name), data), [])
@@ -761,6 +765,367 @@ class ImproverTest(unittest.TestCase):
         self.assertTrue(improver.compare(snap(32), snap(16), tmp(json.dumps(down)))['ok'])
 
 
+# ---- 설문 개선 지시 ----
+
+RETIRED_CASES = os.path.join(HERE, '..', 'src', 'test', 'resources', 'recommendation', 'retired-cases.json')
+
+
+class ConvertTest(unittest.TestCase):
+    def test_서버와_같은_변환_사례표대로_읽는다(self):
+        with open(RETIRED_CASES, encoding='utf-8') as f:
+            table = json.load(f)
+        for c in table['cases']:
+            with self.subTest(c['name']):
+                got = common.convert_or_error({'survey': table['survey']}, table['retired']['codes'], c['params'],
+                                              common.date.fromisoformat(c['today']))
+                self.assertEqual(got, {'error': c['error']} if 'error' in c else {'answers': c['answers'], 'outdated': c['outdated']})
+
+    def test_보관_기한은_6개월_뒤이고_그_달에_같은_날이_없으면_말일이다(self):
+        self.assertEqual(str(common.expiry('2026-03-01')), '2026-09-01')
+        self.assertEqual(str(common.expiry('2026-08-31')), '2027-02-28')
+        self.assertEqual(str(common.expiry('2026-03-31')), '2026-09-30')
+        self.assertFalse(common.expired({'retiredAt': '2026-03-01'}, common.date(2026, 9, 1)))
+        self.assertTrue(common.expired({'retiredAt': '2026-03-01'}, common.date(2026, 9, 2)))
+
+
+def opt(*codes):
+    return [{'code': c, 'content': c.lower()} for c in codes]
+
+
+SHORT = {'code': 'SHORT', 'title': '부족한가요?', 'options': opt('OFTEN', 'ONCE', 'NEVER')}
+TOOLS = {'code': 'TOOLS', 'title': '도구', 'input': 'MULTI', 'exclusive': 'NONE', 'options': opt('A', 'B', 'NONE')}
+VIDEO = {'code': 'VIDEO', 'title': '영상', 'showWhen': {'question': 'SHORT', 'anyOf': ['OFTEN', 'ONCE']}, 'options': opt('YES', 'NO')}
+SDEF = {
+    'survey': {'steps': [
+        {'layout': 'CURRENT_SPEC', 'questions': [{'code': 'CURRENT_OS', 'title': 'OS', 'options': opt('MACOS', 'WINDOWS')}]},
+        {'questions': [SHORT]},
+        {'questions': [TOOLS, VIDEO]}]},
+    'rules': [
+        {'criterion': 'MEMORY', 'weight': 2, 'when': {'question': 'SHORT', 'anyOf': ['OFTEN']}, 'reason': 'm2'},
+        {'criterion': 'MEMORY', 'weight': 1, 'when': {'question': 'SHORT', 'anyOf': ['ONCE']}, 'reason': 'm1'},
+        {'criterion': 'STORAGE', 'weight': 1, 'when': {'all': [{'question': 'SHORT', 'anyOf': ['ONCE', 'NEVER']},
+                                                                 {'not': {'question': 'TOOLS', 'anyOf': ['A']}}]}, 'reason': 's1'},
+        {'criterion': 'STORAGE', 'weight': 1, 'when': {'any': [{'question': 'SHORT', 'anyOf': ['ONCE']},
+                                                                 {'question': 'TOOLS', 'anyOf': ['B']}]}, 'reason': 's2'}],
+    'mappings': [{'criterion': 'CURRENT_OS', 'value': 'MACOS', 'when': {'question': 'CURRENT_OS', 'anyOf': ['MACOS']}}],
+    'notes': [],
+}
+DAY = common.date(2026, 11, 5)
+
+
+def question(base, **changes):
+    q = json.loads(json.dumps(base))
+    q.update(changes)
+    return {k: v for k, v in q.items() if v is not None}
+
+
+def sins(kind, q, frm, to, option=None, **kw):
+    target = {'question': q, **({'option': option} if option else {})}
+    return {'issues': [1], 'basis': 'USER', 'purpose': 'P', 'kind': kind, 'target': target, 'from': frm, 'to': to,
+            'reason': 'r', **kw}
+
+
+def delete_once(**kw):
+    return sins('DELETE_OPTION', 'SHORT', SHORT, question(SHORT, options=opt('OFTEN', 'NEVER')), 'ONCE',
+                retire=[{'question': 'SHORT', 'option': 'ONCE', 'drop': True, 'was': 'once'}], **kw)
+
+
+def merge_once(**kw):
+    return sins('MERGE_OPTION', 'SHORT', SHORT, question(SHORT, options=opt('OFTEN', 'NEVER')), 'ONCE',
+                retire=[{'question': 'SHORT', 'option': 'ONCE', 'to': 'OFTEN', 'was': 'once'}], **kw)
+
+
+class SurveyPlanTest(unittest.TestCase):
+    def plan(self, ins, lines=(), history=()):
+        return survey.plan(SDEF, list(lines), list(history) + list(lines), ins, DAY)
+
+    def test_from_이_지금_정의서와_다르면_고치지_않는다(self):
+        ins = delete_once()
+        ins['from'] = question(SHORT, title='옛 제목')
+        self.assertIn('from 이 지금 정의서의 SHORT 와 다르다', self.plan(ins)['errors'])
+
+    def test_from_과_to_의_차이가_종류와_맞아야_한다(self):
+        reword = sins('REWORD', 'SHORT', SHORT, question(SHORT, title='새 제목'))
+        self.assertTrue(self.plan(reword)['ok'])
+        code_changed = sins('REWORD', 'SHORT', SHORT, question(SHORT, options=opt('OFTEN', 'ONCE', 'NO')))
+        self.assertIn('from 과 to 의 차이가 REWORD 와 맞지 않는다', self.plan(code_changed)['errors'])
+        moved_with_change = sins('MOVE_QUESTION', 'VIDEO', VIDEO, question(VIDEO, title='x'), after='SHORT')
+        self.assertIn('from 과 to 의 차이가 MOVE_QUESTION 와 맞지 않는다', self.plan(moved_with_change)['errors'])
+        input_and_title = sins('CHANGE_INPUT', 'TOOLS', TOOLS, question(TOOLS, input='SINGLE', exclusive=None, title='x'),
+                               retire=[{'question': 'TOOLS', 'dropInvalid': True}])
+        self.assertIn('from 과 to 의 차이가 CHANGE_INPUT 와 맞지 않는다', self.plan(input_and_title)['errors'])
+
+    def test_배타_선택지를_지우면_비우고_대체하면_새_코드로(self):
+        to = question(TOOLS, options=opt('A', 'B'))
+        line = [{'question': 'TOOLS', 'option': 'NONE', 'drop': True, 'was': 'none'}]
+        self.assertIn('from 과 to 의 차이가 DELETE_OPTION 와 맞지 않는다',
+                      self.plan(sins('DELETE_OPTION', 'TOOLS', TOOLS, to, 'NONE', retire=line))['errors'])
+        self.assertTrue(self.plan(sins('DELETE_OPTION', 'TOOLS', TOOLS, question(to, exclusive=None), 'NONE', retire=line))['ok'])
+        replaced = question(TOOLS, exclusive='NOTHING', options=opt('A', 'B', 'NOTHING'))
+        line = [{'question': 'TOOLS', 'option': 'NONE', 'to': 'NOTHING', 'was': 'none'}]
+        self.assertTrue(self.plan(sins('REPLACE_OPTION', 'TOOLS', TOOLS, replaced, 'NONE', retire=line))['ok'])
+
+    def test_retire_는_종류별_표와_맞아야_한다(self):
+        wrong_was = delete_once()
+        wrong_was['retire'][0]['was'] = '한두 번'
+        self.assertEqual(self.plan(wrong_was)['errors'], ["retire 의 ('SHORT', 'ONCE') 줄이 DELETE_OPTION 와 맞지 않는다"])
+        merge_to_nowhere = merge_once()
+        merge_to_nowhere['retire'][0]['to'] = 'ONCE'
+        self.assertFalse(self.plan(merge_to_nowhere)['ok'])
+        new_q = question(SHORT, code='LACK', options=opt('OFTEN', 'NEVER'))
+        q_line = {'question': 'SHORT', 'to': 'LACK', 'was': '부족한가요?'}
+        missing_option_line = sins('REPLACE_QUESTION', 'SHORT', SHORT, new_q, retire=[q_line])
+        self.assertFalse(self.plan(missing_option_line)['ok'])
+        full = sins('REPLACE_QUESTION', 'SHORT', SHORT, new_q,
+                    retire=[q_line, {'question': 'LACK', 'option': 'ONCE', 'drop': True, 'was': 'once'}])
+        self.assertTrue(self.plan(full)['ok'])
+        self.assertEqual(self.plan(full)['definition']['rules'][0]['when'], {'question': 'LACK', 'anyOf': ['OFTEN']})
+        full['retire'][1] = {'question': 'LACK', 'option': 'ONCE', 'to': 'OFTEN', 'was': 'once'}
+        self.assertEqual(self.plan(full)['errors'], ['참조 정리를 할 수 없다: 같은 규칙이 둘 생긴다'])
+        single = sins('CHANGE_INPUT', 'TOOLS', TOOLS, question(TOOLS, input='SINGLE'))
+        self.assertFalse(self.plan(single)['ok'])
+        self.assertTrue(self.plan(dict(single, retire=[{'question': 'TOOLS', 'dropInvalid': True}]))['ok'])
+
+    def test_근거별로_허용되는_종류(self):
+        self.assertEqual(self.plan(delete_once(basis='METRIC'))['errors'], ['근거 METRIC 로는 할 수 없는 DELETE_OPTION 다'])
+        self.assertFalse(self.plan(delete_once(basis='USER_AND_METRIC'))['ok'])  # ONCE 는 규칙이 쓴다
+        unused = sins('DELETE_OPTION', 'VIDEO', VIDEO, question(VIDEO, options=opt('YES')), 'NO', basis='USER_AND_METRIC',
+                      retire=[{'question': 'VIDEO', 'option': 'NO', 'drop': True, 'was': 'no'}])
+        self.assertTrue(self.plan(unused)['ok'])
+        description = sins('REWORD', 'SHORT', SHORT, question(SHORT, description='설명'), basis='METRIC')
+        self.assertTrue(self.plan(description)['ok'])
+        self.assertFalse(self.plan(dict(description, to=question(SHORT, title='x')))['ok'])
+        unused_question = sins('DELETE_QUESTION', 'VIDEO', VIDEO, None, basis='METRIC',
+                               retire=[{'question': 'VIDEO', 'drop': True, 'was': '영상'}])
+        self.assertTrue(self.plan(unused_question)['ok'])
+
+    def test_하지_않는_변경(self):
+        os_q = SDEF['survey']['steps'][0]['questions'][0]
+        add = sins('ADD_OPTION', 'CURRENT_OS', os_q, question(os_q, options=opt('MACOS', 'WINDOWS', 'LINUX')), 'LINUX')
+        self.assertIn('매핑이 쓰는 질문 CURRENT_OS 에 새 코드를 만든다', self.plan(add)['errors'])
+        delete = sins('DELETE_OPTION', 'CURRENT_OS', os_q, question(os_q, options=opt('MACOS')), 'WINDOWS',
+                      retire=[{'question': 'CURRENT_OS', 'option': 'WINDOWS', 'drop': True, 'was': 'windows'}])
+        self.assertIn('현재 사양 질문 CURRENT_OS 를 옮기거나 코드를 지우거나 바꾼다', self.plan(delete)['errors'])
+        move = sins('MOVE_QUESTION', 'CURRENT_OS', os_q, os_q, after='SHORT')
+        self.assertIn('현재 사양 질문 CURRENT_OS 를 옮기거나 코드를 지우거나 바꾼다', self.plan(move)['errors'])
+        self.assertTrue(self.plan(sins('MOVE_QUESTION', 'VIDEO', VIDEO, VIDEO, after='SHORT'))['ok'])
+        drop_shown = sins('DELETE_OPTION', 'SHORT', SHORT, question(SHORT, options=opt('ONCE', 'NEVER')), 'OFTEN',
+                          retire=[{'question': 'SHORT', 'option': 'OFTEN', 'drop': True, 'was': 'often'}])
+        self.assertTrue(self.plan(drop_shown)['ok'])
+        steps = [{'questions': [question(SHORT, code=f'Q{i}')]} for i in range(9)]
+        many = dict(SDEF, survey={'steps': SDEF['survey']['steps'] + steps})
+        add_q = sins('ADD_QUESTION', 'NEW', None, question(SHORT, code='NEW'), after='SHORT')
+        self.assertIn('참조 정리를 할 수 없다: 단계가 13개로 12개를 넘는다', survey.plan(many, [], [], add_q, DAY)['errors'])
+
+    def test_지우거나_합친_코드는_조건에서_빼고_빈_조건은_정리한다(self):
+        p = self.plan(merge_once())
+        rules = {r['reason']: r['when'] for r in p['definition']['rules']}
+        self.assertNotIn('m1', rules)  # 조건 전체가 비었다
+        self.assertNotIn('s1', {r['reason'] for r in p['definition']['rules'] if 'ONCE' in json.dumps(r)})
+        self.assertEqual(rules['s1'], {'all': [{'question': 'SHORT', 'anyOf': ['NEVER']}, {'not': {'question': 'TOOLS', 'anyOf': ['A']}}]})
+        self.assertEqual(rules['s2'], {'any': [{'question': 'TOOLS', 'anyOf': ['B']}]})
+        video = survey.questions_of(p['definition'])['VIDEO']
+        self.assertEqual(video['showWhen'], {'question': 'SHORT', 'anyOf': ['OFTEN']})  # 합친 OFTEN 으로 바꿔 쓰지 않는다
+        self.assertEqual({e['part'] for e in p['effects']}, {'rules', 'showWhen'})
+
+    def test_새_코드로_옮길_때만_조건을_바꿔_쓴다(self):
+        to = question(SHORT, options=opt('OFTEN', 'SOMETIMES', 'NEVER'))
+        ins = sins('REPLACE_OPTION', 'SHORT', SHORT, to, 'ONCE', retire=[{'question': 'SHORT', 'option': 'ONCE', 'drop': True, 'was': 'once'}])
+        rules = {r['reason']: r['when'] for r in self.plan(ins)['definition']['rules']}
+        self.assertEqual(rules['m1'], {'question': 'SHORT', 'anyOf': ['SOMETIMES']})
+
+    def test_참조_정리를_할_수_없는_변경(self):
+        drop_a = sins('DELETE_OPTION', 'TOOLS', TOOLS, question(TOOLS, options=opt('B', 'NONE')), 'A',
+                      retire=[{'question': 'TOOLS', 'option': 'A', 'drop': True, 'was': 'a'}])
+        self.assertTrue(self.plan(drop_a)['ok'])  # all 안의 not 은 뺀다
+        whole_not = dict(SDEF, rules=[{'criterion': 'MEMORY', 'weight': 1, 'when': {'not': {'question': 'TOOLS', 'anyOf': ['A']}}, 'reason': 'n'}])
+        self.assertIn('참조 정리를 할 수 없다', survey.plan(whole_not, [], [], drop_a, DAY)['errors'][0])
+        drop_shown_all = sins('DELETE_QUESTION', 'SHORT', SHORT, None, retire=[{'question': 'SHORT', 'drop': True, 'was': '부족한가요?'}])
+        self.assertEqual(self.plan(drop_shown_all)['errors'], ['참조 정리를 할 수 없다: VIDEO 의 노출 조건이 빈다'])
+        twins = dict(SDEF, rules=SDEF['rules'] + [{'criterion': 'MEMORY', 'weight': 3, 'when': {'question': 'SHORT', 'anyOf': ['OFTEN', 'ONCE']}, 'reason': 'x'}])
+        self.assertEqual(survey.plan(twins, [], [], merge_once(), DAY)['errors'], ['참조 정리를 할 수 없다: 같은 규칙이 둘 생긴다'])
+
+    def test_지운_코드는_기한이_지나_줄이_없어도_다시_쓰지_않는다(self):
+        history = [{'question': 'SHORT', 'option': 'SOMETIMES', 'drop': True, 'was': '가끔', 'retiredAt': '2025-01-01'}]
+        to = question(SHORT, options=opt('OFTEN', 'ONCE', 'NEVER', 'SOMETIMES'))
+        add = sins('ADD_OPTION', 'SHORT', SHORT, to, 'SOMETIMES')
+        self.assertEqual(self.plan(add, history=history)['errors'], ['지운 코드를 다시 쓴다: SHORT.SOMETIMES'])
+        self.assertTrue(self.plan(add)['ok'])
+        restore = dict(add, kind='RESTORE')
+        self.assertFalse(self.plan(restore, history=history)['ok'])  # 문구가 was 와 다르다
+        restore['to'] = question(SHORT, options=opt('OFTEN', 'ONCE', 'NEVER') + [{'code': 'SOMETIMES', 'content': '가끔'}])
+        self.assertTrue(self.plan(restore, history=history)['ok'])
+        self.assertEqual(self.plan(restore)['errors'], ['되살릴 코드가 지운 코드 목록 이력에 없다'])
+
+    def test_지운_코드_목록(self):
+        old = [{'question': 'SHORT', 'option': 'RARE', 'to': 'ONCE', 'was': '드물게', 'retiredAt': '2026-10-01'},
+               {'question': 'SHORT', 'option': 'GONE', 'drop': True, 'was': '옛것', 'retiredAt': '2026-01-01'},
+               {'question': 'TOOLS', 'dropInvalid': True, 'retiredAt': '2026-01-01'}]
+        p = self.plan(merge_once(), lines=old)
+        self.assertEqual(p['retired'], [
+            {'question': 'SHORT', 'option': 'RARE', 'to': 'OFTEN', 'was': '드물게', 'retiredAt': '2026-10-01'},
+            {'question': 'SHORT', 'option': 'ONCE', 'to': 'OFTEN', 'was': 'once', 'retiredAt': '2026-11-05'}])
+        self.assertEqual(len(p['retired_changes']['expired']), 2)
+        self.assertEqual(self.plan(delete_once(), lines=old)['retired'][0]['drop'], True)
+        reword = sins('REWORD', 'SHORT', SHORT, question(SHORT, title='새 제목'))
+        self.assertIsNone(self.plan(reword, lines=old)['retired'])  # 파일을 고치지 않으면 기한 지난 줄도 두다
+        single = sins('CHANGE_INPUT', 'TOOLS', TOOLS, question(TOOLS, input='SINGLE'), retire=[{'question': 'TOOLS', 'dropInvalid': True}])
+        fresh = old[:2] + [dict(old[2], retiredAt='2026-09-01')]
+        self.assertEqual(self.plan(single, lines=fresh)['retired'][-1], {'question': 'TOOLS', 'dropInvalid': True, 'retiredAt': '2026-11-05'})
+        self.assertEqual(len(self.plan(single, lines=fresh)['retired']), 2)
+        deleted = sins('DELETE_QUESTION', 'TOOLS', TOOLS, None, retire=[{'question': 'TOOLS', 'drop': True, 'was': '도구'}])
+        chained = [{'question': 'TOOLKIT', 'to': 'TOOLS', 'was': '도구들', 'retiredAt': '2026-10-01'}, dict(old[2], retiredAt='2026-10-01')]
+        self.assertEqual(self.plan(deleted, lines=chained)['retired'], [
+            {'question': 'TOOLKIT', 'was': '도구들', 'retiredAt': '2026-10-01', 'drop': True},
+            {'question': 'TOOLS', 'drop': True, 'was': '도구', 'retiredAt': '2026-11-05'}])
+        history = [{'question': 'SHORT', 'option': 'SOMETIMES', 'drop': True, 'was': '가끔', 'retiredAt': '2026-10-01'}]
+        restore = sins('RESTORE', 'SHORT', SHORT, question(SHORT, options=opt('OFTEN', 'ONCE', 'NEVER') + [{'code': 'SOMETIMES', 'content': '가끔'}]), 'SOMETIMES')
+        self.assertEqual(self.plan(restore, lines=history)['retired'], [])
+
+    def test_지운_코드_목록_파일은_서버가_읽는_모양이다(self):
+        text = survey.retired_yaml([{'question': 'Q', 'option': 'O', 'drop': True, 'was': '있나요?', 'retiredAt': '2026-11-05'}])
+        self.assertEqual(text, 'codes:\n  - { question: Q, option: O, drop: true, was: "있나요?", retiredAt: 2026-11-05 }\n')
+        self.assertEqual(common.y2j(text)['codes'][0]['retiredAt'], '2026-11-05')
+        self.assertEqual(survey.retired_yaml([]), 'codes: []\n')
+
+    def test_이력은_지운_줄도_모은다(self):
+        repo = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, repo)
+        g = ['git', '-C', repo, '-c', 'user.name=t', '-c', 'user.email=t@t']
+        path = os.path.join(repo, common.RETIRED_PATH.format('P'))
+        os.makedirs(os.path.dirname(path))
+        subprocess.run(g + ['init', '-q'], check=True)
+        for text in ['codes:\n  - { question: Q, drop: true, was: "옛", retiredAt: 2026-01-01 }\n', 'codes: []\n']:
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(text)
+            subprocess.run(g + ['add', '.'], check=True)
+            subprocess.run(g + ['commit', '-qm', 'x'], check=True)
+        os.environ['REPO'] = repo
+        self.addCleanup(os.environ.pop, 'REPO')
+        self.assertEqual([l['question'] for l in survey.retired_history('HEAD', 'P')], ['Q'])
+
+
+class SurveyFlowTest(unittest.TestCase):
+    def test_결과가_없는_가장_오래된_지시를_종류마다_짝지어_고른다(self):
+        good = lambda m: f'<!-- product-recommendation:{m} -->\n```yaml\noutcome: NOT_OPENED\nreason: x\n```'
+        ins = lambda m, data: f'<!-- product-recommendation:{m} -->\n```yaml\n{json.dumps(data, ensure_ascii=False)}\n```'
+        rule = ins('decision', schema('improvement-instruction')['examples'][0])
+        rows = [
+            {'issue': 1, 'id': 1, 'created_at': '2026-11-01T00:00:00Z', 'html_url': 'u1', 'body': ins('survey-decision', delete_once())},
+            {'issue': 1, 'id': 2, 'created_at': '2026-11-01T01:00:00Z', 'html_url': 'u2', 'body': good('survey-result')},
+            {'issue': 2, 'id': 3, 'created_at': '2026-11-02T00:00:00Z', 'html_url': 'u3', 'body': ins('survey-decision', {'kind': 'X'})},
+            {'issue': 3, 'id': 4, 'created_at': '2026-11-03T00:00:00Z', 'html_url': 'u4', 'body': rule},
+            {'issue': 3, 'id': 5, 'created_at': '2026-11-03T01:00:00Z', 'html_url': 'u5', 'body': good('survey-result')},
+            {'issue': 1, 'id': 6, 'created_at': '2026-11-04T00:00:00Z', 'html_url': 'u6', 'body': ins('survey-decision', delete_once())},
+        ]
+        path, out = tmp('\n'.join(json.dumps(r, ensure_ascii=False) for r in rows)), tmp('')
+        got = survey.next_instruction(path, out)
+        # 이슈 3 의 개선 지시에는 설문 개선 결과가 짝이 아니다
+        self.assertEqual(got['target'], {'kind': 'decision', 'issue': 3, 'url': 'u4'})
+        self.assertEqual([i['url'] for i in got['invalid']], ['u3'])
+        with open(out, encoding='utf-8') as f:
+            self.assertEqual(json.load(f), schema('improvement-instruction')['examples'][0])
+        rows[3]['body'] = rows[3]['body'].replace('decision', 'survey-decision')
+        self.assertEqual(survey.next_instruction(tmp('\n'.join(json.dumps(r, ensure_ascii=False) for r in rows)), out)['target']['url'], 'u6')
+
+    def setUp(self):
+        self.wt = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.wt)
+        os.makedirs(os.path.dirname(os.path.join(self.wt, common.DEF_PATH.format('P'))))
+        os.makedirs(os.path.join(self.wt, 'src/test/resources/recommendation'))
+        self.snap = survey.snapshot_path(self.wt, 'P')
+        with open(self.snap, 'w', encoding='utf-8') as f:
+            f.write(snapshot([{'name': '대표', 'answers': {'SHORT': ['ONCE'], 'VIDEO': ['YES']}, 'response': body()},
+                              {'name': '이름', 'answers': {'SHORT': ['OFTEN']}, 'response': body()},
+                              {'answers': {'SHORT': ['ONCE']}, 'response': body()}]))
+
+    def plan_file(self, ins):
+        p = survey.plan(SDEF, [], [], ins, DAY)
+        path = tmp(json.dumps(p, ensure_ascii=False))
+        return p, path
+
+    def test_이름_있는_사례의_답만_지금_코드로_고쳐_쓰고_버린_답을_표시한다(self):
+        _, path = self.plan_file(merge_once())
+        out = survey.survey_apply(path, self.wt)
+        self.assertTrue(out['retired_written'])
+        self.assertEqual(out['named'], [{'name': '대표', 'before': {'SHORT': ['ONCE'], 'VIDEO': ['YES']},
+                                         'after': {'SHORT': ['OFTEN'], 'VIDEO': ['YES']}, 'dropped': False}])
+        self.assertEqual([c['answers'] for c in improver.snapshot_lines(self.snap)],
+                         [{'SHORT': ['OFTEN'], 'VIDEO': ['YES']}, {'SHORT': ['OFTEN']}, {'SHORT': ['ONCE']}])
+        _, path = self.plan_file(delete_once())
+        self.setUp()
+        self.assertEqual(survey.survey_apply(path, self.wt)['named'][0],
+                         {'name': '대표', 'before': {'SHORT': ['ONCE'], 'VIDEO': ['YES']}, 'after': {}, 'dropped': True})
+
+    def test_고친_정의서가_계획과_같은지(self):
+        rule = {'criterion': 'MEMORY', 'when': {'question': 'SHORT', 'anyOf': ['SOMETIMES']}, 'direction': 'UP', 'reason': '새'}
+        to = question(SHORT, options=opt('OFTEN', 'ONCE', 'NEVER', 'SOMETIMES'))
+        p, path = self.plan_file(sins('ADD_OPTION', 'SHORT', SHORT, to, 'SOMETIMES', rule=rule, cases=[]))
+        edited = json.loads(json.dumps(p['definition']))
+        edited['rules'] = [r for r in edited['rules'] if r['weight'] is not None]
+        def_path = tmp(json.dumps(edited, ensure_ascii=False))
+        self.assertEqual(survey.survey_verify(path, def_path), {'ok': True, 'errors': [], 'new_rule_weight': None})
+        edited['rules'].append({**{k: rule[k] for k in ('criterion', 'when', 'reason')}, 'weight': -1})
+        self.assertFalse(survey.survey_verify(path, tmp(json.dumps(edited, ensure_ascii=False)))['ok'])
+        edited['rules'][-1]['weight'] = 2
+        self.assertEqual(survey.survey_verify(path, tmp(json.dumps(edited, ensure_ascii=False)))['new_rule_weight'], 2)
+        edited['rules'][0]['weight'] = 5
+        self.assertTrue(survey.survey_verify(path, tmp(json.dumps(edited, ensure_ascii=False)))['errors'][0].startswith('계획에 없는 규칙: '))
+        edited['survey']['steps'][1]['questions'][0]['title'] = 'x'
+        self.assertIn('survey 가 계획과 다르다', survey.survey_verify(path, tmp(json.dumps(edited, ensure_ascii=False)))['errors'])
+
+    def test_설문_변경_전후_결과는_옛_답_사례와_reasons_만_바뀐다(self):
+        ins = merge_once(reasons=[{'criterion': 'MEMORY', 'when': {'question': 'SHORT', 'anyOf': ['OFTEN']}, 'from': 'm2', 'to': 'm2!'}])
+        _, plan_path = self.plan_file(ins)
+        before = [{'name': '피드백 #9', 'answers': {'SHORT': ['ONCE']}, 'response': body(mac=('PRO', 32, 512))},
+                  {'answers': {'SHORT': ['ONCE']}, 'response': body(mac=('PRO', 32, 512))},
+                  {'answers': {'SHORT': ['OFTEN']}, 'response': body(reasons=['m2'])}]
+        after = [{'name': '피드백 #9', 'answers': {'SHORT': ['OFTEN']}, 'response': body(mac=('PRO', 16, 512))},
+                 {'answers': {'SHORT': ['ONCE']}, 'response': body(mac=('PRO', 16, 512))},
+                 {'answers': {'SHORT': ['OFTEN']}, 'response': body(reasons=['m2!'])}]
+        cmp = lambda a, d=None: survey.survey_compare(tmp(snapshot(before)), tmp(snapshot(a)), tmp(json.dumps(ins)), plan_path, d)
+        out = cmp(after)
+        self.assertEqual((out['ok'], out['reason_only'], out['old_answers'], out['unchecked']), (True, 1, 2, ['피드백 #9']))
+        self.assertEqual([r['case'] for r in out['named_rows']], ['피드백 #9'])
+        decision = {'issue': 9, 'id': 1, 'created_at': 't', 'html_url': 'u', 'body': '<!-- product-recommendation:decision -->\n```yaml\n' + json.dumps(
+            schema('improvement-instruction')['examples'][0] | {'issues': [9], 'cases': [
+                {'issue': 9, 'answers': {}, 'expected': [{'plan': 'MAC', 'item': 'MEMORY', 'direction': 'UP'}]}]},
+            ensure_ascii=False) + '\n```'}
+        out = cmp(after, tmp(json.dumps(decision, ensure_ascii=False)))
+        self.assertEqual(out['fails'], ['피드백 #9: MAC MEMORY 이 개선 지시의 UP 과 반대로 움직였다'])
+        # 근거가 #4·#9 인 지시는 #4 에 달린다. 근거에 9 가 없는 지시의 같은 이름 사례는 쓰지 않는다
+        on_smaller = json.loads(json.dumps(decision))
+        on_smaller['body'] = on_smaller['body'].replace('"issues": [9]', '"issues": [4, 9]')
+        on_smaller['issue'] = 4
+        self.assertEqual(cmp(after, tmp(json.dumps(on_smaller, ensure_ascii=False)))['fails'], out['fails'])
+        unrelated = json.loads(json.dumps(on_smaller))
+        unrelated['body'] = unrelated['body'].replace('"issues": [4, 9]', '"issues": [4]')
+        self.assertEqual(cmp(after, tmp(json.dumps(unrelated, ensure_ascii=False)))['unchecked'], ['피드백 #9'])
+        later_down = json.loads(json.dumps(on_smaller))
+        later_down.update(id=2, created_at='u', body=on_smaller['body'].replace('"direction": "UP"', '"direction": "DOWN"'))
+        rows = '\n'.join(json.dumps(x, ensure_ascii=False) for x in (later_down, on_smaller))
+        self.assertTrue(cmp(after, tmp(rows))['ok'])  # 가장 최근 지시(DOWN)를 쓴다
+        changed = after[:2] + [{'answers': {'SHORT': ['OFTEN']}, 'response': body(mac=('MAX', 16, 512), reasons=['m2!'])}]
+        self.assertEqual(cmp(changed)['fails'], ['{"SHORT": ["OFTEN"]}: 결과 값이 바뀌었다'])
+        other_reason = after[:2] + [{'answers': {'SHORT': ['OFTEN']}, 'response': body(reasons=['m3'])}]
+        self.assertEqual(cmp(other_reason)['fails'], ['{"SHORT": ["OFTEN"]}: reasons 밖의 근거 문장이 바뀌었다'])
+
+    def test_함께_더할_규칙은_개선_지시_모양으로(self):
+        rule = {'criterion': 'MEMORY', 'when': {'question': 'SHORT', 'anyOf': ['SOMETIMES']}, 'direction': 'UP', 'reason': '새'}
+        cases = [{'issue': 1, 'answers': {'SHORT': ['SOMETIMES']}, 'expected': [{'plan': 'MAC', 'item': 'MEMORY', 'direction': 'UP'}]}]
+        out = survey.survey_rule(tmp(json.dumps(sins('ADD_OPTION', 'SHORT', SHORT, SHORT, 'SOMETIMES', rule=rule, cases=cases))))
+        self.assertEqual((out['rule'], out['change']), ({'criterion': 'MEMORY', 'when': rule['when']},
+                                                        {'add': {'direction': 'UP'}, 'reason': {'to': '새'}}))
+
+    def test_지우거나_바꾼_코드가_든_열린_피드백(self):
+        _, path = self.plan_file(delete_once())
+        rows = [{'number': 1, 'body': '### 결과 화면 주소\n\nhttps://devica.co.kr/result?purpose=P&answer=SHORT.ONCE\n'},
+                {'number': 2, 'body': '### 결과 화면 주소\n\nhttps://devica.co.kr/result?purpose=Q&answer=SHORT.ONCE\n'},
+                {'number': 3, 'body': '### 사용 목적\n\nP\n\n### 지금까지 고른 답\n\nCURRENT_OS.MACOS,SHORT.ONCE\n'},
+                {'number': 4, 'body': '### 사용 목적\n\nP\n\n### 질문\n\nTOOLS\n'}]
+        self.assertEqual(survey.survey_affected(path, tmp('\n'.join(json.dumps(r) for r in rows))), [1, 3])
+
+
 class RunShTest(unittest.TestCase):
     """run.sh 의 준비와 잠금. 임시 HOME·임시 origin 과 가짜 claude 로 돌려 외부를 부르지 않는다."""
 
@@ -779,9 +1144,8 @@ exit "${FAKE_RC:-0}"
         self.addCleanup(shutil.rmtree, self.tmp)
         git = ['git', '-c', 'user.name=t', '-c', 'user.email=t@t', '-c', 'init.defaultBranch=develop']
         src = os.path.join(self.tmp, 'src')
-        for f in ['common.py', 'interface/artifacts/analysis-result.schema.yml',
-                  'interface/artifacts/improvement-instruction.schema.yml',
-                  'interface/artifacts/improvement-result.schema.yml']:
+        for f in ['common.py'] + [f'interface/artifacts/{n}.schema.yml' for n in (
+                'analysis-result', 'improvement-instruction', 'improvement-result', 'survey-instruction', 'survey-analysis', 'handover')]:
             os.makedirs(os.path.dirname(os.path.join(src, 'recommendation-improvement', f)), exist_ok=True)
             shutil.copy(os.path.join(HERE, f), os.path.join(src, 'recommendation-improvement', f))
         origin = os.path.join(self.tmp, 'origin.git')
