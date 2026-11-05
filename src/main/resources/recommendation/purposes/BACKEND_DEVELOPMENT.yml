@@ -206,7 +206,7 @@ rules:
       all:
         - { question: CURRENT_MEMORY, anyOf: [ GB_32 ] }
         - { question: SLOWDOWN, anyOf: [ OFTEN ] }
-    reason: 지금 32GB 에서도 여러 프로그램을 함께 쓸 때 자주 멈춰 그보다 큰 용량을 권합니다.
+    reason: 지금 32GB 에서도 여러 프로그램을 함께 쓸 때 자주 멈춘 점을 반영했습니다.
 
   - criterion: STORAGE
     weight: 3
