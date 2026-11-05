@@ -16,8 +16,19 @@ properties:
   #   TEAM_HANDLES      팀원이 직접 처리. 정의서로 고칠 수 없거나 개선이 반려됐다
   #   ALREADY_CHANGED   이미 바뀜. 사용자가 본 뒤 다른 개선으로 고쳐졌다
   #   NOT_REPRODUCIBLE  재현할 수 없음. 질문이 바뀌어 같은 결과를 볼 수 없다
+  #   NOT_REPRODUCIBLE_SURVEY_CHANGED  설문이 바뀌어 재현할 수 없음. 지운 답이 있어 같은 결과를 볼 수 없지만, 가리키는 규칙은 계속 센다
+  #   HANDED_OVER       설문 쪽으로 넘김. 원인이 질문이다
   judgment:
-    enum: [ INSTRUCTED, ON_HOLD, TEAM_HANDLES, ALREADY_CHANGED, NOT_REPRODUCIBLE ]
+    enum: [ INSTRUCTED, ON_HOLD, TEAM_HANDLES, ALREADY_CHANGED, NOT_REPRODUCIBLE, NOT_REPRODUCIBLE_SURVEY_CHANGED, HANDED_OVER ]
+
+  # 규칙 쪽 판단이 끝나기를 기다려 설문 쪽으로 넘길 질문. 원인이 질문인 지적과 그와 상관없는 결과 지적이 함께 있을 때만 적는다.
+  # 처음 적은 분석 결과의 시각부터 기다린 기간을 센다
+  survey_pending:
+    type: object
+    additionalProperties: false
+    required: [ question ]
+    properties:
+      question: { type: string }
 
   # 사용자가 본 값. 처음 분석할 때 받은 운영 결과에서, 사용자가 고른 권장안(둘 다면 둘 다)의 CPU·메모리·저장 공간 값을 주소(답 조합)마다 적는다.
   # 사용자가 본 값은 나중에 다시 구할 수 없어, 지적하지 않은 항목도 함께 적어 둔다.
