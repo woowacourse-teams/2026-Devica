@@ -769,6 +769,7 @@ class RunShTest(unittest.TestCase):
 # 불린 것을 남기고, 그때 잠금이 있었는지와 받은 프롬프트를 적는다
 [ -d "$ST/lock" ] && echo locked > "$MARK" || echo unlocked > "$MARK"
 printf '%s' "$2" > "$MARK.prompt"
+ls -A "$ST/tmp" > "$MARK.tmp"
 echo '{"result": "ok", "permission_denials": []}'
 exit "${FAKE_RC:-0}"
 """
@@ -813,6 +814,17 @@ exit "${FAKE_RC:-0}"
         self.assertFalse(os.path.exists(os.path.join(self.st, 'lock')))
         self.assertEqual(len(os.listdir(os.path.join(self.st, 'runs'))), 1)
 
+    def test_임시_디렉터리를_비워_넘기고_끝나면_지운다(self):
+        os.makedirs(os.path.join(self.st, 'tmp'))
+        open(os.path.join(self.st, 'tmp', 'old.md'), 'w').close()
+
+        r = self.run_sh()
+
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        with open(self.mark + '.tmp') as f:
+            self.assertEqual(f.read(), '')
+        self.assertFalse(os.path.exists(os.path.join(self.st, 'tmp')))
+
     def test_명령에_쓸_변수의_값을_프롬프트로_넘긴다(self):
         self.run_sh()
 
@@ -824,12 +836,14 @@ exit "${FAKE_RC:-0}"
 
     def test_다른_실행이_잠금을_잡고_있으면_claude_를_부르지_않는다(self):
         os.makedirs(os.path.join(self.st, 'lock'))
+        os.makedirs(os.path.join(self.st, 'tmp'))
 
         r = self.run_sh()
 
         self.assertEqual(r.returncode, 0)
         self.assertFalse(os.path.exists(self.mark))
         self.assertTrue(os.path.exists(os.path.join(self.st, 'lock')))
+        self.assertTrue(os.path.exists(os.path.join(self.st, 'tmp')))
 
     def test_6시간_넘은_잠금은_지우고_실행한다(self):
         lock = os.path.join(self.st, 'lock')

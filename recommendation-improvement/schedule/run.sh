@@ -25,7 +25,7 @@ cd "$REPO" || exit 1
 # 상태 디렉터리 안의 파일 쓰기·지우기(리다이렉션, mkdir, rm 포함)는 acceptEdits 가 허용한다. 레포 편집 거부는 에이전트의 편집 기능에만 걸리고, 허용한 명령의 쓰기는 막지 못한다
 TOOLS=(
   'Bash(git *)' 'Bash(gh *)' 'Bash(python3 *)' 'Bash(ruby *)'
-  'Bash(mkdir *)' 'Bash(find *)' 'Bash(ls *)' 'Bash(cat *)' 'Bash(head *)' 'Bash(date *)' 'Bash(printenv *)'
+  'Bash(mkdir *)' 'Bash(find *)' 'Bash(ls *)' 'Bash(cat *)' 'Bash(head *)' 'Bash(grep *)' 'Bash(date *)' 'Bash(printenv *)'
   'Read' 'Edit(~/.devica-product-recommendation/**)'
 )
 # SELF_REF 에서 상태 디렉터리로 평평하게 복사할 파일. 스크립트는 common.py 를 같은 디렉터리에서 import 한다
@@ -50,7 +50,8 @@ if ! mkdir "$ST/lock" 2>/dev/null; then
   { rm -rf "$ST/lock" && mkdir "$ST/lock"; } || exit 1
   STALE="- 6시간 넘게 남은 잠금을 지우고 다시 잡았다. 앞선 실행이 비정상으로 끝난 것이다."
 fi
-trap 'rm -rf "$ST/lock"' EXIT
+trap 'rm -rf "$ST/tmp"; rm -rf "$ST/lock"' EXIT
+rm -rf "$ST/tmp" && mkdir "$ST/tmp" || exit 1
 
 # 실행 기록. 에이전트는 이 파일에 단계마다 무엇을 보고 무엇을 했는지 이어 적는다
 TS=$(date -u +%Y%m%dT%H%M%SZ)
