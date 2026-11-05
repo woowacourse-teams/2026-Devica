@@ -39,6 +39,7 @@ class SurveyE2ETest extends E2ETest {
             .then().log().all()
             .statusCode(200)
             .body("version", is(survey.version()))
+            .body("version", not(blankOrNullString()))
             .body("steps.questions.code", is(questionCodes))
             .body("steps.layout", is(layouts))
             .body("steps.questions.flatten().title", everyItem(not(blankOrNullString())))
