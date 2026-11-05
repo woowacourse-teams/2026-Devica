@@ -11,9 +11,11 @@ import org.yaml.snakeyaml.nodes.Tag;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
-public record RetiredCodes(Integer keepMonths, List<RetiredCode> codes) {
+public record RetiredCodes(List<RetiredCode> codes) {
 
-    public static final RetiredCodes NONE = new RetiredCodes(null, List.of());
+    public static final RetiredCodes NONE = new RetiredCodes(List.of());
+
+    private static final int KEEP_MONTHS = 6;
 
     private static final JsonMapper MAPPER = JsonMapper.builder()
         .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
@@ -39,7 +41,7 @@ public record RetiredCodes(Integer keepMonths, List<RetiredCode> codes) {
 
     public Stream<RetiredCode> activeOn(LocalDate today) {
         return codes.stream()
-            .filter(line -> !line.retiredAt().plusMonths(keepMonths).isBefore(today));
+            .filter(line -> !line.retiredAt().plusMonths(KEEP_MONTHS).isBefore(today));
     }
 
     private static class DatesAsText extends SafeConstructor {

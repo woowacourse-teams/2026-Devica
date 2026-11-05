@@ -248,7 +248,6 @@ class RecommendationDefinitionValidatorTest {
             rules: []
             mappings: []
             """, """
-            keepMonths: 6
             codes:
               - { question: HEAT, to: HEAT_FELT, was: "뜨거워지나요?", retiredAt: 2026-11-05 }
               - { question: OLD_HEAT, to: HEAT, was: "발열을 겪나요?", retiredAt: 2026-05-01 }
@@ -277,7 +276,6 @@ class RecommendationDefinitionValidatorTest {
             rules: []
             mappings: []
             """, """
-            keepMonths: 6
             codes:
               - { question: HEAT, drop: true, retiredAt: 2026-11-05 }
               - { question: GONE, to: MISSING, retiredAt: 2026-11-05 }
@@ -309,36 +307,25 @@ class RecommendationDefinitionValidatorTest {
     }
 
     @Test
-    void 지운_코드_목록에_보관_기간이나_지운_날짜가_없으면_오류를_낸다() {
+    void 지운_코드_줄에_지운_날짜가_없으면_오류를_낸다() {
         // given
         RecommendationDefinitionValidator validator = new RecommendationDefinitionValidator(Set.of(), Map.of());
-        String survey = """
+        RecommendationDefinition definition = read("""
             survey:
               steps:
                 - questions:
                     - { code: HEAT_FELT, options: [ { code: OFTEN }, { code: NEVER } ] }
             rules: []
             mappings: []
-            """;
-        RecommendationDefinition withoutKeepMonths = read(survey, """
-            codes:
-              - { question: HEAT, to: HEAT_FELT, retiredAt: 2026-11-05 }
-            """);
-        RecommendationDefinition zeroKeepMonths = read(survey, """
-            keepMonths: 0
+            """, """
             codes:
               - { question: HEAT, to: HEAT_FELT }
             """);
 
         // when
-        List<String> withoutKeepMonthsErrors = validator.validate(withoutKeepMonths);
-        List<String> zeroKeepMonthsErrors = validator.validate(zeroKeepMonths);
+        List<String> errors = validator.validate(definition);
 
         // then
-        assertThat(withoutKeepMonthsErrors).containsExactly(
-            "지운 코드 목록: keepMonths 가 양의 정수가 아닙니다");
-        assertThat(zeroKeepMonthsErrors).containsExactly(
-            "지운 코드 목록: keepMonths 가 양의 정수가 아닙니다",
-            "지운 코드 HEAT: retiredAt 이 없습니다");
+        assertThat(errors).containsExactly("지운 코드 HEAT: retiredAt 이 없습니다");
     }
 }

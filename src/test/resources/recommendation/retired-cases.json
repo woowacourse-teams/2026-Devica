@@ -17,7 +17,6 @@
     ]
   },
   "retired": {
-    "keepMonths": 6,
     "codes": [
       { "question": "OVERHEATING", "to": "OVERHEATING_FELT", "was": "노트북이 뜨거워지나요?", "retiredAt": "2026-03-01" },
       { "question": "HEAT", "to": "OVERHEATING", "was": "발열을 겪나요?", "retiredAt": "2026-05-01" },

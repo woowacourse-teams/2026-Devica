@@ -39,10 +39,6 @@ record RecommendationDefinitionValidator(Set<String> requirements, Map<String, S
         List<RetiredCode> retired = retiredCodes.codes();
         Set<String> keys = new HashSet<>();
 
-        if (!retired.isEmpty() && (retiredCodes.keepMonths() == null || retiredCodes.keepMonths() <= 0)) {
-            errors.add("지운 코드 목록: keepMonths 가 양의 정수가 아닙니다");
-        }
-
         for (RetiredCode line : retired) {
             String where = line.where();
 
