@@ -19,9 +19,8 @@ public class ProductOfferService {
     private final ProductOfferRepository productOfferRepository;
     private final ProductMinPriceRepository productMinPriceRepository;
 
-    public List<ProductOffer> findVisibleOffers(Long productId) {
-        return productOfferRepository.findAllByProductIdAndStatusInOrderByPriceAscIdAsc(
-            productId, List.of(OfferStatus.ON_SALE, OfferStatus.SOLD_OUT));
+    public List<ProductOffer> findOnSaleOffers(Long productId) {
+        return productOfferRepository.findAllByProductIdAndStatusOrderByPriceAscIdAsc(productId, OfferStatus.ON_SALE);
     }
 
     public List<PriceRefreshTarget> findCoupangPriceRefreshTargets() {

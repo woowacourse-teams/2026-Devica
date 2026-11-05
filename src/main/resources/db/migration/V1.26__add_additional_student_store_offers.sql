@@ -1,4 +1,4 @@
--- 2026-11-02 확인한 품절 학생몰 가격 2건. 상세에서 가격·URL을 제공하되 판매 최저가에서는 제외한다.
+-- 2026-11-02 조사한 학생몰 가격 2건. 재고 상태를 별도로 판정하지 않고 기존 판매처와 동일하게 표시한다.
 START TRANSACTION;
 
 INSERT INTO product_offer
@@ -10,7 +10,7 @@ SELECT CASE WHEN COUNT(c.id) OVER () = 2 AND COUNT(existing.id) OVER () = 0 THEN
        verified.price,
        NULL,
        verified.purchase_url,
-       'SOLD_OUT',
+       'ON_SALE',
        '2026-11-02',
        CURRENT_TIMESTAMP,
        CURRENT_TIMESTAMP
@@ -31,5 +31,15 @@ LEFT JOIN cpu c ON c.id = l.cpu_id AND c.manufacturer = 'Apple'
     AND c.name = verified.cpu_name AND c.core_count = verified.cpu_core_count
 LEFT JOIN product_offer existing ON existing.product_id = p.id AND existing.name = '학생복지스토어';
 
--- SOLD_OUT 추가는 판매 중 오퍼 집합을 바꾸지 않으므로 최저가 캐시도 변경하지 않는다.
+DELETE m FROM product_min_price m
+JOIN product p ON p.id = m.product_id
+WHERE p.code IN ('Z1ML001Y3', 'Z1MM001CH');
+
+INSERT INTO product_min_price (product_id, min_price)
+SELECT o.product_id, MIN(o.price)
+FROM product_offer o
+JOIN product p ON p.id = o.product_id
+WHERE p.code IN ('Z1ML001Y3', 'Z1MM001CH') AND o.status = 'ON_SALE'
+GROUP BY o.product_id;
+
 COMMIT;

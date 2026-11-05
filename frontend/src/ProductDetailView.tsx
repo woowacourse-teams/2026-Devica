@@ -65,7 +65,7 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
     (one, other) =>
       one.price - other.price || (one.id ?? Number.MAX_SAFE_INTEGER) - (other.id ?? Number.MAX_SAFE_INTEGER),
   );
-  const lowest: Offer | undefined = offers.find((offer) => offer.status !== 'SOLD_OUT');
+  const lowest: Offer | undefined = offers[0];
 
   return (
     <section className="view-panel product-detail-view" id="product-detail-view" aria-labelledby="product-detail-title">
@@ -127,10 +127,7 @@ function OfferRow({ offer, lowest }: { offer: Offer; lowest: boolean }) {
   const date = offer.checkedAt && /^\d{4}-\d{2}-\d{2}$/.test(offer.checkedAt) ? offer.checkedAt : null;
   return (
     <li className="product-offer">
-      <strong className="product-offer__name">
-        {offer.name}
-        {offer.status === 'SOLD_OUT' && <span> · 품절</span>}
-      </strong>
+      <strong className="product-offer__name">{offer.name}</strong>
       <div className="product-offer__details">
         <p className="product-offer__context">
           {date ? (
