@@ -26,8 +26,10 @@ export const STORAGE_STEPS = [256, 512, 1024, 2048];
 // 서버 ColorGamut·GpuTier 중 걸러 낼 수 있는 값과 칩 라벨이다. 가장 낮은 값은 모든 제품이 갖춰 조건으로 걸지 않는다.
 export const COLOR_GAMUT_FILTER_LABELS: Record<string, string> = { WIDE: '넓은 색 영역(DCI-P3) 화면' };
 export const GPU_FILTER_LABELS: Record<string, string> = {
-  MID: '중급 GPU (RTX 4050 급) 이상',
-  HIGH: '고성능 GPU (RTX 4060 급 이상)',
+  PRO: 'M Pro 칩 GPU 이상',
+  MAX: 'M Max 칩 GPU 이상',
+  XX50: 'RTX xx50 급 GPU 이상',
+  XX60: 'RTX xx60 급 GPU 이상',
 };
 
 export type SortType = 'PRICE_ASC' | 'PRICE_DESC';
@@ -186,7 +188,7 @@ export function specCondition(
     os: itemValue('OS'),
     cpuTier: itemValue('REQUIRED_CPU'),
     colorGamut: filterable(COLOR_GAMUT_FILTER_LABELS, itemValue('COLOR_GAMUT')),
-    gpuTier: filterable(GPU_FILTER_LABELS, itemValue('GPU')),
+    gpuTier: filterable(GPU_FILTER_LABELS, itemValue('REQUIRED_GPU')),
     memoryGb: memory === null ? null : Number(memory),
     storageGb: storage === null ? null : Number(storage),
   };

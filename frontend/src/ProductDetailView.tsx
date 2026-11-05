@@ -3,9 +3,10 @@ import { ProductImage } from './ProductImage';
 import { fetchProduct, formatPrice, type Offer, type ProductDetail } from './products';
 import './ProductDetailView.css';
 
-// 원본 상세는 이 넷만 보여준다. 서버는 코어 수·화면 크기·무게까지 주지만 원본에 없는 항목이다.
+// 원본 상세는 GPU 를 뺀 넷만 보여준다. 서버는 코어 수·화면 크기·무게까지 주지만 원본에 없는 항목이다.
 const DETAIL_SPECS: { code: string; label: string }[] = [
   { code: 'CPU', label: 'PROCESSOR' },
+  { code: 'GPU', label: 'GPU' },
   { code: 'MEMORY', label: 'MEMORY' },
   { code: 'STORAGE', label: 'STORAGE' },
   { code: 'OS', label: 'OS' },
