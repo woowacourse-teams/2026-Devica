@@ -1,4 +1,4 @@
-package com.wrb.devica.common.config;
+package com.wrb.devica.recommendation.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

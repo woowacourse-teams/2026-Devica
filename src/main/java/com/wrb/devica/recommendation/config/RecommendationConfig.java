@@ -1,4 +1,4 @@
-package com.wrb.devica.common.config;
+package com.wrb.devica.recommendation.config;
 
 import com.wrb.devica.purpose.domain.UsagePurposeCode;
 import com.wrb.devica.recommendation.domain.LaptopCondition;
@@ -9,8 +9,6 @@ import com.wrb.devica.recommendation.domain.RetiredCodes;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.time.Clock;
-import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.Map;
@@ -25,11 +23,6 @@ public class RecommendationConfig {
 
     private static final String PURPOSE_PATH = "recommendation/purposes/%s.yml";
     private static final String RETIRED_PATH = "recommendation/purposes/%s.retired.yml";
-
-    @Bean
-    public Clock clock() {
-        return Clock.system(ZoneId.of("Asia/Seoul"));
-    }
 
     @Bean
     public RecommendationDefinitions recommendationDefinitions() {
