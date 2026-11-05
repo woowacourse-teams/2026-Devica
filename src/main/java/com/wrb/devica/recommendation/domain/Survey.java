@@ -59,7 +59,12 @@ public record Survey(List<Step> steps, RetiredCodes retired, String version) {
         }
         RetiredCode line = retiredLine(question.code(), option, today)
             .orElseThrow(() -> new BusinessException(BusinessErrorCode.ANSWER_NOT_ALLOWED));
-        return line.drop() ? Optional.empty() : Optional.of(line.to());
+
+        if (line.drop()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(line.to());
     }
 
     public boolean dropsInvalid(String questionCode, LocalDate today) {
@@ -76,7 +81,7 @@ public record Survey(List<Step> steps, RetiredCodes retired, String version) {
         return retired.activeOn(today)
             .filter(line -> !line.dropInvalid())
             .filter(line -> line.question().equals(question))
-            .filter(line -> option == null ? line.isQuestionLine() : option.equals(line.option()))
+            .filter(line -> line.isFor(option))
             .findFirst();
     }
 }

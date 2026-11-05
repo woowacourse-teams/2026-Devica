@@ -20,12 +20,21 @@ public record RetiredCodes(Integer keepMonths, List<RetiredCode> codes) {
         .build();
 
     public RetiredCodes {
-        codes = codes == null ? List.of() : List.copyOf(codes);
+        if (codes == null) {
+            codes = List.of();
+        }
+
+        codes = List.copyOf(codes);
     }
 
     public static RetiredCodes read(InputStream input) {
         Object yaml = new Yaml(new DatesAsText()).load(input);
-        return yaml == null ? NONE : MAPPER.convertValue(yaml, RetiredCodes.class);
+
+        if (yaml == null) {
+            return NONE;
+        }
+
+        return MAPPER.convertValue(yaml, RetiredCodes.class);
     }
 
     public Stream<RetiredCode> activeOn(LocalDate today) {

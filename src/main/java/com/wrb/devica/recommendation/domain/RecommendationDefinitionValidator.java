@@ -44,7 +44,7 @@ record RecommendationDefinitionValidator(Set<String> requirements, Map<String, S
         }
 
         for (RetiredCode line : retired) {
-            String where = "지운 코드 " + line.question() + (line.isOptionLine() ? "." + line.option() : "");
+            String where = line.where();
 
             if (line.retiredAt() == null) {
                 errors.add(where + ": retiredAt 이 없습니다");
