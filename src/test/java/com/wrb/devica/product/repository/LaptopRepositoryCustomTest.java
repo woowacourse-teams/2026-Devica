@@ -75,7 +75,7 @@ class LaptopRepositoryCustomTest {
     void setUpCategory() {
         category = productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP));
         cpu = saveCpu();
-        gpu = saveGpu(GpuTier.MID.getMinScore());
+        gpu = saveGpu(GpuTier.XX50.getMinScore());
     }
 
     @Test
@@ -123,13 +123,13 @@ class LaptopRepositoryCustomTest {
     @Test
     void GPU_등급을_지정할_때_조회하면_그_등급의_최소_점수_이상만_반환한다() {
         // given
-        int minScore = GpuTier.HIGH.getMinScore();
+        int minScore = GpuTier.XX60.getMinScore();
         onSaleLaptop(laptop().name("낮음"), cpu, saveGpu(minScore - 1), DEFAULT_PRICE);
         onSaleLaptop(laptop().name("같음"), cpu, saveGpu(minScore), DEFAULT_PRICE);
         onSaleLaptop(laptop().name("높음"), cpu, saveGpu(minScore + 1), DEFAULT_PRICE);
 
         // when
-        Slice<ProductSummaryRow> found = findLaptops(condition().gpuTier(GpuTier.HIGH).build());
+        Slice<ProductSummaryRow> found = findLaptops(condition().gpuTier(GpuTier.XX60).build());
 
         // then
         assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("같음", "높음");
@@ -138,13 +138,13 @@ class LaptopRepositoryCustomTest {
     @Test
     void 가장_낮은_화면_색_영역과_GPU_등급은_조건으로_보지_않는다() {
         // given
-        int lowestMinScore = GpuTier.ENTRY.getMinScore();
+        int lowestMinScore = GpuTier.INTEGRATED.getMinScore();
         onSaleLaptop(laptop().name("넓음").colorGamut(ColorGamut.WIDE), cpu, saveGpu(lowestMinScore), DEFAULT_PRICE);
         onSaleLaptop(laptop().name("모름"), cpu, saveGpu(lowestMinScore - 1), DEFAULT_PRICE);
 
         // when
         Slice<ProductSummaryRow> found = findLaptops(
-            condition().colorGamut(ColorGamut.STANDARD).gpuTier(GpuTier.ENTRY).build());
+            condition().colorGamut(ColorGamut.STANDARD).gpuTier(GpuTier.INTEGRATED).build());
 
         // then
         assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("넓음", "모름");
@@ -492,12 +492,12 @@ class LaptopRepositoryCustomTest {
     @Test
     void GPU_등급을_지정해_최저가를_조회하면_그_등급_이상_노트북의_최저가를_반환한다() {
         // given
-        int minScore = GpuTier.HIGH.getMinScore();
+        int minScore = GpuTier.XX60.getMinScore();
         onSaleLaptop(laptop().name("등급_미달"), cpu, saveGpu(minScore - 1), 500_000L);
         onSaleLaptop(laptop().name("맞음"), cpu, saveGpu(minScore), 1_500_000L);
 
         // when
-        Long minPrice = findMinPrice(condition().gpuTier(GpuTier.HIGH).build());
+        Long minPrice = findMinPrice(condition().gpuTier(GpuTier.XX60).build());
 
         // then
         assertThat(minPrice).isEqualTo(1_500_000L);

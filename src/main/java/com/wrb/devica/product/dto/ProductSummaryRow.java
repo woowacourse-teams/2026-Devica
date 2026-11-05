@@ -16,8 +16,8 @@ public record ProductSummaryRow(
 
     @QueryProjection
     public ProductSummaryRow(Long id, String brand, String name, String imageKey, Long minPrice,
-                             Os os, String cpuName, int memoryGb, int storageGb) {
+                             Os os, String cpuName, String gpuName, int memoryGb, int storageGb) {
         this(id, brand, name, imageKey, minPrice,
-            SpecItemResponse.from(Laptop.summarySpecValues(os, cpuName, memoryGb, storageGb)));
+            SpecItemResponse.from(Laptop.summarySpecValues(os, cpuName, gpuName, memoryGb, storageGb)));
     }
 }
