@@ -5,6 +5,7 @@ from snapshot import *  # noqa: F401,F403
 from snapshot import COMMANDS, FEEDBACK_PREFIX, case_id, case_names, json, row, snapshot_lines, sys
 import common as C
 import copy
+from common import EMPTY, TRUE, Impossible, rewrite
 
 #   survey.py next           COMMENTS OUT                       산출물 댓글(JSON 줄, 이슈마다 {issue, id, created_at, html_url, body})에서
 #                                                               결과가 없는 가장 오래된 지시. 그 data 를 OUT 에 쓴다. {target, invalid}
@@ -27,11 +28,6 @@ RETIRING_KINDS = ('MERGE_OPTION', 'REPLACE_OPTION', 'REPLACE_QUESTION', 'DELETE_
 FIXED_QUESTIONS = ('CURRENT_OS', 'CURRENT_MAC_CPU', 'CURRENT_WINDOWS_CPU')  # 화면이 전제하는 현재 사양 질문
 MAX_STEPS = 12
 RETIRED_KEYS = ('question', 'option', 'to', 'drop', 'dropInvalid', 'was', 'retiredAt')
-EMPTY, TRUE = 'EMPTY', 'TRUE'  # 코드를 빼서 늘 거짓·늘 참이 된 조건
-
-
-class Impossible(Exception):
-    pass
 
 
 def marker_name(body):
@@ -186,47 +182,6 @@ def drops_invalid(f, t):
     # 여러 개 고르기를 하나 고르기로 바꾸거나 배타 선택지를 새로 두면 옛 답이 지금 규칙에 맞지 않을 수 있다
     multi_to_single = (f.get('input') or 'SINGLE') == 'MULTI' and (t.get('input') or 'SINGLE') == 'SINGLE'
     return multi_to_single or bool(t.get('exclusive')) and t.get('exclusive') != f.get('exclusive')
-
-
-def basis_errors(d, ins):
-    kind, q, o, basis = ins['kind'], ins['target']['question'], ins['target'].get('option'), ins['basis']
-    unused_removal = (kind == 'DELETE_QUESTION' and not used(d, q)
-                      or kind in ('DELETE_OPTION', 'MERGE_OPTION') and not used(d, q, o))
-    if basis == 'METRIC':
-        description_only = kind == 'REWORD' and without(ins['from'], 'description') == without(ins['to'], 'description')
-        allowed = description_only or kind == 'DELETE_QUESTION' and unused_removal
-    elif basis == 'USER_AND_METRIC':
-        # 위험이 낮은 변경부터 쓰이지 않는 코드의 삭제·합치기까지
-        allowed = kind in ('REWORD', 'MOVE_QUESTION', 'ADD_OPTION', 'ADD_QUESTION', 'RESTORE') or unused_removal
-    else:
-        allowed = True
-    return [] if allowed else [f'근거 {basis} 로는 할 수 없는 {kind} 다']
-
-
-def rewrite(c, qmap, omap):
-    # 지운 코드는 조건에서 빼고, 새 코드로 옮긴 코드만 바꿔 쓴다. 빠져서 늘 거짓이면 EMPTY, not 이 늘 참이 되면 TRUE
-    if 'question' in c:
-        q = c['question']
-        if q in qmap and qmap[q] is None:
-            return EMPTY
-        opts = []
-        for o in c['anyOf']:
-            opts += [n for n in omap.get((q, o), [o]) if n not in opts]
-        return {'question': qmap.get(q, q), 'anyOf': opts} if opts else EMPTY
-    if 'not' in c:
-        x = rewrite(c['not'], qmap, omap)
-        return TRUE if x == EMPTY else EMPTY if x == TRUE else {'not': x}
-    k = 'all' if 'all' in c else 'any'
-    xs = [rewrite(x, qmap, omap) for x in c[k]]
-    if k == 'all':
-        if EMPTY in xs:
-            return EMPTY
-        xs = [x for x in xs if x != TRUE]
-        return {'all': xs} if xs else TRUE
-    if TRUE in xs:
-        raise Impossible('any 안의 not 이 늘 참이 된다')
-    xs = [x for x in xs if x != EMPTY]
-    return {'any': xs} if xs else EMPTY
 
 
 def code_maps(ins):
@@ -409,7 +364,7 @@ def screen(d, code):
 def plan(d, lines, history, ins, on):
     errs = shape_errors(d, ins)
     if not errs:
-        errs = retire_errors(ins) + basis_errors(d, ins) + forbidden_errors(d, ins)
+        errs = retire_errors(ins) + forbidden_errors(d, ins)
     if errs:
         return {'ok': False, 'errors': errs}
     try:
@@ -452,22 +407,17 @@ def retired_yaml(lines):
 
 def rewrite_named(path, d, lines, on):
     # 이름 있는 사례의 답을 서버가 읽는 지금 코드로 고쳐 쓴다. 응답은 UPDATE_SNAPSHOT 이 채운다
-    qs = questions_of(d)
-    convertible = [l for l in lines if not C.expired(l, on) and not l.get('dropInvalid')]
     raw = C.read(path).rstrip('\n').split('\n')
     out = []
     for i in range(1, len(raw) - 1):
         c = json.loads(raw[i].strip().rstrip(','))
         if not c.get('name'):
             continue
-        r = C.convert(d, lines, c['answers'], on)
+        r = C.reread(d, lines, c['answers'], on)
         if not r['outdated']:
             continue
-        image = [C.current_code(qs, convertible, q, o) for q in c['answers'] for o in c['answers'][q]]
-        got = {(q, o) for q, os_ in r['answers'].items() for o in os_}
         new = {k: r['answers'][k] for k in sorted(r['answers'])}
-        out.append({'name': c['name'], 'before': c['answers'], 'after': new,
-                    'dropped': None in image or got != set(image)})
+        out.append({'name': c['name'], 'before': c['answers'], 'after': new, 'dropped': r['dropped']})
         c['answers'] = new
         raw[i] = '  ' + json.dumps(c, ensure_ascii=False, separators=(',', ':')) + (',' if raw[i].endswith(',') else '')
     with open(path, 'w', encoding='utf-8') as f:

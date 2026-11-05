@@ -18,11 +18,6 @@ properties:
     minItems: 1
     items: { type: integer }
 
-  # 근거 중 PR 이 머지돼도 닫지 않을 이슈. 규칙 쪽 지적이 남은 넘겨받은 결과 의견이다(넘김의 rule_left 가 있음)
-  related:
-    type: array
-    items: { type: integer }
-
   # 근거의 종류. 종류마다 허용되는 근거는 ../components/feedback-analyzer.md 의 지시 조건에 있다
   #   USER             사용자 의견만 있다
   #   USER_AND_METRIC  사용자 의견과 설문 지표 피드백이 있다

@@ -247,7 +247,7 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
 python3 "$ST/survey.py" survey-check <BASE> <purpose> "$ST/instruction.json" "$ST/plan.json"
 ```
 
-`ok` 가 거짓이면 `errors` 를 이어 사유로 PR 을 올리지 않는다. 이 명령이 형식, `from` 과 지금 정의서, `from`→`to` 차이와 `kind`, `retire` 와 종류별 표, `basis`, 하지 않는 변경, 참조 정리, 지운 코드 재사용(`<RETIRED>` 의 이력 전체)을 본다. 참이면 고칠 내용을 `$ST/plan.json` 에 쓰고 요약을 보인다.
+`ok` 가 거짓이면 `errors` 를 이어 사유로 PR 을 올리지 않는다. 이 명령이 형식, `from` 과 지금 정의서, `from`→`to` 차이와 `kind`, `retire` 와 종류별 표, 하지 않는 변경, 참조 정리, 지운 코드 재사용(`<RETIRED>` 의 이력 전체)을 본다. 참이면 고칠 내용을 `$ST/plan.json` 에 쓰고 요약을 보인다.
 
 - `effects`: 참조 정리와 `reasons` 로 바뀌는 규칙·매핑·안내·노출 조건. `after` 가 `null` 이면 지운다.
 - `retired_changes`: 지운 코드 목록에 더할 줄(`added`), 고쳐 쓸 줄(`rewritten`), 되살려 지울 줄(`removed`), 함께 지울 기한 지난 줄(`expired`). 날짜는 `today`(서울)다.
@@ -337,7 +337,6 @@ python3 "$ST/survey.py" survey-verify "$ST/plan.json" "$WT/<DEF>"
    ## 이슈 번호
 
    Closes #<issue>
-   Related to #<related 의 issue>
 
    ## 체크 리스트
 
@@ -387,7 +386,7 @@ python3 "$ST/survey.py" survey-verify "$ST/plan.json" "$WT/<DEF>"
    - **배포되지 않은 변경**: <목록과 "운영 사용자가 겪을 변화는 위 결과 변화와 다를 수 있습니다", 또는 "없음">
    - 무작위 사례를 다시 뽑은 커밋은 검토하지 않아도 됩니다. <S5-1 을 건너뛰었으면 이 줄을 뺀다>
    ```
-   `Related to` 는 `related` 가 있을 때만, `Closes` 는 `issues` 중 `related` 에 없는 것마다 둔다. `지표 표시` 항목은 `basis` 가 `METRIC` 이나 `USER_AND_METRIC` 일 때만 둔다.
+   `Closes` 는 `issues` 마다 둔다. `지표 표시` 항목은 `basis` 가 `METRIC` 이나 `USER_AND_METRIC` 일 때만 둔다.
 3. **push 와 PR.** 6-4 와 같고, 제목은 `[FIX] 제품 추천 설문 <target.question> <label> (피드백 #<ISSUE>)` 다.
 
 ## 7. 개선 결과 남기기

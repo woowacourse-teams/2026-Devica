@@ -8,10 +8,11 @@
 |---|---|---|
 | GitHub 레포 | `GH_REPO` | `woowacourse-teams/2026-Devica` |
 | 피드백 라벨 | | `product-recommendation-feedback` |
+| 설문 피드백 라벨 | | `product-recommendation-survey-feedback` |
 | PostHog 프로젝트 | | `638813` |
 | 운영 제품 추천 API | | `https://api.devica.co.kr` |
 | 결과 화면 주소 | | `https://devica.co.kr/result` |
-| 상태 디렉터리 | `ST` | `$HOME/.devica-product-recommendation/metric-collector`. `SELF_REF` 에서 복사한 스크립트와 스키마 3개(`analysis-result`, `improvement-instruction`, `improvement-result`)가 있다 |
+| 상태 디렉터리 | `ST` | `$HOME/.devica-product-recommendation/metric-collector`. `SELF_REF` 에서 복사한 스크립트(`signals.py`, `common.py`, 설문 쪽 "쓰인다"를 Improver 와 같게 보려는 `snapshot.py`·`survey.py`)와 스키마가 있다 |
 | 레포 clone | `REPO` | `$ST/repo`. 이 구성 요소만 쓴다. `git fetch` 는 끝났다 |
 | 지시문·스크립트 ref | `SELF_REF` | `run.sh` 가 넘긴다. 기본은 `origin/develop` |
 | 실행 기록 | `RUN` | `$ST/runs/<UTC 시각>.md`. 단계마다 무엇을 보고 무엇을 했는지 이어 적는다 |
@@ -38,6 +39,7 @@
 **기준값.** `git -C "$REPO" show "${SELF_REF}:recommendation-improvement/interface/components/metric-collector.md"` 의 "기준값" 표에서 읽는다.
 - `조회 기간`: `최근 N주` 면 `DAYS = N × 7`, `최근 N일` 이면 `DAYS = N`. 다른 모양이면 멈춘다.
 - `신호 최소 건수`: 1 이상의 정수면 `MIN`. 그 밖(`(정하지 않음)`, 빈칸 등)이면 `MIN` 은 비어 있다.
+- `설문 조회 기간`: `조회 기간` 과 같이 읽어 `SDAYS`. 다른 모양이면 5 를 건너뛴다. 설문 신호의 나머지 기준값은 스크립트가 같은 표에서 읽는다.
 
 ## 1. 신호 모으기
 
@@ -47,7 +49,7 @@ PostHog 커넥터로 `call project-get {}` 를 실행해 `id` 가 `638813` 인�
 
 ### 1-2. 결과 화면 조회 가져오기
 
-커넥터의 `execute-sql` 을 `call --json execute-sql {"query": "..."}` 로 부른다. `{DAYS}` 는 0. 준비의 기준값에서 읽은 `DAYS`, `{DAYS1}` 은 그보다 1 큰 값이다.
+커넥터의 `execute-sql` 을 `call --json execute-sql {"truncate": false, "query": "..."}` 로 부른다. `truncate` 를 빼면 긴 칸이 500자에서 잘린다. 결과가 커서 커넥터가 파일로 저장했으면 그 파일을 읽는다. `{DAYS}` 는 0. 준비의 기준값에서 읽은 `DAYS`, `{DAYS1}` 은 그보다 1 큰 값이다.
 
 ```sql
 SELECT views
@@ -139,6 +141,7 @@ python3 "$ST/signals.py" signals "$ST/tmp/sessions.json" https://api.devica.co.k
 - `origin/main` 과 `origin/develop` 정의서에서 다른 규칙(배포를 기다리는 규칙)에 세션이 본 답 조합 하나라도 걸리면 버린다. `origin/main` 에 정의서가 없으면 정의서 전체가 배포를 기다리는 것으로 보고 버린다.
 - 조회 기간 안에 `origin/main` 에서 바뀐 규칙에 걸리고, 그 커밋 시각(배포 시점으로 본다)보다 먼저 시작한 세션은 버린다.
 - 점수 해석 규칙(`interpretation`)이 `origin/main` 과 `origin/develop` 에서 다르면 그 사용 목적의 세션을 모두 버리고, 조회 기간 안에 `origin/main` 에서 바뀌었으면 그 커밋 시각보다 먼저 시작한 세션을 버린다. 한쪽에만 있으면 바뀐 것으로 보지 않는다.
+- 설문의 뜻(기존 질문의 선택지가 빠지거나 질문이 빠짐, `input`·`exclusive`·`showWhen`)도 점수 해석 규칙과 같이 거른다. 질문·선택지를 더하기만 했거나 문구만 바꾼 것, 지운 코드 목록만 바뀐 것은 바뀐 것으로 보지 않는다.
 - 처음·마지막 답 조합의 운영 결과를 다시 받아 권장안이 같으면 항목별로 비교한다. 마지막 결과에서 내려간 항목은 처음 결과가 "과해요"(DOWN), 올라간 항목은 "부족해요"(UP)로 추정한다. 바뀐 항목이 없거나 여러 항목이 반대로 바뀌었거나 권장안이 달라졌으면(`PREFERRED_OS` 만 바꾼 경우) 버린다. 생각하는 노트북을 정하지 않은 세션은 두 권장안을 함께 보고, 두 권장안에서 같은 방향이면 `둘 다` 로 묶는다.
 - 바꾼 답은 처음 답 조합에만 있는 선택지와 마지막 답 조합에만 있는 선택지다. 예: `SLOWDOWN: OFTEN → FINE`.
 - 사용 목적·권장안·항목·방향이 같은 신호를 묶고, 묶음마다 제목·본문([feedback.md](../interface/artifacts/feedback.md) 형식)을 만든다. 처음 답 조합마다(같은 답 조합이라도 바꾼 답이 다르면 따로) 주소 한 줄을 건수가 많은 것부터 적는다. 주소는 처음 본 결과의 `category`, `purpose`, `answer` 로만 새로 만든다. 바꾼 답은 `주소 N:` 을 붙여 주소마다 적는다. 맞지 않은 점은 추정한 항목·방향에 맞는 선택지 하나(예: `메모리가 과해요`), 근거 지표는 기간·"답을 바꿔 다시 본 세션"·건수·주소별 건수와 항목·방향이 추정임을 밝히는 문장이다.
@@ -149,7 +152,7 @@ python3 "$ST/signals.py" signals "$ST/tmp/sessions.json" https://api.devica.co.k
 
 `signals.json` 의 `groups`(키, 건수, 주소 수), `dropped`(버린 이유별 건수), `incomplete` 를 실행 기록에 옮긴다.
 
-**`MIN` 이 비어 있으면 여기서 끝낸다.** 실행 기록에 "기준값이 정해지지 않아 피드백을 만들지 않았다"를 적는다.
+**`MIN` 이 비어 있으면 2~4 를 건너뛰고 5 로 간다.** 실행 기록에 "기준값이 정해지지 않아 피드백을 만들지 않았다"를 적는다.
 
 ## 2. 지표 피드백 읽기
 
@@ -198,7 +201,7 @@ python3 "$ST/signals.py" issue "$ST/tmp/issue-<번호>.md"
      --jq '.[] | {id, created_at, author_association, body}'
    ```
    팀원 댓글 중 첫 줄이 `<!-- product-recommendation:decision -->` 인 것이 개선 지시, `<!-- product-recommendation:result -->` 인 것이 개선 결과다. 댓글 본문을 파일로 써서 `python3 "$ST/signals.py" block <파일>` 로 yaml 블록을 읽는다. `errors` 가 비어 있지 않으면 그 댓글은 산출물로 보지 않고 기록에 적는다. 개선 결과는 같은 이슈에서 그보다 앞선 개선 지시 중 가장 최근 것의 결과다(순서는 `created_at`, 같으면 `id`). 열린 피드백 이슈 전체의 개선 지시 중 `issues` 에 이 이슈 번호가 있는 것이 하나라도, 개선 결과가 없거나 결과가 `PR_OPENED` 인데 그 PR 이 열려 있으면(`gh pr view <pr> --repo "$GH_REPO" --json state`) 처리 중이다. 개선 지시는 근거 피드백 중 번호가 가장 작은 이슈에만 달려, 다른 근거 피드백의 댓글에는 없기 때문이다.
-2. **세션에 걸린 규칙이 배포를 기다리면 열어 둔다.** `pending` 이 비어 있지 않다.
+2. **세션에 걸린 규칙이 배포를 기다리면 열어 둔다.** `pending` 이 비어 있지 않다. 점수 해석 규칙이 배포를 기다리면 `interpretation`, 설문의 뜻이 바뀐 정의서가 배포를 기다리면 `survey` 가 들어 있다.
 3. **`signals.json` 의 `incomplete` 가 참이면 열어 둔다.** 운영 서버 오류로 세지 못한 세션이 있어 건수가 실제보다 적을 수 있다. 사용자의 문제가 풀린 것이 아니라 응답을 받지 못한 것이므로 닫지 않고 다음 실행에서 다시 센다.
 4. **지금 건수를 센다.** `c` = `signals.json` 에서 `key` 가 같은 묶음의 `count`(없으면 0). `c ≥ MIN` 이면 열어 둔다.
 5. `c < MIN` 이면 댓글을 남기고 닫는다.
@@ -210,6 +213,101 @@ python3 "$ST/signals.py" issue "$ST/tmp/issue-<번호>.md"
    gh issue close <번호> --repo "$GH_REPO" --reason "not planned"
    ```
 
-## 5. 마치기
+## 5. 설문 신호
 
-실행 기록에 만든 이슈, 열어 둔 이슈와 이유, 닫은 이슈와 건수를 적는다. 임시 파일은 `run.sh` 가 지운다. 잠금은 `run.sh` 가 푼다.
+설문 지표 피드백 하나는 한 화면의 한 신호다. 만들기·닫기·처리 중이면 세지 않기는 2~4 와 같고, 신호 최소 건수 대신 명세의 설문 기준값을 쓴다. `SDAYS` 가 비어 있으면 이 단계를 건너뛰고 기록한다.
+
+### 5-1. 질문 화면 이동 가져오기
+
+1-2 와 같은 방법으로 아래 쿼리를 부른다. `{SDAYS1}` 은 `SDAYS` 보다 1 큰 값이다. 질문 화면과 결과 화면의 `$pageview` 만 읽고, 질문 화면을 한 번이라도 본 세션만 남긴다.
+
+```sql
+SELECT views
+FROM (
+  SELECT
+    properties.$session_id AS session,
+    min(timestamp) AS first_at,
+    groupArray(tuple(
+      toUnixTimestamp(timestamp),
+      event,
+      extract(properties.$current_url, '^https://[^/]+(/[^?#]*)'),
+      extract(properties.$current_url, '[?&]purpose=([^&#]+)'),
+      extract(properties.$current_url, '[?&]category=([^&#]+)'),
+      arrayStringConcat(arraySort(extractAll(properties.$current_url, '[?&]answer=([^&#]+)')), '&')
+    )) AS views,
+    countIf(match(properties.$current_url, '^https://[^/]+/questions/')) AS question_views
+  FROM events
+  WHERE event = '$pageview'
+    AND timestamp >= now() - INTERVAL {SDAYS1} DAY
+    AND timestamp < now()
+    AND match(properties.$current_url, '^https://(www[.])?devica[.]co[.]kr/(questions/[0-9]+|result)([?#]|$)')
+    AND notEmpty(coalesce(properties.$session_id, ''))
+  GROUP BY session
+)
+WHERE question_views > 0
+ORDER BY first_at
+LIMIT 500 OFFSET 0
+```
+
+500행이면 1-2 와 같이 `OFFSET` 을 늘려 끝까지 읽고, 실패하면 1-2 와 같이 한 번 고쳐 다시 시도한다. 모든 행의 `views` 값을 하나의 JSON 배열로 `$ST/tmp/pageviews.json` 에 쓴다.
+
+### 5-2. 설문 신호 계산
+
+```bash
+python3 "$ST/signals.py" survey "$ST/tmp/pageviews.json" <SELF_REF> > "$ST/survey.json"
+```
+
+`<SELF_REF>` 에는 설정 표의 값을 적는다. 스크립트가 그 ref 의 명세에서 설문 기준값을 읽고 명세의 "설문 신호"를 그대로 계산한다.
+
+- 사용 목적마다 세션의 첫 질문 화면부터 첫 결과 화면 앞까지의 화면 이동을 쓴다. 잇단 같은 화면은 하나로 본다.
+- 첫 질문 화면을 본 시각의 `origin/main` 정의서로 화면 목록을 다시 만든다. 결과까지 간 세션은 결과 주소의 답으로 노출 조건을 풀고, 그만둔 세션은 노출 조건과 상관없이 정해지는 앞쪽 화면까지만 쓴다. 현재 사양 화면은 세지 않는다.
+- 그때 `origin/main` 에 정의서가 없었거나, 정의서 커밋 뒤 30분 안(배포 중)에 시작했거나, 도중에 정의서가 바뀐 세션은 버린다. 결과까지 갔는데 화면 번호가 화면 수를 넘는 세션도 버린다.
+- 세션이 본 화면이 지금 `origin/main` 의 그 화면(첫 질문 코드가 같은 단계)과 다르면 그 화면에서는 세지 않는다.
+- 체류는 다음 화면이나 결과로 가기까지의 시간이고, 화면마다 세션당 처음 한 번만 쓴다. 질문이 여럿인 화면은 체류 중앙값을 질문 수로 나눠 단일 질문 화면들과 견준다. 이탈은 그 화면을 마지막으로 결과를 보지 않은 세션이다. 이탈률은 노출 조건과 상관없이 정해지는 앞쪽 화면에서만, 첫 화면을 빼고 낸다.
+- 쓰이지 않는 질문은 `origin/main` 정의서의 규칙·매핑·안내 조건과 노출 조건 어디에도 없는 질문이고, 그렇게 된 커밋부터 쓰이지 않은 기간이 지난 것이다. `survey.py` 의 판단을 그대로 쓴다.
+- `pending` 은 그 화면(쓰이지 않는 질문이면 그 질문)이 `origin/develop` 에서 다르거나 develop 에서 쓰이는 것이다.
+
+`thresholds` 가 `null` 이면 기준값이 정해지지 않은 것이다. 실행 기록에 적고 5-3~5-5 를 건너뛴다. 아니면 `screens`(사용 목적, 화면 번호, 첫 질문 코드, 질문 수, 세션 수, 체류 중앙값, 이탈 수, `pending`), `groups`(키, `pending`), `dropped` 를 실행 기록에 옮긴다.
+
+### 5-3. 설문 지표 피드백 읽기
+
+2 와 같이 읽되 라벨은 `product-recommendation-survey-feedback`, `<SINCE>` 는 `survey.json` 의 `period` 시작일이다. 제목이 `[제품 추천 설문 지표]` 로 시작하고 작성자가 팀원인 이슈가 Metric Collector 의 설문 지표 피드백이다. 이슈마다 본문을 파일로 써서 키를 만든다.
+
+```bash
+python3 "$ST/signals.py" survey-issue "$ST/tmp/issue-<번호>.md"
+```
+
+결과의 `key` 가 신호 키, `pending` 이 그 화면이 배포를 기다리는지다.
+
+### 5-4. 설문 지표 피드백 만들기
+
+`survey.json` 의 묶음 중 `pending` 이 거짓인 것마다 3 과 같이 한다. 다른 점은 아래뿐이다.
+
+- 열린 피드백의 본문은 바꾸지 않는다.
+- 수집기가 닫은 것은 마지막 팀원 댓글이 5-5 의 닫는 문구(`… 기준값에 닿지 않아 닫습니다`)인 것이다. 설문 개선 PR 머지로 닫힌 것도 3 과 같이 만든다.
+- 만들 때 라벨은 `product-recommendation-survey-feedback` 이다.
+  ```bash
+  gh issue create --repo "$GH_REPO" --title "<title>" --body-file "$ST/tmp/new-body.md" --label product-recommendation-survey-feedback
+  ```
+
+`pending` 이 참인 묶음은 만들지 않고 "설문 변경 배포 대기"로 기록한다.
+
+### 5-5. 열린 설문 지표 피드백 다시 세기
+
+5-3 의 열린 이슈마다(이번 실행에서 만든 것은 빼고) 위에서부터 처음 맞는 것을 한다.
+
+1. **그 피드백을 근거로 한 설문 개선 지시가 처리 중이면 열어 둔다.** 4-1 과 같이 보되, 설문 개선 지시는 첫 줄이 `<!-- product-recommendation:survey-decision -->`, 설문 개선 결과는 `<!-- product-recommendation:survey-result -->` 인 팀원 댓글이다. 열린 설문 피드백 이슈 전체의 설문 개선 지시를 본다.
+2. **`pending` 이 참이면 열어 둔다.**
+3. **`survey.json` 의 `groups` 에 `key` 가 같은 묶음이 있으면 열어 둔다.**
+4. 그 밖은 댓글을 남기고 닫는다. 체류·이탈 신호는 `screens` 에서 그 화면의 지금 값을, 쓰이지 않는 질문은 지금 쓰이는지(또는 질문이 없어졌는지)를 적는다.
+   ```markdown
+   설문 조회 기간(<survey.json 의 period>)에 <신호>가 기준값에 닿지 않아 닫습니다. <지금 값>
+   ```
+   ```bash
+   gh issue comment <번호> --repo "$GH_REPO" --body-file "$ST/tmp/close-comment.md"
+   gh issue close <번호> --repo "$GH_REPO" --reason "not planned"
+   ```
+
+## 6. 마치기
+
+실행 기록에 만든 이슈, 열어 둔 이슈와 이유, 닫은 이슈와 건수를 결과 피드백과 설문 피드백으로 나눠 적는다. 임시 파일은 `run.sh` 가 지운다. 잠금은 `run.sh` 가 푼다.
