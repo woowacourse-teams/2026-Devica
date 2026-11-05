@@ -287,6 +287,9 @@ class RecommendationDefinitionValidatorTest {
               - { question: HEAT, option: RARELY, drop: true, retiredAt: 2026-11-05 }
               - { question: NOT_NOW, option: X, drop: true, retiredAt: 2026-11-05 }
               - { question: NOT_NOW, dropInvalid: true, retiredAt: 2026-11-05 }
+              - { question: HEAT, dropInvalid: true, drop: true, retiredAt: 2026-11-05 }
+              - { question: NEITHER, retiredAt: 2026-11-05 }
+              - { question: NO_DATE, drop: true }
             """);
 
         // when
@@ -303,29 +306,9 @@ class RecommendationDefinitionValidatorTest {
             "지운 코드 HEAT.RARELY: to 가 지금 선택지가 아닙니다: SOMETIMES",
             "지운 코드 HEAT.RARELY: 같은 코드의 줄이 겹칩니다",
             "지운 코드 NOT_NOW.X: 지금 질문이 아닙니다",
-            "지운 코드 NOT_NOW: 지금 질문이 아닙니다");
-    }
-
-    @Test
-    void 지운_코드_줄에_지운_날짜가_없으면_오류를_낸다() {
-        // given
-        RecommendationDefinitionValidator validator = new RecommendationDefinitionValidator(Set.of(), Map.of());
-        RecommendationDefinition definition = read("""
-            survey:
-              steps:
-                - questions:
-                    - { code: HEAT_FELT, options: [ { code: OFTEN }, { code: NEVER } ] }
-            rules: []
-            mappings: []
-            """, """
-            codes:
-              - { question: HEAT, to: HEAT_FELT }
-            """);
-
-        // when
-        List<String> errors = validator.validate(definition);
-
-        // then
-        assertThat(errors).containsExactly("지운 코드 HEAT: retiredAt 이 없습니다");
+            "지운 코드 NOT_NOW: 지금 질문이 아닙니다",
+            "지운 코드 HEAT: dropInvalid 줄에는 다른 값을 쓰지 않습니다",
+            "지운 코드 NEITHER: to 와 drop 중 하나만 씁니다",
+            "지운 코드 NO_DATE: retiredAt 이 없습니다");
     }
 }
