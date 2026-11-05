@@ -74,12 +74,12 @@ BEGIN
 
     -- 등급 점수 기준은 CpuTier.java의 minScore와 같아야 한다. 한쪽을 고치면 함께 고친다.
     -- 등급마다 그 점수 이상인 CPU가 있어야 목록 API의 CPU 필터가 0건을 내지 않는다.
+    -- MAX는 등록된 M Max 칩 CPU가 없고 추천이 PRO로 제한해 측정하지 않으므로 확인에서 뺀다.
     SELECT GROUP_CONCAT(tiers.tier ORDER BY tiers.os, tiers.min_score)
     INTO v_missing_tiers
     FROM (
         SELECT 'MAC' AS os, 'BASIC' AS tier, 20000 AS min_score
         UNION ALL SELECT 'MAC', 'PRO', 30000
-        UNION ALL SELECT 'MAC', 'MAX', 45000
         UNION ALL SELECT 'WINDOWS', 'U', 15000
         UNION ALL SELECT 'WINDOWS', 'P_HS', 20000
         UNION ALL SELECT 'WINDOWS', 'H', 24000
