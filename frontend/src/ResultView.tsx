@@ -95,9 +95,7 @@ export function ResultView({
 
       {onReanswer !== undefined && (
         <div className="result-outdated" role="status">
-          <p className="notice">
-            질문이 바뀌기 전의 결과 링크예요. 지금 질문에 맞춰 읽어서 처음 본 결과와 다를 수 있어요.
-          </p>
+          <p className="notice">질문이 바뀌어 지금 질문에 맞춰 다시 읽었어요. 처음 본 결과와 다를 수 있어요.</p>
           <button className="button button--secondary" type="button" onClick={onReanswer}>
             다시 답하기
           </button>

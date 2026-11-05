@@ -3,8 +3,12 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { QuestionView } from '../src/QuestionView';
 import type { Question, Screen } from '../src/questions';
 import { ResultView } from '../src/ResultView';
+import { fetchRecommendation } from '../src/recommendation';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 const question = (code: string, title: string, options: string[]): Question => ({
   code,
@@ -56,6 +60,47 @@ test('설문 의견 남기기는 지금 화면의 질문과 답을 채운 설문
   expect(link.getAttribute('target')).toBe('_blank');
 });
 
+test('한 화면에 질문이 여럿이면 그 화면의 질문과 답만 고른 답으로 채운다', () => {
+  const screens: Screen[] = [
+    {
+      title: '지금 쓰는 노트북',
+      description: null,
+      currentSpec: true,
+      questions: [
+        { question: question('CURRENT_CPU', '프로세서', ['MID']), label: null },
+        { question: question('CURRENT_MEMORY', '메모리', ['GB_16']), label: null },
+      ],
+    },
+  ];
+
+  render(
+    <QuestionView
+      purpose="BACKEND_DEVELOPMENT"
+      surveyVersion={null}
+      screens={screens}
+      index={0}
+      answers={{ PREFERRED_OS: ['MACOS'], CURRENT_CPU: ['MID'] }}
+      onAnswer={() => {}}
+      onPrevious={() => {}}
+      onNext={() => {}}
+    />,
+  );
+
+  const url = new URL(screen.getByRole('link', { name: '의견 남기기 ↗' }).getAttribute('href') ?? '');
+  expect(url.searchParams.get('questions')).toBe('CURRENT_CPU,CURRENT_MEMORY');
+  expect(url.searchParams.get('selected')).toBe('CURRENT_CPU.MID');
+  expect(url.searchParams.get('survey_version')).toBe('');
+});
+
+test('결과 응답에 answersOutdated 가 없으면 바꿔 읽지 않은 결과로 본다', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: true, json: async () => ({ specs: [] }) })),
+  );
+
+  expect(await fetchRecommendation('BACKEND_DEVELOPMENT')).toEqual({ specs: [], answersOutdated: false });
+});
+
 const resultView = (onReanswer?: () => void) => (
   <ResultView
     categoryCode="LAPTOP"
@@ -73,11 +118,11 @@ const resultView = (onReanswer?: () => void) => (
   />
 );
 
-test('질문이 바뀌기 전 링크의 결과는 바꿔 읽었다고 알리고 다시 답하게 한다', () => {
+test('바꿔 읽은 결과는 바꿔 읽었다고 알리고 다시 답하게 한다', () => {
   const onReanswer = vi.fn();
   render(resultView(onReanswer));
 
-  expect(screen.getByText(/질문이 바뀌기 전의 결과 링크예요/)).toBeTruthy();
+  expect(screen.getByText(/질문이 바뀌어 지금 질문에 맞춰 다시 읽었어요/)).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: '다시 답하기' }));
   expect(onReanswer).toHaveBeenCalledOnce();
 });

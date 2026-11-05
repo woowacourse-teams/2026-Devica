@@ -5,7 +5,7 @@
 # 사용자가 양식을 고르지 않도록, 결과 화면과 질문 화면의 버튼이 서로 다른 양식을 연다.
 #
 # 칸 id 를 바꾸지 않는다. 버튼의 쿼리와 제품 추천 개선 루프가 이 id 로 읽는다.
-# 필수 칸은 버튼이 채우는 사용 목적·질문과, 무엇이 문제였는지 하나뿐이다. 클릭 몇 번으로 끝낼 수 있게 하기 위해서다.
+# 필수 칸은 버튼이 채우는 사용 목적·질문과, 무엇이 문제였는지뿐이다. 클릭 몇 번으로 끝낼 수 있게 하기 위해서다.
 name: 💬 제품 추천 설문 의견
 description: 제품 추천 설문의 질문이 내 상황과 맞지 않았다면 알려 주세요.
 title: "[제품 추천 설문 의견] "
@@ -21,7 +21,7 @@ body:
     id: purpose
     attributes:
       label: 사용 목적
-      description: 질문 화면의 의견 남기기 버튼으로 오셨다면 이미 채워져 있어요.
+      description: 미리 채워진 값이에요. 그대로 두시면 어떤 질문인지 저희가 찾을 수 있어요.
     validations:
       required: true
 
@@ -29,7 +29,7 @@ body:
     id: questions
     attributes:
       label: 질문
-      description: 의견을 남긴 화면의 질문 코드예요. 버튼이 채워요.
+      description: 미리 채워진 값이에요. 그대로 두시면 어떤 질문인지 저희가 찾을 수 있어요.
     validations:
       required: true
 
@@ -37,26 +37,32 @@ body:
     id: question_title
     attributes:
       label: 질문 제목
+      description: 미리 채워진 값이에요.
 
   - type: input
     id: selected
     attributes:
       label: 이 화면에서 고른 답
+      description: 미리 채워진 값이에요.
 
   - type: input
     id: answers
     attributes:
       label: 지금까지 고른 답
+      description: 미리 채워진 값이에요.
 
   - type: input
     id: survey_version
     attributes:
       label: 설문 버전
+      description: 미리 채워진 값이에요.
 
   - type: dropdown
-    id: problem
+    id: problems
     attributes:
       label: 어떤 점이 맞지 않았나요?
+      description: 여러 개를 고를 수 있어요.
+      multiple: true
       options:
         - 무엇을 묻는지 모르겠어요
         - 제 상황에 맞는 선택지가 없어요
