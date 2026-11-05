@@ -22,7 +22,7 @@ public class LaptopRecommender {
     private static final String MEMORY_ITEM = LaptopRequirement.MEMORY.name();
     private static final String STORAGE_ITEM = LaptopRequirement.STORAGE.name();
     private static final String COLOR_GAMUT_ITEM = LaptopRequirement.COLOR_GAMUT.name();
-    private static final String GPU_ITEM = LaptopRequirement.GPU.name();
+    private static final String GPU_ITEM = LaptopRequirement.REQUIRED_GPU.name();
 
     private static final Map<CpuTier, List<Integer>> MAC_MEMORY_BY_CPU = Map.of(
         CpuTier.BASIC, List.of(16, 24, 32),
@@ -44,7 +44,7 @@ public class LaptopRecommender {
         validateMacCpuLimit(interpretation.macCpuLimit(), interpretation.memory(), errors);
 
         validateOptional(interpretation.colorGamut(), "화면 색 영역 구간", errors);
-        validateOptional(interpretation.gpu(), "GPU 구간", errors);
+        validateGpu(interpretation.gpu(), errors);
 
         return errors;
     }
@@ -55,18 +55,29 @@ public class LaptopRecommender {
             return;
         }
 
-        for (Os os : Os.values()) {
-            String where = "CPU 구간 " + os;
-            List<ScoreRange<CpuTier>> ranges = cpu.get(os);
-            ScoreRange.validate(ranges, where, errors);
+        validateByOs(cpu, CpuTier::getOs, "CPU", errors);
+    }
 
-            if (ranges != null) {
-                ranges.stream()
-                    .map(ScoreRange::value)
-                    .filter(tier -> tier != null && tier.getOs() != os)
-                    .forEach(tier -> errors.add(where + ": " + os + " 의 CPU 등급이 아닙니다: " + tier));
-            }
+    private static <T> void validateByOs(Map<Os, List<ScoreRange<T>>> rangesByOs, Function<T, Os> osOf,
+                                         String item, List<String> errors) {
+        for (Os os : Os.values()) {
+            String where = item + " 구간 " + os;
+            List<ScoreRange<T>> ranges = rangesByOs.get(os);
+            ScoreRange.validate(ranges, where, errors);
+            validateTierOs(ranges, os, osOf, item, where, errors);
         }
+    }
+
+    private static <T> void validateTierOs(List<ScoreRange<T>> ranges, Os os, Function<T, Os> osOf,
+                                           String item, String where, List<String> errors) {
+        if (ranges == null) {
+            return;
+        }
+
+        ranges.stream()
+            .map(ScoreRange::value)
+            .filter(tier -> tier != null && osOf.apply(tier) != os)
+            .forEach(tier -> errors.add(where + ": " + os + " 의 " + item + " 등급이 아닙니다: " + tier));
     }
 
     private static void validateSteps(List<ScoreRange<Integer>> ranges,
@@ -109,6 +120,14 @@ public class LaptopRecommender {
         ScoreRange.validate(ranges, where, errors);
     }
 
+    private static void validateGpu(Map<Os, List<ScoreRange<GpuTier>>> gpu, List<String> errors) {
+        if (gpu == null) {
+            return;
+        }
+
+        validateByOs(gpu, GpuTier::getOs, "GPU", errors);
+    }
+
     public static List<String> findRulesWithoutRange(LaptopInterpretation interpretation, List<Rule> rules) {
         Map<String, Boolean> interpreted = Map.of(
             COLOR_GAMUT_ITEM, interpretation != null && interpretation.colorGamut() != null,
@@ -144,7 +163,8 @@ public class LaptopRecommender {
         CpuTier cpuTier = calculateCpu(interpretation, os, requirements.valueOf(CPU_ITEM), current, reasons.get(CPU_ITEM));
 
         ColorGamut colorGamut = optionalValue(interpretation.colorGamut(), requirements.valueOf(COLOR_GAMUT_ITEM));
-        GpuTier gpuTier = optionalValue(interpretation.gpu(), requirements.valueOf(GPU_ITEM));
+
+        GpuTier gpuTier = calculateGpu(interpretation, os, requirements.valueOf(GPU_ITEM));
 
         LaptopSpec spec = buyableSpec(os, cpuTier, memoryGb, storageGb, colorGamut, gpuTier, reasons);
         addResultReasons(spec, current, reasons);
@@ -201,6 +221,13 @@ public class LaptopRecommender {
             return null;
         }
         return ScoreRange.valueFor(ranges, score);
+    }
+
+    private GpuTier calculateGpu(LaptopInterpretation interpretation, Os os, int score) {
+        if (interpretation.gpu() == null) {
+            return null;
+        }
+        return ScoreRange.valueFor(interpretation.gpu().get(os), score);
     }
 
     private LaptopSpec buyableSpec(Os os, CpuTier cpuTier, int memoryGb, int storageGb,
