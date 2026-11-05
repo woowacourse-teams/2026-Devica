@@ -118,3 +118,32 @@ test('HTTP 링크도 제공하고 확인 날짜를 브라우저 시간대로 변
   expect(date?.textContent).toBe('2026-01-01');
   expect(date?.getAttribute('datetime')).toBe('2026-01-01');
 });
+
+test('품절 판매처도 가격과 링크를 표시하지만 최저가에서 제외한다', async () => {
+  // given
+  const offers = [
+    quote({ id: 1, name: '학생복지스토어', price: 800_000, status: 'SOLD_OUT' }),
+    quote({ id: 2, name: '쿠팡', price: 1_000_000, status: 'ON_SALE' }),
+  ];
+
+  // when
+  await show(offers);
+
+  // then
+  const soldOut = within(screen.getAllByRole('listitem')[0]);
+  expect(soldOut.getByText('· 품절')).toBeTruthy();
+  expect(soldOut.getByText('800,000원')).toBeTruthy();
+  expect(soldOut.getByRole('link', { name: '학생복지스토어 판매처 보기 (새 창)' })).toBeTruthy();
+  expect(document.querySelector('.product-detail__price')?.textContent).toBe('1,000,000원');
+  expect(document.querySelector('.product-detail__source')?.textContent).toBe('쿠팡');
+});
+
+test('품절 판매처만 있으면 상세 링크는 유지하고 대표 최저가는 표시하지 않는다', async () => {
+  // when
+  await show([quote({ status: 'SOLD_OUT' })]);
+
+  // then
+  expect(document.querySelector('.product-detail__price')?.textContent).toBe('가격 정보 없음');
+  expect(document.querySelector('.product-detail__source')).toBeNull();
+  expect(screen.getByRole('link')).toBeTruthy();
+});

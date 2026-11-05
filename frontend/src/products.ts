@@ -92,6 +92,8 @@ export type Offer = {
   price: number;
   purchaseUrl: string;
   checkedAt?: string | null;
+  // 이전 API 응답에 상태가 없으면 판매 중으로 취급한다.
+  status?: 'ON_SALE' | 'SOLD_OUT';
 };
 
 export type ProductDetail = {
@@ -103,7 +105,7 @@ export type ProductDetail = {
   // 설명이 없는 제품이 있다.
   description: string | null;
   specs: ProductSpecItem[];
-  // 판매 중인 판매처가 없으면 비어 온다.
+  // 판매 중·품절 판매처를 표시하며 숨김·단종 판매처는 제외한다.
   offers: Offer[];
 };
 

@@ -74,7 +74,7 @@ class ProductOfferServiceTest {
     private PlatformTransactionManager transactionManager;
 
     @Test
-    void 판매_중인_판매처만_가격_오름차순으로_반환한다() {
+    void 판매_중이거나_품절인_판매처를_가격_오름차순으로_반환한다() {
         // given
         Laptop laptop = laptopRepository.save(laptop()
             .category(productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP)))
@@ -85,11 +85,13 @@ class ProductOfferServiceTest {
         productOfferRepository.save(offer().product(laptop).price(2_990_000L).status(OfferStatus.ON_SALE).build());
         productOfferRepository.save(offer().product(laptop).price(2_850_000L).status(OfferStatus.ON_SALE).build());
         productOfferRepository.save(offer().product(laptop).price(2_500_000L).status(OfferStatus.SOLD_OUT).build());
+        productOfferRepository.save(offer().product(laptop).price(1_000_000L).status(OfferStatus.HIDDEN).build());
+        productOfferRepository.save(offer().product(laptop).price(1_100_000L).status(OfferStatus.DISCONTINUED).build());
 
         // when & then
-        assertThat(productOfferService.findOnSaleOffers(laptop.getId()))
+        assertThat(productOfferService.findVisibleOffers(laptop.getId()))
             .extracting(ProductOffer::getPrice)
-            .containsExactly(2_850_000L, 2_990_000L);
+            .containsExactly(2_500_000L, 2_850_000L, 2_990_000L);
     }
 
     @Test
@@ -332,7 +334,7 @@ class ProductOfferServiceTest {
         assertThat(hidden.getStatus()).isEqualTo(OfferStatus.HIDDEN);
         assertUnchanged(hidden);
         assertThat(productMinPriceRepository.findById(laptop.getId())).isEmpty();
-        assertThat(productOfferService.findOnSaleOffers(laptop.getId())).isEmpty();
+        assertThat(productOfferService.findVisibleOffers(laptop.getId())).isEmpty();
         assertThat(productOfferService.findCoupangPriceRefreshTargets()).containsExactly(target(laptop, hidden));
         assertThat(productOfferService.hideCoupangOffer(target(laptop, hidden), CHECKED_ON))
             .isEqualTo(PriceRefreshResult.ALREADY_HIDDEN);

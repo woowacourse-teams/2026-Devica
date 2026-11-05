@@ -390,7 +390,7 @@ class LaptopE2ETest extends E2ETest {
 
     // UC-11: 가격을 확인하고 외부 구매처로 이동할 수 있다
     @Test
-    void 상세를_조회하면_판매_중인_판매처를_싼_순으로_받는다() {
+    void 상세를_조회하면_판매중과_품절_판매처를_싼_순으로_받는다() {
         // given
         Laptop laptop = laptopRepository.save(laptop().category(category).gpu(gpu)
             .brand("LG")
@@ -420,9 +420,10 @@ class LaptopE2ETest extends E2ETest {
             .then().statusCode(200)
             .body("name", is("gram Pro 16"))
             .body("specs.code", contains("OS", "CPU", "MEMORY", "STORAGE", "CPU_CORE", "SCREEN_SIZE", "WEIGHT"))
-            .body("offers.price", contains(2_850_000, 2_990_000))
+            .body("offers.price", contains(2_500_000, 2_850_000, 2_990_000))
+            .body("offers.status", contains("SOLD_OUT", "ON_SALE", "ON_SALE"))
             .body("offers[0].purchaseUrl", is("https://example.com/" + laptop.getCode()))
-            .body("offers.checkedAt", contains("2026-08-19", null));
+            .body("offers.checkedAt", contains(null, "2026-08-19", null));
     }
 
     // UC-08: CPU 필터 선택지는 서버의 등급을 쓴다. 등급을 바꿔도 화면을 고치지 않는다
