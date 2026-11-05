@@ -251,6 +251,55 @@ class LaptopRecommenderTest {
     }
 
     @Test
+    void Mac_은_GPU_칩이_CPU_보다_높으면_CPU_를_GPU_칩으로_올리고_메모리를_그_칩에_맞춘다() {
+        // given
+        LaptopRecommender recommender = new LaptopRecommender();
+        Requirements requirements = new Requirements(Map.of("REQUIRED_GPU", 2), Map.of(), List.of());
+
+        // when
+        List<RecommendedSpec> specs = recommender.recommend(withDisplayAndGpu(INTERPRETATION), os -> requirements, Map.of());
+
+        // then
+        RecommendedSpec mac = specs.get(0);
+        assertThat(((LaptopSpec) mac.spec()).cpuTier()).isEqualTo(CpuTier.PRO);
+        assertThat(((LaptopSpec) mac.spec()).memoryGb()).isEqualTo(24);
+        assertThat(mac.itemReasons().get("REQUIRED_CPU")).contains("GPU 로 M Pro 칩이 필요해 CPU 도 M Pro 칩을 권합니다.");
+        assertThat(mac.itemReasons().get("MEMORY")).contains("M Pro 칩에서는 16GB 를 고를 수 없어 바로 위 용량인 24GB 를 권합니다.");
+        assertThat(((LaptopSpec) specs.get(1).spec()).cpuTier()).isEqualTo(CpuTier.P_HS);
+    }
+
+    @Test
+    void Mac_은_CPU_칩이_GPU_보다_높으면_GPU_를_CPU_칩으로_올린다() {
+        // given
+        LaptopRecommender recommender = new LaptopRecommender();
+        Requirements requirements = new Requirements(Map.of("REQUIRED_CPU", 3), Map.of(), List.of());
+
+        // when
+        List<RecommendedSpec> specs = recommender.recommend(withDisplayAndGpu(INTERPRETATION), os -> requirements, Map.of());
+
+        // then
+        RecommendedSpec mac = specs.get(0);
+        assertThat(((LaptopSpec) mac.spec()).gpuTier()).isEqualTo(GpuTier.PRO);
+        assertThat(mac.itemReasons().get("REQUIRED_GPU")).contains("CPU 와 같은 칩이라 GPU 도 M Pro 칩입니다.");
+        assertThat(((LaptopSpec) specs.get(1).spec()).gpuTier()).isEqualTo(GpuTier.INTEGRATED);
+    }
+
+    @Test
+    void Mac_은_메모리_때문에_올린_CPU_칩에도_GPU_를_맞춘다() {
+        // given
+        LaptopRecommender recommender = new LaptopRecommender();
+        Requirements requirements = new Requirements(Map.of("MEMORY", 7), Map.of(), List.of());
+
+        // when
+        LaptopSpec mac = (LaptopSpec) recommender.recommend(withDisplayAndGpu(INTERPRETATION), os -> requirements, Map.of())
+            .get(0).spec();
+
+        // then
+        assertThat(mac.cpuTier()).isEqualTo(CpuTier.PRO);
+        assertThat(mac.gpuTier()).isEqualTo(GpuTier.PRO);
+    }
+
+    @Test
     void 화면이나_GPU_규칙에_점수_구간이_없으면_오류를_낸다() {
         // given
         Condition any = new Condition.Selected("Q", List.of("A"));
@@ -315,6 +364,22 @@ class LaptopRecommenderTest {
             "Mac CPU 상한은 [BASIC, PRO] 중 하나여야 합니다: MAX",
             "GPU 구간 WINDOWS: 구간이 없습니다",
             "GPU 구간 MAC: MAC 의 GPU 등급이 아닙니다: XX60");
+    }
+
+    @Test
+    void Mac_GPU_구간이_Mac_CPU_상한보다_높은_칩을_쓰면_오류를_낸다() {
+        // given
+        LaptopInterpretation interpretation = new LaptopInterpretation(
+            INTERPRETATION.cpu(), INTERPRETATION.memory(), INTERPRETATION.storage(), CpuTier.PRO, null,
+            Map.of(
+                Os.MAC, List.of(new ScoreRange<>(1, GpuTier.BASIC), new ScoreRange<>(null, GpuTier.MAX)),
+                Os.WINDOWS, List.of(new ScoreRange<>(null, GpuTier.INTEGRATED))));
+
+        // when
+        List<String> errors = LaptopRecommender.findUnsupported(interpretation);
+
+        // then
+        assertThat(errors).containsExactly("Mac GPU 구간의 MAX 는 Mac CPU 상한 PRO 보다 높습니다");
     }
 
     @Test

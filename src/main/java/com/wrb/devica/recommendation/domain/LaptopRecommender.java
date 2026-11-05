@@ -28,6 +28,11 @@ public class LaptopRecommender {
         CpuTier.BASIC, List.of(16, 24, 32),
         CpuTier.PRO, List.of(24, 48));
 
+    private static final Map<GpuTier, CpuTier> MAC_CHIP_BY_GPU = Map.of(
+        GpuTier.BASIC, CpuTier.BASIC,
+        GpuTier.PRO, CpuTier.PRO,
+        GpuTier.MAX, CpuTier.MAX);
+
     public static List<String> findUnsupported(LaptopInterpretation interpretation) {
         List<String> errors = new ArrayList<>();
 
@@ -45,6 +50,7 @@ public class LaptopRecommender {
 
         validateOptional(interpretation.colorGamut(), "화면 색 영역 구간", errors);
         validateGpu(interpretation.gpu(), errors);
+        validateMacGpuLimit(interpretation.gpu(), interpretation.macCpuLimit(), errors);
 
         return errors;
     }
@@ -126,6 +132,19 @@ public class LaptopRecommender {
         }
 
         validateByOs(gpu, GpuTier::getOs, "GPU", errors);
+    }
+
+    private static void validateMacGpuLimit(Map<Os, List<ScoreRange<GpuTier>>> gpu, CpuTier limit,
+                                            List<String> errors) {
+        if (gpu == null || limit == null || gpu.get(Os.MAC) == null) {
+            return;
+        }
+
+        gpu.get(Os.MAC).stream()
+            .map(ScoreRange::value)
+            .filter(tier -> tier != null && MAC_CHIP_BY_GPU.containsKey(tier))
+            .filter(tier -> MAC_CHIP_BY_GPU.get(tier).isHigherThan(limit))
+            .forEach(tier -> errors.add("Mac GPU 구간의 " + tier + " 는 Mac CPU 상한 " + limit + " 보다 높습니다"));
     }
 
     public static List<String> findRulesWithoutRange(LaptopInterpretation interpretation, List<Rule> rules) {
@@ -236,7 +255,7 @@ public class LaptopRecommender {
             return new LaptopSpec(os, cpuTier, memoryGb, storageGb, colorGamut, gpuTier);
         }
 
-        CpuTier tier = cpuTier;
+        CpuTier tier = matchCpuToGpu(cpuTier, gpuTier, reasons);
 
         if (memoryGb > largestMemoryOf(tier)) {
             tier = tier.stepUp();
@@ -251,7 +270,46 @@ public class LaptopRecommender {
                 .add(tier.getDisplayName() + "에서는 " + memoryGb + "GB 를 고를 수 없어 바로 위 용량인 " + adjusted + "GB 를 권합니다.");
         }
 
-        return new LaptopSpec(os, tier, adjusted, storageGb, colorGamut, gpuTier);
+        return new LaptopSpec(os, tier, adjusted, storageGb, colorGamut, matchGpuToCpu(gpuTier, tier, reasons));
+    }
+
+    private CpuTier matchCpuToGpu(CpuTier cpuTier, GpuTier gpuTier, Map<String, List<String>> reasons) {
+        if (gpuTier == null) {
+            return cpuTier;
+        }
+
+        CpuTier chip = MAC_CHIP_BY_GPU.get(gpuTier);
+
+        if (!chip.isHigherThan(cpuTier)) {
+            return cpuTier;
+        }
+
+        reasons.get(CPU_ITEM)
+            .add("GPU 로 " + chip.getDisplayName() + "이 필요해 CPU 도 " + chip.getDisplayName() + "을 권합니다.");
+        return chip;
+    }
+
+    private GpuTier matchGpuToCpu(GpuTier gpuTier, CpuTier cpuTier, Map<String, List<String>> reasons) {
+        if (gpuTier == null) {
+            return null;
+        }
+
+        GpuTier chip = macGpuOf(cpuTier);
+
+        if (chip.getMinScore() <= gpuTier.getMinScore()) {
+            return gpuTier;
+        }
+
+        reasons.get(GPU_ITEM).add("CPU 와 같은 칩이라 GPU 도 " + chip.getDisplayName() + "입니다.");
+        return chip;
+    }
+
+    private static GpuTier macGpuOf(CpuTier chip) {
+        return MAC_CHIP_BY_GPU.entrySet().stream()
+            .filter(entry -> entry.getValue() == chip)
+            .map(Map.Entry::getKey)
+            .findFirst()
+            .orElseThrow();
     }
 
     private int largestMemoryOf(CpuTier tier) {
