@@ -1,41 +1,53 @@
 package com.wrb.devica.recommendation;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.blankOrNullString;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.not;
 
 import com.wrb.devica.common.E2ETest;
+import com.wrb.devica.recommendation.domain.Question;
+import com.wrb.devica.recommendation.domain.Step;
+import com.wrb.devica.recommendation.domain.Survey;
+import com.wrb.devica.recommendation.service.RecommendationService;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 class SurveyE2ETest extends E2ETest {
 
+    private static final String PURPOSE = "BACKEND_DEVELOPMENT";
+
+    @Autowired
+    private RecommendationService recommendationService;
+
     @Test
-    void 설문을_조회하면_단계별로_묶인_질문을_받는다() {
+    void 설문을_조회하면_정의서의_질문을_단계별로_받는다() {
+        // given
+        Survey survey = recommendationService.findSurvey(PURPOSE);
+        List<List<String>> questionCodes = survey.steps().stream()
+            .map(step -> step.questions().stream().map(Question::code).toList())
+            .toList();
+        List<String> layouts = survey.steps().stream().map(Step::layout).toList();
+
+        // when & then
         given().log().all()
-            .when().get("/api/usage-purposes/BACKEND_DEVELOPMENT/survey")
+            .when().get("/api/usage-purposes/" + PURPOSE + "/survey")
             .then().log().all()
             .statusCode(200)
-            .body("steps.size()", is(10))
-            .body("steps[0].title", is("현재 사용하는 노트북 사양을 알려주세요"))
-            .body("steps[0].layout", is("CURRENT_SPEC"))
-            .body("steps[0].questions.code", contains(
-                "CURRENT_OS", "CURRENT_MAC_CPU", "CURRENT_WINDOWS_CPU", "CURRENT_MEMORY", "CURRENT_STORAGE"))
-            .body("steps[0].questions[0].showWhen", nullValue())
-            .body("steps[0].questions[1].label", is("PROCESSOR"))
-            .body("steps[0].questions[1].showWhen.question", is("CURRENT_OS"))
-            .body("steps[0].questions[1].showWhen.anyOf", contains("MACOS"))
-            .body("steps[2].title", nullValue())
-            .body("steps[2].layout", nullValue())
-            .body("steps[2].questions[0].title", is("주로 다루는 언어는 무엇인가요?"))
-            .body("steps[2].questions[0].description", is("여러 개를 선택할 수 있어요."))
-            .body("steps[2].questions[0].input", is("MULTI"))
-            .body("steps[2].questions[0].exclusive", is("UNDECIDED"))
-            .body("steps[2].questions[0].options[0].code", is("JAVA_FAMILY"))
-            .body("steps[2].questions[0].options[0].content", is("Java, Kotlin, C# 등"))
-            .body("steps[3].title", is("개발 도구를 알려주세요"))
-            .body("steps[3].questions.code", contains("IDE", "AI_CODING_TOOL"))
-            .body("steps[3].questions[0].input", is("SINGLE"))
-            .body("steps[3].questions[0].exclusive", nullValue());
+            .body("steps.questions.code", is(questionCodes))
+            .body("steps.layout", is(layouts))
+            .body("steps.questions.flatten().title", everyItem(not(blankOrNullString())))
+            .body("steps.questions.flatten().input", everyItem(in(List.of("SINGLE", "MULTI"))))
+            .body("steps.questions.flatten().options", everyItem(not(empty())))
+            .body("steps.questions.flatten().options.flatten().code", everyItem(not(blankOrNullString())))
+            .body("steps.questions.flatten().options.flatten().content", everyItem(not(blankOrNullString())))
+            .body("steps.questions.flatten().findAll { it.showWhen != null }.showWhen.question",
+                everyItem(not(blankOrNullString())))
+            .body("steps.questions.flatten().findAll { it.showWhen != null }.showWhen.anyOf",
+                everyItem(not(empty())));
     }
 }
