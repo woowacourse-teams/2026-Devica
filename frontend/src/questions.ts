@@ -28,6 +28,7 @@ type Step = {
 
 export type Survey = {
   steps: Step[];
+  version: string | null;
 };
 
 export async function fetchSurvey(purposeCode: string): Promise<Survey> {

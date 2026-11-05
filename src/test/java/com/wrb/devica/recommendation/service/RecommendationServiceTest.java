@@ -59,7 +59,7 @@ class RecommendationServiceTest {
     @EnumSource(UsagePurposeCode.class)
     void 모든_사용_목적은_항목마다_근거를_갖춘_권장_사양을_반환한다(UsagePurposeCode purpose) {
         // given & when
-        List<RecommendedSpec> recommendedSpecs = recommendationService.recommend(purpose.name(), Map.of());
+        List<RecommendedSpec> recommendedSpecs = recommendationService.recommend(purpose.name(), Map.of()).specs();
 
         // then
         assertThat(recommendedSpecs).isNotEmpty().allSatisfy(recommended -> {
@@ -169,7 +169,7 @@ class RecommendationServiceTest {
                 if (!seen.add(answers)) {
                     continue;
                 }
-                List<?> specs = recommendationService.recommend(purpose.name(), answers).stream()
+                List<?> specs = recommendationService.recommend(purpose.name(), answers).specs().stream()
                     .map(recommended -> List.of(recommended.spec().values(), recommended.preferred()))
                     .toList();
                 if (countBySpecs.merge(specs, 1, Integer::sum) <= CASES_PER_SPECS) {

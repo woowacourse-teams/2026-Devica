@@ -37,7 +37,7 @@ export function IntroView({
     fetchRecommendation(purposeCode)
       .then((received) => {
         if (!stale) {
-          setSpecs(received);
+          setSpecs(received.specs);
         }
       })
       .catch(() => {

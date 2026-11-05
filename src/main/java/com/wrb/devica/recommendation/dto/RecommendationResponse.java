@@ -1,16 +1,22 @@
 package com.wrb.devica.recommendation.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.wrb.devica.product.domain.SpecValue;
 import com.wrb.devica.product.dto.SpecItemResponse;
+import com.wrb.devica.recommendation.domain.Recommendation;
 import com.wrb.devica.recommendation.domain.RecommendedSpec;
 import java.util.List;
 
-public record RecommendationResponse(List<SpecResponse> specs) {
+public record RecommendationResponse(
+    List<SpecResponse> specs,
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT) boolean answersOutdated) {
 
-    public static RecommendationResponse from(List<RecommendedSpec> recommendedSpecs) {
-        return new RecommendationResponse(recommendedSpecs.stream()
-            .map(SpecResponse::from)
-            .toList());
+    public static RecommendationResponse from(Recommendation recommendation) {
+        return new RecommendationResponse(
+            recommendation.specs().stream()
+                .map(SpecResponse::from)
+                .toList(),
+            recommendation.answersOutdated());
     }
 
     public record SpecResponse(List<ItemResponse> items, boolean preferred, List<String> notes) {

@@ -15,6 +15,11 @@ class RecommendationDefinitionValidatorTest {
         return RecommendationDefinition.read(new ByteArrayInputStream(yaml.getBytes(StandardCharsets.UTF_8)));
     }
 
+    private static RecommendationDefinition read(String yaml, String retiredYaml) {
+        return read(yaml).withRetired(
+            RetiredCodes.read(new ByteArrayInputStream(retiredYaml.getBytes(StandardCharsets.UTF_8))));
+    }
+
     @Test
     void 참조가_모두_맞으면_오류가_없다() {
         // given
@@ -229,5 +234,81 @@ class RecommendationDefinitionValidatorTest {
             "안내 '없는 질문': 가리킬 수 없는 질문입니다: GPU",
             "안내 '없는 선택지': OS 에 없는 선택지입니다: LINUX",
             "안내 '조건 없음': 조건이 없습니다");
+    }
+
+    @Test
+    void 지운_코드_줄이_지금_설문과_맞으면_오류가_없다() {
+        // given
+        RecommendationDefinitionValidator validator = new RecommendationDefinitionValidator(Set.of(), Map.of());
+        RecommendationDefinition definition = read("""
+            survey:
+              steps:
+                - questions:
+                    - { code: HEAT_FELT, options: [ { code: OFTEN }, { code: NEVER } ] }
+            rules: []
+            mappings: []
+            """, """
+            codes:
+              - { question: HEAT, to: HEAT_FELT, was: "뜨거워지나요?", retiredAt: 2026-11-05 }
+              - { question: OLD_HEAT, to: HEAT, was: "발열을 겪나요?", retiredAt: 2026-05-01 }
+              - { question: AI_TOOL, drop: true, was: "AI 도구를 쓰나요?", retiredAt: 2026-11-05 }
+              - { question: HEAT_FELT, option: SOMETIMES, to: OFTEN, was: 가끔, retiredAt: 2026-11-05 }
+              - { question: HEAT_FELT, option: UNKNOWN, drop: true, was: 모르겠다, retiredAt: 2026-11-05 }
+              - { question: HEAT_FELT, dropInvalid: true, retiredAt: 2026-11-05 }
+            """);
+
+        // when
+        List<String> errors = validator.validate(definition);
+
+        // then
+        assertThat(errors).isEmpty();
+    }
+
+    @Test
+    void 지운_코드_줄이_지금_설문과_맞지_않으면_오류를_낸다() {
+        // given
+        RecommendationDefinitionValidator validator = new RecommendationDefinitionValidator(Set.of(), Map.of());
+        RecommendationDefinition definition = read("""
+            survey:
+              steps:
+                - questions:
+                    - { code: HEAT, options: [ { code: OFTEN }, { code: NEVER } ] }
+            rules: []
+            mappings: []
+            """, """
+            codes:
+              - { question: HEAT, drop: true, retiredAt: 2026-11-05 }
+              - { question: GONE, to: MISSING, retiredAt: 2026-11-05 }
+              - { question: LOOP_A, to: LOOP_B, retiredAt: 2026-11-05 }
+              - { question: LOOP_B, to: LOOP_A, retiredAt: 2026-11-05 }
+              - { question: BOTH, to: HEAT, drop: true, retiredAt: 2026-11-05 }
+              - { question: HEAT, option: OFTEN, drop: true, retiredAt: 2026-11-05 }
+              - { question: HEAT, option: RARELY, to: SOMETIMES, retiredAt: 2026-11-05 }
+              - { question: HEAT, option: RARELY, drop: true, retiredAt: 2026-11-05 }
+              - { question: NOT_NOW, option: X, drop: true, retiredAt: 2026-11-05 }
+              - { question: NOT_NOW, dropInvalid: true, retiredAt: 2026-11-05 }
+              - { question: HEAT, dropInvalid: true, drop: true, retiredAt: 2026-11-05 }
+              - { question: NEITHER, retiredAt: 2026-11-05 }
+              - { question: NO_DATE, drop: true }
+            """);
+
+        // when
+        List<String> errors = validator.validate(definition);
+
+        // then
+        assertThat(errors).containsExactly(
+            "지운 코드 HEAT: 지금 있는 질문입니다",
+            "지운 코드 GONE: to 가 지금 질문으로 이어지지 않습니다: MISSING",
+            "지운 코드 LOOP_A: to 가 지금 질문으로 이어지지 않습니다: LOOP_B",
+            "지운 코드 LOOP_B: to 가 지금 질문으로 이어지지 않습니다: LOOP_A",
+            "지운 코드 BOTH: to 와 drop 중 하나만 씁니다",
+            "지운 코드 HEAT.OFTEN: 지금 있는 선택지입니다",
+            "지운 코드 HEAT.RARELY: to 가 지금 선택지가 아닙니다: SOMETIMES",
+            "지운 코드 HEAT.RARELY: 같은 코드의 줄이 겹칩니다",
+            "지운 코드 NOT_NOW.X: 지금 질문이 아닙니다",
+            "지운 코드 NOT_NOW: 지금 질문이 아닙니다",
+            "지운 코드 HEAT: dropInvalid 줄에는 다른 값을 쓰지 않습니다",
+            "지운 코드 NEITHER: to 와 drop 중 하나만 씁니다",
+            "지운 코드 NO_DATE: retiredAt 이 없습니다");
     }
 }

@@ -1,10 +1,11 @@
-package com.wrb.devica.common.config;
+package com.wrb.devica.recommendation.config;
 
 import com.wrb.devica.purpose.domain.UsagePurposeCode;
 import com.wrb.devica.recommendation.domain.LaptopCondition;
 import com.wrb.devica.recommendation.domain.LaptopRequirement;
 import com.wrb.devica.recommendation.domain.RecommendationDefinition;
 import com.wrb.devica.recommendation.domain.RecommendationDefinitions;
+import com.wrb.devica.recommendation.domain.RetiredCodes;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -21,13 +22,14 @@ import org.springframework.core.io.ClassPathResource;
 public class RecommendationConfig {
 
     private static final String PURPOSE_PATH = "recommendation/purposes/%s.yml";
+    private static final String RETIRED_PATH = "recommendation/purposes/%s.retired.yml";
 
     @Bean
     public RecommendationDefinitions recommendationDefinitions() {
         Map<UsagePurposeCode, RecommendationDefinition> purposes = new EnumMap<>(UsagePurposeCode.class);
 
         for (UsagePurposeCode code : UsagePurposeCode.values()) {
-            purposes.put(code, read(code));
+            purposes.put(code, read(code).withRetired(readRetired(code)));
         }
 
         Set<String> requirements = Arrays.stream(LaptopRequirement.values())
@@ -47,6 +49,20 @@ public class RecommendationConfig {
             return RecommendationDefinition.read(input);
         } catch (IOException e) {
             throw new UncheckedIOException("추천 콘텐츠 파일을 읽지 못했습니다: " + path, e);
+        }
+    }
+
+    private RetiredCodes readRetired(UsagePurposeCode code) {
+        ClassPathResource resource = new ClassPathResource(RETIRED_PATH.formatted(code));
+
+        if (!resource.exists()) {
+            return RetiredCodes.NONE;
+        }
+
+        try (InputStream input = resource.getInputStream()) {
+            return RetiredCodes.read(input);
+        } catch (IOException e) {
+            throw new UncheckedIOException("지운 코드 목록 파일을 읽지 못했습니다: " + resource.getPath(), e);
         }
     }
 }

@@ -63,6 +63,18 @@
     letter-spacing: var(--label-md-letter-spacing);
 }
 
+.result-outdated {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--density-med);
+    margin: 0 0 var(--gutter);
+}
+
+.result-outdated .notice {
+    margin: 0;
+}
+
 .result-feedback {
     margin: 0 0 var(--gutter);
     color: var(--on-surface-variant);

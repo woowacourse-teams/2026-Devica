@@ -252,7 +252,7 @@ function IntroPage({ params, search }: PageProps & { search: string }) {
   if (category === null || purpose === null) {
     return <NotFound />;
   }
-  const screens = resolveScreens(survey.data ?? { steps: [] }, {});
+  const screens = resolveScreens(survey.data ?? { steps: [], version: null }, {});
   return (
     <IntroView
       purposeCode={purpose}
@@ -317,7 +317,7 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
 
   const answer = (code: string, values: string[]) => {
     // 답이 바뀌면 딸린 질문이 사라질 수 있다. 사라진 질문의 답은 함께 지운다.
-    const next = pruneHiddenAnswers(survey.data ?? { steps: [] }, { ...answers, [code]: values });
+    const next = pruneHiddenAnswers(survey.data ?? { steps: [], version: null }, { ...answers, [code]: values });
     setAnswers(next);
     saveAnswers(purpose, next);
   };
@@ -341,6 +341,8 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
 
   return (
     <QuestionView
+      purpose={purpose}
+      surveyVersion={survey.data.version}
       screens={screens}
       index={number - 1}
       answers={answers}
@@ -433,7 +435,7 @@ function ResultPage({ params }: PageProps) {
   const recommendation = useRecommendation(params);
   // 맞춤 목록과 같은 key 라 한 번만 받는다. CPU 를 고칠 때 선택지로 쓴다.
   const tiers = useFetched('cpu-tiers', fetchCpuTiers);
-  const specs = recommendation.data;
+  const specs = recommendation.data?.specs ?? null;
   const { category, purpose } = flowOf(params);
   const loaded = specs !== null;
 
@@ -447,17 +449,22 @@ function ResultPage({ params }: PageProps) {
   if (category === null || purpose === null) {
     return <NotFound />;
   }
+  const restartTo = `${PATHS.intro}${query(flowEntries(flowOf(params)))}`;
   if (specs === null) {
     return (
       <RecommendationStatus
         failed={recommendation.failed}
         error={recommendation.error}
         onRetry={recommendation.retry}
-        restartTo={`${PATHS.intro}${query(flowEntries(flowOf(params)))}`}
+        restartTo={restartTo}
         purpose={purpose}
       />
     );
   }
+  const reanswer = () => {
+    forget(surveyKeyOf(purpose));
+    go(restartTo);
+  };
   const os = resultOsOf(params, specs);
   const edits = editsOf(params);
   const withOs = (next: ResultOs) => {
@@ -509,6 +516,7 @@ function ResultPage({ params }: PageProps) {
         withEdits(rest);
       }}
       onSearch={onSearch}
+      onReanswer={recommendation.data?.answersOutdated ? reanswer : undefined}
     />
   );
 }
@@ -589,16 +597,16 @@ function withSpecCondition(params: URLSearchParams, specs: Spec[]): URLSearchPar
 
 function MatchedListPage({ params, search }: PageProps & { search: string }) {
   const recommendation = useRecommendation(params);
-  const specs = recommendation.data ?? [];
+  const specs = recommendation.data?.specs ?? [];
   // 제품 추천 결과 화면에서 오면 검색 조건이 채워져 있다. 맞춤 목록의 OS 는 탭이라 늘 있으니, OS 가 없으면
   // 채우지 않고 바로 들어온 주소(예전 공유 링크 등)다. 한 번 채운 뒤 그린다. 제품 추천 결과가 없으면 채울 것이 없다.
-  const filled = params.has('os') || recommendation.data?.length === 0;
+  const filled = params.has('os') || recommendation.data?.specs.length === 0;
   useEffect(() => {
     if (!filled && recommendation.data !== null) {
-      replace(`${PATHS.matched}?${withSpecCondition(new URLSearchParams(search), recommendation.data)}`);
+      replace(`${PATHS.matched}?${withSpecCondition(new URLSearchParams(search), recommendation.data.specs)}`);
     }
   }, [filled, search, recommendation.data]);
-  const { state, onChangeState, navState } = useListState(search, matchedOsOf(params, recommendation.data ?? []));
+  const { state, onChangeState, navState } = useListState(search, matchedOsOf(params, specs));
   const { category, purpose } = flowOf(params);
 
   if (category === null || purpose === null) {
