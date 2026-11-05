@@ -14,7 +14,6 @@
 | 상태 디렉터리 | `ST` | `$HOME/.devica-product-recommendation/recommendation-improver`. `SELF_REF` 에서 복사한 스크립트와 스키마 3개(`analysis-result`, `improvement-instruction`, `improvement-result`)가 있다 |
 | 레포 clone | `REPO` | `$ST/repo`. 이 구성 요소만 쓴다. `git fetch` 는 끝났다 |
 | 작업 공간(git worktree) | `WT` | `$ST/worktree`. `run.sh` 가 만들어 둔다 |
-| 스냅숏 | `SNAP` | `src/test/resources/recommendation/backend-development-snapshot.json`(레포 안 경로) |
 | 지시문·스크립트 ref | `SELF_REF` | `run.sh` 가 넘긴다. 기본은 `origin/develop` |
 | 실행 기록 | `RUN` | `$ST/runs/<UTC 시각>.md`. 단계마다 무엇을 보고 무엇을 했는지 이어 적는다 |
 
@@ -80,7 +79,7 @@ gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.
 
 하나라도 어긋나면 PR 을 올리지 않는다.
 
-- 정의서 `<DEF>` = `src/main/resources/recommendation/purposes/<purpose>.yml` 이 `$WT` 에 있다. 스냅숏 테스트는 `BACKEND_DEVELOPMENT` 만 다루므로 다른 `purpose` 면 "스냅숏 테스트가 없는 사용 목적이다".
+- 정의서 `<DEF>` = `src/main/resources/recommendation/purposes/<purpose>.yml` 과 스냅숏 `<SNAP>` = `src/test/resources/recommendation/<purpose 를 소문자로, _ 를 - 로 바꾼 것>-snapshot.json`(예: `BACKEND_DEVELOPMENT` 는 `backend-development-snapshot.json`)이 `$WT` 에 있다.
 - `python3 "$ST/snapshot.py" check "$WT/<DEF>" <purpose> "$ST/instruction.json"` 의 `ok` 가 참이다. 거짓이면 `errors` 를 이어 사유로 쓴다. 이 명령이 보는 것:
   - 고치는 지시는 지시의 `rule` 과 같은 규칙(조건 안의 순서는 무시하고 `os` 까지 같은 것)이 정확히 하나이고, `from` 이 그 규칙의 지금 값과 같다. 결과의 `rule` 이 고칠 규칙이다.
   - `add` 는 같은 규칙이 없고, 새 근거 문장이 같은 항목의 다른 규칙과 겹치지 않는다.
@@ -89,7 +88,7 @@ gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.
 ## 4. 재현 사례 추가
 
 1. ```bash
-   python3 "$ST/snapshot.py" add-cases "$WT/$SNAP" "$ST/instruction.json"
+   python3 "$ST/snapshot.py" add-cases "$WT/<SNAP>" "$ST/instruction.json"
    ```
    `cases` 마다 `피드백 #<issue>` 사례를 대표 사용자와 앞선 피드백 사례 뒤에 한 줄 더한다(같은 이슈의 두 번째 사례부터 `피드백 #<issue> (2)`). 같은 이름이 이미 있으면 더하지 않는다. 더한 이름 목록이 나온다.
 2. 지금 정의서로 응답을 채운다.
@@ -104,7 +103,7 @@ gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.
    - 개선 지시(#<ISSUE>)의 재현 답 조합을 지금 정의서의 결과로 스냅숏에 고정
    - 다음 커밋의 규칙 수정 전후 결과를 diff 로 비교하기 위함
    ```
-   `git -C "$WT" add "$SNAP" && git -C "$WT" commit -q -F <메시지 파일>`.
+   `git -C "$WT" add <SNAP> && git -C "$WT" commit -q -F <메시지 파일>`.
 4. 이 상태의 스냅숏을 `$ST/before.json` 에 복사한다.
 
 ## 5. 규칙 고치기와 검증
@@ -122,7 +121,7 @@ gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.
 
 고칠 때마다 확인한다.
 
-- `git -C "$WT" diff --name-only <BASE>` 에 `<DEF>` 와 `$SNAP` 밖의 파일이 없다.
+- `git -C "$WT" diff --name-only <BASE>` 에 `<DEF>` 와 `<SNAP>` 밖의 파일이 없다.
 - `python3 "$ST/snapshot.py" diff origin/develop "$WT/<DEF>" <purpose>` 가 지시한 규칙의 변경만 보인다(`when` 변경은 옛 키 삭제와 새 키 추가 두 항목, `add` 는 새 키 추가 한 항목). `python3 "$ST/snapshot.py" def` 로 읽은 `survey`·`mappings`·`interpretation` 이 `origin/develop` 과 같다.
 
 고친 뒤 4-2 의 명령으로 스냅숏을 다시 채운다.
@@ -130,7 +129,7 @@ gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.
 ### 5-2. 기대 결과 판정
 
 ```bash
-python3 "$ST/snapshot.py" compare "$ST/before.json" "$WT/$SNAP" "$ST/instruction.json" > "$ST/compare.json"
+python3 "$ST/snapshot.py" compare "$ST/before.json" "$WT/<SNAP>" "$ST/instruction.json" > "$ST/compare.json"
 ```
 
 `ok` 가 참이어야 한다. `checks` 가 사례마다 아래를 본다.
@@ -168,7 +167,7 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
    - <규칙 when 요약> 규칙의 <weight a → b | when 변경 | 삭제 | 근거 문장 변경 | 추가(weight w)>
    - 근거: 개선 지시 #<ISSUE>(피드백 #<issues>)
    ```
-   `git -C "$WT" add <DEF> "$SNAP" && git -C "$WT" commit -q -F <메시지 파일>`.
+   `git -C "$WT" add <DEF> <SNAP> && git -C "$WT" commit -q -F <메시지 파일>`.
 2. **본문 값 모으기.**
    - 결과 변화: `compare.json` 의 `rows`(지시의 사례)와 `other_feedback_rows`(결과가 바뀐 앞선 `피드백 #` 사례).
    - 영향 범위: `compare.json` 의 `impact`.

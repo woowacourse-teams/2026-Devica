@@ -36,7 +36,7 @@ case $C in
   recommendation-improver)
     TOOLS+=('Bash(docker *)' 'Bash(./gradlew *)' 'Bash(cd *)' 'Bash(cp *)' 'Bash(UPDATE_SNAPSHOT=true *)')
     FILES+=(recommendation-improver/snapshot.py)
-    export WT="$ST/worktree" SNAP=src/test/resources/recommendation/backend-development-snapshot.json ;;
+    export WT="$ST/worktree" ;;
   *) echo "알 수 없는 구성 요소: $C" >&2; exit 2 ;;
 esac
 
@@ -68,7 +68,7 @@ done
 # 허용 목록을 에이전트에게도 알려 준다. 모르면 env·echo·for 같은 막히는 명령을 시도하다 턴을 쓴다
 CMDS=$(printf '%s\n' "${TOOLS[@]}" | sed -n 's/^Bash(\(.*\) \*)$/\1/p' | paste -sd ' ' -)
 # 변수가 든 명령(\`gh pr list --repo "$GH_REPO"\`)은 실행 전에 값을 검사할 수 없어 허용 목록과 상관없이 막힌다. 값을 직접 넘긴다
-VARS=$(for v in GH_REPO SELF_REF ST REPO RUN WT SNAP; do [ -n "${!v:-}" ] && printf '%s=%s\n' "$v" "${!v}"; done)
+VARS=$(for v in GH_REPO SELF_REF ST REPO RUN WT; do [ -n "${!v:-}" ] && printf '%s=%s\n' "$v" "${!v}"; done)
 PROMPT="작업 폴더의 git 레포에서 \`git show $SELF_REF:recommendation-improvement/$C/prompt.md\` 의 출력을
 이번 실행의 지시문으로 삼아 끝까지 따른다. 셸 명령은 다음으로 시작하는 한 줄 명령만 허용된다: $CMDS.
 그 밖의 명령과 변수 지정·함수 정의·반복문은 막힌다. 파일은 Edit 로 쓴다.
