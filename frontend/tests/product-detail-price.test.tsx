@@ -67,6 +67,23 @@ test('판매처 가격을 비교하고 동률은 ID 순으로 확인일·링크�
   );
 });
 
+test('당근은 미개봉 참고가와 검색 이동을 안내하고 통합 최저가에 포함한다', async () => {
+  // given
+  const searchUrl = 'https://www.daangn.com/kr/search/buy-sell/?q=MacBook';
+  const offers = [quote({ name: '당근', price: 800_000, purchaseUrl: searchUrl }), quote()];
+
+  // when
+  await show(offers);
+
+  // then
+  const row = within(screen.getAllByRole('listitem')[0]);
+  expect(row.getByText('미개봉 매물 참고가 · 검색 결과로 이동')).toBeTruthy();
+  expect(row.getByRole('link', { name: '당근 판매처 보기 (새 창)' }).getAttribute('href')).toBe(searchUrl);
+  expect(document.querySelector('.product-detail__price')?.textContent).toBe('800,000원');
+  expect(document.querySelector('.product-detail__source')?.textContent).toBe('당근');
+  expect(screen.getAllByText('미개봉 매물 참고가 · 검색 결과로 이동')).toHaveLength(1);
+});
+
 test('확인일이 없는 응답은 날짜를 추정하지 않고 판매처 링크를 제공한다', async () => {
   // when
   await show([{ name: '쿠팡', price: 1_000_000, purchaseUrl: 'https://example.test/legacy' }]);

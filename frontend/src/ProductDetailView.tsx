@@ -138,6 +138,7 @@ function OfferRow({ offer, lowest }: { offer: Offer; lowest: boolean }) {
             '확인일 미기록'
           )}
         </p>
+        {offer.name === '당근' && <p className="product-offer__context">미개봉 매물 참고가 · 검색 결과로 이동</p>}
       </div>
       <strong className="product-offer__price">{formatPrice(offer.price)}</strong>
       {url ? (
