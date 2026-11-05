@@ -1,9 +1,9 @@
 package com.wrb.devica.recommendation.service;
 
 import com.wrb.devica.purpose.domain.UsagePurposeCode;
+import com.wrb.devica.recommendation.domain.Judgement;
 import com.wrb.devica.recommendation.domain.LaptopRecommender;
 import com.wrb.devica.recommendation.domain.Recommendation;
-import com.wrb.devica.recommendation.domain.Judgement;
 import com.wrb.devica.recommendation.domain.RecommendationDefinition;
 import com.wrb.devica.recommendation.domain.RecommendationDefinitions;
 import com.wrb.devica.recommendation.domain.RecommendedSpec;
@@ -33,6 +33,7 @@ public class RecommendationService {
 
         List<RecommendedSpec> specs = laptopRecommender.recommend(purpose.interpretation(),
             os -> Judgement.judge(purpose.rules(), purpose.notes(), response, os), conditions);
+
         return new Recommendation(specs, response.outdated());
     }
 
