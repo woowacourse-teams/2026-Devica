@@ -1,0 +1,74 @@
+# 제품 추천 설문 의견 양식
+#
+# 사용자가 제품 추천 설문의 질문에 대한 의견을 남기는 양식이다. 결과에 대한 의견은 product-recommendation-feedback.yml 이 받는다.
+# 질문 화면의 "의견 남기기" 버튼이 이 양식을 연다. 이때 주소의 쿼리로 사용 목적, 그 화면의 질문, 고른 답, 설문 버전을 미리 채운다.
+# 사용자가 양식을 고르지 않도록, 결과 화면과 질문 화면의 버튼이 서로 다른 양식을 연다.
+#
+# 칸 id 를 바꾸지 않는다. 버튼의 쿼리와 제품 추천 개선 루프가 이 id 로 읽는다.
+# 필수 칸은 버튼이 채우는 사용 목적·질문과, 무엇이 문제였는지 하나뿐이다. 클릭 몇 번으로 끝낼 수 있게 하기 위해서다.
+name: 💬 제품 추천 설문 의견
+description: 제품 추천 설문의 질문이 내 상황과 맞지 않았다면 알려 주세요.
+title: "[제품 추천 설문 의견] "
+labels: [ "product-recommendation-survey-feedback" ]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        남겨 주신 의견은 제품 추천 질문과 선택지를 고치는 데 씁니다.
+        이 페이지는 누구나 볼 수 있으니 이름·연락처 같은 개인정보는 적지 말아 주세요.
+
+  - type: input
+    id: purpose
+    attributes:
+      label: 사용 목적
+      description: 질문 화면의 의견 남기기 버튼으로 오셨다면 이미 채워져 있어요.
+    validations:
+      required: true
+
+  - type: input
+    id: questions
+    attributes:
+      label: 질문
+      description: 의견을 남긴 화면의 질문 코드예요. 버튼이 채워요.
+    validations:
+      required: true
+
+  - type: input
+    id: question_title
+    attributes:
+      label: 질문 제목
+
+  - type: input
+    id: selected
+    attributes:
+      label: 이 화면에서 고른 답
+
+  - type: input
+    id: answers
+    attributes:
+      label: 지금까지 고른 답
+
+  - type: input
+    id: survey_version
+    attributes:
+      label: 설문 버전
+
+  - type: dropdown
+    id: problem
+    attributes:
+      label: 어떤 점이 맞지 않았나요?
+      options:
+        - 무엇을 묻는지 모르겠어요
+        - 제 상황에 맞는 선택지가 없어요
+        - 선택지끼리 구분이 안 돼요
+        - 답하기 곤란한 질문이에요
+        - 필요 없는 질문 같아요
+        - 기타
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: 더 알려 주실 내용
+      description: 어떤 선택지가 있었으면 했나요? 지금 어떤 상황인가요?

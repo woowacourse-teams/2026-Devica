@@ -201,3 +201,17 @@
         grid-column: 1 / -1;
     }
 }
+
+.question-feedback {
+    margin: var(--gutter) 0 0;
+    color: var(--on-surface-variant);
+    font-size: var(--body-sm-font-size);
+}
+
+.question-feedback a {
+    font-weight: 600;
+}
+
+.question-feedback__hint {
+    margin-left: var(--density-high);
+}

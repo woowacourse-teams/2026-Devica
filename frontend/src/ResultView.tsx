@@ -57,6 +57,7 @@ type Props = {
   // 그 OS 의 고친 값만 지운다. 보이지 않는 OS 의 고친 값은 건드리지 않는다.
   onResetEdits: (os: string) => void;
   onSearch: () => void;
+  onReanswer?: () => void;
 };
 
 export function ResultView({
@@ -71,6 +72,7 @@ export function ResultView({
   onEdit,
   onResetEdits,
   onSearch,
+  onReanswer,
 }: Props) {
   const [editing, setEditing] = useState(false);
   const visible = os === 'BOTH' ? specs : specs.filter((spec) => osValueOf(spec) === os);
@@ -90,6 +92,17 @@ export function ResultView({
       <p className="eyebrow">내 제품 추천 결과</p>
       <h2 id="result-title">제품 추천 결과를 확인해 보세요</h2>
       <p className="section-description">제품 추천 결과를 확인하고 필요에 따라 직접 수정할 수 있습니다.</p>
+
+      {onReanswer !== undefined && (
+        <div className="result-outdated" role="status">
+          <p className="notice">
+            질문이 바뀌기 전의 결과 링크예요. 지금 질문에 맞춰 읽어서 처음 본 결과와 다를 수 있어요.
+          </p>
+          <button className="button button--secondary" type="button" onClick={onReanswer}>
+            다시 답하기
+          </button>
+        </div>
+      )}
 
       <div className="result-os-control">
         <span>표시할 OS</span>

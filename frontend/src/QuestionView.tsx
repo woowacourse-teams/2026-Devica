@@ -7,7 +7,29 @@ const HINT = '선택한 항목을 한 번 더 누르면 해제됩니다.';
 // 고른 항목이 눌린 모습으로 바뀌자마자 넘어간다. 선택지 배경 전환(120ms)과 맞춘다. 더 길면 멈칫한다.
 const ADVANCE_DELAY_MS = 120;
 
+const SURVEY_FEEDBACK_FORM_URL = 'https://github.com/woowacourse-teams/2026-Devica/issues/new';
+
+const pairsOf = (answers: [string, string[]][]) =>
+  answers.flatMap(([code, options]) => options.map((option) => `${code}.${option}`)).join(',');
+
+function surveyFeedbackUrl(purpose: string, surveyVersion: string | null, screen: Screen, answers: Answers): string {
+  const codes = screen.questions.map(({ question }) => question.code);
+  const params = new URLSearchParams({
+    template: 'product-recommendation-survey-feedback.yml',
+    title: `[제품 추천 설문 의견] ${screen.title}`,
+    purpose,
+    questions: codes.join(','),
+    question_title: screen.title,
+    selected: pairsOf(Object.entries(answers).filter(([code]) => codes.includes(code))),
+    answers: pairsOf(Object.entries(answers)),
+    survey_version: surveyVersion ?? '',
+  });
+  return `${SURVEY_FEEDBACK_FORM_URL}?${params}`;
+}
+
 type Props = {
+  purpose: string;
+  surveyVersion: string | null;
   screens: Screen[];
   index: number;
   answers: Answers;
@@ -16,7 +38,7 @@ type Props = {
   onNext: () => void;
 };
 
-export function QuestionView({ screens, index, answers, onAnswer, onPrevious, onNext }: Props) {
+export function QuestionView({ purpose, surveyVersion, screens, index, answers, onAnswer, onPrevious, onNext }: Props) {
   const timer = useRef<number | undefined>(undefined);
   // 타이머가 울릴 때는 방금 고른 답이 반영된 onNext 를 불러야 한다.
   const latestNext = useRef(onNext);
@@ -96,6 +118,14 @@ export function QuestionView({ screens, index, answers, onAnswer, onPrevious, on
           </>
         )}
       </div>
+
+      <p className="question-feedback">
+        이 질문이 내 상황과 맞지 않나요?{' '}
+        <a href={surveyFeedbackUrl(purpose, surveyVersion, screen, answers)} target="_blank" rel="noopener noreferrer">
+          의견 남기기 ↗
+        </a>
+        <span className="question-feedback__hint">GitHub 계정이 필요해요.</span>
+      </p>
 
       {single === null && (
         <div className="sticky-actions">
