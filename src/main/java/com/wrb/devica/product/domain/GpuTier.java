@@ -1,6 +1,8 @@
 package com.wrb.devica.product.domain;
 
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import lombok.Getter;
 
 @Getter
@@ -22,6 +24,12 @@ public enum GpuTier {
         this.os = os;
         this.displayName = displayName;
         this.minScore = minScore;
+    }
+
+    public static List<GpuTier> inOrder() {
+        return Arrays.stream(values())
+            .sorted(Comparator.comparing(GpuTier::getOs).thenComparingInt(GpuTier::getMinScore))
+            .toList();
     }
 
     public boolean isLowest() {
