@@ -141,6 +141,17 @@ test('GPU·화면 권장은 목록 조건이 되고, 모든 제품이 갖춘 가
   });
 });
 
+test('Mac 의 CPU 를 고치면 GPU 도 같은 칩으로 바뀌어 목록 조건에 반영된다', () => {
+  const mac: Spec = { ...MAC, items: [...MAC.items, item('REQUIRED_GPU', 'PRO', 'M Pro 칩')] };
+  const edited = editedSpec(mac, { MAC: { REQUIRED_CPU: 'BASIC' } }, TIERS);
+  expect(edited.items.find((each) => each.code === 'REQUIRED_GPU')).toMatchObject({
+    value: 'BASIC',
+    displayValue: 'M 칩',
+  });
+  expect(specCondition(edited)).toMatchObject({ cpuTier: 'BASIC', gpuTier: null });
+  expect(editedSpec(mac, {}, TIERS)).toEqual(mac);
+});
+
 test('주소의 색 영역·GPU 값이 등급 이름이 아니면 조건으로 받지 않는다', () => {
   expect(conditionOf(new URLSearchParams('gpuTier=toString&colorGamut=constructor'))).toMatchObject({
     gpuTier: null,

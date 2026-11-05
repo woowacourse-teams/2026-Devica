@@ -280,6 +280,22 @@ export function editChoices(code: string, os: string, tiers: CpuTier[] | null): 
 /** 고친 값을 권장 사양에 덮는다. 주소는 누구나 고칠 수 있어, 고를 수 없는 값이나 권장 값과 같은 값은 버린다. */
 export function editedSpec(spec: Spec, edits: SpecEdits, tiers: CpuTier[] | null): Spec {
   const os = osValueOf(spec);
+  const edited = overlayEdits(spec, os, edits, tiers);
+  const cpu = edited.items.find((item) => item.code === 'REQUIRED_CPU');
+  if (os !== 'MAC' || cpu === undefined || spec.items.includes(cpu)) {
+    return edited;
+  }
+  return {
+    ...edited,
+    items: edited.items.map((item) =>
+      item.code === 'REQUIRED_GPU' && item.value !== cpu.value
+        ? { ...item, value: cpu.value, displayValue: cpu.displayValue, reasons: [] }
+        : item,
+    ),
+  };
+}
+
+function overlayEdits(spec: Spec, os: string, edits: SpecEdits, tiers: CpuTier[] | null): Spec {
   return {
     ...spec,
     items: spec.items.map((item) => {
