@@ -34,7 +34,7 @@ mysql -h DB_HOST -P DB_PORT -u DB_USER -p devica < performance/data/seed-product
 ### 제품이 만들어지는 방식
 
 1. `LAPTOP` 카테고리, 입력값, 같은 실행 ID의 기존 제품을 확인한다. 조건이 맞지 않으면 제품 삽입 전에 중단한다.
-2. 실행 시점의 `cpu` 테이블에서 Mac용(`Apple`)과 Windows용(`Intel`, `AMD`) CPU를 각각 id 순으로 모은다. 이어서 `CpuTier`의 각 등급(`BASIC`, `PRO`, `U`, `P_HS`, `H`, `HX`)마다 해당 OS에 점수가 등급의 `minScore` 이상인 CPU가 있는지 확인한다. `MAX`는 등록된 M Max 칩 CPU가 없고 추천이 `PRO`로 제한해 측정하지 않으므로 확인하지 않는다. 없는 등급이 있으면 그 등급 이름을 담은 오류로 제품 삽입 전에 중단한다. 등급 점수 기준은 SQL에 적혀 있으므로 `CpuTier.java`의 점수를 바꾸면 SQL도 함께 고친다.
+2. 실행 시점의 `cpu` 테이블에서 Mac용(`Apple`)과 Windows용(`Intel`, `AMD`) CPU를 각각 id 순으로 모은다. 이어서 `CpuTier`의 각 등급(`BASIC`, `PRO`, `MAX`, `U`, `P_HS`, `H`, `HX`)마다 해당 OS에 점수가 등급의 `minScore` 이상인 CPU가 있는지 확인한다. 없는 등급이 있으면 그 등급 이름을 담은 오류로 제품 삽입 전에 중단한다. 등급 점수 기준은 SQL에 적혀 있으므로 `CpuTier.java`의 점수를 바꾸면 SQL도 함께 고친다.
 3. 재귀 CTE로 배치에 사용할 0~999 범위의 번호를 임시 테이블에 만든다. 제품 수가 늘어도 재귀 깊이는 기본 제한 1,000 이내다.
 4. 프로시저의 반복문이 번호로 브랜드·사양·가격을 계산해 `INSERT … SELECT`로 저장한다. 제품마다 `laptop` 1건, `ON_SALE` 판매처 3건, 그 판매처의 최저가(`product_min_price`) 1건이 생긴다.
    - 5개 중 1개는 Apple 브랜드의 Mac, 나머지는 Windows 노트북이다.

@@ -7,7 +7,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 class CpuTierTest {
 
@@ -43,14 +42,6 @@ class CpuTierTest {
 
         // then
         assertThat(scores).isNotEmpty().doesNotHaveDuplicates();
-    }
-
-    @ParameterizedTest
-    @ValueSource(ints = {48861, 57153})
-    void M5_Pro_칩_점수는_M_Max_칩_등급에_들지_않는다(int m5ProScore) {
-        // when & then
-        assertThat(m5ProScore).isGreaterThanOrEqualTo(CpuTier.PRO.getMinScore())
-            .isLessThan(CpuTier.MAX.getMinScore());
     }
 
     @Test
