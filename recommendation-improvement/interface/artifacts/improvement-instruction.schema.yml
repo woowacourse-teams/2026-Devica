@@ -211,7 +211,7 @@ examples:
           - { question: SLOWDOWN, anyOf: [ OFTEN ] }
     change:
       add: { direction: UP }
-      reason: { to: 지금 32GB 에서도 여러 프로그램을 함께 쓸 때 자주 멈춰 그보다 큰 용량을 권합니다. }
+      reason: { to: 지금 32GB 에서도 여러 프로그램을 함께 쓸 때 자주 멈춘 점을 반영했습니다. }
     cases:
       - issue: 345
         answers:

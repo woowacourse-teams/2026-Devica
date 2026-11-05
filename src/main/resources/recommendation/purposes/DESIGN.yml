@@ -296,7 +296,7 @@ rules:
   - criterion: STORAGE
     weight: 1
     when: *smallDiskShortage
-    reason: 지금 256GB 이하에서 용량이 부족했던 경험을 반영해 그보다 큰 용량을 권합니다.
+    reason: 지금 256GB 이하에서 용량이 부족했던 경험을 반영했습니다.
   # 1TB 로도 부족했다면 1TB 를 넘는 용량이 필요하다는 근거라 더 크게 반영한다
   - criterion: STORAGE
     weight: 4
