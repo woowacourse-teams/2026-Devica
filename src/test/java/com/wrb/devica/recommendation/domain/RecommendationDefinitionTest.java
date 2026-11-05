@@ -1,5 +1,6 @@
 package com.wrb.devica.recommendation.domain;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.ByteArrayInputStream;
@@ -52,21 +53,25 @@ class RecommendationDefinitionTest {
     }
 
     @Test
-    void 정의서에는_지운_코드_목록을_쓸_수_없다() {
+    void 설문_버전은_정의서_내용이_같으면_같고_다르면_달라진다() {
         // given
         String yaml = """
             survey:
               steps:
                 - questions:
                     - { code: OS, options: [ { code: MAC } ] }
-              retired:
-                - { question: HEAT, drop: true }
             rules: []
             mappings: []
             """;
+        String changed = yaml.replace("MAC", "WINDOWS");
 
-        // when & then
-        assertThatThrownBy(() -> read(yaml))
-            .hasMessageContaining("retired");
+        // when
+        String version = read(yaml).survey().version();
+        String sameVersion = read(yaml).survey().version();
+        String changedVersion = read(changed).survey().version();
+
+        // then
+        assertThat(version).hasSize(12).isEqualTo(sameVersion);
+        assertThat(changedVersion).isNotEqualTo(version);
     }
 }
