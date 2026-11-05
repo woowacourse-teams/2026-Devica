@@ -1,5 +1,6 @@
+import type { CSSProperties } from 'react';
 import { track } from './analytics';
-import { LandingGuide } from './LandingGuide';
+import { CarouselArrows, LandingGuide, useCarousel } from './LandingGuide';
 import { LANDING_GUIDES } from './landingGuides';
 import { PATHS } from './routes';
 import { ServiceEntryLink } from './ServiceEntryLink';
@@ -7,9 +8,30 @@ import { useAnalyticsView } from './useAnalyticsView';
 import { useLandingReveal } from './useLandingReveal';
 import './LandingPage.css';
 
+const PRODUCT_LIST_METRICS = [
+  {
+    name: 'p95 응답 시간',
+    hint: '요청 95%가 이 안에 응답',
+    before: 7523,
+    after: 85,
+    max: 7523,
+    format: (value: number) => `${value.toLocaleString()}ms`,
+  },
+  {
+    name: '응답 실패',
+    hint: '5초 안에 응답 못 함',
+    before: 23,
+    after: 0,
+    max: 100,
+    format: (value: number) => `${value}%`,
+  },
+  { name: 'DB 사용률', hint: '몰릴 때 최대', before: 99, after: 28, max: 100, format: (value: number) => `${value}%` },
+];
+
 export function LandingPage() {
   const pageRef = useLandingReveal();
   const landingView = useAnalyticsView<HTMLHeadingElement>('landing_viewed', {});
+  const tech = useCarousel();
 
   return (
     <div className="landing-page" ref={pageRef}>
@@ -83,6 +105,203 @@ export function LandingPage() {
         {LANDING_GUIDES.map((guide) => (
           <LandingGuide key={guide.id} guide={guide} />
         ))}
+      </section>
+      <section className="landing-tech" aria-labelledby="landing-tech-title">
+        <div className="landing-section-heading" data-landing-reveal="">
+          <div>
+            <p className="landing-eyebrow">DEVICA 기술 소개</p>
+            <h2 id="landing-tech-title">써 볼수록 더 잘 맞는 제품 추천</h2>
+          </div>
+        </div>
+        <section
+          className="landing-guide__track"
+          id="landing-tech-track"
+          ref={tech.trackRef}
+          data-landing-reveal=""
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: 가로 스크롤 영역에 초점을 두고 방향키와 Home/End로 카드를 넘긴다.
+          tabIndex={0}
+          aria-label="기술 소개 카드. 좌우 방향키로 넘길 수 있습니다."
+          onKeyDown={tech.onKeyDown}
+        >
+          <article className="landing-tech__card">
+            <div className="landing-tech__copy">
+              <h3>사용자가 서비스를 이용할수록 쌓이는 의견과 지표로 제품 추천이 개선돼요</h3>
+              <p className="landing-tech__label">문제</p>
+              <p className="landing-description">
+                제품 추천이 맞는지는 사용자만 알 수 있지만, 서비스를 이용하며 쌓이는 의견과 지표를 팀원이 하나하나 읽고
+                질문과 규칙을 고치기는 어려웠어요.
+              </p>
+              <p className="landing-tech__label">해결</p>
+              <p className="landing-description">
+                AI가 의견과 지표에서 원인을 찾아 제품 추천 규칙이나 설문 질문을 고친 PR을 올려요. 질문을 지워도 예전
+                결과 링크는 계속 열려요. 팀원이 답 조합 430개의 바꾸기 전과 후 결과를 확인해 승인하면 반영되고, 바뀐
+                제품 추천에 쌓이는 의견과 지표가 다시 다음 개선으로 이어져요.
+              </p>
+              <div className="landing-tech__result">
+                <strong>약 20시간</strong>
+                <p className="landing-tech__note">
+                  메모리가 부족하다는 사용자 의견이 들어온 지 약 20시간 만에 개선안이 승인됐어요.
+                </p>
+              </div>
+              <a
+                className="landing-textlink"
+                href="https://github.com/woowacourse-teams/2026-Devica/pull/347"
+                target="_blank"
+                rel="noopener"
+              >
+                실제 개선 PR 보기 ↗
+              </a>
+            </div>
+            <div className="landing-tech__visual">
+              <div className="landing-loop" data-landing-reveal="">
+                <svg className="landing-loop__ring" viewBox="0 0 100 100" aria-hidden="true">
+                  <circle cx="50" cy="50" r="38" />
+                </svg>
+                <span className="landing-loop__orbit" aria-hidden="true">
+                  <span className="landing-loop__dot" />
+                </span>
+                <ol className="landing-loop__steps" aria-label="제품 추천 개선 루프와 실제 사례">
+                  <li className="landing-loop__step landing-loop__step--1">
+                    <b className="landing-loop__title">① 의견·지표</b>
+                    <span className="landing-loop__desc">“32GB인데 자주 멈춰요”</span>
+                  </li>
+                  <li className="landing-loop__step landing-loop__step--2">
+                    <b className="landing-loop__title">② AI 개선안</b>
+                    <span className="landing-loop__desc">메모리 규칙 추가 PR</span>
+                  </li>
+                  <li className="landing-loop__step landing-loop__step--3">
+                    <b className="landing-loop__title">③ 팀원 승인</b>
+                    <span className="landing-loop__desc">약 20시간 만에</span>
+                  </li>
+                  <li className="landing-loop__step landing-loop__step--4">
+                    <b className="landing-loop__title">④ 반영</b>
+                    <span className="landing-loop__desc">권장 메모리 32GB → 48GB</span>
+                  </li>
+                </ol>
+              </div>
+            </div>
+          </article>
+          <article className="landing-tech__card">
+            <div className="landing-tech__copy">
+              <h3>사용자가 몰려도 제품 목록이 빠르게 열려요</h3>
+              <p className="landing-tech__label">문제</p>
+              <p className="landing-description">
+                10분 동안 약 260명이 몰리는 트래픽(최대 초당 약 20건 요청)으로 성능 테스트를 했더니, 제품 목록의 p95
+                응답 시간이 7.5초였고 요청의 약 23%가 5초 안에 응답을 받지 못했어요.
+              </p>
+              <p className="landing-tech__label">해결</p>
+              <p className="landing-description">
+                요청이 올 때마다 모든 노트북의 최저가를 새로 계산하던 방식을, 가격이 바뀔 때 미리 계산해 두는 방식으로
+                바꿨어요. 가격순 목록은 미리 계산한 최저가를 가격 순서대로 정리해 두고 한 페이지 분량만 읽어요.
+              </p>
+              <div className="landing-tech__result">
+                <strong>7.5초 → 0.09초</strong>
+                <p className="landing-tech__note">
+                  같은 트래픽으로 다시 측정했을 때 p95 응답 시간이 7.5초에서 0.09초로 줄었고, 응답하지 못한 요청도
+                  없어졌어요.
+                </p>
+              </div>
+              <a
+                className="landing-textlink"
+                href="https://github.com/woowacourse-teams/2026-Devica/blob/develop/docs/adr/0043-제품-목록-최저가-사전-계산.md"
+                target="_blank"
+                rel="noopener"
+              >
+                개선 과정 보기 ↗
+              </a>
+            </div>
+            <div className="landing-tech__visual">
+              <figure className="landing-chart" data-landing-reveal="" aria-label="개선 전후 비교 그래프">
+                {PRODUCT_LIST_METRICS.map((metric) => (
+                  <div className="landing-chart__metric" key={metric.name}>
+                    <p className="landing-chart__name">
+                      {metric.name} <span className="landing-chart__hint">{metric.hint}</span>
+                    </p>
+                    {(['before', 'after'] as const).map((when) => (
+                      <div className={`landing-chart__row landing-chart__row--${when}`} key={when}>
+                        <span className="landing-chart__when">{when === 'before' ? '전' : '후'}</span>
+                        <span className="landing-chart__track">
+                          <span
+                            className="landing-chart__bar"
+                            style={
+                              {
+                                '--bar': `${(metric[when] / metric.max) * 100}%`,
+                                minWidth: metric[when] === 0 ? 0 : undefined,
+                              } as CSSProperties
+                            }
+                          />
+                        </span>
+                        <span className="landing-chart__value">{metric.format(metric[when])}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </figure>
+            </div>
+          </article>
+          <article className="landing-tech__card">
+            <div className="landing-tech__copy">
+              <h3>판매처 가격이 바뀌어도 매일 자동으로 확인해요</h3>
+              <p className="landing-tech__label">문제</p>
+              <p className="landing-description">
+                판매처 가격은 계속 바뀌는데 Devica의 가격이 그대로면, 서비스에서 본 가격과 구매 페이지의 가격이
+                달라져요. 사람이 매일 모든 판매처를 확인하기는 어려웠어요.
+              </p>
+              <p className="landing-tech__label">해결</p>
+              <p className="landing-description">
+                매일 새벽 4시에 쿠팡에서 등록해 둔 판매 옵션과 같은 상품을 찾아 가격을 확인해요. 가격이 바뀌었으면 목록
+                최저가까지 함께 고치고, 찾지 못한 상품은 기존 가격을 그대로 두고 검수 대상으로 남겨요.
+              </p>
+              <div className="landing-tech__result">
+                <strong>매일 새벽 4시</strong>
+                <p className="landing-tech__note">
+                  사람이 확인하지 않아도 매일 가격을 다시 확인하고, 확인하지 못한 상품은 대시보드에서 바로 찾아 검수할
+                  수 있어요.
+                </p>
+              </div>
+            </div>
+            <div className="landing-tech__visual">
+              <ol className="landing-flow" data-landing-reveal="" aria-label="가격 확인 흐름">
+                <li className="landing-flow__step">
+                  <b className="landing-flow__title">매일 새벽 4시</b>
+                  <span className="landing-flow__desc">가격 확인 시작</span>
+                </li>
+                <li className="landing-flow__step">
+                  <b className="landing-flow__title">쿠팡에서 같은 판매 옵션 찾기</b>
+                  <span className="landing-flow__desc">저장해 둔 판매 옵션 식별자로 비교</span>
+                </li>
+                <li className="landing-flow__branches">
+                  <div className="landing-flow__step landing-flow__step--ok">
+                    <b className="landing-flow__title">찾음</b>
+                    <span className="landing-flow__desc">가격과 목록 최저가 갱신</span>
+                  </div>
+                  <div className="landing-flow__step landing-flow__step--hold">
+                    <b className="landing-flow__title">못 찾음</b>
+                    <span className="landing-flow__desc">기존 가격 유지, 검수 대상으로 표시</span>
+                  </div>
+                </li>
+              </ol>
+            </div>
+          </article>
+        </section>
+        <div className="landing-guide__controls" data-landing-reveal="">
+          <p>
+            <span className="landing-guide__count">3개 카드</span>
+            <span>옆으로 넘겨서 살펴보세요.</span>
+          </p>
+          <div className="landing-guide__action" />
+          <CarouselArrows label="기술 소개" trackId="landing-tech-track" edges={tech.edges} move={tech.move} />
+        </div>
+        <div className="landing-tech__action" data-landing-reveal="">
+          <ServiceEntryLink
+            className="landing-cta"
+            href={PATHS.category}
+            destination="spec_finder"
+            entryPoint="landing_tech"
+          >
+            제품 추천 시작 <span aria-hidden="true">→</span>
+          </ServiceEntryLink>
+        </div>
       </section>
       <section className="landing-faq" aria-labelledby="landing-faq-title" data-landing-reveal="">
         <h2 id="landing-faq-title">시작하기 전에 궁금한 점</h2>
