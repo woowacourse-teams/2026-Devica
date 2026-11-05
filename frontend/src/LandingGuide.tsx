@@ -4,18 +4,11 @@ import type { LandingGuideContent } from './landingGuides';
 import { ServiceEntryLink } from './ServiceEntryLink';
 import { useAnalyticsView } from './useAnalyticsView';
 
-export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
+export function useCarousel(onExplored?: () => void) {
   const trackRef = useRef<HTMLElement>(null);
   const [edges, setEdges] = useState({ start: true, end: false });
   const [hasExplored, setHasExplored] = useState(false);
-  const trackId = `${guide.id}-track`;
-  const guideView = useAnalyticsView<HTMLHeadingElement>('landing_guide_viewed', { guide: guide.id });
-  const explored = useRef(false);
-  const recordExplored = useEffectEvent(() => {
-    if (explored.current) return;
-    explored.current = true;
-    trackEvent('landing_guide_explored', { guide: guide.id });
-  });
+  const recordExplored = useEffectEvent(() => onExplored?.());
 
   useEffect(() => {
     const track = trackRef.current;
@@ -79,6 +72,49 @@ export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
         break;
     }
   }
+
+  return { trackRef, edges, hasExplored, move, onKeyDown };
+}
+
+export function CarouselArrows({
+  label,
+  trackId,
+  edges,
+  move,
+}: Pick<ReturnType<typeof useCarousel>, 'edges' | 'move'> & { label: string; trackId: string }) {
+  return (
+    <div className="landing-guide__arrows">
+      <button
+        type="button"
+        aria-label={`${label} 이전 카드`}
+        aria-controls={trackId}
+        disabled={edges.start}
+        onClick={() => move('previous')}
+      >
+        <span aria-hidden="true">‹</span>
+      </button>
+      <button
+        type="button"
+        aria-label={`${label} 다음 카드`}
+        aria-controls={trackId}
+        disabled={edges.end}
+        onClick={() => move('next')}
+      >
+        <span aria-hidden="true">›</span>
+      </button>
+    </div>
+  );
+}
+
+export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
+  const trackId = `${guide.id}-track`;
+  const guideView = useAnalyticsView<HTMLHeadingElement>('landing_guide_viewed', { guide: guide.id });
+  const explored = useRef(false);
+  const { trackRef, edges, hasExplored, move, onKeyDown } = useCarousel(() => {
+    if (explored.current) return;
+    explored.current = true;
+    trackEvent('landing_guide_explored', { guide: guide.id });
+  });
 
   return (
     <section
@@ -161,26 +197,7 @@ export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
             </ServiceEntryLink>
           )}
         </div>
-        <div className="landing-guide__arrows">
-          <button
-            type="button"
-            aria-label={`${guide.title} 이전 카드`}
-            aria-controls={trackId}
-            disabled={edges.start}
-            onClick={() => move('previous')}
-          >
-            <span aria-hidden="true">‹</span>
-          </button>
-          <button
-            type="button"
-            aria-label={`${guide.title} 다음 카드`}
-            aria-controls={trackId}
-            disabled={edges.end}
-            onClick={() => move('next')}
-          >
-            <span aria-hidden="true">›</span>
-          </button>
-        </div>
+        <CarouselArrows label={guide.title} trackId={trackId} edges={edges} move={move} />
       </div>
     </section>
   );
