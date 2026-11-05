@@ -30,41 +30,126 @@ record RecommendationDefinitionValidator(Set<String> requirements, Map<String, S
             validateCondition(note.when(), questions, "안내 '" + note.message() + "'", errors);
         }
 
-        validateRetired(definition.survey().retired(), questions, errors);
+        List<RetiredCode> retired = definition.survey().retired().codes();
+        Set<String> retiredKeys = new HashSet<>();
+
+        for (RetiredCode line : retired) {
+            validateRetiredLine(line, retired, retiredKeys, questions, errors);
+        }
 
         return errors;
     }
 
-    private void validateRetired(RetiredCodes retiredCodes, Map<String, Question> questions, List<String> errors) {
-        List<RetiredCode> retired = retiredCodes.codes();
-        Set<String> keys = new HashSet<>();
+    private void validateQuestionInOrder(Question question, Map<String, Question> before, List<String> errors) {
+        validateQuestion(question, before, errors);
 
-        for (RetiredCode line : retired) {
-            String where = line.where();
-
-            if (line.retiredAt() == null) {
-                errors.add(where + ": retiredAt 이 없습니다");
-            }
-
-            if (!keys.add(line.question() + "." + line.option() + "." + line.dropInvalid())) {
-                errors.add(where + ": 같은 코드의 줄이 겹칩니다");
-            }
-
-            if (line.dropInvalid()) {
-                validateDropInvalidLine(line, questions, where, errors);
-                continue;
-            }
-
-            if (line.drop() == (line.to() != null)) {
-                errors.add(where + ": to 와 drop 중 하나만 씁니다");
-            }
-
-            if (line.isQuestionLine()) {
-                validateQuestionLine(line, retired, questions, where, errors);
-            } else {
-                validateOptionLine(line, questions.get(line.question()), where, errors);
-            }
+        if (before.put(question.code(), question) != null) {
+            errors.add("질문 코드가 겹칩니다: " + question.code());
         }
+    }
+
+    private void validateQuestion(Question question, Map<String, Question> before, List<String> errors) {
+        String where = "질문 " + question.code();
+        validateOptionCodes(question, where, errors);
+
+        if (question.exclusive() != null && !question.hasOption(question.exclusive())) {
+            errors.add(where + ": 배타 선택지가 선택지에 없습니다: " + question.exclusive());
+        }
+
+        if (question.showWhen() != null) {
+            validateSelection(question.showWhen(), before, where + " 의 노출 조건", errors);
+        }
+    }
+
+    private void validateOptionCodes(Question question, String where, List<String> errors) {
+        Set<String> optionCodes = new HashSet<>();
+
+        question.options().stream()
+            .map(Option::code)
+            .filter(code -> !optionCodes.add(code))
+            .forEach(code -> errors.add(where + ": 선택지 코드가 겹칩니다: " + code));
+    }
+
+    private void validateSelection(Selected selected,
+                                   Map<String, Question> questions, String where, List<String> errors) {
+        Question question = questions.get(selected.question());
+
+        if (question == null) {
+            errors.add(where + ": 가리킬 수 없는 질문입니다: " + selected.question());
+            return;
+        }
+
+        selected.anyOf().stream()
+            .filter(option -> !question.hasOption(option))
+            .forEach(option -> errors.add(where + ": " + question.code() + " 에 없는 선택지입니다: " + option));
+    }
+
+    private void validateRule(Rule rule, Map<String, Question> questions, List<String> errors) {
+        String where = "규칙 '" + rule.reason() + "'";
+
+        if (!requirements.contains(rule.criterion())) {
+            errors.add(where + ": 없는 요구 항목입니다: " + rule.criterion());
+        }
+
+        validateCondition(rule.when(), questions, where, errors);
+    }
+
+    private void validateCondition(Condition condition,
+                                   Map<String, Question> questions, String where, List<String> errors) {
+        if (condition == null) {
+            errors.add(where + ": 조건이 없습니다");
+            return;
+        }
+
+        condition.selections().forEach(selected -> validateSelection(selected, questions, where, errors));
+    }
+
+    private void validateMapping(ConditionMapping mapping, Map<String, Question> questions, List<String> errors) {
+        String where = "조건 연결 " + mapping.criterion() + "=" + mapping.value();
+        validateMappingValue(mapping, where, errors);
+        validateCondition(mapping.when(), questions, where, errors);
+    }
+
+    private void validateMappingValue(ConditionMapping mapping, String where, List<String> errors) {
+        Set<String> values = conditions.get(mapping.criterion());
+
+        if (values == null) {
+            errors.add(where + ": 없는 조건 항목입니다");
+            return;
+        }
+
+        if (!values.contains(mapping.value())) {
+            errors.add(where + ": 항목이 가질 수 없는 값입니다");
+        }
+    }
+
+    private void validateRetiredLine(RetiredCode line, List<RetiredCode> retired, Set<String> keys,
+                                     Map<String, Question> questions, List<String> errors) {
+        String where = line.where();
+
+        if (line.retiredAt() == null) {
+            errors.add(where + ": retiredAt 이 없습니다");
+        }
+
+        if (!keys.add(line.question() + "." + line.option() + "." + line.dropInvalid())) {
+            errors.add(where + ": 같은 코드의 줄이 겹칩니다");
+        }
+
+        if (line.dropInvalid()) {
+            validateDropInvalidLine(line, questions, where, errors);
+            return;
+        }
+
+        if (line.drop() == (line.to() != null)) {
+            errors.add(where + ": to 와 drop 중 하나만 씁니다");
+        }
+
+        if (line.isQuestionLine()) {
+            validateQuestionLine(line, retired, questions, where, errors);
+            return;
+        }
+
+        validateOptionLine(line, questions.get(line.question()), where, errors);
     }
 
     private void validateDropInvalidLine(RetiredCode line, Map<String, Question> questions, String where,
@@ -122,88 +207,5 @@ record RecommendationDefinitionValidator(Set<String> requirements, Map<String, S
         if (line.to() != null && !question.hasOption(line.to())) {
             errors.add(where + ": to 가 지금 선택지가 아닙니다: " + line.to());
         }
-    }
-
-    private void validateQuestionInOrder(Question question, Map<String, Question> before, List<String> errors) {
-        validateQuestion(question, before, errors);
-
-        if (before.put(question.code(), question) != null) {
-            errors.add("질문 코드가 겹칩니다: " + question.code());
-        }
-    }
-
-    private void validateRule(Rule rule, Map<String, Question> questions, List<String> errors) {
-        String where = "규칙 '" + rule.reason() + "'";
-
-        if (!requirements.contains(rule.criterion())) {
-            errors.add(where + ": 없는 요구 항목입니다: " + rule.criterion());
-        }
-
-        validateCondition(rule.when(), questions, where, errors);
-    }
-
-    private void validateMapping(ConditionMapping mapping, Map<String, Question> questions, List<String> errors) {
-        String where = "조건 연결 " + mapping.criterion() + "=" + mapping.value();
-        validateMappingValue(mapping, where, errors);
-        validateCondition(mapping.when(), questions, where, errors);
-    }
-
-    private void validateMappingValue(ConditionMapping mapping, String where, List<String> errors) {
-        Set<String> values = conditions.get(mapping.criterion());
-
-        if (values == null) {
-            errors.add(where + ": 없는 조건 항목입니다");
-            return;
-        }
-
-        if (!values.contains(mapping.value())) {
-            errors.add(where + ": 항목이 가질 수 없는 값입니다");
-        }
-    }
-
-    private void validateQuestion(Question question, Map<String, Question> before, List<String> errors) {
-        String where = "질문 " + question.code();
-        validateOptionCodes(question, where, errors);
-
-        if (question.exclusive() != null && !question.hasOption(question.exclusive())) {
-            errors.add(where + ": 배타 선택지가 선택지에 없습니다: " + question.exclusive());
-        }
-
-        if (question.showWhen() != null) {
-            validateSelection(question.showWhen(), before, where + " 의 노출 조건", errors);
-        }
-    }
-
-    private void validateOptionCodes(Question question, String where, List<String> errors) {
-        Set<String> optionCodes = new HashSet<>();
-
-        question.options().stream()
-            .map(Option::code)
-            .filter(code -> !optionCodes.add(code))
-            .forEach(code -> errors.add(where + ": 선택지 코드가 겹칩니다: " + code));
-    }
-
-    private void validateCondition(Condition condition,
-                                   Map<String, Question> questions, String where, List<String> errors) {
-        if (condition == null) {
-            errors.add(where + ": 조건이 없습니다");
-            return;
-        }
-
-        condition.selections().forEach(selected -> validateSelection(selected, questions, where, errors));
-    }
-
-    private void validateSelection(Selected selected,
-                                   Map<String, Question> questions, String where, List<String> errors) {
-        Question question = questions.get(selected.question());
-
-        if (question == null) {
-            errors.add(where + ": 가리킬 수 없는 질문입니다: " + selected.question());
-            return;
-        }
-
-        selected.anyOf().stream()
-            .filter(option -> !question.hasOption(option))
-            .forEach(option -> errors.add(where + ": " + question.code() + " 에 없는 선택지입니다: " + option));
     }
 }
