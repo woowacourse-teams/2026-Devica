@@ -50,4 +50,23 @@ class RecommendationDefinitionTest {
         assertThatThrownBy(() -> read(yaml))
             .hasMessageContaining("not");
     }
+
+    @Test
+    void 정의서에는_지운_코드_목록을_쓸_수_없다() {
+        // given
+        String yaml = """
+            survey:
+              steps:
+                - questions:
+                    - { code: OS, options: [ { code: MAC } ] }
+              retired:
+                - { question: HEAT, drop: true }
+            rules: []
+            mappings: []
+            """;
+
+        // when & then
+        assertThatThrownBy(() -> read(yaml))
+            .hasMessageContaining("retired");
+    }
 }

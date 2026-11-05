@@ -15,6 +15,11 @@ class RecommendationDefinitionValidatorTest {
         return RecommendationDefinition.read(new ByteArrayInputStream(yaml.getBytes(StandardCharsets.UTF_8)));
     }
 
+    private static RecommendationDefinition read(String yaml, String retiredYaml) {
+        return read(yaml).withRetired(
+            RetiredCodes.read(new ByteArrayInputStream(retiredYaml.getBytes(StandardCharsets.UTF_8))));
+    }
+
     @Test
     void 참조가_모두_맞으면_오류가_없다() {
         // given
@@ -230,6 +235,7 @@ class RecommendationDefinitionValidatorTest {
             "안내 '없는 선택지': OS 에 없는 선택지입니다: LINUX",
             "안내 '조건 없음': 조건이 없습니다");
     }
+
     @Test
     void 지운_코드_줄이_지금_설문과_맞으면_오류가_없다() {
         // given
@@ -239,15 +245,17 @@ class RecommendationDefinitionValidatorTest {
               steps:
                 - questions:
                     - { code: HEAT_FELT, options: [ { code: OFTEN }, { code: NEVER } ] }
-              retired:
-                - { question: HEAT, to: HEAT_FELT, was: "뜨거워지나요?" }
-                - { question: OLD_HEAT, to: HEAT, was: "발열을 겪나요?" }
-                - { question: AI_TOOL, drop: true, was: "AI 도구를 쓰나요?" }
-                - { question: HEAT_FELT, option: SOMETIMES, to: OFTEN, was: 가끔 }
-                - { question: HEAT_FELT, option: UNKNOWN, drop: true, was: 모르겠다 }
-                - { question: HEAT_FELT, dropInvalid: true }
             rules: []
             mappings: []
+            """, """
+            keepMonths: 6
+            codes:
+              - { question: HEAT, to: HEAT_FELT, was: "뜨거워지나요?", retiredAt: 2026-11-05 }
+              - { question: OLD_HEAT, to: HEAT, was: "발열을 겪나요?", retiredAt: 2026-05-01 }
+              - { question: AI_TOOL, drop: true, was: "AI 도구를 쓰나요?", retiredAt: 2026-11-05 }
+              - { question: HEAT_FELT, option: SOMETIMES, to: OFTEN, was: 가끔, retiredAt: 2026-11-05 }
+              - { question: HEAT_FELT, option: UNKNOWN, drop: true, was: 모르겠다, retiredAt: 2026-11-05 }
+              - { question: HEAT_FELT, dropInvalid: true, retiredAt: 2026-11-05 }
             """);
 
         // when
@@ -266,19 +274,21 @@ class RecommendationDefinitionValidatorTest {
               steps:
                 - questions:
                     - { code: HEAT, options: [ { code: OFTEN }, { code: NEVER } ] }
-              retired:
-                - { question: HEAT, drop: true }
-                - { question: GONE, to: MISSING }
-                - { question: LOOP_A, to: LOOP_B }
-                - { question: LOOP_B, to: LOOP_A }
-                - { question: BOTH, to: HEAT, drop: true }
-                - { question: HEAT, option: OFTEN, drop: true }
-                - { question: HEAT, option: RARELY, to: SOMETIMES }
-                - { question: HEAT, option: RARELY, drop: true }
-                - { question: NOT_NOW, option: X, drop: true }
-                - { question: NOT_NOW, dropInvalid: true }
             rules: []
             mappings: []
+            """, """
+            keepMonths: 6
+            codes:
+              - { question: HEAT, drop: true, retiredAt: 2026-11-05 }
+              - { question: GONE, to: MISSING, retiredAt: 2026-11-05 }
+              - { question: LOOP_A, to: LOOP_B, retiredAt: 2026-11-05 }
+              - { question: LOOP_B, to: LOOP_A, retiredAt: 2026-11-05 }
+              - { question: BOTH, to: HEAT, drop: true, retiredAt: 2026-11-05 }
+              - { question: HEAT, option: OFTEN, drop: true, retiredAt: 2026-11-05 }
+              - { question: HEAT, option: RARELY, to: SOMETIMES, retiredAt: 2026-11-05 }
+              - { question: HEAT, option: RARELY, drop: true, retiredAt: 2026-11-05 }
+              - { question: NOT_NOW, option: X, drop: true, retiredAt: 2026-11-05 }
+              - { question: NOT_NOW, dropInvalid: true, retiredAt: 2026-11-05 }
             """);
 
         // when
@@ -296,5 +306,39 @@ class RecommendationDefinitionValidatorTest {
             "지운 코드 HEAT.RARELY: 같은 코드의 줄이 겹칩니다",
             "지운 코드 NOT_NOW.X: 지금 질문이 아닙니다",
             "지운 코드 NOT_NOW: 지금 질문이 아닙니다");
+    }
+
+    @Test
+    void 지운_코드_목록에_보관_기간이나_지운_날짜가_없으면_오류를_낸다() {
+        // given
+        RecommendationDefinitionValidator validator = new RecommendationDefinitionValidator(Set.of(), Map.of());
+        String survey = """
+            survey:
+              steps:
+                - questions:
+                    - { code: HEAT_FELT, options: [ { code: OFTEN }, { code: NEVER } ] }
+            rules: []
+            mappings: []
+            """;
+        RecommendationDefinition withoutKeepMonths = read(survey, """
+            codes:
+              - { question: HEAT, to: HEAT_FELT, retiredAt: 2026-11-05 }
+            """);
+        RecommendationDefinition zeroKeepMonths = read(survey, """
+            keepMonths: 0
+            codes:
+              - { question: HEAT, to: HEAT_FELT }
+            """);
+
+        // when
+        List<String> withoutKeepMonthsErrors = validator.validate(withoutKeepMonths);
+        List<String> zeroKeepMonthsErrors = validator.validate(zeroKeepMonths);
+
+        // then
+        assertThat(withoutKeepMonthsErrors).containsExactly(
+            "지운 코드 목록: keepMonths 가 양의 정수가 아닙니다");
+        assertThat(zeroKeepMonthsErrors).containsExactly(
+            "지운 코드 목록: keepMonths 가 양의 정수가 아닙니다",
+            "지운 코드 HEAT: retiredAt 이 없습니다");
     }
 }

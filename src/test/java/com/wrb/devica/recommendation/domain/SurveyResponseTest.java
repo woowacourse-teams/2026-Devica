@@ -6,12 +6,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.wrb.devica.common.exception.BusinessErrorCode;
 import com.wrb.devica.common.exception.BusinessException;
 import com.wrb.devica.recommendation.domain.Condition.Selected;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class SurveyResponseTest {
+
+    private static final LocalDate TODAY = LocalDate.of(2026, 11, 5);
 
     private static Survey surveyOf(Question... questions) {
         return new Survey(List.of(new Step(null, null, List.of(questions))));
@@ -38,7 +41,7 @@ class SurveyResponseTest {
             "MEMORY", List.of("GB_32"));
 
         // when
-        SurveyResponse response = SurveyResponse.from(params, survey);
+        SurveyResponse response = SurveyResponse.from(params, survey, TODAY);
 
         // then
         assertThat(response.answers()).containsOnlyKeys("OS");
@@ -57,7 +60,7 @@ class SurveyResponseTest {
             "MEMORY", List.of("GB_32"));
 
         // when
-        SurveyResponse response = SurveyResponse.from(params, survey);
+        SurveyResponse response = SurveyResponse.from(params, survey, TODAY);
 
         // then
         assertThat(response.has("MEMORY", "GB_32")).isTrue();
@@ -70,7 +73,7 @@ class SurveyResponseTest {
         Map<String, List<String>> params = Map.of("OS", List.of());
 
         // when
-        SurveyResponse response = SurveyResponse.from(params, survey);
+        SurveyResponse response = SurveyResponse.from(params, survey, TODAY);
 
         // then
         assertThat(response.answers()).isEmpty();
@@ -83,7 +86,7 @@ class SurveyResponseTest {
         Map<String, List<String>> params = Map.of("NOT_EXIST", List.of("MAC"));
 
         // when & then
-        assertThatThrownBy(() -> SurveyResponse.from(params, survey))
+        assertThatThrownBy(() -> SurveyResponse.from(params, survey, TODAY))
             .isInstanceOf(BusinessException.class)
             .extracting(thrown -> ((BusinessException) thrown).getErrorCode())
             .isEqualTo(BusinessErrorCode.QUESTION_NOT_FOUND);
@@ -102,7 +105,7 @@ class SurveyResponseTest {
             Map.of("LANGUAGE", List.of("JAVA", "UNDECIDED")));
 
         // when & then
-        assertThat(invalidParams).allSatisfy(params -> assertThatThrownBy(() -> SurveyResponse.from(params, survey))
+        assertThat(invalidParams).allSatisfy(params -> assertThatThrownBy(() -> SurveyResponse.from(params, survey, TODAY))
             .isInstanceOf(BusinessException.class)
             .extracting(thrown -> ((BusinessException) thrown).getErrorCode())
             .isEqualTo(BusinessErrorCode.ANSWER_NOT_ALLOWED));

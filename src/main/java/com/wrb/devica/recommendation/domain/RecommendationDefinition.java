@@ -39,6 +39,10 @@ public record RecommendationDefinition(Survey survey, List<Rule> rules, List<Con
         }
     }
 
+    public RecommendationDefinition withRetired(RetiredCodes retired) {
+        return new RecommendationDefinition(survey.withRetired(retired), rules, mappings, notes, interpretation);
+    }
+
     private static String versionOf(byte[] bytes) {
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes)).substring(0, 12);

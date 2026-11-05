@@ -9,6 +9,8 @@ import com.wrb.devica.recommendation.domain.RecommendationDefinitions;
 import com.wrb.devica.recommendation.domain.RecommendedSpec;
 import com.wrb.devica.recommendation.domain.Survey;
 import com.wrb.devica.recommendation.domain.SurveyResponse;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -20,11 +22,12 @@ public class RecommendationService {
 
     private final RecommendationDefinitions recommendationDefinitions;
     private final LaptopRecommender laptopRecommender;
+    private final Clock clock;
 
     public Recommendation recommend(String purposeCode, Map<String, List<String>> answers) {
         UsagePurposeCode usagePurposeCode = UsagePurposeCode.from(purposeCode);
         RecommendationDefinition purpose = recommendationDefinitions.get(usagePurposeCode);
-        SurveyResponse response = SurveyResponse.from(answers, purpose.survey());
+        SurveyResponse response = SurveyResponse.from(answers, purpose.survey(), LocalDate.now(clock));
 
         Map<String, String> conditions = Judgement.map(purpose.mappings(), response);
 

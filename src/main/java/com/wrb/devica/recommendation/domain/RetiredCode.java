@@ -1,6 +1,9 @@
 package com.wrb.devica.recommendation.domain;
 
-public record RetiredCode(String question, String option, String to, Boolean drop, Boolean dropInvalid, String was) {
+import java.time.LocalDate;
+
+public record RetiredCode(String question, String option, String to, Boolean drop, Boolean dropInvalid, String was,
+                          LocalDate retiredAt) {
 
     public RetiredCode {
         drop = Boolean.TRUE.equals(drop);

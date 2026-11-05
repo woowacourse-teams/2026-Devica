@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import com.wrb.devica.common.exception.BusinessException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -28,21 +29,23 @@ class RetiredCodeConversionTest {
         try (InputStream input = getClass().getResourceAsStream("/recommendation/retired-cases.json")) {
             table = MAPPER.readTree(input);
         }
-        Survey survey = MAPPER.convertValue(table.get("survey"), Survey.class);
+        Survey survey = MAPPER.convertValue(table.get("survey"), Survey.class)
+            .withRetired(MAPPER.convertValue(table.get("retired"), RetiredCodes.class));
 
         return table.get("cases").valueStream().map(testCase -> dynamicTest(testCase.get("name").asString(), () -> {
+            LocalDate today = LocalDate.parse(testCase.get("today").asString());
             Map<String, List<String>> params = MAPPER.convertValue(testCase.get("params"), ANSWERS);
 
             // when & then
             if (testCase.has("error")) {
-                assertThatThrownBy(() -> SurveyResponse.from(params, survey))
+                assertThatThrownBy(() -> SurveyResponse.from(params, survey, today))
                     .isInstanceOf(BusinessException.class)
                     .extracting(thrown -> ((BusinessException) thrown).getErrorCode().getCode())
                     .isEqualTo(testCase.get("error").asString());
                 return;
             }
 
-            SurveyResponse response = SurveyResponse.from(params, survey);
+            SurveyResponse response = SurveyResponse.from(params, survey, today);
             assertThat(response.answers()).isEqualTo(MAPPER.convertValue(testCase.get("answers"), ANSWERS));
             assertThat(response.outdated()).isEqualTo(testCase.get("outdated").asBoolean());
         }));

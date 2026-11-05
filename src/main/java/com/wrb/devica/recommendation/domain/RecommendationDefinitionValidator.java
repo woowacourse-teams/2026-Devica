@@ -35,11 +35,20 @@ record RecommendationDefinitionValidator(Set<String> requirements, Map<String, S
         return errors;
     }
 
-    private void validateRetired(List<RetiredCode> retired, Map<String, Question> questions, List<String> errors) {
+    private void validateRetired(RetiredCodes retiredCodes, Map<String, Question> questions, List<String> errors) {
+        List<RetiredCode> retired = retiredCodes.codes();
         Set<String> keys = new HashSet<>();
+
+        if (!retired.isEmpty() && (retiredCodes.keepMonths() == null || retiredCodes.keepMonths() <= 0)) {
+            errors.add("지운 코드 목록: keepMonths 가 양의 정수가 아닙니다");
+        }
 
         for (RetiredCode line : retired) {
             String where = "지운 코드 " + line.question() + (line.isOptionLine() ? "." + line.option() : "");
+
+            if (line.retiredAt() == null) {
+                errors.add(where + ": retiredAt 이 없습니다");
+            }
 
             if (!keys.add(line.question() + "." + line.option() + "." + line.dropInvalid())) {
                 errors.add(where + ": 같은 코드의 줄이 겹칩니다");
