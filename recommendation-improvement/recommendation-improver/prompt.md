@@ -56,10 +56,10 @@ gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.
   | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR")
   | select(.body | split("\n")[0] | test("product-recommendation:(survey-)?(decision|result)"))
   | {issue: <번호>, id, created_at, html_url, body} | tojson' >> "$ST/tmp/comments.jsonl"
-python3 "$ST/survey.py" next "$ST/tmp/comments.jsonl" "$ST/instruction.json"
+python3 "$ST/survey.py" next "$ST/tmp/comments.jsonl" "$ST/tmp/instruction.json"
 ```
 
-`next` 는 개선 지시와 설문 개선 지시를 한 줄로 세워 **결과가 없는 가장 오래된 것 하나**를 `target` 으로 고르고, 그 지시의 데이터를 `$ST/instruction.json` 에 쓴다. 개선 지시의 결과는 개선 결과, 설문 개선 지시의 결과는 설문 개선 결과다. 형식이 어긋나 건너뛴 지시는 `invalid` 에 나온다. 실행 기록에 적는다. `target` 이 `null` 이면 기록하고 끝낸다. 팀원이 이슈를 닫아 처리를 멈춘 지시는 열린 이슈만 읽으므로 대상이 되지 않는다.
+`next` 는 개선 지시와 설문 개선 지시를 한 줄로 세워 **결과가 없는 가장 오래된 것 하나**를 `target` 으로 고르고, 그 지시의 데이터를 `$ST/tmp/instruction.json` 에 쓴다. 개선 지시의 결과는 개선 결과, 설문 개선 지시의 결과는 설문 개선 결과다. 형식이 어긋나 건너뛴 지시는 `invalid` 에 나온다. 실행 기록에 적는다. `target` 이 `null` 이면 기록하고 끝낸다. 팀원이 이슈를 닫아 처리를 멈춘 지시는 열린 이슈만 읽으므로 대상이 되지 않는다.
 
 지시가 달린 이슈 번호를 `<ISSUE>`, 댓글 주소를 `<INS_URL>` 로 둔다. `target.kind` 가 `decision` 이면 2~7 을, `survey-decision` 이면 2 뒤에 3~6 대신 [설문 개선 지시](#설문-개선-지시)를 따른다.
 
@@ -84,7 +84,7 @@ python3 "$ST/survey.py" next "$ST/tmp/comments.jsonl" "$ST/instruction.json"
 하나라도 어긋나면 PR 을 올리지 않는다.
 
 - 정의서 `<DEF>` = `src/main/resources/recommendation/purposes/<purpose>.yml` 과 스냅숏 `<SNAP>` = `src/test/resources/recommendation/<purpose 를 소문자로, _ 를 - 로 바꾼 것>-snapshot.json`(예: `BACKEND_DEVELOPMENT` 는 `backend-development-snapshot.json`)이 `$WT` 에 있다.
-- `python3 "$ST/snapshot.py" check "$WT/<DEF>" <purpose> "$ST/instruction.json"` 의 `ok` 가 참이다. 거짓이면 `errors` 를 이어 사유로 쓴다. 이 명령이 보는 것:
+- `python3 "$ST/snapshot.py" check "$WT/<DEF>" <purpose> "$ST/tmp/instruction.json"` 의 `ok` 가 참이다. 거짓이면 `errors` 를 이어 사유로 쓴다. 이 명령이 보는 것:
   - 고치는 지시는 지시의 `rule` 과 같은 규칙(조건 안의 순서는 무시하고 `os` 까지 같은 것)이 정확히 하나이고, `from` 이 그 규칙의 지금 값과 같다. 결과의 `rule` 이 고칠 규칙이다.
   - `add` 는 같은 규칙이 없고, 새 근거 문장이 같은 항목의 다른 규칙과 겹치지 않는다.
   - `change.when.to` 와 `add` 의 `rule.when` 의 질문·선택지가 그 정의서 `survey` 에 있다.
@@ -92,7 +92,7 @@ python3 "$ST/survey.py" next "$ST/tmp/comments.jsonl" "$ST/instruction.json"
 ## 4. 재현 사례 추가
 
 1. ```bash
-   python3 "$ST/snapshot.py" add-cases "$WT/<SNAP>" "$ST/instruction.json"
+   python3 "$ST/snapshot.py" add-cases "$WT/<SNAP>" "$ST/tmp/instruction.json"
    ```
    `cases` 마다 `피드백 #<issue>` 사례를 대표 사용자와 앞선 피드백 사례 뒤에 한 줄 더한다(같은 이슈의 두 번째 사례부터 `피드백 #<issue> (2)`). 같은 이름이 이미 있으면 더하지 않는다. 더한 이름 목록이 나온다.
 2. 지금 정의서로 응답을 채운다.
@@ -108,7 +108,7 @@ python3 "$ST/survey.py" next "$ST/tmp/comments.jsonl" "$ST/instruction.json"
    - 다음 커밋의 규칙 수정 전후 결과를 diff 로 비교하기 위함
    ```
    `git -C "$WT" add <SNAP> && git -C "$WT" commit -q -F <메시지 파일>`.
-4. 이 상태의 스냅숏을 `$ST/before.json` 에 복사한다.
+4. 이 상태의 스냅숏을 `$ST/tmp/before.json` 에 복사한다.
 
 ## 5. 규칙 고치기와 검증
 
@@ -133,7 +133,7 @@ python3 "$ST/survey.py" next "$ST/tmp/comments.jsonl" "$ST/instruction.json"
 ### 5-2. 기대 결과 판정
 
 ```bash
-python3 "$ST/snapshot.py" compare "$ST/before.json" "$WT/<SNAP>" "$ST/instruction.json" > "$ST/compare.json"
+python3 "$ST/snapshot.py" compare "$ST/tmp/before.json" "$WT/<SNAP>" "$ST/tmp/instruction.json" > "$ST/tmp/compare.json"
 ```
 
 `ok` 가 참이어야 한다. `checks` 가 사례마다 아래를 본다.
@@ -232,7 +232,7 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
    ```bash
    git -C "$WT" push -q origin HEAD:refs/heads/<BR>
    gh pr create --repo "$GH_REPO" --base develop --head <BR> \
-     --title "[FIX] 제품 추천 <criterion> 규칙 <조정 | 추가> (피드백 #<ISSUE>)" --body-file "$ST/pr-body.md" \
+     --title "[FIX] 제품 추천 <criterion> 규칙 <조정 | 추가> (피드백 #<ISSUE>)" --body-file "$ST/tmp/pr-body.md" \
      --label Backend --assignee Woohyeon-Hong --reviewer yj9107v
    ```
    push 가 훅에 막히면 훅이 가리키는 문제를 기록하고 PR 을 올리지 않는다(`NOT_OPENED`, 사유에 훅의 메시지).
@@ -244,16 +244,16 @@ cd "$WT" && ./gradlew test --rerun --tests 'com.wrb.devica.recommendation.*'
 ### S1. 지시 확인
 
 ```bash
-python3 "$ST/survey.py" survey-check <BASE> <purpose> "$ST/instruction.json" "$ST/plan.json"
+python3 "$ST/survey.py" survey-check <BASE> <purpose> "$ST/tmp/instruction.json" "$ST/tmp/plan.json"
 ```
 
-`ok` 가 거짓이면 `errors` 를 이어 사유로 PR 을 올리지 않는다. 이 명령이 형식, `from` 과 지금 정의서, `from`→`to` 차이와 `kind`, `retire` 와 종류별 표, 하지 않는 변경, 참조 정리, 지운 코드 재사용(`<RETIRED>` 의 이력 전체)을 본다. 참이면 고칠 내용을 `$ST/plan.json` 에 쓰고 요약을 보인다.
+`ok` 가 거짓이면 `errors` 를 이어 사유로 PR 을 올리지 않는다. 이 명령이 형식, `from` 과 지금 정의서, `from`→`to` 차이와 `kind`, `retire` 와 종류별 표, 하지 않는 변경, 참조 정리, 지운 코드 재사용(`<RETIRED>` 의 이력 전체)을 본다. 참이면 고칠 내용을 `$ST/tmp/plan.json` 에 쓰고 요약을 보인다.
 
 - `effects`: 참조 정리와 `reasons` 로 바뀌는 규칙·매핑·안내·노출 조건. `after` 가 `null` 이면 지운다.
 - `retired_changes`: 지운 코드 목록에 더할 줄(`added`), 고쳐 쓸 줄(`rewritten`), 되살려 지울 줄(`removed`), 함께 지울 기한 지난 줄(`expired`). 날짜는 `today`(서울)다.
 - `screen`: 바뀐 질문 화면의 전후.
 
-그 뒤 `cp "$WT/<SNAP>" "$ST/before.json"` 로 고치기 전 스냅숏을 둔다.
+그 뒤 `cp "$WT/<SNAP>" "$ST/tmp/before.json"` 로 고치기 전 스냅숏을 둔다.
 
 ### S2. 고치기
 
@@ -264,8 +264,8 @@ python3 "$ST/survey.py" survey-check <BASE> <purpose> "$ST/instruction.json" "$S
 - `rule` 은 아직 더하지 않는다(S4).
 
 ```bash
-python3 "$ST/survey.py" survey-apply "$ST/plan.json" "$WT"
-python3 "$ST/survey.py" survey-verify "$ST/plan.json" "$WT/<DEF>"
+python3 "$ST/survey.py" survey-apply "$ST/tmp/plan.json" "$WT"
+python3 "$ST/survey.py" survey-verify "$ST/tmp/plan.json" "$WT/<DEF>"
 ```
 
 `survey-apply` 가 `<RETIRED>` 를 쓰고(`retired_written`), 스냅숏의 이름 있는 사례 중 지운 코드가 든 것의 답을 지금 코드로 고쳐 쓴다(`named`. `dropped` 가 참이면 답을 지운 사례다). `survey-verify` 의 `ok` 가 거짓이면 `errors` 를 보고 정의서를 다시 고친다. 세 번 고쳐도 거짓이면 PR 을 올리지 않는다.
@@ -281,7 +281,7 @@ python3 "$ST/survey.py" survey-verify "$ST/plan.json" "$WT/<DEF>"
      | {issue: <N>, id, created_at, html_url, body} | tojson' >> "$ST/tmp/decisions.jsonl"
    ```
 3. ```bash
-   python3 "$ST/survey.py" survey-compare "$ST/before.json" "$WT/<SNAP>" "$ST/instruction.json" "$ST/plan.json" "$ST/tmp/decisions.jsonl" > "$ST/survey-compare.json"
+   python3 "$ST/survey.py" survey-compare "$ST/tmp/before.json" "$WT/<SNAP>" "$ST/tmp/instruction.json" "$ST/tmp/plan.json" "$ST/tmp/decisions.jsonl" > "$ST/tmp/survey-compare.json"
    ```
    2 에서 받은 것이 없으면 마지막 인자를 뺀다. `ok` 가 거짓이면 `fails` 를 이어 사유로 PR 을 올리지 않는다. 이 명령이 보는 것: 지금 설문으로 답한 사례의 결과 값이 그대로다, 근거 문장은 `reasons` 로 바꾼 것만 바뀌었다, 지운 코드가 든 `피드백 #N` 사례가 근거에 N 이 든 개선 지시(여럿이면 가장 최근 것)의 `expected` 와 반대로 움직이지 않았다. 지운 코드가 든 옛 답 사례(`old_answers`)는 서버가 바꿔 읽어 결과가 달라질 수 있다. 그 지시를 찾지 못한 사례는 `unchecked` 에 나오고 PR 본문에 적는다.
 4. 커밋한다.
@@ -298,9 +298,9 @@ python3 "$ST/survey.py" survey-verify "$ST/plan.json" "$WT/<DEF>"
 
 지시에 `rule` 이 없으면 건너뛴다.
 
-1. `python3 "$ST/survey.py" survey-rule "$ST/instruction.json" > "$ST/rule.json"`. 개선 지시 모양으로 바꾼 것이다.
-2. 3·4·5 를 `add` 개선 지시처럼 따른다. 지시 파일은 `$ST/rule.json` 이고, 3 의 `check` 와 5 의 대상 정의서는 S3 에서 커밋한 지금의 `$WT/<DEF>` 다. 5-1 의 "`<DEF>` 와 `<SNAP>` 밖의 파일이 없다"와 `diff origin/develop` 확인은 대신 `survey-verify` 로 한다. 5-4 는 S5 에서 한다.
-3. 고칠 때마다 `python3 "$ST/survey.py" survey-verify "$ST/plan.json" "$WT/<DEF>"` 의 `ok` 가 참이어야 하고, 마지막에는 `new_rule_weight` 가 채택한 점수다.
+1. `python3 "$ST/survey.py" survey-rule "$ST/tmp/instruction.json" > "$ST/tmp/rule.json"`. 개선 지시 모양으로 바꾼 것이다.
+2. 3·4·5 를 `add` 개선 지시처럼 따른다. 지시 파일은 `$ST/tmp/rule.json` 이고, 3 의 `check` 와 5 의 대상 정의서는 S3 에서 커밋한 지금의 `$WT/<DEF>` 다. 5-1 의 "`<DEF>` 와 `<SNAP>` 밖의 파일이 없다"와 `diff origin/develop` 확인은 대신 `survey-verify` 로 한다. 5-4 는 S5 에서 한다.
+3. 고칠 때마다 `python3 "$ST/survey.py" survey-verify "$ST/tmp/plan.json" "$WT/<DEF>"` 의 `ok` 가 참이어야 하고, 마지막에는 `new_rule_weight` 가 채택한 점수다.
 4. 6-1 의 커밋 모양으로 커밋한다(`추가`).
 
 ### S5. 무작위 사례와 테스트
@@ -327,7 +327,7 @@ python3 "$ST/survey.py" survey-verify "$ST/plan.json" "$WT/<DEF>"
      ```bash
      gh api --paginate "repos/$GH_REPO/issues?labels=<라벨>&state=open&per_page=100" \
        --jq '.[] | select(.pull_request == null) | {number, body} | tojson' >> "$ST/tmp/issues.jsonl"
-     python3 "$ST/survey.py" survey-affected "$ST/plan.json" "$ST/tmp/issues.jsonl"
+     python3 "$ST/survey.py" survey-affected "$ST/tmp/plan.json" "$ST/tmp/issues.jsonl"
      ```
    - 결과 변화: `survey-compare.json` 의 `total`, `reason_only`, `old_answers`, `named_rows`, `unchecked`, S2 의 `named`. `rule` 이 있으면 `compare.json` 의 `rows`.
    - 배포되지 않은 변경: `python3 "$ST/survey.py" survey-undeployed origin/main origin/develop <purpose>` 가 보이는 질문 코드. `origin/main` 에 정의서가 없으면 "운영에 정의서가 아직 배포되지 않았습니다".
@@ -408,7 +408,6 @@ PR 을 올리지 않았으면 `outcome: NOT_OPENED`, `pr:` 비움, `reason: <무
 
 ```bash
 git -C "$WT" checkout -q --detach -f origin/develop && git -C "$WT" clean -fdq
-rm -f "$ST/instruction.json" "$ST/before.json" "$ST/compare.json" "$ST/pr-body.md" "$ST/plan.json" "$ST/rule.json" "$ST/survey-compare.json"
 ```
 
 실행 기록에 대상 지시, 시도, 결과를 적고 끝낸다. 잠금은 `run.sh` 가 푼다.

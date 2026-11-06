@@ -130,7 +130,7 @@ LIMIT 500 OFFSET 0
 ### 1-4. 신호 계산
 
 ```bash
-python3 "$ST/signals.py" signals "$ST/tmp/sessions.json" https://api.devica.co.kr <DAYS> "$ST/tmp/edits.json" > "$ST/signals.json"
+python3 "$ST/signals.py" signals "$ST/tmp/sessions.json" https://api.devica.co.kr <DAYS> "$ST/tmp/edits.json" > "$ST/tmp/signals.json"
 ```
 
 `<DAYS>` 에는 0. 준비의 기준값에서 계산한 숫자를 그대로 적는다. 셸에 `DAYS` 변수는 없다.
@@ -254,7 +254,7 @@ LIMIT 500 OFFSET 0
 ### 5-2. 설문 신호 계산
 
 ```bash
-python3 "$ST/signals.py" survey "$ST/tmp/pageviews.json" <SELF_REF> > "$ST/survey.json"
+python3 "$ST/signals.py" survey "$ST/tmp/pageviews.json" <SELF_REF> > "$ST/tmp/survey.json"
 ```
 
 `<SELF_REF>` 에는 설정 표의 값을 적는다. 스크립트가 그 ref 의 명세에서 설문 기준값을 읽고 명세의 "설문 신호"를 그대로 계산한다.
