@@ -102,6 +102,7 @@ survey:
     - questions:
         - code: DEV_ENVIRONMENT_SETUP
           title: 개발 환경을 어떻게 띄우나요?
+          description: 데이터베이스, 메시지 큐처럼 개발할 때 함께 켜 두는 서버를 말해요.
           options:
             - { code: LOCAL_MANY, content: 로컬에 직접 설치해서 여러 개 띄운다 }
             - { code: LOCAL_FEW, content: 로컬에 직접 설치해서 한두 개 띄운다 }
