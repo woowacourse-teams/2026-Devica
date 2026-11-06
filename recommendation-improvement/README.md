@@ -133,7 +133,7 @@ recommendation-improvement/
 
 ### 피드백 현황 보기
 
-피드백은 결과에 대한 `product-recommendation-feedback` 라벨 이슈와, 설문에 대한 `product-recommendation-survey-feedback` 라벨 이슈다. 사용자는 결과 화면과 질문 화면의 버튼으로 각각 남긴다. 종류는 제목 머리말로 구분한다.
+피드백은 결과에 대한 `product-recommendation-algorithm-feedback` 라벨 이슈와, 설문에 대한 `product-recommendation-survey-feedback` 라벨 이슈다. 사용자는 결과 화면과 질문 화면의 버튼으로 각각 남긴다. 종류는 제목 머리말로 구분한다.
 
 | 라벨 | 머리말 | 종류 |
 |---|---|---|

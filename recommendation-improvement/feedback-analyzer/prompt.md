@@ -7,7 +7,7 @@
 | 이름 | 환경 변수 | 값 |
 |---|---|---|
 | GitHub 레포 | `GH_REPO` | `woowacourse-teams/2026-Devica` |
-| 피드백 라벨 | | `product-recommendation-feedback`, 설문 피드백은 `product-recommendation-survey-feedback` |
+| 피드백 라벨 | | `product-recommendation-algorithm-feedback`, 설문 피드백은 `product-recommendation-survey-feedback` |
 | 승인 라벨 | | `product-recommendation-approved`. 팀원만 단다 |
 | 개발 제품 추천 API(`develop` 반영) | | `http://dev.devica.co.kr` |
 | 운영 제품 추천 API | | `https://api.devica.co.kr` |
@@ -42,7 +42,7 @@ python3 "$ST/common.py" api http://dev.devica.co.kr BACKEND_DEVELOPMENT '{}' | h
 피드백 이슈를 **열린 것과 닫힌 것 모두** 읽는다.
 
 ```bash
-gh api --paginate "repos/$GH_REPO/issues?labels=product-recommendation-feedback&state=all&per_page=100" \
+gh api --paginate "repos/$GH_REPO/issues?labels=product-recommendation-algorithm-feedback&state=all&per_page=100" \
   --jq '.[] | select(.pull_request == null) | {number, title, state, created_at, author_association, comments, body}'
 gh api --paginate "repos/$GH_REPO/issues/<번호>/comments?per_page=100" --jq '.[] | {id, created_at, author_association, body}'
 ```
@@ -351,7 +351,7 @@ reason: <조건 N. 근거 한두 문장>
    ````
 
    `rule_left` 는 남은 값 지적의 가리키는 규칙(`origin/develop` 의 것)마다 `{ rule: { criterion, when, os? }, direction }` 하나다. 넣지 않는 것: 3-5 의 (나)로 넘기는 피드백의 지적 모두, 이미 바뀐 지적, 가리키는 규칙이 없는 지적, 이 이슈가 근거인 개선 지시가 처리 중이거나 머지·실패·반려된 규칙·방향.
-2. **라벨 바꾸기.** `gh issue edit <번호> --repo "$GH_REPO" --remove-label product-recommendation-feedback --add-label product-recommendation-survey-feedback`
+2. **라벨 바꾸기.** `gh issue edit <번호> --repo "$GH_REPO" --remove-label product-recommendation-algorithm-feedback --add-label product-recommendation-survey-feedback`
 3. **분석 결과.** 6-1 의 `HANDED_OVER` 분석 결과를 남긴다. 이어 가는 것이면 `seen` 은 직전 분석 결과의 것(없으면 빈 목록)이다.
 
 ## 7. 설문 쪽

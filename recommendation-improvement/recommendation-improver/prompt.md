@@ -7,7 +7,7 @@
 | 이름 | 환경 변수 | 값 |
 |---|---|---|
 | GitHub 레포 | `GH_REPO` | `woowacourse-teams/2026-Devica` |
-| 피드백 라벨 | | `product-recommendation-feedback`, 설문 피드백은 `product-recommendation-survey-feedback` |
+| 피드백 라벨 | | `product-recommendation-algorithm-feedback`, 설문 피드백은 `product-recommendation-survey-feedback` |
 | PR 기준 브랜치 | | `develop` |
 | PR 라벨·담당자·리뷰어 | | 라벨 `Backend`, 담당자 `Woohyeon-Hong`, 리뷰어 `yj9107v` |
 | 개선 브랜치 | | `fix/<지시가 달린 이슈 번호>-product-recommendation-rule`, 설문 개선 지시는 `fix/<지시가 달린 이슈 번호>-product-recommendation-survey` |
@@ -48,7 +48,7 @@ gh pr list --repo "$GH_REPO" --state open --limit 100 --json number,body \
 두 피드백 라벨의 열린 이슈 번호를 모으고, 이슈마다 팀원이 쓴 산출물 댓글만 `$ST/tmp/comments.jsonl` 에 이어 쓴다.
 
 ```bash
-gh api --paginate "repos/$GH_REPO/issues?labels=product-recommendation-feedback&state=open&per_page=100" \
+gh api --paginate "repos/$GH_REPO/issues?labels=product-recommendation-algorithm-feedback&state=open&per_page=100" \
   --jq '.[] | select(.pull_request == null) | .number'
 gh api --paginate "repos/$GH_REPO/issues?labels=product-recommendation-survey-feedback&state=open&per_page=100" \
   --jq '.[] | select(.pull_request == null) | .number'
