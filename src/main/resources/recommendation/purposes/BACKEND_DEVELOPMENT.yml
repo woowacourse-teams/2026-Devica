@@ -113,6 +113,7 @@ survey:
     - questions:
         - code: SLOWDOWN
           title: 프로그램을 여러 개 켜두면 멈추거나 껐다 켜야 했나요?
+          description: IDE, 브라우저, 메신저처럼 개발할 때 평소 함께 켜 두는 프로그램을 모두 켠 상태를 말해요.
           options:
             - { code: OFTEN, content: 자주 그렇다 }
             - { code: SOMETIMES, content: 가끔 느려진다 }
