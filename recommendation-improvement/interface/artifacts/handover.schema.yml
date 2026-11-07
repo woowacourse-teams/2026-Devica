@@ -1,0 +1,52 @@
+# 넘김
+#
+# Feedback Analyzer 가 결과 의견을 설문 쪽으로 넘길 때 그 이슈에 남기고, 설문 쪽 Feedback Analyzer 와 규칙 쪽 Feedback Analyzer 가 받는다.
+# 손으로 넘길 때도 팀원이 이 댓글을 단다. 어디에 어떤 모양으로 놓이는지는 ../binding.md 에 있다.
+
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 넘김
+type: object
+additionalProperties: false
+required: [ purpose, question, problems, rule_left ]
+properties:
+
+  # 결과 화면 주소의 사용 목적
+  purpose:
+    type: string
+
+  # 원인으로 특정한 질문 하나. 이슈를 만든 시각의 main 정의서 코드다
+  question:
+    type: string
+
+  # 설문 의견 양식의 "어떤 점이 맞지 않았나요?" 선택지로 옮긴 지적
+  problems:
+    type: array
+    minItems: 1
+    items:
+      enum: [ 무엇을 묻는지 모르겠어요, 제 상황에 맞는 선택지가 없어요, 선택지끼리 구분이 안 돼요, 답하기 곤란한 질문이에요, 필요 없는 질문 같아요, 기타 ]
+
+  # 넘긴 뒤에도 규칙 쪽에 남은 지적. 규칙 쪽이 같은 규칙의 건수로 1건씩 센다. 없으면 빈 목록이다
+  #   rule       가리키는 규칙. 개선 지시의 rule 과 같은 모양이다
+  #   direction  그 규칙의 점수를 옮길 방향
+  rule_left:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [ rule, direction ]
+      properties:
+        rule:
+          type: object
+          additionalProperties: false
+          required: [ criterion, when ]
+          properties:
+            criterion: { type: string }
+            when: { type: object }
+            os: { enum: [ MAC, WINDOWS ] }
+        direction: { enum: [ UP, DOWN ] }
+
+examples:
+  - purpose: BACKEND_DEVELOPMENT
+    question: SLOWDOWN
+    problems: [ 무엇을 묻는지 모르겠어요 ]
+    rule_left: []

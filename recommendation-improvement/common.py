@@ -18,20 +18,31 @@
 #   common.py metric  BODY_FILE                         지표 피드백 → 주소(번호·answers), 주소별 건수, 고친 값, 주소별 바꾼 답
 #   common.py cluster ITEMS_JSON                       주소마다 가리키는 규칙 [{address, count, rules}] → 함께 가리키는 규칙과 그 주소 묶음
 #   common.py block   COMMENT_FILE                      산출물 댓글 → 표시(첫 줄), 첫 ```yaml 블록(JSON), 스키마 검증 오류(errors)
-#   common.py key     RULE                              규칙을 구분하는 값(조건 안의 순서 무시, os 포함). RULE 은 {criterion, when, os?} JSON
-#   common.py same    REF PURPOSE RULE                  같은 규칙(same)과 같은 항목·OS 에서 같은 질문들로 된 규칙(same_questions)
+#   common.py key     RULE [REF PURPOSE]                규칙을 구분하는 값(조건 안의 순서 무시, os 포함). RULE 은 {criterion, when, os?} JSON.
+#                                                       REF 를 주면 옛 조건을 REF 의 지운 코드 목록으로 참조 정리처럼 지금 코드로 바꿔 본다
+#                                                       (대체한 코드는 새 코드로, 합치거나 지운 코드는 뺌). 조건이 비면 null
+#   common.py same    REF PURPOSE RULE                  같은 규칙(same)과 같은 항목·OS 에서 같은 질문들로 된 규칙(same_questions). RULE 의 옛 조건은 key 처럼 바꿔 본다
 #   common.py uses    REF PURPOSE QUESTION CRITERION    그 질문을 보는 그 항목의 규칙(점수 0 포함)과 매핑
 #   common.py hit     REF PURPOSE RULE ANSWERS          답 조합이 RULE 의 조건에 걸리는지(노출 조건을 적용한 답 기준)
 #   common.py ends    REF PURPOSE PLAN ITEM             권장안·항목에서 낼 수 있는 가장 낮은·높은 값과 rank
 #   common.py target  REF PURPOSE RULE QUESTION         기댄 답(QUESTION)으로 RULE 을 더할지: exists | add | widen(넓힐 규칙) | seen
+#   common.py retired REF PURPOSE                       지운 코드 목록의 줄(없으면 [])
+#   common.py convert REF PURPOSE ANSWERS [TODAY]       서버처럼 지운 코드를 지금 코드로 바꿔 읽은 답 {answers, outdated, dropped} 또는 {error}.
+#                                                       dropped 는 버려진 답(drop·dropInvalid·숨은 답)이 있는지다
+#   common.py uses-question REF PURPOSE QUESTIONS RULES 규칙 중 그 질문을 조건에 쓰는 것 [{question, rule}]. 둘 다 JSON 배열이고, 옛 조건은 key 처럼 바꿔 본다
+#   common.py at      REF ISO                           그 시각에 REF(first-parent)가 가리키던 커밋. 없으면 null
+#   common.py days    ISO                               그 시각부터 지금까지 지난 날 수(소수)
 #
 # 테스트는 test.py 에 있다.
 # 스키마(interface/artifacts/*.schema.yml)는 이 파일과 같은 디렉터리나 그 아래 interface/artifacts/ 에서 찾는다.
-import http.client, json, os, re, subprocess, sys, urllib.parse
-from datetime import datetime, timezone
+import calendar, http.client, json, os, re, subprocess, sys, urllib.parse
+from datetime import date, datetime, timedelta, timezone
 from time import sleep
 
 DEF_PATH = 'src/main/resources/recommendation/purposes/{}.yml'
+RETIRED_PATH = 'src/main/resources/recommendation/purposes/{}.retired.yml'
+KEEP_MONTHS = 6  # 지운 코드 줄의 보관 기간. RetiredCodes.KEEP_MONTHS 와 같다
+SEOUL = timezone(timedelta(hours=9))
 Y2J = ('f=lambda{|o| case o when Hash then o.map{|k,v|[k.to_s,f.(v)]}.to_h when Array then o.map{|v|f.(v)} '
        'when Time then o.utc.iso8601 when Date then o.iso8601 else o end}; '
        'puts JSON.generate(f.(YAML.safe_load($stdin.read, permitted_classes: [Date, Time], aliases: true)))')
@@ -41,7 +52,9 @@ RESULT_PREFIXES = ('https://devica.co.kr/result', 'https://2026-devica.vercel.ap
 MARKER_PREFIX = '<!-- product-recommendation:'
 API_TRIES = 5  # 끊김(#259) 때 api 가 보내는 최대 횟수
 # 댓글 표시 → 그 블록이 따라야 하는 스키마 (interface/binding.md)
-MARKER_SCHEMAS = {'analysis': 'analysis-result', 'decision': 'improvement-instruction', 'result': 'improvement-result'}
+MARKER_SCHEMAS = {'analysis': 'analysis-result', 'decision': 'improvement-instruction', 'result': 'improvement-result',
+                  'survey-analysis': 'survey-analysis', 'survey-decision': 'survey-instruction', 'survey-result': 'improvement-result',
+                  'handover': 'handover'}
 TYPES = {'object': dict, 'array': list, 'string': str, 'integer': int, 'number': (int, float), 'boolean': bool, 'null': type(None)}
 
 
@@ -66,6 +79,216 @@ def definition(ref, purpose):
             return y2j(f.read())
     r = git('show', f'{ref}:{DEF_PATH.format(purpose)}')
     return y2j(r.stdout) if r.returncode == 0 else None
+
+
+def retired(ref, purpose):
+    # ref 가 정의서 파일이면 그 옆의 지운 코드 목록 파일을 읽는다
+    if os.path.isfile(ref):
+        path = re.sub(r'\.yml$', '.retired.yml', ref)
+        text = read(path) if os.path.isfile(path) else None
+    else:
+        r = git('show', f'{ref}:{RETIRED_PATH.format(purpose)}')
+        text = r.stdout if r.returncode == 0 else None
+    return ((y2j(text) if text else None) or {}).get('codes') or []
+
+
+def today():
+    return datetime.now(SEOUL).date()
+
+
+def expiry(retired_at):
+    # RetiredCodes.activeOn 과 같다: LocalDate.plusMonths 는 그 달에 같은 날이 없으면 말일이다
+    d = date.fromisoformat(retired_at)
+    m = d.month - 1 + KEEP_MONTHS
+    y, m = d.year + m // 12, m % 12 + 1
+    return date(y, m, min(d.day, calendar.monthrange(y, m)[1]))
+
+
+def expired(line, on):
+    return expiry(line['retiredAt']) < on
+
+
+class Rejected(Exception):
+    pass
+
+
+def current_code(qs, lines, q, o=None):
+    # Survey.currentQuestionCode·currentOptionCode 와 같다. 지금 코드 (질문, 선택지), 버리면 None, 줄이 없으면 Rejected
+    while q not in qs:
+        line = next((l for l in lines if l['question'] == q and 'option' not in l), None)
+        if line is None:
+            raise Rejected('QUESTION_NOT_FOUND')
+        if line.get('drop'):
+            return None
+        q = line['to']
+    if o is None or any(x['code'] == o for x in qs[q]['options']):
+        return q, o
+    line = next((l for l in lines if l['question'] == q and l.get('option') == o), None)
+    if line is None:
+        raise Rejected('ANSWER_NOT_ALLOWED')
+    return None if line.get('drop') else (q, line['to'])
+
+
+def convert(d, lines, params, on):
+    # SurveyResponse.from 과 같다. 같은 변환 사례표(retired-cases.json)로 테스트한다
+    qs = {q['code']: q for step in d['survey']['steps'] for q in step['questions']}
+    live = [l for l in lines if not expired(l, on)]
+    convertible = [l for l in live if not l.get('dropInvalid')]
+    current, given, converted = {}, set(), False
+    for code, opts in params.items():
+        found = current_code(qs, convertible, code)
+        converted |= found is None or found[0] != code
+        if found is None or opts is None:
+            continue
+        q = found[0]
+        for o in opts:
+            if o == qs[q].get('exclusive'):
+                given.add(q)
+            c = current_code(qs, convertible, q, o)
+            converted |= c is None or c[1] != o
+            if c is not None and c[1] not in current.setdefault(q, []):
+                current[q].append(c[1])
+    selected = {}
+    for q, opts in current.items():
+        question, ex = qs[q], qs[q].get('exclusive')
+        absorbed = question.get('input') == 'MULTI' and len(opts) > 1 and ex in opts and q not in given
+        if absorbed:
+            opts = [o for o in opts if o != ex]
+        if not ((question.get('input') or 'SINGLE') == 'SINGLE' and len(opts) > 1 or len(opts) > 1 and ex in opts):
+            selected[q] = opts
+            converted |= absorbed
+        elif any(l.get('dropInvalid') and l['question'] == q for l in live):
+            converted = True
+        else:
+            raise Rejected('ANSWER_NOT_ALLOWED')
+    shown = {}
+    for step in d['survey']['steps']:
+        for q in step['questions']:
+            if q['code'] in selected and (q.get('showWhen') is None or ev(q['showWhen'], shown)):
+                shown[q['code']] = selected[q['code']]
+    return {'answers': shown, 'outdated': converted or len(shown) < len(selected)}
+
+
+def reread(d, lines, params, on):
+    # convert 에 버려진 답이 있는지(dropped)를 더한다. 원래 답을 코드만 지금 것으로 바꾼 답과 다르면 버려진 것이다.
+    # 원래부터 노출 조건에 맞지 않던 답은 지운 코드와 상관없이 빠지므로 버려진 것으로 보지 않는다
+    r = convert(d, lines, params, on)
+    qs = {q['code']: q for step in d['survey']['steps'] for q in step['questions']}
+    convertible = [l for l in lines if not expired(l, on) and not l.get('dropInvalid')]
+    image = [current_code(qs, convertible, q, o) for q in params for o in params[q] or []]
+    if None in image:
+        return {**r, 'dropped': True}
+    imaged = {}
+    for q, o in image:
+        imaged.setdefault(q, []).append(o)
+    pairs = lambda a: {(q, o) for q, os_ in a.items() for o in os_}
+    return {**r, 'dropped': pairs(r['answers']) != pairs(visible(d, imaged))}
+
+
+def renamed(lines, q, o=None):
+    # 지운 코드 목록의 to 줄을 따라간 지금 코드 (질문, 선택지). to 줄이 없으면 그대로다
+    seen = set()
+    while q not in seen:
+        seen.add(q)
+        line = next((l for l in lines if l['question'] == q and 'option' not in l and l.get('to')), None)
+        if line is None:
+            break
+        q = line['to']
+    line = next((l for l in lines if l['question'] == q and l.get('option') == o and l.get('to')), None) if o else None
+    return q, line['to'] if line else o
+
+
+EMPTY, TRUE = 'EMPTY', 'TRUE'  # 코드를 빼서 늘 거짓·늘 참이 된 조건
+
+
+class Impossible(Exception):
+    pass
+
+
+def rewrite(c, qmap, omap):
+    # 지운 코드는 조건에서 빼고, 새 코드로 옮긴 코드만 바꿔 쓴다. 빠져서 늘 거짓이면 EMPTY, not 이 늘 참이 되면 TRUE
+    if 'question' in c:
+        q = c['question']
+        if q in qmap and qmap[q] is None:
+            return EMPTY
+        opts = []
+        for o in c['anyOf']:
+            opts += [n for n in omap.get((q, o), [o]) if n not in opts]
+        return {'question': qmap.get(q, q), 'anyOf': opts} if opts else EMPTY
+    if 'not' in c:
+        x = rewrite(c['not'], qmap, omap)
+        return TRUE if x == EMPTY else EMPTY if x == TRUE else {'not': x}
+    k = 'all' if 'all' in c else 'any'
+    xs = [rewrite(x, qmap, omap) for x in c[k]]
+    if k == 'all':
+        if EMPTY in xs:
+            return EMPTY
+        xs = [x for x in xs if x != TRUE]
+        return {'all': xs} if xs else TRUE
+    if TRUE in xs:
+        raise Impossible('any 안의 not 이 늘 참이 된다')
+    xs = [x for x in xs if x != EMPTY]
+    return {'any': xs} if xs else EMPTY
+
+
+def merged_options(ref, purpose):
+    # 지운 코드 목록의 선택지 to 줄 중 합치기(MERGE_OPTION)로 생긴 것. 줄 하나로는 대체와 가를 수 없어, 그 줄을 처음 더한 커밋 전 정의서에
+    # to 대상이 있었으면 합치기, 없었으면 대체(REPLACE_*)로 본다. 합쳐진 코드로 가던 줄을 고쳐 쓴 줄과 질문 대체로 옮긴 줄은 합치기를 이어받는다
+    if os.path.isfile(ref):
+        return set()
+    path = RETIRED_PATH.format(purpose)
+    merged, before = set(), {}
+    for sha in reversed(git('log', '--format=%H', ref, '--', path).stdout.split()):
+        r = git('show', f'{sha}:{path}')
+        codes = ((y2j(r.stdout) if r.returncode == 0 and r.stdout.strip() else None) or {}).get('codes') or []
+        now = {(l['question'], l['option']): l['to'] for l in codes if 'option' in l and l.get('to')}
+        moved = {l['to']: l['question'] for l in codes if 'option' not in l and l.get('to')}
+        d = definition(f'{sha}^', purpose)
+        had = {(q['code'], o['code']) for step in d['survey']['steps'] for q in step['questions'] for o in q['options']} if d else set()
+        new = [(k, to) for k, to in now.items() if k not in before]
+        for (q, o), to in new:
+            if (q, to) in had or (moved.get(q), o) in merged:
+                merged.add((q, o))
+        for (q, o), to in now.items():
+            if (q, o) in before and before[(q, o)] != to and (q, before[(q, o)]) in merged:
+                merged.add((q, o))
+        before = now
+    return merged
+
+
+def current_rule(rule, lines, merged=frozenset()):
+    # 옛 조건을 Recommendation Improver 의 참조 정리(rewrite)처럼 지금 코드로 바꾼다. 대체한 코드는 새 코드로 바꾸고, 합치거나 지운 코드는 빼고,
+    # 조건이 비면(늘 참이 되는 것도) 그 규칙은 없는 것으로 보고 None
+    dropped = {l['question'] for l in lines if 'option' not in l and l.get('drop')}
+    qmap = {l['question']: None if renamed(lines, l['question'])[0] in dropped else renamed(lines, l['question'])[0]
+            for l in lines if 'option' not in l and not l.get('dropInvalid')}
+    omap = {(l['question'], l['option']): [] if l.get('drop') or (l['question'], l['option']) in merged else [l['to']]
+            for l in lines if 'option' in l}
+    try:
+        w = rewrite(rule['when'], qmap, {})
+        w = w if w in (EMPTY, TRUE) else rewrite(w, {}, omap)
+    except Impossible:
+        return None
+    return None if w in (EMPTY, TRUE) else {**rule, 'when': w}
+
+
+def uses_question(lines, qs, rules, merged=frozenset()):
+    current = [(r, current_rule(r, lines, merged)) for r in rules]
+    return [{'question': q, 'rule': r} for q in qs for r, c in current if c and renamed(lines, q)[0] in questions(c['when'])]
+
+
+def to_current(ref, purpose):
+    # ref 의 지운 코드 목록으로 옛 규칙을 지금 코드로 바꾸는 함수
+    lines, merged = retired(ref, purpose), merged_options(ref, purpose)
+    return lambda rule: current_rule(rule, lines, merged)
+
+
+def at(ref, iso):
+    return git('rev-list', '-1', '--first-parent', f'--before={utc(iso)}', ref).stdout.strip() or None
+
+
+def days(iso):
+    return (datetime.now(timezone.utc) - datetime.fromisoformat(iso.replace('Z', '+00:00'))).total_seconds() / 86400
 
 
 def ev(c, a):
@@ -105,7 +328,9 @@ def canon(c):
 
 
 def key(rule):
-    # 규칙을 구분하는 값. os 가 다르면 다른 규칙이다
+    # 규칙을 구분하는 값. os 가 다르면 다른 규칙이다. 없는 규칙(None)은 None
+    if rule is None:
+        return None
     k = rule['criterion'] + ' ' + json.dumps(canon(rule['when']), sort_keys=True, ensure_ascii=False, separators=(',', ':'))
     return k + (' os=' + rule['os'] if rule.get('os') else '')
 
@@ -117,8 +342,8 @@ def questions(c):
 
 
 def same(d, rule):
-    # 같은 규칙(key 가 같은 것)과, 같은 항목·OS 에서 같은 질문들로 된 규칙
-    rules = d['rules']
+    # 같은 규칙(key 가 같은 것)과, 같은 항목·OS 에서 같은 질문들로 된 규칙. 없는 규칙(None)이면 둘 다 비었다
+    rules = d['rules'] if rule else []
     return {'same': [r for r in rules if key(r) == key(rule)],
             'same_questions': [r for r in rules if r['criterion'] == rule['criterion'] and r.get('os') == rule.get('os')
                                and questions(r['when']) == questions(rule['when']) and key(r) != key(rule)]}
@@ -451,11 +676,21 @@ def block(text):
     first = text.lstrip().split('\n', 1)[0].strip()
     marker = first if first.startswith(MARKER_PREFIX) else None
     name = MARKER_SCHEMAS.get(marker[len(MARKER_PREFIX):-len(' -->')].strip()) if marker else None
-    data = y2j(m.group(1)) if m else None
-    errors = None
-    if name:
+    data, errors = None, None
+    try:
+        data = y2j(m.group(1)) if m else None
+    except subprocess.CalledProcessError:
+        errors = ['yaml 블록을 읽지 못했다']
+    if name and errors is None:
         errors = validate(schema(name), data) if m else ['```yaml 블록이 없다']
     return {'marker': marker, 'schema': name, 'data': data, 'errors': errors}
+
+
+def convert_or_error(d, lines, params, on, f=convert):
+    try:
+        return f(d, lines, params, on)
+    except Rejected as e:
+        return {'error': str(e)}
 
 
 def arg(s):
@@ -481,12 +716,18 @@ COMMANDS = {
     'metric': lambda r: metric(read(r[0])),
     'cluster': lambda r: cluster(arg(r[0])),
     'block': lambda r: block(read(r[0])),
-    'key': lambda r: key(arg(r[0])),
-    'same': lambda r: same(definition(r[0], r[1]), arg(r[2])),
+    'key': lambda r: key(to_current(r[1], r[2])(arg(r[0])) if len(r) > 1 else arg(r[0])),
+    'same': lambda r: same(definition(r[0], r[1]), to_current(r[0], r[1])(arg(r[2]))),
     'uses': lambda r: uses(definition(r[0], r[1]), r[2], r[3]),
     'hit': lambda r: hit(definition(r[0], r[1]), arg(r[2]), arg(r[3])),
     'ends': lambda r: ends(definition(r[0], r[1]), r[2], r[3]),
     'target': lambda r: target(definition(r[0], r[1]), arg(r[2]), r[3]),
+    'retired': lambda r: retired(r[0], r[1]),
+    'convert': lambda r: convert_or_error(definition(r[0], r[1]), retired(r[0], r[1]), arg(r[2]),
+                                          date.fromisoformat(r[3]) if len(r) > 3 else today(), reread),
+    'uses-question': lambda r: uses_question(retired(r[0], r[1]), arg(r[2]), arg(r[3]), merged_options(r[0], r[1])),
+    'at': lambda r: at(*r),
+    'days': lambda r: days(r[0]),
 }
 
 

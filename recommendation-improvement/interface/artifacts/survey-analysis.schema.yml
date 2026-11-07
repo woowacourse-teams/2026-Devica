@@ -1,0 +1,24 @@
+# 설문 분석 결과
+#
+# Feedback Analyzer 가 설문 쪽 피드백마다 남기고, 다음 실행의 Feedback Analyzer 가 받는다. 분석 결과(analysis-result.schema.yml)의 설문 쪽이다.
+# 사용자가 본 설문은 정의서 이력에서 언제든 다시 찾을 수 있어 적어 두지 않는다.
+# 어디에 어떤 모양으로 놓이는지는 ../binding.md 에 있다.
+
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 설문 분석 결과
+type: object
+additionalProperties: false
+required: [ judgment ]
+properties:
+
+  # 판단. 뜻은 분석 결과의 같은 값과 같다. 보류에는 팀원의 승인을 기다리는 것도 든다
+  judgment:
+    enum: [ INSTRUCTED, ON_HOLD, TEAM_HANDLES, ALREADY_CHANGED, NOT_REPRODUCIBLE ]
+
+  # 피드백이 가리키는 질문의 지금 develop 코드. 특정했을 때만 적는다. 다음 실행에서 같은 질문의 피드백을 묶는 데 쓴다
+  question:
+    type: string
+
+examples:
+  - judgment: ON_HOLD
+    question: STORAGE_SHORTAGE

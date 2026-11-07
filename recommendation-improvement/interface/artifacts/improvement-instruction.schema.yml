@@ -17,6 +17,12 @@ properties:
     minItems: 1
     items: { type: integer }
 
+  # 근거 중 PR 이 머지돼도 닫지 않을 이슈. 설문 쪽으로 넘길 질문이 남은 피드백(분석 결과의 survey_pending 이 있음)과
+  # 설문 쪽으로 넘긴 이슈(넘김이 있음)다. 넘긴 이슈는 설문 PR 이 닫는다
+  related:
+    type: array
+    items: { type: integer }
+
   # 근거의 종류
   #   USER             사용자 피드백만 있다
   #   METRIC_ESTIMATE  지표 피드백이 하나라도 있다. 개선 PR 에 지표 추정 표시가 붙는다
