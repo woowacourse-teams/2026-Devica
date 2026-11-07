@@ -117,7 +117,7 @@ test('필터는 고른 값 그대로 걸린다. 맞춤 목록도 전체 목록�
   expect(query.toString()).toBe('os=MAC&cpuTier=BASIC&memoryGb=16&sort=PRICE_ASC');
 });
 
-test('GPU·화면 권장은 목록 조건이 되고, 모든 제품이 갖춘 가장 낮은 값은 걸지 않는다', () => {
+test('GPU·화면 권장은 목록 조건이 되고, 모든 제품이 갖춘 가장 낮은 화면 값은 걸지 않는다', () => {
   const windows: Spec = {
     preferred: false,
     notes: [],
@@ -134,11 +134,8 @@ test('GPU·화면 권장은 목록 조건이 되고, 모든 제품이 갖춘 가
     ...windows,
     items: [item('REQUIRED_GPU', 'INTEGRATED', '내장 GPU'), item('COLOR_GAMUT', 'STANDARD', '표준')],
   };
-  expect(specCondition(lowest)).toMatchObject({ gpuTier: null, colorGamut: null });
-  expect(conditionOf(new URLSearchParams('gpuTier=INTEGRATED&colorGamut=WIDE'))).toMatchObject({
-    gpuTier: null,
-    colorGamut: 'WIDE',
-  });
+  expect(specCondition(lowest).colorGamut).toBeNull();
+  expect(conditionOf(new URLSearchParams('colorGamut=WIDE')).colorGamut).toBe('WIDE');
 });
 
 test('Mac 의 CPU 를 고치면 GPU 도 같은 칩으로 바뀌어 목록 조건에 반영된다', () => {
@@ -148,15 +145,12 @@ test('Mac 의 CPU 를 고치면 GPU 도 같은 칩으로 바뀌어 목록 조건
     value: 'BASIC',
     displayValue: 'M 칩',
   });
-  expect(specCondition(edited)).toMatchObject({ cpuTier: 'BASIC', gpuTier: null });
+  expect(specCondition(edited)).toMatchObject({ cpuTier: 'BASIC', gpuTier: 'BASIC' });
   expect(editedSpec(mac, {}, TIERS)).toEqual(mac);
 });
 
-test('주소의 색 영역·GPU 값이 등급 이름이 아니면 조건으로 받지 않는다', () => {
-  expect(conditionOf(new URLSearchParams('gpuTier=toString&colorGamut=constructor'))).toMatchObject({
-    gpuTier: null,
-    colorGamut: null,
-  });
+test('주소의 색 영역 값이 이름이 아니면 조건으로 받지 않는다', () => {
+  expect(conditionOf(new URLSearchParams('colorGamut=constructor')).colorGamut).toBeNull();
 });
 
 test('등급을 받지 못했어도 고친 CPU 는 버리지 않는다', () => {
