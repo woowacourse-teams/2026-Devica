@@ -97,6 +97,8 @@
 - **세션 안은 차례로**: 사용자는 앞 페이지를 받아야 다음으로 넘어간다.
 - 세션은 몇 초씩 걸리므로, 서버가 느려져도 세션을 버리지 않도록 VU 수를 넉넉히 둔다.
 
+ 용량 테스트는 `LOAD_SCALE`로 부하를 키운다. 세션 속도·세션 수·VU 수에 같은 배수를 곱하므로 구간의 비율은 그대로이고, 피크 RPS는 약 19.5 × 배수다. 주지 않으면 1이며 위의 예상 트래픽과 같다.
+
 ### 형식 검사와 태그
 
 | 항목 | 내용 |
@@ -240,6 +242,9 @@ k6 run performance/k6/product-list/smoke.js
 
 # 부하: 워밍업 1분(평균) → 측정 10분(첫 2분 피크), 약 12분
 k6 run performance/k6/product-list/load.js
+
+# 용량 테스트: 같은 부하를 4배로
+k6 run --env LOAD_SCALE=4 performance/k6/product-list/load.js
 ```
 
 `BASE_URL`을 주지 않으면 `http://localhost:8080`으로 요청한다.
