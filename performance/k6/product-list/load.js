@@ -16,11 +16,12 @@ if (!(LOAD_SCALE > 0)) {
   throw new Error(`LOAD_SCALE은 0보다 큰 수여야 한다: ${__ENV.LOAD_SCALE}`);
 }
 
-const AVERAGE_PER_MINUTE = 130 * LOAD_SCALE;
+// k6는 정수 속도만 받으므로, 절반(꼬리 속도)도 정수가 되게 짝수로 반올림한다
+const AVERAGE_PER_MINUTE = Math.round((130 * LOAD_SCALE) / 2) * 2;
 const PEAK_PER_MINUTE = AVERAGE_PER_MINUTE * 3; // 2분 × 390 = 780세션
 const TAIL_PER_MINUTE = AVERAGE_PER_MINUTE / 2; // 8분 × 65 = 520세션
 const WARMUP_SESSIONS = AVERAGE_PER_MINUTE; // 워밍업 1분은 평균 속도로
-const MEASURE_SESSIONS = 1300 * LOAD_SCALE;
+const MEASURE_SESSIONS = AVERAGE_PER_MINUTE * 10; // 피크 2분 × 3배 + 꼬리 8분 × 절반
 
 // 종료 시점에 따라 반복이 1~2회 더 돌 수 있어 여유분을 둔다
 const sessions = sessionList(WARMUP_SESSIONS + MEASURE_SESSIONS + 10);
