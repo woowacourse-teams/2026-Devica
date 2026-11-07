@@ -17,6 +17,8 @@ BEGIN
     DECLARE v_category_id BIGINT;
     DECLARE v_mac_cpu_count INT;
     DECLARE v_windows_cpu_count INT;
+    DECLARE v_mac_gpu_id BIGINT;
+    DECLARE v_windows_gpu_id BIGINT;
     DECLARE v_missing_tiers TEXT;
     DECLARE v_start INT DEFAULT 1;
     DECLARE v_batch_count INT;
@@ -94,6 +96,15 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_missing_tiers;
     END IF;
 
+    -- 목록 API는 GPU를 조인하므로 노트북마다 GPU가 있어야 한다. 시나리오에 GPU·색 영역 필터가 없어 OS별로 하나씩만 쓴다.
+    SELECT MIN(IF(manufacturer = 'Apple', id, NULL)), MIN(IF(manufacturer <> 'Apple', id, NULL))
+    INTO v_mac_gpu_id, v_windows_gpu_id
+    FROM gpu;
+
+    IF v_mac_gpu_id IS NULL OR v_windows_gpu_id IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Both an Apple GPU and a non-Apple GPU are required';
+    END IF;
+
     -- 번호는 최대 1000개만 만들어 재사용해 재귀 깊이를 기본 제한 안에 둔다.
     CREATE TEMPORARY TABLE perf_seed_numbers (n INT NOT NULL PRIMARY KEY) ENGINE = InnoDB;
     INSERT INTO perf_seed_numbers (n)
@@ -121,7 +132,7 @@ BEGIN
         -- 메모리(5개)와 스토리지(4개)는 제품 5개 묶음 순번 k = FLOOR(i / 5)마다 한 칸씩 돈다.
         -- 연속한 k 20개(lcm(5, 4))에서 OS·브랜드별로 메모리×스토리지 20조합이 한 번씩 나오므로,
         -- CPU를 k 20개(제품 100개) 단위로 바꾸면 CPU마다 같은 조합 분포를 받는다.
-        INSERT INTO laptop (id, cpu_id, os, memory_gb, storage_gb, weight_g, screen_size_inch)
+        INSERT INTO laptop (id, cpu_id, os, memory_gb, storage_gb, weight_g, screen_size_inch, color_gamut, gpu_id)
         SELECT p.id,
                c.cpu_id,
                c.os,
@@ -129,7 +140,9 @@ BEGIN
                    8, 16, 24, 32, 64),
                ELT(MOD(v_start + s.n - 1, 4) + 1, 256, 512, 1024, 2048),
                ELT(MOD(v_start + s.n - 1, 4) + 1, 1150, 1350, 1550, 1750),
-               ELT(MOD(v_start + s.n - 1, 5) + 1, 13.6, 15.6, 14.0, 16.0, 15.6)
+               ELT(MOD(v_start + s.n - 1, 5) + 1, 13.6, 15.6, 14.0, 16.0, 15.6),
+               IF(c.os = 'MAC', 'WIDE', 'STANDARD'),
+               IF(c.os = 'MAC', v_mac_gpu_id, v_windows_gpu_id)
         FROM perf_seed_numbers s
         JOIN product p ON p.code = CONCAT(v_prefix, LPAD(v_start + s.n, 6, '0'))
         JOIN perf_seed_cpus c
