@@ -1,10 +1,12 @@
 package com.wrb.devica.product.controller;
 
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.GpuTier;
 import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.domain.Product;
 import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.dto.CpuTierResponse;
+import com.wrb.devica.product.dto.GpuTierResponse;
 import com.wrb.devica.product.dto.LaptopSearchCondition;
 import com.wrb.devica.product.dto.MinPriceResponse;
 import com.wrb.devica.product.dto.PageCondition;
@@ -69,6 +71,14 @@ public class ProductController {
             .map(CpuTierResponse::from)
             .toList();
         return ResponseEntity.ok().body(cpuTiers);
+    }
+
+    @GetMapping("/api/gpu-tiers")
+    public ResponseEntity<List<GpuTierResponse>> findGpuTiers() {
+        List<GpuTierResponse> gpuTiers = GpuTier.inOrder().stream()
+            .map(GpuTierResponse::from)
+            .toList();
+        return ResponseEntity.ok().body(gpuTiers);
     }
 
     @GetMapping("/api/products/{id}")

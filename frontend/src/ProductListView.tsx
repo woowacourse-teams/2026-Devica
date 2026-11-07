@@ -9,10 +9,12 @@ import {
   EMPTY_CONDITION,
   fetchBrands,
   fetchCpuTiers,
+  fetchGpuTiers,
   fetchProductPage,
   formatPrice,
   formatStorage,
-  GPU_FILTER_LABELS,
+  type GpuTier,
+  gpuFilterLabel,
   MEMORY_STEPS,
   OSES,
   osOfTier,
@@ -119,8 +121,18 @@ export function ProductListView({
   const tiers = cpuTiers.data;
   const waitingForTiers = state.condition.cpuTier !== null && tiers === null;
   const tiersFailed = waitingForTiers && cpuTiers.failed;
-  const condition =
-    tiers === null ? state.condition : { ...state.condition, cpuTier: validTier(tiers, state.condition) };
+  const gpuTiers = useFetched('gpu-tiers', fetchGpuTiers);
+  const gpuFilterTiers = gpuTiers.data?.filter((tier) => !tier.lowest) ?? null;
+  const waitingForGpuTiers = state.condition.gpuTier !== null && gpuFilterTiers === null;
+  const gpuTiersFailed = waitingForGpuTiers && gpuTiers.failed;
+  const condition = {
+    ...state.condition,
+    cpuTier: tiers === null ? state.condition.cpuTier : validTier(tiers, state.condition.os, state.condition.cpuTier),
+    gpuTier:
+      gpuFilterTiers === null
+        ? state.condition.gpuTier
+        : validTier(gpuFilterTiers, state.condition.os, state.condition.gpuTier),
+  };
   const matchedMode = mode === 'MATCHED';
   // 맞춤 목록은 OS 탭 하나씩 서버 목록 하나를 본다. 두 OS 를 섞지 않으니 추천순을 늘 쓸 수 있다.
   // 사양 대조 화면이 보고 있는 OS 의 권장안을 보여 준다.
@@ -179,12 +191,12 @@ export function ProductListView({
   // 맞춤 목록의 사양 조건은 부모가 주소에 채운 뒤 그린다. 여기서는 전체 목록과 같은 조건으로 요청한다.
   const listQuery = productListQuery(sort, condition);
   const products = usePaged(
-    waitingForTiers || waitingForBrands ? null : `products:${categoryCode}?${listQuery}`,
+    waitingForTiers || waitingForGpuTiers || waitingForBrands ? null : `products:${categoryCode}?${listQuery}`,
     (page) => fetchProductPage(categoryCode, listQuery, page),
   );
   const items = products.data;
   // 첫 페이지를 받지 못했으면 목록 자리에 안내를 띄운다. 이어 받다 실패하면 받은 제품은 그대로 둔다.
-  const failed = (products.failed || tiersFailed || brandsFailed) && items === null;
+  const failed = (products.failed || tiersFailed || gpuTiersFailed || brandsFailed) && items === null;
 
   const [holding, setHolding] = useState(searching);
 
@@ -224,7 +236,11 @@ export function ProductListView({
   const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
   const { hasNext, loading, more } = products;
   // 조건을 검증하는 동안에는 목록을 요청하지 않지만, 사용자에게는 똑같이 불러오는 중이다.
-  const waiting = loading || (waitingForTiers && !cpuTiers.failed) || (waitingForBrands && !brands.failed);
+  const waiting =
+    loading ||
+    (waitingForTiers && !cpuTiers.failed) ||
+    (waitingForGpuTiers && !gpuTiers.failed) ||
+    (waitingForBrands && !brands.failed);
   useEffect(() => {
     if (sentinel === null || !hasNext || loading || products.failed) {
       return;
@@ -240,7 +256,7 @@ export function ProductListView({
   // 맞춤 목록의 OS 는 탭이라 검색 조건으로 치지 않는다. 조건을 지워도 보던 탭은 그대로다.
   const filters = matchedMode ? { ...condition, os: null } : condition;
   const hasCondition = Object.values(filters).some((value) => value !== null);
-  const chips = conditionLabels(filters, tiers).filter(({ field }) => field !== 'maxPrice');
+  const chips = conditionLabels(filters, tiers, gpuFilterTiers).filter(({ field }) => field !== 'maxPrice');
 
   const change = (field: keyof SearchCondition, value: SearchCondition[keyof SearchCondition]) => {
     onChangeState((previous) => ({ ...previous, condition: { ...previous.condition, [field]: value } }));
@@ -256,7 +272,9 @@ export function ProductListView({
       }
       const tier = previous.condition.cpuTier;
       const kept = tier !== null && (os === null || osOfTier(tiers ?? [], tier) === os) ? tier : null;
-      return { ...previous, condition: { ...previous.condition, os, cpuTier: kept } };
+      const gpuTier = previous.condition.gpuTier;
+      const keptGpu = gpuTier !== null && os !== null && osOfTier(gpuTiers.data ?? [], gpuTier) === os ? gpuTier : null;
+      return { ...previous, condition: { ...previous.condition, os, cpuTier: kept, gpuTier: keptGpu } };
     });
   };
 
@@ -394,6 +412,23 @@ export function ProductListView({
             CPU 등급 다시 시도
           </button>
         )}
+        {condition.os === 'WINDOWS' && (
+          <Filter
+            field="gpu"
+            label="GPU"
+            value={condition.gpuTier ?? ''}
+            choices={(gpuFilterTiers ?? [])
+              .filter((tier) => tier.os === condition.os)
+              .map((tier) => ({ value: tier.code, label: gpuFilterLabel(tier) }))}
+            unavailable={unavailableLabel(gpuTiers)}
+            onChange={(raw) => change('gpuTier', raw === '' ? null : raw)}
+          />
+        )}
+        {condition.os === 'WINDOWS' && gpuTiers.failed && !waitingForGpuTiers && (
+          <button className="button button--secondary" type="button" onClick={gpuTiers.retry}>
+            GPU 등급 다시 시도
+          </button>
+        )}
         <Filter
           field="brand"
           label="브랜드"
@@ -431,6 +466,7 @@ export function ProductListView({
           <EmptyResult
             condition={filters}
             tiers={tiers}
+            gpuTiers={gpuFilterTiers}
             hasCondition={hasCondition}
             showsAll={mode === 'ALL'}
             onReset={() =>
@@ -450,11 +486,11 @@ export function ProductListView({
         {waiting ? (items === null ? '제품을 불러오는 중입니다…' : '제품을 더 불러오는 중입니다…') : ''}
         {products.failed && items !== null ? '제품을 더 불러오지 못했습니다.' : ''}
       </p>
-      {(products.failed || tiersFailed || brandsFailed) && (
+      {(products.failed || tiersFailed || gpuTiersFailed || brandsFailed) && (
         <button
           className="button button--secondary"
           type="button"
-          onClick={tiersFailed ? cpuTiers.retry : brandsFailed ? brands.retry : more}
+          onClick={tiersFailed ? cpuTiers.retry : gpuTiersFailed ? gpuTiers.retry : brandsFailed ? brands.retry : more}
         >
           다시 시도
         </button>
@@ -502,18 +538,19 @@ function ProductCard({ product, onDetail }: { product: Product; onDetail: (produ
 type EmptyResultProps = {
   condition: SearchCondition;
   tiers: CpuTier[] | null;
+  gpuTiers: GpuTier[] | null;
   hasCondition: boolean;
   showsAll: boolean;
   onReset: () => void;
   onShowAll: () => void;
 };
 
-function EmptyResult({ condition, tiers, hasCondition, showsAll, onReset, onShowAll }: EmptyResultProps) {
+function EmptyResult({ condition, tiers, gpuTiers, hasCondition, showsAll, onReset, onShowAll }: EmptyResultProps) {
   if (hasCondition) {
     return (
       <div className="empty-result">
         <p>조건에 맞는 제품이 없습니다.</p>
-        <p className="empty-result__condition">적용한 검색 조건 — {describeCondition(condition, tiers)}</p>
+        <p className="empty-result__condition">적용한 검색 조건 — {describeCondition(condition, tiers, gpuTiers)}</p>
         <button className="button button--secondary" type="button" onClick={onReset}>
           검색 조건 지우기
         </button>
@@ -613,15 +650,17 @@ function CpuFilter({ groups, value, unavailable, onChange }: CpuFilterProps) {
 function conditionLabels(
   { keyword, maxPrice, os, cpuTier, colorGamut, gpuTier, brand, memoryGb, storageGb }: SearchCondition,
   tiers: CpuTier[] | null,
+  gpuTiers: GpuTier[] | null,
 ): { field: keyof SearchCondition; label: string }[] {
   const tier = tiers?.find((each) => each.code === cpuTier);
+  const gpu = gpuTiers?.find((each) => each.code === gpuTier);
   const labels: { field: keyof SearchCondition; label: string | null }[] = [
     { field: 'keyword', label: keyword !== null ? `검색어 "${keyword}"` : null },
     { field: 'maxPrice', label: maxPrice !== null ? `${formatPrice(maxPrice)} 이하` : null },
     { field: 'os', label: os !== null ? (OS_GROUP_LABELS[os] ?? os) : null },
     { field: 'brand', label: brand !== null ? `브랜드 ${brand}` : null },
     { field: 'cpuTier', label: tier !== undefined ? cpuFilterLabel(tier) : null },
-    { field: 'gpuTier', label: gpuTier !== null ? GPU_FILTER_LABELS[gpuTier] : null },
+    { field: 'gpuTier', label: gpu !== undefined ? gpuFilterLabel(gpu) : null },
     { field: 'colorGamut', label: colorGamut !== null ? COLOR_GAMUT_FILTER_LABELS[colorGamut] : null },
     { field: 'memoryGb', label: memoryGb !== null ? `RAM ${memoryGb}GB 이상` : null },
     { field: 'storageGb', label: storageGb !== null ? `저장장치 ${formatStorage(storageGb)} 이상` : null },
@@ -629,8 +668,8 @@ function conditionLabels(
   return labels.flatMap(({ field, label }) => (label === null ? [] : [{ field, label }]));
 }
 
-function describeCondition(condition: SearchCondition, tiers: CpuTier[] | null): string {
-  return conditionLabels(condition, tiers)
+function describeCondition(condition: SearchCondition, tiers: CpuTier[] | null, gpuTiers: GpuTier[] | null): string {
+  return conditionLabels(condition, tiers, gpuTiers)
     .map(({ label }) => label)
     .join(' · ');
 }
