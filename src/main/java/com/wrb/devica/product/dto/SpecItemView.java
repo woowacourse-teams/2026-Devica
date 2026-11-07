@@ -13,16 +13,16 @@ import java.util.function.UnaryOperator;
 public enum SpecItemView {
 
     OS("운영체제", value -> Os.valueOf(value).getDisplayName()),
-    // CPU 는 제품이 탑재한 모델, REQUIRED_CPU 는 권장 사양이 요구하는 사양, 한 응답에 함께 나오지 않는다
     CPU("CPU", UnaryOperator.identity()),
     REQUIRED_CPU("CPU", value -> CpuTier.valueOf(value).getDisplayName()),
+    GPU("GPU", UnaryOperator.identity()),
+    REQUIRED_GPU("GPU", value -> GpuTier.valueOf(value).getDisplayName()),
     MEMORY("메모리", value -> value + "GB"),
     STORAGE("저장 공간", value -> StorageSize.display(Integer.parseInt(value))),
     CPU_CORE("코어 수", value -> value + "코어"),
     SCREEN_SIZE("화면 크기", value -> value + "인치"),
     WEIGHT("무게", value -> value + "g"),
-    COLOR_GAMUT("화면 색 영역", value -> ColorGamut.valueOf(value).getDisplayName()),
-    GPU("GPU", value -> GpuTier.valueOf(value).getDisplayName());
+    COLOR_GAMUT("화면 색 영역", value -> ColorGamut.valueOf(value).getDisplayName());
 
     private final String displayName;
     private final UnaryOperator<String> displayValue;

@@ -123,19 +123,19 @@ test('GPU·화면 권장은 목록 조건이 되고, 모든 제품이 갖춘 가
     notes: [],
     items: [
       item('OS', 'WINDOWS', 'Windows'),
-      item('GPU', 'MID', '중급 GPU (RTX 4050 급)'),
+      item('REQUIRED_GPU', 'XX50', 'RTX xx50 급'),
       item('COLOR_GAMUT', 'WIDE', '넓은 색 영역'),
     ],
   };
   const query = productListQuery('PRICE_ASC', { ...EMPTY_CONDITION, ...specCondition(windows) });
-  expect(query.toString()).toBe('os=WINDOWS&colorGamut=WIDE&gpuTier=MID&sort=PRICE_ASC');
+  expect(query.toString()).toBe('os=WINDOWS&colorGamut=WIDE&gpuTier=XX50&sort=PRICE_ASC');
 
   const lowest = {
     ...windows,
-    items: [item('GPU', 'ENTRY', '기본 GPU'), item('COLOR_GAMUT', 'STANDARD', '표준')],
+    items: [item('REQUIRED_GPU', 'INTEGRATED', '내장 GPU'), item('COLOR_GAMUT', 'STANDARD', '표준')],
   };
   expect(specCondition(lowest)).toMatchObject({ gpuTier: null, colorGamut: null });
-  expect(conditionOf(new URLSearchParams('gpuTier=ENTRY&colorGamut=WIDE'))).toMatchObject({
+  expect(conditionOf(new URLSearchParams('gpuTier=INTEGRATED&colorGamut=WIDE'))).toMatchObject({
     gpuTier: null,
     colorGamut: 'WIDE',
   });

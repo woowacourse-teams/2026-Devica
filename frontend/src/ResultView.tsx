@@ -20,7 +20,7 @@ const ROWS: { code: string; label: string }[] = [
   { code: 'REQUIRED_CPU', label: 'PROCESSOR' },
   { code: 'MEMORY', label: 'MEMORY' },
   { code: 'STORAGE', label: 'STORAGE' },
-  { code: 'GPU', label: 'GPU' },
+  { code: 'REQUIRED_GPU', label: 'GPU' },
   { code: 'COLOR_GAMUT', label: 'DISPLAY' },
 ];
 

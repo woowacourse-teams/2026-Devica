@@ -9,5 +9,5 @@ import java.util.Map;
 
 public record LaptopInterpretation(Map<Os, List<ScoreRange<CpuTier>>> cpu, List<ScoreRange<Integer>> memory,
                                    List<ScoreRange<Integer>> storage, CpuTier macCpuLimit,
-                                   List<ScoreRange<ColorGamut>> colorGamut, List<ScoreRange<GpuTier>> gpu) {
+                                   List<ScoreRange<ColorGamut>> colorGamut, Map<Os, List<ScoreRange<GpuTier>>> gpu) {
 }

@@ -49,9 +49,10 @@ const SORT_LABELS: { value: SortType; label: string }[] = [
   { value: 'PRICE_DESC', label: '가격 높은 순' },
 ];
 
-// 카드 사양은 3행만 쓴다. OS 는 브랜드 줄에 붙인다.
+// OS 는 브랜드 줄에 붙인다.
 const CARD_SPECS: { code: string; label: string }[] = [
   { code: 'CPU', label: 'PROCESSOR' },
+  { code: 'GPU', label: 'GPU' },
   { code: 'MEMORY', label: 'MEMORY' },
   { code: 'STORAGE', label: 'STORAGE' },
 ];

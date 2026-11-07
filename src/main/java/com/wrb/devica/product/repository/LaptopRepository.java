@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface LaptopRepository extends JpaRepository<Laptop, Long>, LaptopRepositoryCustom {
 
-    @EntityGraph(attributePaths = "cpu")
+    @EntityGraph(attributePaths = {"cpu", "gpu"})
     @Query("SELECT l FROM Laptop l WHERE l.id = :id")
     Optional<Laptop> findWithCpuById(Long id);
 }

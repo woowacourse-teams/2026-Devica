@@ -217,7 +217,7 @@ class LaptopRecommenderTest {
     void 점수_해석_규칙에_화면과_GPU_구간이_없으면_권장_항목에_넣지_않는다() {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
-        Requirements requirements = new Requirements(Map.of("COLOR_GAMUT", 5, "GPU", 5), Map.of(), List.of());
+        Requirements requirements = new Requirements(Map.of("COLOR_GAMUT", 5, "REQUIRED_GPU", 5), Map.of(), List.of());
 
         // when
         List<RecommendedSpec> specs = recommender.recommend(INTERPRETATION, os -> requirements, Map.of());
@@ -229,11 +229,11 @@ class LaptopRecommenderTest {
     }
 
     @Test
-    void 화면과_GPU_는_점수_구간대로_권하고_Mac_도_같은_GPU_등급을_받는다() {
+    void 화면과_GPU_는_점수_구간대로_권하고_GPU_는_OS마다_다른_구간을_쓴다() {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
         LaptopInterpretation interpretation = withDisplayAndGpu(INTERPRETATION);
-        Requirements requirements = new Requirements(Map.of("COLOR_GAMUT", 1, "GPU", 2), Map.of(), List.of());
+        Requirements requirements = new Requirements(Map.of("COLOR_GAMUT", 1, "REQUIRED_GPU", 2), Map.of(), List.of());
 
         // when
         List<RecommendedSpec> specs = recommender.recommend(interpretation, os -> requirements, Map.of());
@@ -242,32 +242,85 @@ class LaptopRecommenderTest {
         LaptopSpec mac = (LaptopSpec) specs.get(0).spec();
         LaptopSpec windows = (LaptopSpec) specs.get(1).spec();
         assertThat(mac.colorGamut()).isEqualTo(ColorGamut.WIDE);
-        assertThat(mac.gpuTier()).isEqualTo(GpuTier.MID);
-        assertThat(windows.gpuTier()).isEqualTo(GpuTier.MID);
-        assertThat(specs).allSatisfy(recommended -> assertThat(recommended.itemReasons().get("GPU"))
-            .containsExactly("권장 GPU 는 " + GpuTier.MID.getDisplayName() + " 입니다."));
+        assertThat(mac.gpuTier()).isEqualTo(GpuTier.PRO);
+        assertThat(windows.gpuTier()).isEqualTo(GpuTier.XX50);
+        assertThat(specs.get(0).itemReasons().get("REQUIRED_GPU"))
+            .containsExactly("권장 GPU 는 " + GpuTier.PRO.getDisplayName() + " 입니다.");
+        assertThat(specs.get(1).itemReasons().get("REQUIRED_GPU"))
+            .containsExactly("권장 GPU 는 " + GpuTier.XX50.getDisplayName() + " 입니다.");
+    }
+
+    @Test
+    void Mac_은_GPU_칩이_CPU_보다_높으면_CPU_를_GPU_칩으로_올리고_메모리를_그_칩에_맞춘다() {
+        // given
+        LaptopRecommender recommender = new LaptopRecommender();
+        Requirements requirements = new Requirements(Map.of("REQUIRED_GPU", 2), Map.of(), List.of());
+
+        // when
+        List<RecommendedSpec> specs = recommender.recommend(withDisplayAndGpu(INTERPRETATION), os -> requirements, Map.of());
+
+        // then
+        RecommendedSpec mac = specs.get(0);
+        assertThat(((LaptopSpec) mac.spec()).cpuTier()).isEqualTo(CpuTier.PRO);
+        assertThat(((LaptopSpec) mac.spec()).memoryGb()).isEqualTo(24);
+        assertThat(mac.itemReasons().get("REQUIRED_CPU")).contains("GPU 로 M Pro 칩이 필요해 CPU 도 M Pro 칩을 권합니다.");
+        assertThat(mac.itemReasons().get("MEMORY")).contains("M Pro 칩에서는 16GB 를 고를 수 없어 바로 위 용량인 24GB 를 권합니다.");
+        assertThat(((LaptopSpec) specs.get(1).spec()).cpuTier()).isEqualTo(CpuTier.P_HS);
+    }
+
+    @Test
+    void Mac_은_CPU_칩이_GPU_보다_높으면_GPU_를_CPU_칩으로_올린다() {
+        // given
+        LaptopRecommender recommender = new LaptopRecommender();
+        Requirements requirements = new Requirements(Map.of("REQUIRED_CPU", 3), Map.of(), List.of());
+
+        // when
+        List<RecommendedSpec> specs = recommender.recommend(withDisplayAndGpu(INTERPRETATION), os -> requirements, Map.of());
+
+        // then
+        RecommendedSpec mac = specs.get(0);
+        assertThat(((LaptopSpec) mac.spec()).gpuTier()).isEqualTo(GpuTier.PRO);
+        assertThat(mac.itemReasons().get("REQUIRED_GPU")).contains("CPU 와 같은 칩이라 GPU 도 M Pro 칩입니다.");
+        assertThat(((LaptopSpec) specs.get(1).spec()).gpuTier()).isEqualTo(GpuTier.INTEGRATED);
+    }
+
+    @Test
+    void Mac_은_메모리_때문에_올린_CPU_칩에도_GPU_를_맞춘다() {
+        // given
+        LaptopRecommender recommender = new LaptopRecommender();
+        Requirements requirements = new Requirements(Map.of("MEMORY", 7), Map.of(), List.of());
+
+        // when
+        LaptopSpec mac = (LaptopSpec) recommender.recommend(withDisplayAndGpu(INTERPRETATION), os -> requirements, Map.of())
+            .get(0).spec();
+
+        // then
+        assertThat(mac.cpuTier()).isEqualTo(CpuTier.PRO);
+        assertThat(mac.gpuTier()).isEqualTo(GpuTier.PRO);
     }
 
     @Test
     void 화면이나_GPU_규칙에_점수_구간이_없으면_오류를_낸다() {
         // given
         Condition any = new Condition.Selected("Q", List.of("A"));
-        List<Rule> rules = List.of(new Rule("GPU", 1, any, "근거", null), new Rule("MEMORY", 1, any, "근거", null));
+        List<Rule> rules = List.of(new Rule("REQUIRED_GPU", 1, any, "근거", null), new Rule("MEMORY", 1, any, "근거", null));
 
         // when
         List<String> missing = LaptopRecommender.findRulesWithoutRange(INTERPRETATION, rules);
         List<String> present = LaptopRecommender.findRulesWithoutRange(withDisplayAndGpu(INTERPRETATION), rules);
 
         // then
-        assertThat(missing).containsExactly("GPU 규칙이 있지만 점수 해석 규칙에 GPU 구간이 없습니다");
+        assertThat(missing).containsExactly("REQUIRED_GPU 규칙이 있지만 점수 해석 규칙에 REQUIRED_GPU 구간이 없습니다");
         assertThat(present).isEmpty();
     }
 
     private static LaptopInterpretation withDisplayAndGpu(LaptopInterpretation base) {
         return new LaptopInterpretation(base.cpu(), base.memory(), base.storage(), base.macCpuLimit(),
             List.of(new ScoreRange<>(0, ColorGamut.STANDARD), new ScoreRange<>(null, ColorGamut.WIDE)),
-            List.of(new ScoreRange<>(1, GpuTier.ENTRY), new ScoreRange<>(3, GpuTier.MID),
-                new ScoreRange<>(null, GpuTier.HIGH)));
+            Map.of(
+                Os.MAC, List.of(new ScoreRange<>(1, GpuTier.BASIC), new ScoreRange<>(null, GpuTier.PRO)),
+                Os.WINDOWS, List.of(new ScoreRange<>(1, GpuTier.INTEGRATED), new ScoreRange<>(3, GpuTier.XX50),
+                    new ScoreRange<>(null, GpuTier.XX60))));
     }
 
     @Test
@@ -280,13 +333,23 @@ class LaptopRecommenderTest {
     }
 
     @Test
+    void OS별로_자기_등급만_쓴_GPU_구간은_검증을_통과한다() {
+        // when
+        List<String> errors = LaptopRecommender.findUnsupported(withDisplayAndGpu(INTERPRETATION));
+
+        // then
+        assertThat(errors).isEmpty();
+    }
+
+    @Test
     void 점수_해석_규칙이_노트북에서_낼_수_없는_값을_쓰면_오류를_낸다() {
         // given
         LaptopInterpretation interpretation = new LaptopInterpretation(
             Map.of(Os.MAC, List.of(new ScoreRange<>(2, CpuTier.BASIC), new ScoreRange<>(null, CpuTier.HX))),
             List.of(new ScoreRange<>(3, 16), new ScoreRange<>(1, 24), new ScoreRange<>(null, 20)),
             List.of(new ScoreRange<>(2, 512), new ScoreRange<>(6, 1024)),
-            CpuTier.MAX, null, null);
+            CpuTier.MAX, null,
+            Map.of(Os.MAC, List.of(new ScoreRange<>(null, GpuTier.XX60))));
 
         // when
         List<String> errors = LaptopRecommender.findUnsupported(interpretation);
@@ -298,7 +361,25 @@ class LaptopRecommenderTest {
             "메모리 구간: upTo 는 작은 것부터 적어야 합니다",
             "메모리 구간: [16, 24, 32, 48] 에 없는 값입니다: 20",
             "저장 공간 구간: 마지막 구간은 upTo 없이 나머지 점수를 모두 받아야 합니다",
-            "Mac CPU 상한은 [BASIC, PRO] 중 하나여야 합니다: MAX");
+            "Mac CPU 상한은 [BASIC, PRO] 중 하나여야 합니다: MAX",
+            "GPU 구간 WINDOWS: 구간이 없습니다",
+            "GPU 구간 MAC: MAC 의 GPU 등급이 아닙니다: XX60");
+    }
+
+    @Test
+    void Mac_GPU_구간이_Mac_CPU_상한보다_높은_칩을_쓰면_오류를_낸다() {
+        // given
+        LaptopInterpretation interpretation = new LaptopInterpretation(
+            INTERPRETATION.cpu(), INTERPRETATION.memory(), INTERPRETATION.storage(), CpuTier.PRO, null,
+            Map.of(
+                Os.MAC, List.of(new ScoreRange<>(1, GpuTier.BASIC), new ScoreRange<>(null, GpuTier.MAX)),
+                Os.WINDOWS, List.of(new ScoreRange<>(null, GpuTier.INTEGRATED))));
+
+        // when
+        List<String> errors = LaptopRecommender.findUnsupported(interpretation);
+
+        // then
+        assertThat(errors).containsExactly("Mac GPU 구간의 MAX 는 Mac CPU 상한 PRO 보다 높습니다");
     }
 
     @Test

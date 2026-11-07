@@ -92,7 +92,8 @@ class LaptopE2ETest extends E2ETest {
     @Test
     void 노트북_목록을_조회하면_사양과_최저가를_함께_받는다() {
         // given
-        Laptop saved = laptopRepository.save(laptop().category(category).gpu(gpu)
+        Laptop saved = laptopRepository.save(laptop().category(category)
+            .gpu(gpuRepository.save(gpu().name("Intel Arc 140V").build()))
             .brand("LG")
             .name("gram Pro 16")
             .cpu(cpuRepository.save(cpu().name("Intel Core Ultra 7 255H").coreCount(16).score(20000).build()))
@@ -109,8 +110,9 @@ class LaptopE2ETest extends E2ETest {
             .then().statusCode(200)
             .body("content.size()", is(1))
             .body("content[0].name", is("gram Pro 16"))
-            .body("content[0].specs.code", contains("OS", "CPU", "MEMORY", "STORAGE"))
-            .body("content[0].specs.displayValue", contains("Windows", "Intel Core Ultra 7 255H", "32GB", "1TB"))
+            .body("content[0].specs.code", contains("OS", "CPU", "GPU", "MEMORY", "STORAGE"))
+            .body("content[0].specs.displayValue",
+                contains("Windows", "Intel Core Ultra 7 255H", "Intel Arc 140V", "32GB", "1TB"))
             .body("content[0].minPrice", is(2_850_000));
     }
 
@@ -392,7 +394,8 @@ class LaptopE2ETest extends E2ETest {
     @Test
     void 상세를_조회하면_판매_중인_판매처를_싼_순으로_받는다() {
         // given
-        Laptop laptop = laptopRepository.save(laptop().category(category).gpu(gpu)
+        Laptop laptop = laptopRepository.save(laptop().category(category)
+            .gpu(gpuRepository.save(gpu().name("Intel Arc 140V").build()))
             .brand("LG")
             .name("gram Pro 16")
             .cpu(cpuRepository.save(cpu().name("Intel Core Ultra 7 255H").coreCount(16).score(20000).build()))
@@ -419,7 +422,8 @@ class LaptopE2ETest extends E2ETest {
             .when().get("/api/products/" + laptop.getId())
             .then().statusCode(200)
             .body("name", is("gram Pro 16"))
-            .body("specs.code", contains("OS", "CPU", "MEMORY", "STORAGE", "CPU_CORE", "SCREEN_SIZE", "WEIGHT"))
+            .body("specs.code", contains("OS", "CPU", "GPU", "MEMORY", "STORAGE", "CPU_CORE", "SCREEN_SIZE", "WEIGHT"))
+            .body("specs[2].displayValue", is("Intel Arc 140V"))
             .body("offers.price", contains(2_850_000, 2_990_000))
             .body("offers[0].purchaseUrl", is("https://example.com/" + laptop.getCode()))
             .body("offers.checkedAt", contains("2026-08-19", null));
