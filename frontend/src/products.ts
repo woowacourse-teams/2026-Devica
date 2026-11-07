@@ -19,18 +19,14 @@ export type CpuTier = {
   os: string;
 };
 
+export type GpuTier = CpuTier & { lowest: boolean };
+
 // 추천 알고리즘이 내는 값이다. 알고리즘이 바뀌면 여기도 함께 바뀐다.
 export const MEMORY_STEPS = [16, 24, 32, 48];
 export const STORAGE_STEPS = [256, 512, 1024, 2048];
 
-// 서버 ColorGamut·GpuTier 중 걸러 낼 수 있는 값과 칩 라벨이다. 가장 낮은 값은 모든 제품이 갖춰 조건으로 걸지 않는다.
+// 서버 ColorGamut 중 걸러 낼 수 있는 값과 칩 라벨이다. 가장 낮은 값은 모든 제품이 갖춰 조건으로 걸지 않는다.
 export const COLOR_GAMUT_FILTER_LABELS: Record<string, string> = { WIDE: '넓은 색 영역(DCI-P3) 화면' };
-export const GPU_FILTER_LABELS: Record<string, string> = {
-  PRO: 'M Pro 칩 GPU 이상',
-  MAX: 'M Max 칩 GPU 이상',
-  XX50: 'RTX xx50 급 GPU 이상',
-  XX60: 'RTX xx60 급 GPU 이상',
-};
 
 export type SortType = 'PRICE_ASC' | 'PRICE_DESC';
 
@@ -66,9 +62,9 @@ export function osOfTier(tiers: CpuTier[], code: string): string | null {
 }
 
 // 주소는 누구나 고칠 수 있다. 모르는 등급이나 고른 OS 의 등급이 아닌 것은 없는 것으로 본다.
-export function validTier(tiers: CpuTier[], condition: SearchCondition): string | null {
-  const os = condition.cpuTier === null ? null : osOfTier(tiers, condition.cpuTier);
-  return os !== null && (condition.os === null || os === condition.os) ? condition.cpuTier : null;
+export function validTier(tiers: CpuTier[], os: string | null, code: string | null): string | null {
+  const tierOs = code === null ? null : osOfTier(tiers, code);
+  return tierOs !== null && (os === null || tierOs === os) ? code : null;
 }
 
 export type ProductSpecItem = {
@@ -152,6 +148,14 @@ export async function fetchCpuTiers(): Promise<CpuTier[]> {
   return response.json();
 }
 
+export async function fetchGpuTiers(): Promise<GpuTier[]> {
+  const response = await fetch(`${BASE_URL}/api/gpu-tiers`, { headers: { Accept: 'application/json' } });
+  if (!response.ok) {
+    throw new Error(`GPU 등급을 불러오지 못했습니다 (${response.status})`);
+  }
+  return response.json();
+}
+
 /** OS 를 주면 그 OS 의 브랜드만 온다. */
 export async function fetchBrands(categoryCode: string, os: string | null): Promise<string[]> {
   const suffix = os === null ? '' : `?os=${os}`;
@@ -188,7 +192,7 @@ export function specCondition(
     os: itemValue('OS'),
     cpuTier: itemValue('REQUIRED_CPU'),
     colorGamut: filterable(COLOR_GAMUT_FILTER_LABELS, itemValue('COLOR_GAMUT')),
-    gpuTier: filterable(GPU_FILTER_LABELS, itemValue('REQUIRED_GPU')),
+    gpuTier: itemValue('REQUIRED_GPU'),
     memoryGb: memory === null ? null : Number(memory),
     storageGb: storage === null ? null : Number(storage),
   };
@@ -237,6 +241,10 @@ export function productListQuery(sort: SortType, condition: SearchCondition): UR
 export function cpuFilterLabel(tier: CpuTier): string {
   const label = tier.name;
   return label.includes(' / ') ? `${label.split(' / ')[0]}급 이상` : `${label} 이상`;
+}
+
+export function gpuFilterLabel(tier: GpuTier): string {
+  return `${tier.name} GPU 이상`;
 }
 
 // 판매 중인 판매처가 없으면 최저가가 비어 온다. 원본에는 없던 상태다.

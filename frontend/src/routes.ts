@@ -3,7 +3,6 @@ import {
   COLOR_GAMUT_FILTER_LABELS,
   EMPTY_CONDITION,
   filterable,
-  GPU_FILTER_LABELS,
   OSES,
   type SearchCondition,
   type SortType,
@@ -244,7 +243,7 @@ function positive(value: string | null): number | null {
   return value !== null && Number.isInteger(number) && number > 0 ? number : null;
 }
 
-// 모르는 OS 는 버린다. 등급은 서버에서 받아야 알 수 있어 목록이 받은 뒤 가린다(validTier).
+// 모르는 OS 는 버린다. CPU·GPU 등급은 서버에서 받아야 알 수 있어 목록이 받은 뒤 가린다(validTier).
 function osOf(params: URLSearchParams): string | null {
   const value = params.get('os');
   return OSES.find((os) => os === value) ?? null;
@@ -257,7 +256,7 @@ export function conditionOf(params: URLSearchParams): SearchCondition {
     os: osOf(params),
     cpuTier: params.get('cpuTier'),
     colorGamut: filterable(COLOR_GAMUT_FILTER_LABELS, params.get('colorGamut')),
-    gpuTier: filterable(GPU_FILTER_LABELS, params.get('gpuTier')),
+    gpuTier: params.get('gpuTier'),
     brand: params.get('brand'),
     memoryGb: positive(params.get('memoryGb')),
     storageGb: positive(params.get('storageGb')),

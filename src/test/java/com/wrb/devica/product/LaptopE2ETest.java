@@ -440,6 +440,17 @@ class LaptopE2ETest extends E2ETest {
             .body("[4].os", is("MAC"));
     }
 
+    @Test
+    void GPU_등급을_조회하면_OS_별로_낮은_등급부터_받는다() {
+        given()
+            .when().get("/api/gpu-tiers")
+            .then().statusCode(200)
+            .body("code", contains("INTEGRATED", "XX50", "XX60", "BASIC", "PRO", "MAX"))
+            .body("[1].name", is("RTX xx50 급"))
+            .body("[3].os", is("MAC"))
+            .body("lowest", contains(true, false, false, true, false, false));
+    }
+
     // UC-08: 브랜드 필터 선택지는 보고 있는 OS 에 있는 브랜드만 준다
     @Test
     void OS를_지정해_브랜드를_조회하면_그_OS의_브랜드만_받는다() {

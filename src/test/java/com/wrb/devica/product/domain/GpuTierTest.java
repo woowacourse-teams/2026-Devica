@@ -41,4 +41,12 @@ class GpuTierTest {
         // then
         assertThat(scores).isNotEmpty().doesNotHaveDuplicates();
     }
+
+    @Test
+    void 등급은_OS_별로_모아_낮은_등급부터_줄_세운다() {
+        // when & then
+        assertThat(GpuTier.inOrder()).containsExactly(
+            GpuTier.INTEGRATED, GpuTier.XX50, GpuTier.XX60,
+            GpuTier.BASIC, GpuTier.PRO, GpuTier.MAX);
+    }
 }
