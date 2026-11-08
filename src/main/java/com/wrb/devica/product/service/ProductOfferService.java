@@ -30,7 +30,7 @@ public class ProductOfferService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = CacheConfig.PRODUCT_LIST, allEntries = true)
+    @CacheEvict(cacheNames = CacheConfig.PRODUCT_LIST, allEntries = true, condition = "#result.changesMinPrice()")
     public PriceRefreshResult refreshCoupangPrice(PriceRefreshTarget target, long price, LocalDate checkedAt) {
         validatePriceRefresh(price, checkedAt);
         ProductOffer offer = findUnchangedTarget(target, checkedAt);
@@ -67,7 +67,7 @@ public class ProductOfferService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = CacheConfig.PRODUCT_LIST, allEntries = true)
+    @CacheEvict(cacheNames = CacheConfig.PRODUCT_LIST, allEntries = true, condition = "#result.changesMinPrice()")
     public PriceRefreshResult hideCoupangOffer(PriceRefreshTarget target, LocalDate observedAt) {
         validateObservedAt(observedAt);
         ProductOffer offer = findUnchangedTarget(target, observedAt);
@@ -141,6 +141,10 @@ public class ProductOfferService {
         HIDDEN,
         ALREADY_HIDDEN,
         RESTORED,
-        SKIPPED
+        SKIPPED;
+
+        public boolean changesMinPrice() {
+            return this == UPDATED || this == HIDDEN || this == RESTORED;
+        }
     }
 }
