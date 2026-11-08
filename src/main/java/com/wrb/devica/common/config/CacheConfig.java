@@ -6,7 +6,6 @@ import org.springframework.data.domain.Slice;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
-import org.springframework.cache.transaction.TransactionAwareCacheManagerProxy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -27,6 +26,6 @@ public class CacheConfig {
             .expireAfterWrite(Duration.ofMinutes(10))
             .recordStats());
 
-        return new TransactionAwareCacheManagerProxy(cacheManager);
+        return cacheManager;
     }
 }
