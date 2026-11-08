@@ -72,17 +72,22 @@ SQL 오류가 나면 현재 배치를 롤백하고 오류를 전달한다. **이
 
 ## 제품 데이터 삭제
 
-측정이 끝나면 적재한 실행 ID의 데이터를 지운다. 제품을 참조하는 테이블(최저가, 판매처, 노트북)부터 지워야 외래 키에 걸리지 않는다. `PERF-BASELINE-1-`은 실행 ID `baseline-1`의 제품 코드 접두사이므로, 다른 실행 ID로 적재했다면 바꿔 쓴다.
+측정이 끝나면 적재한 실행 ID의 데이터를 지운다. 제품을 참조하는 테이블(최저가, 판매처, 노트북)부터 지워야 외래 키에 걸리지 않는다. `PERF-BASELINE-1-`은 실행 ID `baseline-1`의 제품 코드 접두사이므로, 다른 실행 ID로 적재했다면 바꿔 쓴다. 코드 길이까지 확인해, 접두사가 겹치는 다른 실행 ID(예: `baseline-1-extra`)의 데이터는 지우지 않는다.
 
 ```sql
-DELETE m FROM product_min_price m JOIN product p ON p.id = m.product_id WHERE p.code LIKE 'PERF-BASELINE-1-%';
-DELETE o FROM product_offer o JOIN product p ON p.id = o.product_id WHERE p.code LIKE 'PERF-BASELINE-1-%';
-DELETE l FROM laptop l JOIN product p ON p.id = l.id WHERE p.code LIKE 'PERF-BASELINE-1-%';
-DELETE FROM product WHERE code LIKE 'PERF-BASELINE-1-%';
-SELECT COUNT(*) FROM product WHERE code LIKE 'PERF-%';
+DELETE m FROM product_min_price m JOIN product p ON p.id = m.product_id
+WHERE p.code LIKE 'PERF-BASELINE-1-%' AND CHAR_LENGTH(p.code) = CHAR_LENGTH('PERF-BASELINE-1-') + 6;
+DELETE o FROM product_offer o JOIN product p ON p.id = o.product_id
+WHERE p.code LIKE 'PERF-BASELINE-1-%' AND CHAR_LENGTH(p.code) = CHAR_LENGTH('PERF-BASELINE-1-') + 6;
+DELETE l FROM laptop l JOIN product p ON p.id = l.id
+WHERE p.code LIKE 'PERF-BASELINE-1-%' AND CHAR_LENGTH(p.code) = CHAR_LENGTH('PERF-BASELINE-1-') + 6;
+DELETE p FROM product p
+WHERE p.code LIKE 'PERF-BASELINE-1-%' AND CHAR_LENGTH(p.code) = CHAR_LENGTH('PERF-BASELINE-1-') + 6;
+SELECT COUNT(*) FROM product p
+WHERE p.code LIKE 'PERF-BASELINE-1-%' AND CHAR_LENGTH(p.code) = CHAR_LENGTH('PERF-BASELINE-1-') + 6;
 ```
 
-마지막 쿼리가 0이면 테스트 데이터가 남지 않은 것이다.
+마지막 쿼리가 0이면 이 실행 ID의 데이터가 남지 않은 것이다.
 
 ## 게시글 데이터
 
