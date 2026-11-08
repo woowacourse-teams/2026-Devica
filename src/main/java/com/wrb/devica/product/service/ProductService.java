@@ -1,6 +1,7 @@
 package com.wrb.devica.product.service;
 
 import com.wrb.devica.category.domain.ProductCategoryCode;
+import com.wrb.devica.common.config.CacheConfig;
 import com.wrb.devica.common.exception.BusinessErrorCode;
 import com.wrb.devica.common.exception.BusinessException;
 import com.wrb.devica.product.domain.Os;
@@ -12,6 +13,7 @@ import com.wrb.devica.product.dto.ProductSummaryRow;
 import com.wrb.devica.product.repository.LaptopRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ public class ProductService {
     private final LaptopRepository laptopRepository;
     private final ProductImageUrlResolver imageUrlResolver;
 
+    @Cacheable(CacheConfig.PRODUCT_LIST)
     public Slice<ProductSummaryResponse> findProductsByCategory(String categoryCode, LaptopSearchCondition condition,
                                                                 PageCondition pageCondition) {
         validateCategoryExists(categoryCode);
