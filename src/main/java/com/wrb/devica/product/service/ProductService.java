@@ -27,7 +27,7 @@ public class ProductService {
     private final LaptopRepository laptopRepository;
     private final ProductImageUrlResolver imageUrlResolver;
 
-    @Cacheable(CacheConfig.PRODUCT_LIST)
+    @Cacheable(cacheNames = CacheConfig.PRODUCT_LIST, condition = "#condition.keyword() == null", sync = true)
     public Slice<ProductSummaryResponse> findProductsByCategory(String categoryCode, LaptopSearchCondition condition,
                                                                 PageCondition pageCondition) {
         validateCategoryExists(categoryCode);
