@@ -22,7 +22,7 @@
 
 | 화면 | 들어오는 경로 | 요청 조건 |
 | --- | --- | --- |
-| 맞춤 목록 | 추천 결과에서 들어온다. 맥·윈도우 탭 중 하나를 본다 | 그 탭의 권장 사양(OS, CPU 등급, 메모리, 스토리지) |
+| 맞춤 목록 | 추천 결과에서 들어온다. 맥·윈도우 탭 중 하나를 본다 | 그 탭의 권장 사양(OS, CPU 등급, 메모리, 스토리지. 사용 목적에 따라 화면 색 영역, GPU 등급) |
 | 전체 목록 | 상단 메뉴나 맞춤 목록의 "전체 보기"로 들어온다 | 필터 없음 |
 
 두 화면 모두 필요하면 정렬을 바꾸고, 무한 스크롤로 한 페이지씩 내려본다.
@@ -39,7 +39,16 @@
 | Mac | `PRO` | 24 / 48 | 256 / 512 / 1024 | 6 |
 | Windows | `P_HS` / `H` / `HX` | 16 / 24 / 32 / 48 | 256 / 512 / 1024 | 36 |
 
-- 조합은 정의서의 점수 구간(`interpretation`)과 `LaptopRecommender`의 Mac 메모리 구성을 옮겨 적은 것이다. 추천이 낼 수 있는 값이 바뀌면 `sessions.js`와 아래 데이터 확인 쿼리를 함께 고친다.
+제품 추천은 화면 색 영역과 GPU 등급을 지금은 디자인(`DESIGN`) 목적에서만 권한다. 그 목적의 맞춤 목록은 위 51개 조합마다 아래 필터가 더 붙는다.
+
+| OS      | 화면 색 영역     | GPU 등급                         | 조합 수             |
+|---------|-------------|--------------------------------|------------------|
+| Mac     | 없음 / `WIDE` | CPU 등급과 같은 등급(`BASIC` / `PRO`) | 15 × 2 = 30      |
+| Windows | 없음 / `WIDE` | `INTEGRATED` / `XX50` / `XX60` | 36 × 2 × 3 = 216 |
+
+- 표준 색 영역과 가장 낮은 GPU 등급은 모든 노트북이 해당하므로 서버가 거르지 않는다. 다만 프론트엔드 앱은 표준 색 영역은 요청에 넣지 않고, 가장 낮은 GPU 등급은 넣는다. 시나리오는 프론트엔드 앱의 요청을 따르므로, 표의 색 영역은 "없음"과 `WIDE`이고 GPU는 가장 낮은 등급도 포함한다.
+- Mac은 칩 하나에 CPU와 GPU가 함께 있어, 추천이 GPU 등급을 CPU 등급에 맞춘다(`LaptopRecommender`).
+- 조합은 정의서의 점수 구간(`interpretation`)과 `LaptopRecommender`의 Mac 메모리·칩 구성을 옮겨 적은 것이다. 추천이 낼 수 있는 값이 바뀌면 `sessions.js`와 아래 데이터 확인 쿼리를 함께 고친다.
 - 맞춤 목록의 키워드·브랜드·가격 필터는 추천에서 만들어지지 않으므로 제외한다.
 
 전체 목록은 **필터 없이** 요청한다. 사용자가 직접 거는 조건은 조합이 사실상 무한하고 실측 데이터도 없어(아래 가정 표), 진입 직후 상태만 재현한다. 전체 목록은 가격순으로만 정렬하고, 필터가 없으면 최저가 인덱스 순서로 한 페이지 분량만 읽는다([ADR 0045](../../../docs/adr/0045-가격순-목록-최저가-인덱스.md)). 그래서 조건에 맞는 노트북을 모두 읽고 정렬하는 맞춤 목록보다 가볍다.
@@ -51,7 +60,8 @@
 | 항목 | 내용 |
 | --- | --- |
 | 화면 | 맞춤 목록 : 전체 목록 = 1 : 1 |
-| 맞춤 목록의 탭 | 맥 : 윈도우 = 1 : 1. 필터 조합은 그 OS의 조합 중 균등 |
+| 맞춤 목록의 탭 | 맥 : 윈도우 = 1 : 1 |
+| 맞춤 목록의 사용 목적 | 4개 중 균등. 필터 조합은 그 목적·OS가 낼 수 있는 조합 중 균등 |
 | 정렬 | 그 화면에서 고를 수 있는 정렬 중 균등 |
 | 페이지 | `size=10`, `page=0 → 1 → 2`를 앞 응답을 받은 뒤 차례로. 페이지마다 요청 1건 |
 | 다음 페이지 | `hasNext: false`이거나 응답이 200이 아니면 다음 페이지를 요청하지 않는다 |
@@ -87,14 +97,16 @@
 - **세션 안은 차례로**: 사용자는 앞 페이지를 받아야 다음으로 넘어간다.
 - 세션은 몇 초씩 걸리므로, 서버가 느려져도 세션을 버리지 않도록 VU 수를 넉넉히 둔다.
 
+ 용량 테스트는 `LOAD_SCALE`로 부하를 키운다. 세션 속도·세션 수·VU 수에 같은 배수를 곱하므로 구간의 비율은 그대로이고, 피크 RPS는 약 19.5 × 배수다. 주지 않으면 1이며 위의 예상 트래픽과 같다.
+
 ### 형식 검사와 태그
 
 | 항목 | 내용 |
 | --- | --- |
 | 형식 검사 | 3xx·4xx가 아니다. 200 응답은 `content` 배열, 요청한 `page`·`size`와 일치. `page=0, 1`은 `hasNext: true` |
-| 태그 | `screen`(`MATCHED`/`ALL`), `page`, `sort`. 맞춤 목록은 `os`, `cpu_tier`, `memory_gb`, `storage_gb`도 붙인다 |
+| 태그 | `screen`(`MATCHED`/`ALL`), `page`, `sort`. 맞춤 목록은 `os`, `cpu_tier`, `memory_gb`, `storage_gb`, `color_gamut`, `gpu_tier`(필터가 없으면 `NONE`)도 붙인다 |
 
-조건마다 걸리는 상품 수가 269건에서 노트북 전체까지 차이 나서, 결과가 기준을 넘으면 태그로 조건별 응답 시간을 나눠 본다.
+조건마다 걸리는 상품 수가 78건에서 노트북 전체까지 차이 나서, 결과가 기준을 넘으면 태그로 조건별 응답 시간을 나눠 본다.
 
 ### 가정
 
@@ -107,6 +119,7 @@
 | 맞춤 목록 : 전체 목록 | 1 : 1 | **실측 근거 없음.** PostHog는 화면 전환을 페이지뷰로 남기지 않고 목록 이벤트에도 화면 구분이 없어, 두 화면의 비율을 알 수 없다(2026-10-14 확인) | 맞춤 목록이 더 무거우므로, 실제 맞춤 목록 비중이 이보다 크면 결과는 낙관적이다 |
 | 전체 목록의 필터 | 필터 없음 | **실측 근거 없음.** 전체 목록에서 검색 조건을 쓴 데이터가 거의 없어 임의로 정했다 | 필터를 걸면 인덱스 순서로 읽다 멈추지 못하고 조건에 맞는 노트북을 모두 읽고 정렬할 수 있다. 결과는 낙관적이다 |
 | 맞춤 목록의 탭 | 맥 : 윈도우 = 1 : 1 | 없음 | 윈도우 조합이 걸리는 상품이 더 많아, 윈도우가 많으면 무거워진다 |
+| 사용 목적 | 4개 중 균등 | 없음 | 색 영역·GPU 필터가 붙는 `DESIGN` 비중이 달라진다. 필터가 붙으면 걸리는 상품이 줄어 쿼리가 가벼워질 수 있다 |
 | 정렬 | 화면의 선택지 중 균등 | 없음 | 실제로는 기본값이 대부분일 수 있다. 정렬별 비용은 `sort` 태그로 확인한다 |
 | 스크롤 깊이 | 3페이지 | 없음 | 첫 페이지에서 멈추는 사용자가 많으면 RPS가 작아진다. 보수적인 가정이다 |
 | 스크롤 간격 | 1~5초 | 없음 | 평균 RPS는 그대로이고, 요청이 몰리는 정도만 달라진다 |
@@ -118,7 +131,7 @@
 
 쿼리는 두 화면의 데이터를 따로 확인한다.
 
-- **맞춤 목록**: 추천 조합마다 걸리는 노트북 수. 조건은 목록 API와 같다. CPU 등급은 그 등급의 최소 점수 이상, 메모리와 스토리지는 이상으로 찾는다. 최소 점수는 `CpuTier.java`에서 옮겨 적었으므로, 점수가 바뀌면 쿼리도 함께 고친다.
+- **맞춤 목록**: 추천 조합마다 걸리는 노트북 수. 조건은 목록 API와 같다. CPU·GPU 등급은 그 등급의 최소 점수 이상, 메모리와 스토리지는 이상, 색 영역은 같은 값으로 찾는다. 가장 낮은 GPU 등급은 거르지 않는다. 최소 점수는 `CpuTier.java`, `GpuTier.java`에서 옮겨 적었으므로, 점수가 바뀌면 쿼리도 함께 고친다.
 - **전체 목록**: 필터 없이 읽는 노트북 전체와, 최저가의 원본인 판매 중인 오퍼 수. 추천 조합에 들지 않는 노트북(예: 최소 점수에 못 미치는 CPU)도 전체 목록에는 들어가므로 따로 센다.
 
 ```sql
@@ -131,41 +144,58 @@ WITH cpu_memory (os, cpu_tier, min_score, memory_gb) AS (
   FROM (VALUES ROW('P_HS', 20000), ROW('H', 24000), ROW('HX', 35000)) AS t (cpu_tier, min_score)
   CROSS JOIN (VALUES ROW(16), ROW(24), ROW(32), ROW(48)) AS m (memory_gb)
 ),
-combo AS (
+spec AS (
   SELECT c.os, c.cpu_tier, c.min_score, c.memory_gb, s.storage_gb
   FROM cpu_memory c
   CROSS JOIN (VALUES ROW(256), ROW(512), ROW(1024)) AS s (storage_gb)
 ),
+filter (purpose, os, cpu_tier, color_gamut, gpu_min_score) AS (
+  VALUES
+    ROW('GENERAL', 'MAC', NULL, NULL, NULL), ROW('GENERAL', 'WINDOWS', NULL, NULL, NULL),
+    ROW('DESIGN', 'MAC', 'BASIC', NULL, NULL), ROW('DESIGN', 'MAC', 'BASIC', 'WIDE', NULL),
+    ROW('DESIGN', 'MAC', 'PRO', NULL, 8000), ROW('DESIGN', 'MAC', 'PRO', 'WIDE', 8000),
+    ROW('DESIGN', 'WINDOWS', NULL, NULL, NULL), ROW('DESIGN', 'WINDOWS', NULL, 'WIDE', NULL),
+    ROW('DESIGN', 'WINDOWS', NULL, NULL, 6000), ROW('DESIGN', 'WINDOWS', NULL, 'WIDE', 6000),
+    ROW('DESIGN', 'WINDOWS', NULL, NULL, 9500), ROW('DESIGN', 'WINDOWS', NULL, 'WIDE', 9500)
+),
+combo AS (
+  SELECT spec.*, f.purpose, f.color_gamut, f.gpu_min_score
+  FROM spec
+  JOIN filter f ON f.os = spec.os AND (f.cpu_tier IS NULL OR f.cpu_tier = spec.cpu_tier)
+),
 matched AS (
-  SELECT combo.os, combo.cpu_tier, combo.memory_gb, combo.storage_gb, COUNT(l.id) AS products
+  SELECT COUNT(l.id) AS products
   FROM combo
-  LEFT JOIN (laptop l JOIN cpu ON cpu.id = l.cpu_id)
+  LEFT JOIN (laptop l JOIN cpu ON cpu.id = l.cpu_id JOIN gpu ON gpu.id = l.gpu_id)
     ON l.os = combo.os
     AND cpu.score >= combo.min_score
     AND l.memory_gb >= combo.memory_gb
     AND l.storage_gb >= combo.storage_gb
-  GROUP BY combo.os, combo.cpu_tier, combo.memory_gb, combo.storage_gb
+    AND (combo.color_gamut IS NULL OR l.color_gamut = combo.color_gamut)
+    AND (combo.gpu_min_score IS NULL OR gpu.score >= combo.gpu_min_score)
+  GROUP BY combo.purpose, combo.os, combo.cpu_tier, combo.memory_gb, combo.storage_gb, combo.color_gamut, combo.gpu_min_score
 )
 SELECT COUNT(*) AS combos,
        MIN(products) AS min_products,
        SUM(products) AS total_products,
        SUM(products <= 20) AS combos_without_page_2,
-       (SELECT COUNT(*) FROM laptop l JOIN cpu ON cpu.id = l.cpu_id) AS all_laptops,
+       (SELECT COUNT(*) FROM laptop l JOIN cpu ON cpu.id = l.cpu_id JOIN gpu ON gpu.id = l.gpu_id) AS all_laptops,
        (SELECT COUNT(*)
         FROM product_offer o
         JOIN laptop l ON l.id = o.product_id
         JOIN cpu ON cpu.id = l.cpu_id
+        JOIN gpu ON gpu.id = l.gpu_id
         WHERE o.status = 'ON_SALE') AS on_sale_offers
 FROM matched;
 ```
 
 ### 기준 결과
 
-Flyway 기본 데이터에 [제품 적재 SQL](../../data/seed-products.sql)을 기본값으로 한 번 실행한 상태의 결과다.
+Flyway 기본 데이터에 [제품 적재 SQL](../../data/seed-products.sql)을 기본값으로 한 번 실행한 상태의 결과다. 실행 ID나 CPU·GPU 목록이 바뀌면 기준과 다르게 나온다([같은 데이터가 만들어지는 조건](../../data/README.md#같은-데이터가-만들어지는-조건)).
 
 | combos | min_products | total_products | combos_without_page_2 | all_laptops | on_sale_offers |
 | --- | --- | --- | --- | --- | --- |
-| 51 | 269 | 134,602 | 0 | 20,020 | 60,020 |
+| 297 | 78 | 520,215 | 0 | 20,020 | 60,049 |
 
 | 결과 | 판단 |
 | --- | --- |
@@ -212,6 +242,9 @@ k6 run performance/k6/product-list/smoke.js
 
 # 부하: 워밍업 1분(평균) → 측정 10분(첫 2분 피크), 약 12분
 k6 run performance/k6/product-list/load.js
+
+# 용량 테스트: 같은 부하를 4배로
+k6 run --env LOAD_SCALE=4 performance/k6/product-list/load.js
 ```
 
 `BASE_URL`을 주지 않으면 `http://localhost:8080`으로 요청한다.

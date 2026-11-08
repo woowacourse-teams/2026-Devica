@@ -19,19 +19,45 @@ const WINDOWS_CPU = ['P_HS', 'H', 'HX'];
 const WINDOWS_MEMORY = [16, 24, 32, 48];
 const STORAGE = [256, 512, 1024];
 
-const SPECS = {
+const BASE_SPECS = {
   MAC: MAC_CPU_MEMORY.flatMap(([cpuTier, memoryGb]) =>
     STORAGE.map((storageGb) => ({ os: 'MAC', cpuTier, memoryGb, storageGb }))),
   WINDOWS: WINDOWS_CPU.flatMap((cpuTier) => WINDOWS_MEMORY.flatMap((memoryGb) =>
     STORAGE.map((storageGb) => ({ os: 'WINDOWS', cpuTier, memoryGb, storageGb })))),
 };
 
+// 제품 추천은 화면 색 영역과 GPU를 디자인(DESIGN) 목적에서만 권한다.
+// 프론트엔드 앱처럼 표준 색 영역은 보내지 않고, 가장 낮은 GPU 등급은 보낸다(frontend/src/products.ts). 둘 다 서버는 거르지 않는다.
+// Mac GPU는 칩을 따라가므로 CPU 등급과 같은 등급이다
+const COLOR_GAMUTS = [null, 'WIDE'];
+const MAC_GPU_BY_CPU = { BASIC: 'BASIC', PRO: 'PRO' };
+const WINDOWS_GPU = ['INTEGRATED', 'XX50', 'XX60'];
+
+const DESIGN_SPECS = {
+  MAC: BASE_SPECS.MAC.flatMap((spec) => COLOR_GAMUTS.map((colorGamut) =>
+    ({ ...spec, colorGamut, gpuTier: MAC_GPU_BY_CPU[spec.cpuTier] }))),
+  WINDOWS: BASE_SPECS.WINDOWS.flatMap((spec) => COLOR_GAMUTS.flatMap((colorGamut) =>
+    WINDOWS_GPU.map((gpuTier) => ({ ...spec, colorGamut, gpuTier })))),
+};
+
+// 사용 목적 4개 중 DESIGN만 색 영역·GPU를 권한다. 목적별 비율은 근거 없이 균등으로 정한 가정이다(README의 가정 표)
+const PURPOSE_SPECS = [BASE_SPECS, BASE_SPECS, BASE_SPECS, DESIGN_SPECS];
+const SPECS = {
+  MAC: PURPOSE_SPECS.map((specs) => specs.MAC),
+  WINDOWS: PURPOSE_SPECS.map((specs) => specs.WINDOWS),
+};
+
 // 맞춤 : 전체 = 1 : 1. 맞춤 목록은 맥·윈도우 탭 중 하나를 1 : 1로 보고, 그 탭의 권장 사양이 필터가 된다.
 // 전체 목록은 진입 직후처럼 필터 없이 본다. 두 비율과 전체 목록의 필터는 근거 없이 정한 가정이다(README의 가정 표)
 const SCREENS = {
   MATCHED: { tabs: [SPECS.MAC, SPECS.WINDOWS], sorts: ['PRICE_ASC', 'PRICE_DESC'] },
-  ALL: { tabs: [[{}]], sorts: ['PRICE_ASC', 'PRICE_DESC'] },
+  ALL: { tabs: [[[{}]]], sorts: ['PRICE_ASC', 'PRICE_DESC'] },
 };
+
+// 프론트엔드 앱처럼 값이 없는 필터는 요청에 넣지 않는다
+function withoutNull(spec) {
+  return Object.fromEntries(Object.entries(spec).filter(([, value]) => value !== null));
+}
 
 // 시드를 고정한 난수(mulberry32). 같은 개수를 만들면 항상 같은 목록이 나온다
 function seededRandom(seed) {
@@ -57,7 +83,7 @@ function buildSessions(count) {
 
     return {
       screen,
-      spec: pick(pick(tabs)),
+      spec: withoutNull(pick(pick(pick(tabs)))),
       sort: pick(sorts),
       // 페이지 사이의 스크롤 간격, 1~5초
       waits: PAGES.slice(1).map(() => Math.round((1 + random() * 4) * 10) / 10),
@@ -82,6 +108,8 @@ function tagsOf({ screen, spec, sort }, page) {
     cpu_tier: spec.cpuTier,
     memory_gb: String(spec.memoryGb),
     storage_gb: String(spec.storageGb),
+    color_gamut: spec.colorGamut ?? 'NONE',
+    gpu_tier: spec.gpuTier ?? 'NONE',
   };
 }
 
