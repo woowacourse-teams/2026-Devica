@@ -10,19 +10,26 @@ import { runSession, sessionList } from './sessions.js';
 
 // 홍보 직후 10분간 약 260명 × 목록 진입 5번 = 1,300세션. 평균 분당 130세션(약 6.5 RPS)
 // 측정 구간은 게시 직후에 몰리도록 첫 2분에 평균의 3배, 나머지 8분에 평균의 절반을 건다
-const AVERAGE_PER_MINUTE = 130;
+// 용량 테스트는 LOAD_SCALE로 세션 속도와 VU를 함께 늘린다. 기본 1이 위의 예상 트래픽이다
+const LOAD_SCALE = Number(__ENV.LOAD_SCALE || 1);
+if (!(LOAD_SCALE > 0)) {
+  throw new Error(`LOAD_SCALE은 0보다 큰 수여야 한다: ${__ENV.LOAD_SCALE}`);
+}
+
+// k6는 정수 속도만 받으므로, 절반(꼬리 속도)도 정수가 되게 짝수로 반올림한다
+const AVERAGE_PER_MINUTE = Math.round((130 * LOAD_SCALE) / 2) * 2;
 const PEAK_PER_MINUTE = AVERAGE_PER_MINUTE * 3; // 2분 × 390 = 780세션
 const TAIL_PER_MINUTE = AVERAGE_PER_MINUTE / 2; // 8분 × 65 = 520세션
 const WARMUP_SESSIONS = AVERAGE_PER_MINUTE; // 워밍업 1분은 평균 속도로
-const MEASURE_SESSIONS = 1300;
+const MEASURE_SESSIONS = AVERAGE_PER_MINUTE * 10; // 피크 2분 × 3배 + 꼬리 8분 × 절반
 
 // 종료 시점에 따라 반복이 1~2회 더 돌 수 있어 여유분을 둔다
 const sessions = sessionList(WARMUP_SESSIONS + MEASURE_SESSIONS + 10);
 
 // 세션 하나는 최대 약 25초(요청 3번 × 타임아웃 5초 + 간격 2번 × 5초)다.
 // 서버가 느려져도 세션을 버리지 않도록 25초 × 초당 세션 수보다 넉넉히 둔다
-const WARMUP_VUS = 60; // 초당 약 2.17세션
-const MEASURE_VUS = 180; // 피크 초당 6.5세션
+const WARMUP_VUS = Math.ceil(60 * LOAD_SCALE); // 초당 약 2.17세션
+const MEASURE_VUS = Math.ceil(180 * LOAD_SCALE); // 피크 초당 6.5세션
 
 export const options = {
   userAgent: userAgent('product-list-load'),
