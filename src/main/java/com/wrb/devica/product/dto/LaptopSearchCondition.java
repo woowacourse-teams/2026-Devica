@@ -7,6 +7,7 @@ import com.wrb.devica.product.domain.Os;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 
 public record LaptopSearchCondition(
     Os os,
@@ -18,6 +19,7 @@ public record LaptopSearchCondition(
     @Positive(message = "스토리지 용량은 1GB 이상이어야 합니다.")
     Integer storageGb,
     String keyword,
+    @Size(max = 64, message = "브랜드는 64자 이하여야 합니다.")
     String brand,
     @PositiveOrZero(message = "최소 가격은 0 이상이어야 합니다.")
     Long minPrice,
