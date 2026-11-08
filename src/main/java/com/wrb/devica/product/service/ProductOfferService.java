@@ -1,5 +1,6 @@
 package com.wrb.devica.product.service;
 
+import com.wrb.devica.common.config.CacheConfig;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.dto.PriceRefreshTarget;
@@ -8,6 +9,7 @@ import com.wrb.devica.product.repository.ProductOfferRepository;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ public class ProductOfferService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.PRODUCT_LIST, allEntries = true, condition = "#result.changesMinPrice()")
     public PriceRefreshResult refreshCoupangPrice(PriceRefreshTarget target, long price, LocalDate checkedAt) {
         validatePriceRefresh(price, checkedAt);
         ProductOffer offer = findUnchangedTarget(target, checkedAt);
@@ -64,6 +67,7 @@ public class ProductOfferService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheConfig.PRODUCT_LIST, allEntries = true, condition = "#result.changesMinPrice()")
     public PriceRefreshResult hideCoupangOffer(PriceRefreshTarget target, LocalDate observedAt) {
         validateObservedAt(observedAt);
         ProductOffer offer = findUnchangedTarget(target, observedAt);
@@ -137,6 +141,10 @@ public class ProductOfferService {
         HIDDEN,
         ALREADY_HIDDEN,
         RESTORED,
-        SKIPPED
+        SKIPPED;
+
+        public boolean changesMinPrice() {
+            return this == UPDATED || this == HIDDEN || this == RESTORED;
+        }
     }
 }

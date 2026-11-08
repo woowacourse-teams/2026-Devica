@@ -6,10 +6,10 @@ import static com.wrb.devica.fixture.LaptopFixture.laptop;
 import static com.wrb.devica.fixture.ProductOfferFixture.offer;
 import static com.wrb.devica.fixture.ProductOfferFixture.onSaleOffer;
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -28,23 +28,22 @@ import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.domain.Product;
 import com.wrb.devica.product.domain.ProductOffer;
 import com.wrb.devica.product.dto.PriceRefreshTarget;
-import com.wrb.devica.product.infra.coupang.CoupangProductSearchClient;
 import com.wrb.devica.product.infra.coupang.CoupangPriceRefreshJob;
-import com.wrb.devica.product.service.ProductOfferService;
+import com.wrb.devica.product.infra.coupang.CoupangProductSearchClient;
 import com.wrb.devica.product.repository.CpuRepository;
 import com.wrb.devica.product.repository.GpuRepository;
 import com.wrb.devica.product.repository.LaptopRepository;
 import com.wrb.devica.product.repository.ProductOfferRepository;
-import java.time.LocalDate;
+import com.wrb.devica.product.service.ProductOfferService;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
@@ -361,13 +360,18 @@ class LaptopE2ETest extends E2ETest {
     void 숨김과_복구가_실제_목록과_상세_API에_반영된다() {
         // given
         Laptop laptop = laptopOf(laptop().name("재확인대상"));
+
         ProductOffer offer = productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).name("쿠팡")
             .externalItemId("56").price(1_000_000L).checkedAt(LocalDate.of(2026, 10, 25))
             .purchaseUrl("https://www.coupang.com/vp/products/999?vendorItemId=56")
             .status(OfferStatus.ON_SALE).build());
+
         minPriceRefresher.refresh(laptop.getId());
+
         PriceRefreshTarget target = new PriceRefreshTarget(offer.getId(), laptop.getId(), laptop.getCode(), "56",
             offer.getPurchaseUrl(), offer.getPrice(), offer.getStatus());
+
+        given().when().get(PATH).then().statusCode(200).body("content.size()", is(1));
 
         // when
         productOfferService.hideCoupangOffer(target, LocalDate.of(2026, 10, 26));
