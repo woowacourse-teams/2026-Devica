@@ -181,7 +181,7 @@
     gap: var(--space-8);
     min-width: 0;
     margin: 0;
-    border: 1px solid var(--divider);
+    border: 1.5px solid var(--control);
     border-radius: var(--radius-16);
     padding: var(--space-16);
     background: var(--surface-1);

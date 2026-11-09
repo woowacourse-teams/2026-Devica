@@ -12,32 +12,6 @@
     border-radius: var(--radius-24);
 }
 
-/* 기본 권장 사양은 질문 전 기준값이라 제품 추천 결과처럼 파랗게 채우지 않는다. 어두운 카드에 푸른 빛만 비추고, 값 칸은 바탕보다 밝게 두어 대비를 만든다. */
-.spec-panel.baseline-card {
-    border: 1px solid var(--divider);
-    color: var(--text);
-    background:
-        radial-gradient(90% 80% at 0% 0%, rgba(20, 38, 255, 0.32) 0%, rgba(20, 38, 255, 0) 70%), var(--surface-1);
-}
-
-.baseline-card .os-icon {
-    color: var(--on-primary);
-    background: var(--primary);
-}
-
-.baseline-card .spec-tile {
-    border: 1px solid var(--divider);
-    background: var(--surface-2);
-}
-
-.baseline-card .spec-tile dt {
-    color: var(--text-muted);
-}
-
-.baseline-card .spec-tile dd {
-    font-size: 22px;
-}
-
 .baseline-card h2 {
     font-size: 20px;
     font-weight: 700;
@@ -63,10 +37,6 @@
 
     .baseline-card {
         border-radius: var(--radius-32);
-    }
-
-    .baseline-card .spec-tile dd {
-        font-size: 24px;
     }
 
     .baseline-card h2 {
