@@ -12,7 +12,7 @@
     <meta property="og:image:alt" content="Devica 로고가 표시된 노트북 그림"/>
     <!-- 첫 화면이 그려지기 전에 테마를 정해 다크 바탕이 잠깐 보이지 않게 한다. 판정은 App.tsx 의 테마 결정과 같게 유지한다. -->
     <script>
-        document.documentElement.dataset.theme = /^\/(faq|board(\/.*)?)?$/.test(location.pathname) ? 'light' : 'dark';
+        document.documentElement.dataset.theme = /^\/(faq\/?|board(\/.*)?)?$/.test(location.pathname) ? 'light' : 'dark';
     </script>
     <title>Devica — 나에게 맞는 개발용 노트북 추천받기</title>
 </head>

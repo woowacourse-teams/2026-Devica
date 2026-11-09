@@ -64,7 +64,8 @@ const BACK_LABELS: Record<Screen, string> = {
   boardPost: '← 질문 상세로',
 };
 
-export function screenOf(pathname: string): Screen | null {
+export function screenOf(rawPathname: string): Screen | null {
+  const pathname = rawPathname.length > 1 ? rawPathname.replace(/\/$/, '') : rawPathname;
   if (pathname === '/') {
     return 'home';
   }

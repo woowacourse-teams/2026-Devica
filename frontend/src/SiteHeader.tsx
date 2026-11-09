@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { usePathname } from 'wouter/use-browser-location';
+import { useEffect, useRef, useState } from 'react';
+import { usePathname, useSearch } from 'wouter/use-browser-location';
 import { track } from './analytics';
 import { DESKTOP_MEDIA, go, navigateInside, PATHS } from './routes';
 import { ServiceEntryLink } from './ServiceEntryLink';
@@ -25,18 +25,23 @@ export function SiteHeader({
   guideActive,
 }: Props) {
   const pathname = usePathname();
+  const search = useSearch();
+  const menuButton = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: 화면이 바뀌면 메뉴를 닫는다.
   useEffect(() => {
     setMenuOpen(false);
-  }, [pathname]);
+  }, [pathname, search]);
 
   useEffect(() => {
     if (!menuOpen) return;
     const close = () => setMenuOpen(false);
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') close();
+      if (event.key === 'Escape') {
+        close();
+        menuButton.current?.focus();
+      }
     };
     const closeOnDesktop = () => {
       if (window.matchMedia(DESKTOP_MEDIA).matches) close();
@@ -69,6 +74,7 @@ export function SiteHeader({
         </a>
         <button
           className="site-menu-button"
+          ref={menuButton}
           type="button"
           aria-label={menuOpen ? '메뉴 닫기' : '메뉴 열기'}
           aria-expanded={menuOpen}
