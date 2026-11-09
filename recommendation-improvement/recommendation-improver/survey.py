@@ -122,9 +122,9 @@ def shape_errors(d, ins):
     if errs or f is None or t is None:
         return errs
     removed, added = [c for c in codes(f) if c not in codes(t)], [c for c in codes(t) if c not in codes(f)]
-    # 합치기는 합쳐지는 선택지의 문구를 합친 뜻에 맞게 고칠 수 있다
+    # 합치기는 합쳐지는 선택지의 문구를 합친 뜻에 맞게 고칠 수 있다. retire 의 줄 수·to 는 retire_errors 가 따로 검사한다
     into = {l.get('to') for l in ins.get('retire') or []
-            if kind == 'MERGE_OPTION' and l.get('question') == q and l.get('option') == o}
+            if l.get('question') == q and l.get('option') == o} if kind == 'MERGE_OPTION' else set()
     loose = lambda x: without(x, 'content', 'description') if x['code'] in into else x
     kept_same = [loose(x) for x in f['options'] if x['code'] in codes(t)] == [loose(x) for x in t['options'] if x['code'] in codes(f)]
     rest_same = without(f, 'options', 'exclusive') == without(t, 'options', 'exclusive')
@@ -377,7 +377,7 @@ def screen(d, code):
             if q['code'] == code:
                 auto = s.get('layout') != 'CURRENT_SPEC' and len(s['questions']) == 1 and (q.get('input') or 'SINGLE') == 'SINGLE'
                 return {'step': i + 1, 'title': q['title'], 'description': q.get('description'),
-                        'options': [x['content'] for x in q['options']], 'input': q.get('input') or 'SINGLE',
+                        'options': [x['content'] + (f" ({x['description']})" if x.get('description') else '') for x in q['options']], 'input': q.get('input') or 'SINGLE',
                         'exclusive': q.get('exclusive'), 'next': '고르면 바로 넘어감' if auto else '다음 버튼'}
     return None
 

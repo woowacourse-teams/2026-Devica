@@ -861,6 +861,15 @@ class SurveyPlanTest(unittest.TestCase):
         merge = lambda code: {**merge_once(), 'to': question(SHORT, options=renamed(code))}
         self.assertTrue(self.plan(merge('OFTEN'))['ok'])
         self.assertIn('from 과 to 의 차이가 MERGE_OPTION 와 맞지 않는다', self.plan(merge('NEVER'))['errors'])
+        described = {**merge_once(), 'to': question(SHORT, options=[{**x, 'description': '자주·한두 번'} if x['code'] == 'OFTEN' else x
+                                                                    for x in opt('OFTEN', 'NEVER')])}
+        p = self.plan(described)
+        self.assertTrue(p['ok'])
+        self.assertIn('often (자주·한두 번)', p['screen']['after']['options'])  # 설명만 바뀌어도 화면 전후에 보인다
+        reordered = {**merge_once(), 'to': question(SHORT, options=list(reversed(renamed('OFTEN'))))}
+        self.assertIn('from 과 to 의 차이가 MERGE_OPTION 와 맞지 않는다', self.plan(reordered)['errors'])
+        delete_renamed = {**delete_once(), 'to': question(SHORT, options=renamed('OFTEN'))}
+        self.assertIn('from 과 to 의 차이가 DELETE_OPTION 와 맞지 않는다', self.plan(delete_renamed)['errors'])
 
     def test_배타_선택지를_지우면_비우고_대체하면_새_코드로(self):
         to = question(TOOLS, options=opt('A', 'B'))
