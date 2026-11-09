@@ -69,6 +69,7 @@ beforeEach(() => {
       disconnect() {}
     },
   );
+  vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
   window.history.replaceState({}, '', '/');
 });
 

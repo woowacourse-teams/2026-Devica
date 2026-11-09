@@ -115,7 +115,7 @@ export function GuideHeading({ guide }: { guide: LandingGuideContent }) {
     <div className="landing-guide__heading">
       <div>
         <p className="landing-guide__eyebrow">{guide.eyebrow}</p>
-        <h3 id={`${guide.id}-title`} ref={guideView.ref}>
+        <h3 id={`${guide.id}-title`} ref={guideView.ref} tabIndex={-1}>
           {guide.title}
         </h3>
       </div>

@@ -2028,6 +2028,30 @@ html:has(.landing-page) {
     }
 }
 
+/* 가로로 눕힌 휴대폰처럼 낮은 화면에는 시연을 고정할 높이가 없다. 고정을 풀고 휴대폰 크기를 너비로 정한다.
+   기준 높이는 LandingDemo 의 SHORT_QUERY 와 같다. */
+@media (max-width: 767px) and (max-height: 619px) {
+    .landing-demo__sticky {
+        position: static;
+        height: auto;
+    }
+
+    .landing-screen {
+        width: min(64vw, 260px);
+        height: auto;
+    }
+
+    .landing-screen__view {
+        width: 100%;
+        height: auto;
+    }
+
+    .landing-screen__stack {
+        height: auto;
+        aspect-ratio: 390 / 844;
+    }
+}
+
 @media (prefers-reduced-motion: reduce), print {
     .landing-board__step,
     .landing-board__number {

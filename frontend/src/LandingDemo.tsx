@@ -41,9 +41,20 @@ export function scrollToDemoStep(section: HTMLElement, index: number, total: num
   window.scrollTo({ top: top + (step / (total - FIRST_STEP_CUT)) * distance, behavior });
 }
 
+const SHORT_QUERY = '(max-width: 767px) and (max-height: 619px)';
+
 function useScrollSteps(total: number) {
   const sectionRef = useRef<HTMLElement>(null);
   const [active, setActive] = useState(0);
+  const [short, setShort] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia(SHORT_QUERY);
+    const sync = () => setShort(query.matches);
+    sync();
+    query.addEventListener('change', sync);
+    return () => query.removeEventListener('change', sync);
+  }, []);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -83,7 +94,12 @@ function useScrollSteps(total: number) {
     if (sectionRef.current !== null) scrollToDemoStep(sectionRef.current, index, total);
   }
 
-  return { sectionRef, active, scrollToStep, height: `calc(100vh + ${total - FIRST_STEP_CUT} * 70vh)` };
+  return {
+    sectionRef,
+    active,
+    scrollToStep,
+    height: short ? undefined : `calc(100vh + ${total - FIRST_STEP_CUT} * 70vh)`,
+  };
 }
 
 export function LandingDemo({ guide }: { guide: LandingGuideContent }) {

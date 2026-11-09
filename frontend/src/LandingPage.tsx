@@ -107,6 +107,7 @@ export function LandingPage() {
               event.preventDefault();
               const total = LANDING_GUIDES[0].steps.length;
               scrollToDemoStep(section, total - 1, total);
+              document.getElementById('find-specs-title')?.focus({ preventScroll: true });
             }}
           >
             <span className="landing-routes__icon">
