@@ -13,7 +13,7 @@
 name: 💬 제품 추천 의견
 description: 제품 추천 결과가 나와 맞지 않았다면 알려 주세요.
 title: "[제품 추천 의견] 결과 화면에서 남긴 의견"
-labels: [ "product-recommendation-algorithm-feedback" ]
+labels: [ "product-recommendation-rule-feedback" ]
 body:
   - type: markdown
     attributes:

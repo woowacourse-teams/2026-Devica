@@ -7,7 +7,7 @@
 | 이름 | 환경 변수 | 값 |
 |---|---|---|
 | GitHub 레포 | `GH_REPO` | `woowacourse-teams/2026-Devica` |
-| 피드백 라벨 | | `product-recommendation-algorithm-feedback` |
+| 피드백 라벨 | | `product-recommendation-rule-feedback` |
 | 설문 피드백 라벨 | | `product-recommendation-survey-feedback` |
 | PostHog 프로젝트 | | `638813` |
 | 운영 제품 추천 API | | `https://api.devica.co.kr` |
@@ -159,9 +159,9 @@ python3 "$ST/signals.py" signals "$ST/tmp/sessions.json" https://api.devica.co.k
 열린 것과, 조회 기간 안에 닫힌 것을 읽는다. `<SINCE>` 는 `signals.json` 의 `period` 시작일에 `T00:00:00Z` 를 붙인 것이다.
 
 ```bash
-gh api --paginate "repos/$GH_REPO/issues?labels=product-recommendation-algorithm-feedback&state=open&per_page=100" \
+gh api --paginate "repos/$GH_REPO/issues?labels=product-recommendation-rule-feedback&state=open&per_page=100" \
   --jq '.[] | select(.pull_request == null) | {number, state, title, created_at, author_association, body}'
-gh api --paginate "repos/$GH_REPO/issues?labels=product-recommendation-algorithm-feedback&state=closed&since=<SINCE>&per_page=100" \
+gh api --paginate "repos/$GH_REPO/issues?labels=product-recommendation-rule-feedback&state=closed&since=<SINCE>&per_page=100" \
   --jq '.[] | select(.pull_request == null) | {number, state, closed_at, title, created_at, author_association, body}'
 ```
 
@@ -187,7 +187,7 @@ python3 "$ST/signals.py" issue "$ST/tmp/issue-<번호>.md"
   ```
 - 없으면 묶음의 `body` 를 파일로 쓰고 이슈를 만든다.
   ```bash
-  gh issue create --repo "$GH_REPO" --title "<title>" --body-file "$ST/tmp/new-body.md" --label product-recommendation-algorithm-feedback
+  gh issue create --repo "$GH_REPO" --title "<title>" --body-file "$ST/tmp/new-body.md" --label product-recommendation-rule-feedback
   ```
   만들기 전에 본문에 세션 ID 나 `answer`·`category`·`purpose` 밖의 주소 쿼리가 없는지 확인한다.
 

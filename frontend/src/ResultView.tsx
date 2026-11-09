@@ -33,7 +33,7 @@ const FEEDBACK_FORM_URL = 'https://github.com/woowacourse-teams/2026-Devica/issu
 // 사용자가 제목에서 망설이지 않게 제목도 채운다.
 function feedbackUrl(): string {
   const params = new URLSearchParams({
-    template: 'product-recommendation-algorithm-feedback.yml',
+    template: 'product-recommendation-rule-feedback.yml',
     title: '[제품 추천 의견] 결과 화면에서 남긴 의견',
     result_url: window.location.href,
   });
