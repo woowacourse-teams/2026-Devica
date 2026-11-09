@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { ChoiceGroup } from './ChoiceGroup';
 import type { Answers, Question, Screen } from './questions';
 import './QuestionView.css';
@@ -10,8 +11,20 @@ function descriptionOf(screen: Screen): string | null {
   const rest = screen.description?.replace(MULTI_SENTENCE, '').trim() ?? '';
   return rest === '' ? null : rest;
 }
-// 고른 항목에 체크 표시가 붙은 것을 본 뒤 넘어간다. 120ms 는 선택이 보이기도 전에 화면이 바뀌어 부자연스러웠다.
-const ADVANCE_DELAY_MS = 400;
+// 고른 항목에 체크 표시가 붙은 것만 보고 넘어간다. 넘어가는 느낌은 밀려나는 전환이 맡는다. 400ms 로 기다리면 멈칫해 보였다.
+const ADVANCE_DELAY_MS = 150;
+
+// 질문이 바뀔 때 앞으로 가면 왼쪽으로, 뒤로 가면 오른쪽으로 밀어낸다. 지원하지 않는 브라우저와 움직임 줄이기 설정에서는 바로 바꾼다.
+function slide(direction: 'forward' | 'back', update: () => void) {
+  if (document.startViewTransition === undefined || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    update();
+    return;
+  }
+  const root = document.documentElement;
+  root.dataset.slide = direction;
+  const transition = document.startViewTransition(() => flushSync(update));
+  transition.finished.finally(() => delete root.dataset.slide);
+}
 
 const SURVEY_FEEDBACK_FORM_URL = 'https://github.com/woowacourse-teams/2026-Devica/issues/new';
 
@@ -77,7 +90,7 @@ export function QuestionView({ purpose, surveyVersion, screens, index, answers, 
   const answerAndAdvance = (code: string, optionCode: string) => {
     onAnswer(code, [optionCode]);
     window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => latestNext.current(), ADVANCE_DELAY_MS);
+    timer.current = window.setTimeout(() => slide('forward', () => latestNext.current()), ADVANCE_DELAY_MS);
   };
 
   return (
@@ -131,7 +144,7 @@ export function QuestionView({ purpose, surveyVersion, screens, index, answers, 
       </p>
 
       <div className="sticky-actions question-actions">
-        <button className="button" id="previous-button" type="button" onClick={onPrevious}>
+        <button className="button" id="previous-button" type="button" onClick={() => slide('back', onPrevious)}>
           ← 이전
         </button>
         {(single === null || answered) && (
@@ -140,7 +153,7 @@ export function QuestionView({ purpose, surveyVersion, screens, index, answers, 
             id="next-button"
             type="button"
             disabled={!answered && !skippable}
-            onClick={onNext}
+            onClick={() => slide('forward', onNext)}
           >
             {nextLabel}
             {!skippable && <span aria-hidden="true">→</span>}

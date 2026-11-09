@@ -367,8 +367,68 @@
     font-size: 20px;
 }
 
+/* 다시 계산하는 동안 이전 가격 위로 빛이 훑고 지나간다. */
 .result-price__list[data-recalculating="true"] strong {
-    opacity: 0.5;
+    color: transparent;
+    background:
+        linear-gradient(
+            100deg,
+            var(--lime) 40%,
+            color-mix(in srgb, var(--lime) 55%, var(--on-primary)) 50%,
+            var(--lime) 60%
+        )
+        0 0 / 300% 100%;
+    background-clip: text;
+    animation: price-shimmer 1.8s ease-in-out infinite;
+}
+
+/* 숫자가 다 굴러가면 은은하게 한 번 빛난다. */
+.result-price__value--settled {
+    display: inline-block;
+    animation: price-settle 700ms ease-out;
+}
+
+.result-price__spoken {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+@keyframes price-shimmer {
+    from {
+        background-position: 100% 0;
+    }
+
+    to {
+        background-position: -200% 0;
+    }
+}
+
+@keyframes price-settle {
+    0%,
+    100% {
+        text-shadow: none;
+    }
+
+    30% {
+        text-shadow: 0 0 10px color-mix(in srgb, var(--lime) 45%, transparent);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .result-price__list[data-recalculating="true"] strong {
+        color: var(--lime);
+        background: none;
+        opacity: 0.5;
+        animation: none;
+    }
+
+    .result-price__value--settled {
+        animation: none;
+    }
 }
 
 .result-price__failed {

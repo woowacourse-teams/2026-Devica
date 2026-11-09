@@ -310,6 +310,64 @@
     }
 }
 
+/* 질문이 바뀔 때 본문만 옆으로 밀어내고, 진행 막대는 늘어나는 모습으로 이어 붙인다. 나머지는 기본 교차 전환이다. */
+.question-content {
+    view-transition-name: question-content;
+}
+
+#progress-value {
+    view-transition-name: question-progress;
+}
+
+::view-transition-group(question-progress) {
+    animation-duration: 320ms;
+    animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+::view-transition-old(question-content) {
+    animation: question-out-left 160ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+::view-transition-new(question-content) {
+    animation: question-in-right 320ms cubic-bezier(0, 0, 0.2, 1) 120ms both;
+}
+
+:root[data-slide="back"]::view-transition-old(question-content) {
+    animation-name: question-out-right;
+}
+
+:root[data-slide="back"]::view-transition-new(question-content) {
+    animation-name: question-in-left;
+}
+
+@keyframes question-out-left {
+    to {
+        opacity: 0;
+        transform: translateX(-56px);
+    }
+}
+
+@keyframes question-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(56px);
+    }
+}
+
+@keyframes question-out-right {
+    to {
+        opacity: 0;
+        transform: translateX(56px);
+    }
+}
+
+@keyframes question-in-left {
+    from {
+        opacity: 0;
+        transform: translateX(-56px);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .progress-track span,
     .question-option {

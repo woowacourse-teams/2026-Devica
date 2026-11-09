@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { OsIcon } from './BaselineCard';
 import { ChoiceGroup } from './ChoiceGroup';
 import { type Fetched, useFetched } from './fetched';
@@ -212,7 +212,7 @@ function MinPrices({ labels, prices }: MinPricesProps) {
       return '계산 중…';
     }
     const price = data[index];
-    return price === null ? '판매 중인 제품 없음' : `${formatPrice(price)}부터`;
+    return price === null ? '판매 중인 제품 없음' : <RollingPrice value={price} />;
   };
 
   if (prices.failed) {
@@ -242,6 +242,53 @@ function MinPrices({ labels, prices }: MinPricesProps) {
         </li>
       ))}
     </ul>
+  );
+}
+
+const ROLL_MS = 500;
+
+// 최저가가 바뀌면 이전 값에서 새 값까지 숫자를 굴린 뒤 은은하게 한 번 빛낸다. 굴러가는 숫자는 화면 읽기에서 숨기고 최종 값만 읽힌다.
+function RollingPrice({ value }: { value: number }) {
+  const [shown, setShown] = useState(value);
+  const [rolls, setRolls] = useState(0);
+  const current = useRef(value);
+
+  useEffect(() => {
+    const start = current.current;
+    if (start === value) {
+      return;
+    }
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      current.current = value;
+      setShown(value);
+      return;
+    }
+    const began = performance.now();
+    let frame = requestAnimationFrame(function tick(now) {
+      const progress = Math.min(1, (now - began) / ROLL_MS);
+      const eased = 1 - (1 - progress) ** 3;
+      current.current = progress === 1 ? value : Math.round((start + (value - start) * eased) / 1000) * 1000;
+      setShown(current.current);
+      if (progress < 1) {
+        frame = requestAnimationFrame(tick);
+      } else {
+        setRolls((count) => count + 1);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+
+  return (
+    <>
+      <span
+        className={rolls > 0 ? 'result-price__value result-price__value--settled' : 'result-price__value'}
+        key={rolls}
+        aria-hidden="true"
+      >
+        {formatPrice(shown)}부터
+      </span>
+      <span className="result-price__spoken">{formatPrice(value)}부터</span>
+    </>
   );
 }
 
