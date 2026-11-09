@@ -125,6 +125,10 @@ def shape_errors(d, ins):
             errs.append(f"after 가 지금 다른 질문이 아니다: {ins.get('after')}")
     if errs or f is None or t is None:
         return errs
+    text = lambda v: isinstance(v, str) and v.strip() != ''
+    bad = [x.get('code') for x in t.get('options') or [] if not text(x.get('content')) or x.get('description') is not None and not text(x['description'])]
+    if bad:
+        return [f'to 의 선택지 문구·설명이 비었거나 글자가 아니다: {", ".join(map(str, bad))}']
     removed, added = [c for c in codes(f) if c not in codes(t)], [c for c in codes(t) if c not in codes(f)]
     # 합치기는 합쳐지는 선택지의 문구를 합친 뜻에 맞게 고칠 수 있다. retire 의 줄 수·to 는 retire_errors 가 따로 검사한다
     into = {l.get('to') for l in ins.get('retire') or []

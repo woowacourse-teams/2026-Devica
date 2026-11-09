@@ -889,6 +889,10 @@ class SurveyPlanTest(unittest.TestCase):
         self.assertIn('from 과 to 의 차이가 MERGE_OPTION 와 맞지 않는다', self.plan(reordered)['errors'])
         delete_renamed = {**delete_once(), 'to': question(SHORT, options=renamed('OFTEN'))}
         self.assertIn('from 과 to 의 차이가 DELETE_OPTION 와 맞지 않는다', self.plan(delete_renamed)['errors'])
+        for bad in ({'code': 'OFTEN', 'description': '자주'}, {'code': 'OFTEN', 'content': None}, {'code': 'OFTEN', 'content': 3},
+                    {'code': 'OFTEN', 'content': ' '}, {'code': 'OFTEN', 'content': 'often', 'description': 3}):
+            p = self.plan({**merge_once(), 'to': question(SHORT, options=[bad] + opt('NEVER'))})
+            self.assertEqual(p['errors'], ['to 의 선택지 문구·설명이 비었거나 글자가 아니다: OFTEN'])
 
     def test_현재_사양_질문을_합칠_때는_버튼_문구에_뜻을_담는다(self):
         mem = {'code': 'CURRENT_MEMORY', 'title': '메모리', 'options': opt('GB_48', 'GB_64')}
