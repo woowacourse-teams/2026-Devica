@@ -1383,8 +1383,8 @@ class AnalyzerSurveyReadyTest(unittest.TestCase):
         issue = lambda n, author, kind='USER', **kw: {'number': n, 'state': 'open', 'skip': None, 'purpose': 'P', 'questions': ['SHORT'],
                                                        'kind': kind, 'author': author, 'team': False, 'approved': False,
                                                        'signal': None, 'handover': None, **kw}
-        self.issues = {1: issue(1, 'a'), 2: issue(2, 'b'), 3: issue(3, 'a'), 4: issue(4, 'bot', 'METRIC', questions=['VIDEO'], signal='이탈이 많은 화면'),
-                       5: issue(5, 'c', questions=['VIDEO']), 6: issue(6, 'bot', 'METRIC', questions=['VIDEO'], signal=analyzer.UNUSED),
+        self.issues = {1: issue(1, 'a'), 2: issue(2, 'b'), 3: issue(3, 'a'), 4: issue(4, 'bot', 'METRIC', questions=['VIDEO'], signal='이탈이 많은 화면', team=True),
+                       5: issue(5, 'c', questions=['VIDEO']), 6: issue(6, 'bot', 'METRIC', questions=['VIDEO'], signal=analyzer.UNUSED, team=True),
                        7: issue(7, 'team', team=True), 8: issue(8, 'd', 'HANDED', handover={'rule_left': [{'rule': {}, 'direction': 'UP'}]})}
         self.instructions, self.rules = [], []
 
@@ -1398,7 +1398,8 @@ class AnalyzerSurveyReadyTest(unittest.TestCase):
         self.assertEqual(self.ready(delete_once())['stage'], 'count')  # ONCE 는 규칙이 쓴다
         self.assertTrue(self.ready(delete_once(issues=[1, 2]))['ok'])
         self.assertEqual(self.ready(delete_once(issues=[1, 3]))['stage'], 'count')  # 같은 작성자
-        self.assertTrue(self.ready(delete_once(issues=[7]))['ok'])  # 팀원 의견은 1건으로 충분하다
+        out = self.ready(delete_once(issues=[7]))
+        self.assertEqual((out['ok'], out['need']), (True, '팀원 의견 1건'))  # 팀원 의견은 1건으로 충분하다
         unused = lambda **kw: sins('DELETE_OPTION', 'VIDEO', VIDEO, question(VIDEO, options=opt('YES')), 'NO',
                                    retire=[{'question': 'VIDEO', 'option': 'NO', 'drop': True, 'was': 'no'}], **kw)
         self.assertEqual(self.ready(unused(issues=[5]))['stage'], 'count')
@@ -1430,6 +1431,7 @@ class AnalyzerSurveyReadyTest(unittest.TestCase):
                                    'pr': None, 'reason': None, 'data': {'purpose': 'P'}, **kw}
         self.instructions = [processing()]
         self.assertEqual(self.ready(delete_once(issues=[1, 2]))['stage'], 'hold')
+        self.assertEqual(self.ready(delete_once(issues=[7]))['stage'], 'hold')  # 팀원 의견도 막는 조건은 그대로
         self.instructions = [processing(data={'purpose': 'Q'})]
         self.assertTrue(self.ready(delete_once(issues=[1, 2]))['ok'])
         self.rules = [{'purpose': 'P', 'rule': SDEF['rules'][2]}]

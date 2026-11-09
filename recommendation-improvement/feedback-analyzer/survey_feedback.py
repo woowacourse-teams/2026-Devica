@@ -179,8 +179,10 @@ def seen_issue(main, develop, state_path, number):
     return seen_survey(main, develop, i['purpose'], ','.join(i['questions']), i['version'] or '-', i['created_at'], i['title'])
 
 
-def requirement(d, ins, users, metrics, approved):
+def requirement(d, ins, users, metrics, approved, team=False):
     # 명세의 지시 조건 표. (필요한 근거, 만족하는지)
+    if team:
+        return '팀원 의견 1건', True
     kind, q, o = ins['kind'], ins['target']['question'], ins['target'].get('option')
     if kind == 'DELETE_QUESTION' and approved and not used(d, q):
         return '쓰이지 않는 질문 지표 피드백의 승인 라벨', True
@@ -248,8 +250,7 @@ def survey_ready(ref, comment_path, state_path, rules_path, on=None):
         misses = [c['issue'] for c in ins['cases'] if not C.ev(ins['rule']['when'], C.visible(p['definition'], c['answers']))]
         if misses:
             return {'ok': False, 'stage': 'rule', 'errors': [f'사례 #{n} 의 답이 함께 더할 규칙에 걸리지 않는다' for n in misses]}
-    need, met = requirement(d, ins, len(users), metrics, approved)
-    met = met or team  # 팀원 의견은 팀의 판단이라 1건으로 충분하다
+    need, met = requirement(d, ins, len(users), metrics, approved, team)
     counts = {'need': need, 'users': len(users), 'metrics': [m['number'] for m in metrics]}
     if not met:
         return {'ok': False, 'stage': 'count', 'errors': [f'근거가 모자란다: {need}'], **counts}
