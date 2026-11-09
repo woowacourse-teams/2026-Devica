@@ -204,38 +204,15 @@ describe('실제 노출 조건', () => {
   });
 });
 
-describe.each(LANDING_GUIDES)('$title 카드와 제목 측정', (guide) => {
-  test('제목을 빠르게 지나쳐 카드를 넘겨도 제목 조회를 만들지 않는다', () => {
+describe.each(LANDING_GUIDES)('$title 제목 측정', (guide) => {
+  test('제목을 본 뒤 시작 링크를 누르면 실제 순서와 목적지를 기록한다', () => {
     render(<LandingGuide guide={guide} />);
-    const title = screen.getByRole('heading', { name: guide.title, level: 2 });
-    const cards = screen.getByRole('region', { name: `${guide.title} 설명 카드. 좌우 방향키로 넘길 수 있습니다.` });
-    intersect(title, 1);
-    advance(299);
-    intersect(title, 0);
-    fireEvent.scroll(cards, { target: { scrollLeft: 400 } });
+    intersect(screen.getByRole('heading', { name: guide.title, level: 3 }), 1);
     advance(300);
-    expect(track).toHaveBeenCalledExactlyOnceWith('landing_guide_explored', { guide: guide.id });
-    expect(screen.getByRole('link', { name: guide.linkText }).getAttribute('href')).toBe(guide.href);
-    fireEvent.scroll(cards, { target: { scrollLeft: 800 } });
-    expect(track).toHaveBeenCalledTimes(1);
-
-    // 나중에 제목을 실제로 보면 그때 조회를 기록한다. 탐색이 조회를 대신하거나 막지 않는다.
-    intersect(title, 0.5);
-    advance(300);
-    expect(track).toHaveBeenLastCalledWith('landing_guide_viewed', { guide: guide.id });
-  });
-
-  test('제목을 본 뒤 카드를 넘기고 시작 버튼을 누르면 실제 순서와 목적지를 기록한다', () => {
-    render(<LandingGuide guide={guide} />);
-    intersect(screen.getByRole('heading', { name: guide.title, level: 2 }), 1);
-    advance(300);
-    const cards = screen.getByRole('region', { name: `${guide.title} 설명 카드. 좌우 방향키로 넘길 수 있습니다.` });
-    fireEvent.scroll(cards, { target: { scrollLeft: 400 } });
     fireEvent.click(screen.getByRole('link', { name: guide.linkText }));
     const destination = guide.id === 'find-specs' ? 'spec_finder' : 'board';
     expect(vi.mocked(track).mock.calls).toEqual([
       ['landing_guide_viewed', { guide: guide.id }],
-      ['landing_guide_explored', { guide: guide.id }],
       ['service_entry_viewed', { destination, entry_point: 'landing_guide' }],
       ['service_entry_clicked', { destination, entry_point: 'landing_guide' }],
     ]);

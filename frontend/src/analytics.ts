@@ -8,7 +8,6 @@ export type EventName =
   | 'service_entry_viewed'
   | 'service_entry_clicked'
   | 'landing_guide_viewed'
-  | 'landing_guide_explored'
   | 'landing_guide_link_clicked'
   | 'onboarding_started'
   | 'onboarding_completed'

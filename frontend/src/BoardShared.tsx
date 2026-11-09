@@ -15,20 +15,18 @@ export function BoardMessage({
   backTo?: string;
 }) {
   return (
-    <section className="view-panel board-view" aria-labelledby="board-message-title">
-      <h1 className="board-title" id="board-message-title">
-        {title}
-      </h1>
-      <p className="section-description" role="alert">
+    <section className="error-panel" aria-labelledby="board-message-title">
+      <h1 id="board-message-title">{title}</h1>
+      <p className="error-panel__message" role="alert">
         {message}
       </p>
-      <div className="board-actions">
+      <div className="error-panel__actions">
         {onRetry && (
           <button className="button button--primary" type="button" onClick={onRetry}>
             다시 시도
           </button>
         )}
-        <Link className="text-button" href={backTo}>
+        <Link className={onRetry ? 'button' : 'button button--primary'} href={backTo}>
           게시판으로 이동
         </Link>
       </div>

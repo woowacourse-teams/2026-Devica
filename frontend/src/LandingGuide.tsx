@@ -1,14 +1,11 @@
-import { type KeyboardEvent, useEffect, useEffectEvent, useRef, useState } from 'react';
-import { track as trackEvent } from './analytics';
+import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import type { LandingGuideContent } from './landingGuides';
 import { ServiceEntryLink } from './ServiceEntryLink';
 import { useAnalyticsView } from './useAnalyticsView';
 
-export function useCarousel(onExplored?: () => void) {
+export function useCarousel() {
   const trackRef = useRef<HTMLElement>(null);
   const [edges, setEdges] = useState({ start: true, end: false });
-  const [hasExplored, setHasExplored] = useState(false);
-  const recordExplored = useEffectEvent(() => onExplored?.());
 
   useEffect(() => {
     const track = trackRef.current;
@@ -19,10 +16,6 @@ export function useCarousel(onExplored?: () => void) {
       const start = track.scrollLeft <= 3;
       const end = track.scrollLeft >= track.scrollWidth - track.clientWidth - 2;
       setEdges((previous) => (previous.start === start && previous.end === end ? previous : { start, end }));
-      if (!start) {
-        setHasExplored(true);
-        recordExplored();
-      }
     }
 
     const observer = new ResizeObserver(updateEdges);
@@ -73,7 +66,7 @@ export function useCarousel(onExplored?: () => void) {
     }
   }
 
-  return { trackRef, edges, hasExplored, move, onKeyDown };
+  return { trackRef, edges, move, onKeyDown };
 }
 
 export function CarouselArrows({
@@ -83,7 +76,7 @@ export function CarouselArrows({
   move,
 }: Pick<ReturnType<typeof useCarousel>, 'edges' | 'move'> & { label: string; trackId: string }) {
   return (
-    <div className="landing-guide__arrows">
+    <div className="landing-arrows">
       <button
         type="button"
         aria-label={`${label} 이전 카드`}
@@ -91,7 +84,7 @@ export function CarouselArrows({
         disabled={edges.start}
         onClick={() => move('previous')}
       >
-        <span aria-hidden="true">‹</span>
+        <span aria-hidden="true">←</span>
       </button>
       <button
         type="button"
@@ -100,105 +93,44 @@ export function CarouselArrows({
         disabled={edges.end}
         onClick={() => move('next')}
       >
-        <span aria-hidden="true">›</span>
+        <span aria-hidden="true">→</span>
       </button>
     </div>
   );
 }
 
 export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
-  const trackId = `${guide.id}-track`;
   const guideView = useAnalyticsView<HTMLHeadingElement>('landing_guide_viewed', { guide: guide.id });
-  const explored = useRef(false);
-  const { trackRef, edges, hasExplored, move, onKeyDown } = useCarousel(() => {
-    if (explored.current) return;
-    explored.current = true;
-    trackEvent('landing_guide_explored', { guide: guide.id });
-  });
 
   return (
-    <section
-      className="landing-guide"
-      id={guide.id}
-      aria-labelledby={`${guide.id}-title`}
-      aria-roledescription="캐러셀"
-    >
-      <div className="landing-guide__heading" data-landing-reveal="">
+    <section className="landing-guide" id={guide.id} aria-labelledby={`${guide.id}-title`} data-landing-reveal="">
+      <div className="landing-guide__heading">
         <div>
-          <p className="landing-eyebrow">{guide.eyebrow}</p>
-          <h2 id={`${guide.id}-title`} ref={guideView.ref}>
+          <p className="landing-guide__eyebrow">{guide.eyebrow}</p>
+          <h3 id={`${guide.id}-title`} ref={guideView.ref}>
             {guide.title}
-          </h2>
-          <p className="landing-description">{guide.description}</p>
+          </h3>
         </div>
+        <ServiceEntryLink
+          className="landing-textlink"
+          href={guide.href}
+          destination={guide.id === 'find-specs' ? 'spec_finder' : 'board'}
+          entryPoint="landing_guide"
+        >
+          {guide.linkText} <span aria-hidden="true">→</span>
+        </ServiceEntryLink>
       </div>
-      <section
-        className="landing-guide__track"
-        id={trackId}
-        ref={trackRef}
-        data-landing-reveal=""
-        // biome-ignore lint/a11y/noNoninteractiveTabindex: 가로 스크롤 영역에 초점을 두고 방향키와 Home/End로 카드를 넘긴다.
-        tabIndex={0}
-        aria-label={`${guide.title} 설명 카드. 좌우 방향키로 넘길 수 있습니다.`}
-        onKeyDown={onKeyDown}
-      >
-        {guide.cards.map((card) => (
-          <article className="landing-guide__card" key={card.step} aria-label={card.step}>
-            <div className="landing-guide__copy">
-              <p className="landing-guide__number">{card.step}</p>
-              <h3>{card.title}</h3>
-              <p className="landing-description">{card.description}</p>
-            </div>
-            <div className="landing-guide__visual">
-              <a
-                className="landing-screen"
-                href={card.capture.src}
-                target="_blank"
-                rel="noopener"
-                aria-label={`${card.capture.alt} 원본 크게 보기`}
-                style={{ maxWidth: `calc((var(--visual-height) - 70px) * (${card.capture.ratio}))` }}
-              >
-                <div className="landing-screen__bar">
-                  <span className="landing-screen__dots" aria-hidden="true">
-                    ● ● ●
-                  </span>
-                  <span>DEVICA 실제 화면 ↗</span>
-                </div>
-                <div className="landing-screen__crop" style={{ aspectRatio: card.capture.ratio }}>
-                  <img
-                    src={card.capture.src}
-                    alt={card.capture.alt}
-                    style={card.capture.style}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-              </a>
-            </div>
-            <p className="landing-guide__note">{card.note}</p>
-          </article>
+      <ol className="landing-guide__steps">
+        {guide.steps.map((step, index) => (
+          <li className="landing-guide__step" key={step.title}>
+            <span className="landing-guide__number">{String(index + 1).padStart(2, '0')}</span>
+            <span className="landing-guide__copy">
+              <b>{step.title}</b>
+              <span className="landing-guide__description">{step.description}</span>
+            </span>
+          </li>
         ))}
-      </section>
-      <div className="landing-guide__controls" data-landing-reveal="">
-        <p>
-          <span className="landing-guide__count">{guide.cards.length}개 카드</span>
-          <span>옆으로 넘겨서 살펴보세요.</span>
-        </p>
-        <div className="landing-guide__action">
-          {hasExplored && (
-            <ServiceEntryLink
-              className="landing-guide__start"
-              href={guide.href}
-              destination={guide.id === 'find-specs' ? 'spec_finder' : 'board'}
-              entryPoint="landing_guide"
-            >
-              {guide.linkText}
-              <span aria-hidden="true">›</span>
-            </ServiceEntryLink>
-          )}
-        </div>
-        <CarouselArrows label={guide.title} trackId={trackId} edges={edges} move={move} />
-      </div>
+      </ol>
     </section>
   );
 }
