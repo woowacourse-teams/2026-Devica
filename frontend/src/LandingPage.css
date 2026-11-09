@@ -287,6 +287,162 @@ html:has(.landing-page) {
     }
 }
 
+/* 첫 화면의 노트북 그림. 화면에는 제품 추천 결과 예시가 떠 있고, 마우스를 따라 살짝 기운다.
+   구슬 자리에 놓여 고리 빛을 등지고 선다. */
+.landing-device {
+    position: absolute;
+    z-index: -1;
+    top: 50%;
+    right: max(var(--page-gutter), calc((100% - var(--content)) / 2 + var(--page-gutter)));
+    width: clamp(380px, 36vw, 540px);
+    margin-top: calc(var(--landing-header) / 2);
+    pointer-events: none;
+    perspective: 1200px;
+    translate: calc(var(--tilt-x, 0) * 24px) calc(-50% + var(--tilt-y, 0) * 18px);
+    transition: translate 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-device__svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    transform: rotateY(calc(-10deg + var(--tilt-x, 0) * 6deg)) rotateX(calc(4deg - var(--tilt-y, 0) * 4deg));
+    transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-device__shadow {
+    fill: color-mix(in srgb, var(--primary-deep) 70%, transparent);
+    filter: blur(14px);
+}
+
+.landing-device__lid {
+    fill: var(--surface-2);
+    stroke: color-mix(in srgb, var(--text) 30%, transparent);
+    stroke-width: 1.5;
+}
+
+.landing-device__screen {
+    fill: url("#landing-device-screen");
+}
+
+.landing-device__stop-a {
+    stop-color: var(--surface-1);
+}
+
+.landing-device__stop-b {
+    stop-color: color-mix(in srgb, var(--primary) 30%, var(--bg));
+}
+
+.landing-device__dot--1 {
+    fill: var(--danger);
+}
+
+.landing-device__dot--2 {
+    fill: var(--lime);
+}
+
+.landing-device__dot--3 {
+    fill: var(--accent);
+}
+
+.landing-device__title {
+    fill: var(--text);
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.landing-device__spec rect {
+    fill: var(--field);
+    stroke: var(--divider);
+    stroke-width: 1.5;
+}
+
+.landing-device__spec--picked rect {
+    fill: color-mix(in srgb, var(--lime) 12%, var(--field));
+    stroke: var(--lime);
+}
+
+.landing-device__label {
+    fill: var(--text-muted);
+    font-size: 12px;
+}
+
+.landing-device__value {
+    fill: var(--text);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.landing-device__reason {
+    fill: var(--tint);
+}
+
+.landing-device__line {
+    fill: var(--text-muted);
+    opacity: 0.6;
+}
+
+.landing-device__line--muted {
+    fill: var(--divider);
+    opacity: 1;
+}
+
+.landing-device__base {
+    fill: color-mix(in srgb, var(--text) 22%, var(--surface-2));
+}
+
+.landing-device__notch {
+    fill: color-mix(in srgb, var(--bg) 60%, transparent);
+}
+
+/* 노트북 둘레에 떠 있는 꼬리표. 서로 다른 박자로 위아래로 떠다닌다. */
+.landing-device__chip {
+    position: absolute;
+    padding: var(--space-8) var(--space-16);
+    border: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
+    border-radius: var(--radius-pill);
+    color: var(--text);
+    background: color-mix(in srgb, var(--surface-1) 75%, transparent);
+    backdrop-filter: blur(8px);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.landing-device__chip--ide {
+    top: -4%;
+    left: 30%;
+}
+
+.landing-device__chip--price {
+    right: -4%;
+    bottom: 22%;
+    border-color: var(--lime);
+    color: var(--lime);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .landing-device__chip {
+        animation: landing-device-float 6s ease-in-out infinite;
+    }
+
+    .landing-device__chip--price {
+        animation-delay: -3s;
+    }
+}
+
+@keyframes landing-device-float {
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* 노트북이 구슬 자리를 대신하므로 구슬은 감춘다. */
+.landing-hero__orb::after {
+    display: none;
+}
+
 .landing-hero__copy {
     display: flex;
     flex-direction: column;
@@ -460,209 +616,6 @@ html:has(.landing-page) {
     perspective: 1400px;
 }
 
-.landing-demo__frame {
-    overflow: hidden;
-    border: 1px solid var(--divider);
-    border-radius: var(--radius-24);
-    background: var(--surface-1);
-    box-shadow:
-        0 40px 120px color-mix(in srgb, var(--primary) 35%, transparent),
-        0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
-    transform-origin: 50% 100%;
-    transform: rotateX(calc((1 - var(--demo-enter, 1)) * 24deg)) scale(calc(0.86 + var(--demo-enter, 1) * 0.14));
-    opacity: calc(0.3 + var(--demo-enter, 1) * 0.7);
-}
-
-.landing-demo__bar {
-    display: flex;
-    align-items: center;
-    gap: var(--space-16);
-    padding: var(--space-12) var(--space-20);
-    border-bottom: 1px solid var(--divider);
-    color: var(--text-muted);
-    font-size: 13px;
-}
-
-.landing-demo__dots {
-    width: 52px;
-    height: 12px;
-    background:
-        radial-gradient(circle 6px at 6px 6px, var(--danger) 98%, transparent),
-        radial-gradient(circle 6px at 26px 6px, var(--lime) 98%, transparent),
-        radial-gradient(circle 6px at 46px 6px, var(--accent) 98%, transparent);
-}
-
-.landing-demo__screens {
-    position: relative;
-    height: 360px;
-}
-
-.landing-demo__screen {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-20);
-    padding: var(--space-32);
-    transition:
-        opacity 450ms ease,
-        transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.landing-demo__screen {
-    justify-content: center;
-}
-
-.landing-demo__screen[data-state="next"] {
-    opacity: 0;
-    transform: translateY(32px);
-}
-
-.landing-demo__screen[data-state="past"] {
-    opacity: 0;
-    transform: translateY(-32px);
-}
-
-.landing-demo__q {
-    font-size: 24px;
-    font-weight: 700;
-}
-
-.landing-demo__grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-12);
-}
-
-.landing-demo__list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-8);
-}
-
-.landing-demo__option {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    padding: var(--space-16) var(--space-20);
-    border: 1.5px solid var(--divider);
-    border-radius: var(--radius-16);
-    background: var(--field);
-    font-size: 16px;
-}
-
-.landing-demo__option b {
-    font-size: 18px;
-}
-
-.landing-demo__option small {
-    color: var(--text-muted);
-    font-size: 13px;
-}
-
-.landing-demo__option[data-muted] {
-    opacity: 0.45;
-}
-
-/* 고른 선택지는 화면이 넘어온 뒤 눌린 것처럼 테두리가 켜진다. */
-.landing-demo__screen [data-picked] {
-    transition:
-        border-color 300ms ease 500ms,
-        background-color 300ms ease 500ms,
-        box-shadow 300ms ease 500ms;
-}
-
-.landing-demo__screen[data-state="active"] [data-picked] {
-    border-color: var(--lime);
-    background: color-mix(in srgb, var(--lime) 10%, var(--field));
-    box-shadow: 0 0 24px color-mix(in srgb, var(--lime) 25%, transparent);
-}
-
-.landing-demo__meter {
-    height: 6px;
-    border-radius: var(--radius-pill);
-    background: var(--surface-2);
-}
-
-.landing-demo__meter span {
-    display: block;
-    width: 40%;
-    height: 100%;
-    border-radius: inherit;
-    background: var(--accent);
-}
-
-.landing-demo__specs {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-12);
-}
-
-.landing-demo__specs span {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-8);
-    padding: var(--space-20);
-    border: 1.5px solid var(--divider);
-    border-radius: var(--radius-16);
-    background: var(--surface-2);
-}
-
-.landing-demo__specs small {
-    color: var(--text-muted);
-    font-size: 13px;
-}
-
-.landing-demo__specs b {
-    font-size: 28px;
-}
-
-.landing-demo__reason {
-    padding: var(--space-16) var(--space-20);
-    border-left: 3px solid var(--lime);
-    border-radius: var(--radius-8);
-    color: var(--text-muted);
-    background: var(--tint);
-    font-size: 15px;
-}
-
-.landing-demo__product {
-    display: flex;
-    align-items: center;
-    gap: var(--space-16);
-    padding: var(--space-12) var(--space-16);
-    border: 1.5px solid var(--divider);
-    border-radius: var(--radius-16);
-    background: var(--field);
-}
-
-.landing-demo__product > span:not(.landing-demo__thumb) {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: var(--space-4);
-}
-
-.landing-demo__product small {
-    color: var(--text-muted);
-    font-size: 13px;
-}
-
-.landing-demo__product em {
-    color: var(--lime);
-    font-size: 14px;
-    font-style: normal;
-    font-weight: 600;
-}
-
-.landing-demo__thumb {
-    flex: none;
-    width: 56px;
-    height: 40px;
-    border-radius: var(--radius-8);
-    background: linear-gradient(135deg, var(--surface-2), var(--illustration));
-}
-
 .landing-demo__status {
     display: flex;
     flex-direction: column;
@@ -709,67 +662,137 @@ html:has(.landing-page) {
     background: var(--lime);
 }
 
+/* 실제 화면. 넓은 화면에서는 데스크톱 화면을 테두리만 두른 채로, 좁은 화면에서는 모바일 화면을 휴대폰에 담는다.
+   틀의 비율을 스크린숏과 같게 두어 화면이 잘리지 않는다. 단계가 바뀌면 다음 화면이 아래에서 올라온다. */
+.landing-screen {
+    justify-self: center;
+    width: min(100%, calc((100vh - 272px) * 1.6));
+    overflow: hidden;
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-8);
+    background: var(--surface-container-high);
+    box-shadow: 0 40px 120px color-mix(in srgb, var(--primary) 35%, transparent);
+    transform: translateY(calc((1 - var(--demo-enter, 1)) * 80px));
+    opacity: calc(0.3 + var(--demo-enter, 1) * 0.7);
+}
+
+.landing-screen__view {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 1280 / 800;
+    background: var(--bg);
+}
+
+/* 랜딩은 늘 다크라 --text 가 흰색이다. 화이트 화면인 게시판 스크린숏의 바탕으로 쓴다. */
+.landing-screen[data-light] .landing-screen__view {
+    background: var(--text);
+}
+
+.landing-screen__stack {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.landing-screen__shot {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+    transition:
+        opacity 450ms ease,
+        transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-screen__shot[data-state="next"] {
+    opacity: 0;
+    transform: translateY(8%);
+}
+
+.landing-screen__shot[data-state="past"] {
+    opacity: 0;
+    transform: scale(0.96);
+}
+
 /* 사용법 */
 .landing-routes {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: var(--space-16);
 }
 
 .landing-routes a {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: var(--space-16);
-    min-height: 180px;
-    padding: var(--space-32);
-    border-radius: var(--radius-24);
-    color: var(--text);
-    background: var(--surface-2);
-}
-
-.landing-routes a:first-child {
-    color: var(--on-primary);
-    background: var(--primary);
-}
-
-.landing-routes__copy {
+    --route-color: var(--link);
     display: flex;
     flex-direction: column;
     gap: var(--space-12);
+    padding: var(--space-32);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-24);
+    color: var(--text);
+    background: var(--surface-1);
+    transition:
+        border-color 0.2s,
+        transform 0.2s;
 }
 
-.landing-routes b {
-    font-size: 28px;
-    font-weight: 700;
+.landing-routes a:nth-child(3) {
+    --route-color: var(--lime);
 }
 
-.landing-routes__copy span {
-    color: var(--text-muted);
-    font-size: 16px;
+.landing-routes a:hover {
+    border-color: color-mix(in srgb, var(--route-color) 50%, transparent);
+    transform: translateY(-2px);
 }
 
-.landing-routes a:first-child .landing-routes__copy span {
-    color: var(--on-primary-muted);
-}
-
-.landing-routes__arrow {
+.landing-routes__icon {
     display: flex;
-    flex: none;
     justify-content: center;
     align-items: center;
     width: 52px;
     height: 52px;
-    border-radius: 50%;
+    margin-bottom: var(--space-20);
+    border-radius: var(--radius-16);
+    color: var(--route-color);
+    background: color-mix(in srgb, var(--route-color) 14%, transparent);
+}
+
+.landing-routes a:first-child .landing-routes__icon {
     color: var(--on-primary);
     background: var(--primary);
-    font-size: 24px;
+}
+
+.landing-routes__icon svg {
+    width: 26px;
+    height: 26px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.landing-routes b {
+    font-size: 22px;
     font-weight: 700;
 }
 
-.landing-routes a:first-child .landing-routes__arrow {
-    color: var(--primary);
-    background: var(--on-primary);
+.landing-routes__text {
+    flex: 1;
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.landing-routes__cta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: var(--space-16);
+    font-size: 15px;
+    font-weight: 600;
 }
 
 .landing-guide {
@@ -804,14 +827,14 @@ html:has(.landing-page) {
     font-weight: 700;
 }
 
-/* 질문 게시판 이용 시연. 제품 추천받기처럼 스크롤에 따라 넘어가되, 단계 목록을 왼쪽에 두고
-   고른 단계 아래 선이 그 단계 안에서의 진행을 보여 준다. 단계를 누르면 그 위치로 스크롤한다. */
 /* 두 시연은 화면 가운데에 놓여 앞뒤로 빈 공간이 생긴다. 뒤 시연을 그만큼 끌어올려
    제품 추천받기가 끝나면 질문 게시판이 바로 이어지게 한다. */
 .landing-demo + .landing-demo {
     margin-top: calc(-1 * max(0px, 100vh - 600px));
 }
 
+/* 질문 게시판 이용 시연. 제품 추천받기처럼 스크롤에 따라 넘어가되, 단계 목록을 왼쪽에 두고
+   고른 단계 아래 선이 그 단계 안에서의 진행을 보여 준다. 단계를 누르면 그 위치로 스크롤한다. */
 .landing-board__stage {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
@@ -909,116 +932,14 @@ html:has(.landing-page) {
     background: var(--lime);
 }
 
-.landing-board__frame {
-    transform: rotateY(calc(-6deg - (1 - var(--demo-enter, 1)) * 18deg));
-    transform-origin: 0 50%;
-}
-
 .landing-board__stage {
     perspective: 1400px;
-}
-
-.landing-board__chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-8);
-}
-
-.landing-board__chip {
-    padding: var(--space-8) var(--space-16);
-    border: 1.5px solid var(--divider);
-    border-radius: var(--radius-pill);
-    color: var(--text-muted);
-    font-size: 14px;
-}
-
-.landing-board__row,
-.landing-board__post,
-.landing-board__field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-8);
-    padding: var(--space-16) var(--space-20);
-    border: 1.5px solid var(--divider);
-    border-radius: var(--radius-16);
-    background: var(--field);
-}
-
-.landing-board__line {
-    display: block;
-    width: 100%;
-    height: 10px;
-    border-radius: var(--radius-pill);
-    background: var(--text-muted);
-    opacity: 0.6;
-}
-
-.landing-board__line--muted {
-    background: var(--divider);
-    opacity: 1;
-}
-
-.landing-board__line--short {
-    width: 28%;
-    background: var(--divider);
-    opacity: 1;
-}
-
-.landing-board__label {
-    color: var(--text-muted);
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.landing-board__answer {
-    display: flex;
-    align-items: center;
-    gap: var(--space-12);
-    padding: var(--space-12) var(--space-16);
-    border: 1.5px solid var(--divider);
-    border-radius: var(--radius-16);
-}
-
-.landing-board__avatar {
-    flex: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent), var(--primary));
-}
-
-.landing-board__field {
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-4);
-}
-
-.landing-board__field--body {
-    flex-direction: column;
-    align-items: stretch;
-    min-height: 96px;
-}
-
-.landing-board__caret {
-    width: 2px;
-    height: 18px;
-    background: var(--lime);
-    animation: landing-board-caret 1s steps(1) infinite;
 }
 
 @keyframes landing-board-caret {
     50% {
         opacity: 0;
     }
-}
-
-.landing-board__submit {
-    align-self: flex-end;
-    padding: var(--space-12) var(--space-24);
-    border: 1.5px solid var(--divider);
-    border-radius: var(--radius-pill);
-    font-size: 15px;
-    font-weight: 600;
 }
 
 /* 기술 소개. 화면이 충분히 크면 섹션을 고정하고, 세로 스크롤만큼 카드를 옆으로 넘긴다.
@@ -1712,45 +1633,6 @@ html:has(.landing-page) {
         gap: var(--space-20);
     }
 
-    .landing-demo__screens {
-        height: 300px;
-    }
-
-    .landing-demo__screen {
-        gap: var(--space-16);
-        padding: var(--space-20);
-    }
-
-    .landing-demo__q {
-        font-size: 18px;
-    }
-
-    .landing-demo__option {
-        padding: var(--space-12) var(--space-16);
-        font-size: 14px;
-    }
-
-    .landing-demo__option b {
-        font-size: 15px;
-    }
-
-    .landing-demo__specs {
-        gap: var(--space-8);
-    }
-
-    .landing-demo__specs span {
-        padding: var(--space-12);
-    }
-
-    .landing-demo__specs b {
-        font-size: 17px;
-        white-space: nowrap;
-    }
-
-    .landing-demo__reason {
-        font-size: 13px;
-    }
-
     .landing-demo__status {
         gap: var(--space-4);
     }
@@ -1807,6 +1689,20 @@ html:has(.landing-page) {
         margin: 0 0 0 50px;
     }
 
+    .landing-device {
+        top: calc(var(--landing-header) + var(--space-24));
+        right: auto;
+        left: 50%;
+        width: min(320px, 82vw);
+        margin: 0;
+        translate: -50% 0;
+    }
+
+    .landing-device__chip {
+        padding: 6px var(--space-12);
+        font-size: 12px;
+    }
+
     .landing-hero__copy {
         gap: var(--space-20);
         padding: 300px var(--page-gutter) var(--space-48);
@@ -1853,27 +1749,22 @@ html:has(.landing-page) {
     }
 
     .landing-routes a {
-        align-items: center;
-        min-height: 0;
+        gap: var(--space-8);
         padding: 22px;
     }
 
-    .landing-routes__copy {
-        gap: var(--space-8);
+    .landing-routes__icon {
+        width: 44px;
+        height: 44px;
+        margin-bottom: var(--space-8);
     }
 
     .landing-routes b {
-        font-size: 20px;
+        font-size: 19px;
     }
 
-    .landing-routes__copy span {
+    .landing-routes__text {
         font-size: 14px;
-    }
-
-    .landing-routes__arrow {
-        width: 40px;
-        height: 40px;
-        font-size: 18px;
     }
 
     .landing-guide {
@@ -1898,31 +1789,60 @@ html:has(.landing-page) {
         gap: var(--space-20);
     }
 
-    .landing-board__frame {
+    /* 화면 모서리가 둥글어 스크린숏의 귀퉁이가 가려지지 않도록, 위아래에 상태 표시줄과 홈 막대 자리를 둔다. */
+    .landing-screen {
+        --phone-height: min(calc(100svh - 360px), 520px);
+        height: var(--phone-height);
+        width: auto;
+        padding: 7px;
+        border: 0;
+        border-radius: 34px;
+    }
+
+    .landing-screen__view {
+        box-sizing: border-box;
+        width: calc((var(--phone-height) - 14px - 40px) * 390 / 844);
+        height: 100%;
+        padding: 24px 0 16px;
+        aspect-ratio: auto;
+        border-radius: 27px;
+    }
+
+    .landing-screen__view::before {
+        content: "";
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        width: 52px;
+        height: 12px;
+        border-radius: var(--radius-pill);
+        background: var(--bg);
+        transform: translateX(-50%);
+    }
+
+    .landing-screen__view::after {
+        content: "";
+        position: absolute;
+        bottom: 6px;
+        left: 50%;
+        width: 72px;
+        height: 4px;
+        border-radius: var(--radius-pill);
+        background: color-mix(in srgb, var(--text) 50%, transparent);
+        transform: translateX(-50%);
+    }
+
+    .landing-screen[data-light] .landing-screen__view::after {
+        background: color-mix(in srgb, var(--bg) 30%, transparent);
+    }
+
+    .landing-screen__stack {
+        position: relative;
+        height: 100%;
+    }
+
+    .landing-board__stage .landing-screen {
         order: -1;
-        transform: none;
-    }
-
-    .landing-board__frame .landing-demo__screens {
-        height: 300px;
-    }
-
-    .landing-board__answer {
-        padding: var(--space-8) var(--space-12);
-    }
-
-    .landing-board__chips {
-        flex-wrap: nowrap;
-    }
-
-    .landing-board__chip {
-        padding: 6px var(--space-12);
-        font-size: 13px;
-        white-space: nowrap;
-    }
-
-    .landing-board__row:nth-child(3) {
-        display: none;
     }
 
     .landing-board__step {
@@ -2109,24 +2029,27 @@ html:has(.landing-page) {
 }
 
 @media (prefers-reduced-motion: reduce), print {
-    .landing-demo__frame {
-        transform: none;
-        opacity: 1;
-    }
-
-    .landing-demo__screen,
-    .landing-demo__screen [data-picked],
     .landing-board__step,
     .landing-board__number {
         transition: none;
     }
 
-    .landing-board__caret {
-        animation: none;
-    }
-
     .landing-tech__card {
         transform: none;
+    }
+
+    .landing-routes a:hover {
+        transform: none;
+    }
+
+    .landing-screen,
+    .landing-screen__shot {
+        transform: none;
+        transition: none;
+    }
+
+    .landing-screen {
+        opacity: 1;
     }
 
     html:has(.landing-page) {

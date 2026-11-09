@@ -1,6 +1,6 @@
 import { type CSSProperties, useRef } from 'react';
 import { track } from './analytics';
-import { LandingBoardDemo, LandingDemo } from './LandingDemo';
+import { LandingBoardDemo, LandingDemo, scrollToDemoStep } from './LandingDemo';
 import { CarouselArrows, useCarousel } from './LandingGuide';
 import { CountUp, useHorizontalPin, usePointerTilt } from './LandingMotion';
 import { LANDING_GUIDES } from './landingGuides';
@@ -42,6 +42,7 @@ export function LandingPage() {
     <div className="landing-page" ref={pageRef}>
       <section className="landing-hero" aria-labelledby="landing-title" ref={heroRef}>
         <div className="landing-hero__orb" aria-hidden="true" />
+        <HeroDevice />
         <div className="landing-hero__copy">
           <h1 id="landing-title" ref={landingView.ref}>
             <span className="landing-hero__word">내</span> <span className="landing-hero__word">사용</span>{' '}
@@ -80,25 +81,62 @@ export function LandingPage() {
           <p className="landing-eyebrow">DEVICA 사용법</p>
           <h2 id="landing-how-title">필요한 도움부터 시작하세요.</h2>
         </div>
-        <nav className="landing-routes" aria-label="두 가지 서비스 사용법" data-landing-reveal="">
+        <nav className="landing-routes" aria-label="서비스 바로가기" data-landing-reveal="">
           {/* biome-ignore lint/a11y/useValidAnchor: 클릭은 측정만 하고 href의 기본 앵커 이동을 유지한다. */}
           <a href="#find-specs" onClick={() => track('landing_guide_link_clicked', { guide: 'find-specs' })}>
-            <span className="landing-routes__copy">
-              <b>제품 추천받기</b>
-              <span>내 사용 목적에 맞는 제품 추천받기</span>
+            <span className="landing-routes__icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3c.6 4.4 2.6 6.4 7 7-4.4.6-6.4 2.6-7 7-.6-4.4-2.6-6.4-7-7 4.4-.6 6.4-2.6 7-7Z" />
+              </svg>
             </span>
-            <span className="landing-routes__arrow" aria-hidden="true">
-              ↓
+            <b>제품 추천받기</b>
+            <span className="landing-routes__text">
+              사용하는 도구와 작업 환경만 알려 주세요. 필요한 사양과 그 이유를 정리해 드려요.
+            </span>
+            <span className="landing-routes__cta">
+              사용법 보기 <span aria-hidden="true">↓</span>
+            </span>
+          </a>
+          {/* biome-ignore lint/a11y/useValidAnchor: 제품 추천받기 소개로 가는 앵커 이동을 그 소개의 마지막 단계 위치로 바꾼다. */}
+          <a
+            href="#find-specs"
+            onClick={(event) => {
+              track('landing_guide_link_clicked', { guide: 'product-list' });
+              const section = document.getElementById('find-specs');
+              if (section === null) return;
+              event.preventDefault();
+              const total = LANDING_GUIDES[0].steps.length;
+              scrollToDemoStep(section, total - 1, total);
+            }}
+          >
+            <span className="landing-routes__icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="5" width="14" height="10" rx="1.5" />
+                <path d="M3 18.5h18" />
+              </svg>
+            </span>
+            <b>제품 목록</b>
+            <span className="landing-routes__text">
+              가격과 사양으로 노트북을 골라 보세요. 최저가를 기준으로 한눈에 비교할 수 있어요.
+            </span>
+            <span className="landing-routes__cta">
+              사용법 보기 <span aria-hidden="true">↓</span>
             </span>
           </a>
           {/* biome-ignore lint/a11y/useValidAnchor: 클릭은 측정만 하고 href의 기본 앵커 이동을 유지한다. */}
           <a href="#use-board" onClick={() => track('landing_guide_link_clicked', { guide: 'use-board' })}>
-            <span className="landing-routes__copy">
-              <b>질문 게시판 이용</b>
-              <span>추천 전에도, 추천받은 뒤에도 고민 나누기</span>
+            <span className="landing-routes__icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 5h14v10H10l-4 4v-4H5Z" />
+                <path d="M9 9h6M9 12h4" />
+              </svg>
             </span>
-            <span className="landing-routes__arrow" aria-hidden="true">
-              ↓
+            <b>질문 게시판</b>
+            <span className="landing-routes__text">
+              혼자 결정하기 어렵다면 비슷한 고민을 나누고 다른 개발자의 답을 찾아보세요.
+            </span>
+            <span className="landing-routes__cta">
+              사용법 보기 <span aria-hidden="true">↓</span>
             </span>
           </a>
         </nav>
@@ -386,6 +424,73 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+function HeroDevice() {
+  return (
+    <div className="landing-device" aria-hidden="true">
+      <svg className="landing-device__svg" viewBox="0 0 560 400" role="presentation">
+        <defs>
+          <linearGradient id="landing-device-screen" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" className="landing-device__stop-a" />
+            <stop offset="100%" className="landing-device__stop-b" />
+          </linearGradient>
+        </defs>
+        <ellipse className="landing-device__shadow" cx="280" cy="372" rx="250" ry="16" />
+        <rect className="landing-device__lid" x="56" y="24" width="448" height="300" rx="20" />
+        <rect className="landing-device__screen" x="72" y="40" width="416" height="268" rx="10" />
+        <g className="landing-device__ui">
+          <circle className="landing-device__dot landing-device__dot--1" cx="94" cy="60" r="5" />
+          <circle className="landing-device__dot landing-device__dot--2" cx="110" cy="60" r="5" />
+          <circle className="landing-device__dot landing-device__dot--3" cx="126" cy="60" r="5" />
+          <text className="landing-device__title" x="94" y="104">
+            백엔드 개발 · 제품 추천 결과
+          </text>
+          <g className="landing-device__spec">
+            <rect x="94" y="124" width="118" height="84" rx="12" />
+            <text className="landing-device__label" x="110" y="152">
+              CPU
+            </text>
+            <text className="landing-device__value" x="110" y="186">
+              상위 등급
+            </text>
+          </g>
+          <g className="landing-device__spec landing-device__spec--picked">
+            <rect x="221" y="124" width="118" height="84" rx="12" />
+            <text className="landing-device__label" x="237" y="152">
+              메모리
+            </text>
+            <text className="landing-device__value" x="237" y="186">
+              32GB
+            </text>
+          </g>
+          <g className="landing-device__spec">
+            <rect x="348" y="124" width="118" height="84" rx="12" />
+            <text className="landing-device__label" x="364" y="152">
+              저장 공간
+            </text>
+            <text className="landing-device__value" x="364" y="186">
+              512GB
+            </text>
+          </g>
+          <rect className="landing-device__reason" x="94" y="224" width="372" height="58" rx="10" />
+          <rect className="landing-device__line" x="112" y="242" width="250" height="8" rx="4" />
+          <rect
+            className="landing-device__line landing-device__line--muted"
+            x="112"
+            y="258"
+            width="180"
+            height="8"
+            rx="4"
+          />
+        </g>
+        <path className="landing-device__base" d="M14 330 H546 L560 350 Q560 362 548 362 H12 Q0 362 0 350 Z" />
+        <rect className="landing-device__notch" x="236" y="330" width="88" height="8" rx="4" />
+      </svg>
+      <span className="landing-device__chip landing-device__chip--ide">IntelliJ · Docker</span>
+      <span className="landing-device__chip landing-device__chip--price">최저가 비교</span>
     </div>
   );
 }
