@@ -292,6 +292,30 @@ function RollingPrice({ value }: { value: number }) {
   );
 }
 
+// 항목마다 첫 근거만 보여 주고, 나머지는 눌러야 펼친다. 근거가 한꺼번에 늘어서면 읽히지 않는다.
+function ReasonItem({ label, reasons }: { label: string; reasons: string[] }) {
+  const [open, setOpen] = useState(false);
+  const [lead, ...rest] = reasons;
+
+  return (
+    <li className="result-reasons__item">
+      <span className="result-reasons__tag">{label}</span>
+      <p className="result-reasons__lead">{lead}</p>
+      {open &&
+        rest.map((reason) => (
+          <p className="result-reasons__more" key={reason}>
+            {reason}
+          </p>
+        ))}
+      {rest.length > 0 && (
+        <button className="result-reasons__toggle" type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
+          {open ? '접기' : `근거 ${rest.length}개 더 보기`}
+        </button>
+      )}
+    </li>
+  );
+}
+
 type SpecCardProps = {
   spec: Spec;
   edited: Spec;
@@ -409,14 +433,7 @@ function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, onEdit, onRe
                 <h3>이렇게 추천한 이유</h3>
                 <ul className="result-reasons">
                   {reasons.map(({ label, recommended }) => (
-                    <li key={recommended.code}>
-                      <span className="result-reasons__tag">{label}</span>
-                      <span className="result-reasons__texts">
-                        {recommended.reasons.map((reason) => (
-                          <span key={reason}>{reason}</span>
-                        ))}
-                      </span>
-                    </li>
+                    <ReasonItem key={recommended.code} label={label} reasons={recommended.reasons} />
                   ))}
                 </ul>
               </>
