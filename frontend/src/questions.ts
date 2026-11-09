@@ -86,13 +86,15 @@ export function resolveScreens(survey: Survey, answers: Answers): Screen[] {
   });
 }
 
-// 숨겨진 질문의 답은 지운다. 화면에서 사라져도 값이 남아 있으면 서버가 계산에 쓴다.
+// 숨겨진 질문의 답과 지금 선택지에 없는 답은 지운다. 화면에서 사라져도 값이 남아 있으면 서버가 계산에 쓴다.
 // 설문 순서대로 보며 앞에서 지운 답으로 뒤 질문의 노출을 판단해, 서버와 같은 결과를 낸다.
 export function pruneHiddenAnswers(survey: Survey, answers: Answers): Answers {
   const pruned: Answers = {};
   for (const question of survey.steps.flatMap((step) => step.questions)) {
-    const chosen = answers[question.code];
-    if (chosen !== undefined && chosen.length > 0 && isVisible(question, pruned)) {
+    const chosen = (answers[question.code] ?? []).filter((code) =>
+      question.options.some((option) => option.code === code),
+    );
+    if (chosen.length > 0 && isVisible(question, pruned)) {
       pruned[question.code] = chosen;
     }
   }
