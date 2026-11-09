@@ -1789,7 +1789,8 @@ html:has(.landing-page) {
         gap: var(--space-20);
     }
 
-    /* 화면 모서리가 둥글어 스크린숏의 귀퉁이가 가려지지 않도록, 위아래에 상태 표시줄과 홈 막대 자리를 둔다. */
+    /* 화면 모서리가 둥글어 스크린숏의 귀퉁이가 가려지지 않도록, 위아래에 상태 표시줄과 홈 막대 자리를 둔다.
+       틀은 휴대폰 비율(390:844)을 지키고, 그 자리만큼 줄어든 스크린숏을 가운데에 놓는다. 스크린숏 비율로 틀을 잡으면 세로로 길쭉해진다. */
     .landing-screen {
         --phone-height: min(calc(100svh - 360px), 520px);
         height: var(--phone-height);
@@ -1801,7 +1802,7 @@ html:has(.landing-page) {
 
     .landing-screen__view {
         box-sizing: border-box;
-        width: calc((var(--phone-height) - 14px - 40px) * 390 / 844);
+        width: calc((var(--phone-height) - 14px) * 390 / 844);
         height: 100%;
         padding: 24px 0 16px;
         aspect-ratio: auto;
@@ -1838,7 +1839,9 @@ html:has(.landing-page) {
 
     .landing-screen__stack {
         position: relative;
+        width: calc((var(--phone-height) - 14px - 40px) * 390 / 844);
         height: 100%;
+        margin: 0 auto;
     }
 
     .landing-board__stage .landing-screen {
@@ -2046,7 +2049,9 @@ html:has(.landing-page) {
         height: auto;
     }
 
+    /* 위아래 40px 자리만큼 너비도 줄여(40 × 390/844) 틀이 휴대폰 비율을 지키게 한다. */
     .landing-screen__stack {
+        width: calc(100% - 18.5px);
         height: auto;
         aspect-ratio: 390 / 844;
     }
