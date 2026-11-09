@@ -95,8 +95,8 @@ survey:
         - code: AI_CODING_TOOL
           title: AI 코딩 도구를 쓰나요?
           options:
-            - { code: AI_EDITOR, content: Cursor 같은 AI 전용 에디터를 쓴다 }
-            - { code: IDE_EXTENSION, content: 기존 IDE 에 확장으로 붙여 쓴다 }
+            - { code: AI_EDITOR, content: "AI 가 들어 있는 에디터로 바꿔 코딩한다 (예: Cursor)" }
+            - { code: IDE_EXTENSION, content: "쓰던 IDE 에서 AI 자동완성·채팅을 켜 쓴다 (예: Copilot)" }
             - { code: NONE, content: 안 쓴다 }
 
     - questions:
@@ -171,7 +171,7 @@ rules:
   - criterion: MEMORY
     weight: 1
     when: { question: AI_CODING_TOOL, anyOf: [ AI_EDITOR ] }
-    reason: AI 전용 에디터는 모델 연동으로 메모리를 더 씁니다.
+    reason: AI 가 들어 있는 에디터는 모델 연동으로 메모리를 더 씁니다.
   - criterion: MEMORY
     weight: 2
     when: { question: DEV_ENVIRONMENT_SETUP, anyOf: [ LOCAL_MANY, DOCKER_MANY ] }
