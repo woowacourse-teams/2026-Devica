@@ -1,0 +1,2 @@
+codes:
+  - { question: AI_CODING_TOOL, option: IDE_EXTENSION, to: AI_EDITOR, was: "기존 IDE 에 확장으로 붙여 쓴다", retiredAt: 2026-11-09 }
