@@ -167,7 +167,11 @@ export function ResultView({
             <h2 className="result-price__title" id="result-price-title">
               이 사양으로 살 수 있는 최저가
             </h2>
-            <MinPrices labels={minPriceLabels} prices={minPrices} />
+            <MinPrices
+              labels={minPriceLabels}
+              prices={minPrices}
+              scope={`${categoryCode}:${purposeCode}:${JSON.stringify(specs.map(specCondition))}`}
+            />
             <p className="result-price__basis">추천 사양 이상, 지금 판매 중인 노트북 기준</p>
             <button
               className="button button--primary button--wide"
@@ -196,23 +200,33 @@ export function ResultView({
 type MinPricesProps = {
   labels: string[];
   prices: Fetched<(number | null)[]>;
+  scope: string;
 };
 
-function MinPrices({ labels, prices }: MinPricesProps) {
-  const shown = useRef<{ labels: string; data: (number | null)[] } | null>(null);
-  const labelKey = labels.join();
+const knownPrices = new Map<string, number | null>();
+
+function MinPrices({ labels, prices, scope }: MinPricesProps) {
+  const keyOf = (label: string) => `${scope}:${label}`;
   if (prices.data !== null) {
-    shown.current = { labels: labelKey, data: prices.data };
-  }
-  const previous = shown.current?.labels === labelKey ? shown.current.data : null;
-  const data = prices.data ?? previous;
-  const recalculating = prices.data === null && previous !== null;
-  const priceText = (index: number) => {
-    if (data === null) {
-      return '계산 중…';
+    for (const [index, label] of labels.entries()) {
+      knownPrices.set(keyOf(label), prices.data[index] ?? null);
     }
-    const price = data[index];
-    return price === null ? '판매 중인 제품 없음' : <RollingPrice value={price} />;
+  }
+  const priceOf = (label: string, index: number) => {
+    if (prices.data !== null) {
+      const price = prices.data[index];
+      return price === null ? '판매 중인 제품 없음' : <RollingPrice value={price} />;
+    }
+    if (!knownPrices.has(keyOf(label))) {
+      return (
+        <>
+          <span className="result-price__placeholder" aria-hidden="true" />
+          <span className="result-price__spoken">계산 중</span>
+        </>
+      );
+    }
+    const price = knownPrices.get(keyOf(label));
+    return price === null || price === undefined ? '판매 중인 제품 없음' : <RollingPrice value={price} />;
   };
 
   if (prices.failed) {
@@ -226,19 +240,16 @@ function MinPrices({ labels, prices }: MinPricesProps) {
     );
   }
   return (
-    <ul
-      className="result-price__list"
-      role="status"
-      aria-busy={prices.data === null}
-      data-recalculating={recalculating}
-    >
+    <ul className="result-price__list" role="status" aria-busy={prices.data === null}>
       {labels.map((label, index) => (
         <li key={label}>
           <span>
             {label}
             <span className="result-price__suffix"> 최저가</span>
           </span>
-          <strong>{priceText(index)}</strong>
+          <strong data-recalculating={prices.data === null && knownPrices.has(keyOf(label))}>
+            {priceOf(label, index)}
+          </strong>
         </li>
       ))}
     </ul>
@@ -265,7 +276,7 @@ function RollingPrice({ value }: { value: number }) {
     }
     const began = performance.now();
     let frame = requestAnimationFrame(function tick(now) {
-      const progress = Math.min(1, (now - began) / ROLL_MS);
+      const progress = Math.min(1, Math.max(0, (now - began) / ROLL_MS));
       const eased = 1 - (1 - progress) ** 3;
       current.current = progress === 1 ? value : Math.round((start + (value - start) * eased) / 1000) * 1000;
       setShown(current.current);

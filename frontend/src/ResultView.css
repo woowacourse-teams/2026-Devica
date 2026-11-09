@@ -69,6 +69,11 @@
     order: 2;
 }
 
+/* 흐려지는 구간을 위쪽 여백 안에만 두어, 최저가 줄 뒤로 본문 글자가 비치지 않게 한다. */
+.sticky-actions.result-price {
+    background: linear-gradient(180deg, transparent 0, var(--bg) var(--space-12));
+}
+
 .result-cards {
     display: flex;
     flex-direction: column;
@@ -380,7 +385,7 @@
 }
 
 /* 다시 계산하는 동안 이전 가격 위로 빛이 훑고 지나간다. */
-.result-price__list[data-recalculating="true"] strong {
+.result-price__list strong[data-recalculating="true"] {
     color: transparent;
     background:
         linear-gradient(
@@ -391,6 +396,24 @@
         )
         0 0 / 300% 100%;
     background-clip: text;
+    animation: price-shimmer 1.8s ease-in-out infinite;
+}
+
+/* 처음 받는 가격은 숫자 대신 빛이 훑는 막대로 자리를 잡아 둔다. */
+.result-price__placeholder {
+    display: inline-block;
+    width: 8.5em;
+    height: 0.9em;
+    border-radius: var(--radius-pill);
+    vertical-align: middle;
+    background:
+        linear-gradient(
+            100deg,
+            color-mix(in srgb, var(--lime) 18%, transparent) 40%,
+            color-mix(in srgb, var(--lime) 45%, transparent) 50%,
+            color-mix(in srgb, var(--lime) 18%, transparent) 60%
+        )
+        0 0 / 300% 100%;
     animation: price-shimmer 1.8s ease-in-out infinite;
 }
 
@@ -431,14 +454,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .result-price__list[data-recalculating="true"] strong {
+    .result-price__list strong[data-recalculating="true"] {
         color: var(--lime);
         background: none;
         opacity: 0.5;
         animation: none;
     }
 
-    .result-price__value--settled {
+    .result-price__value--settled,
+    .result-price__placeholder {
         animation: none;
     }
 }
@@ -481,8 +505,10 @@
         font-size: 28px;
     }
 
-    /* 둘 다를 고르면 두 결과를 나란히 두어, 아래에 다른 OS 결과가 있다는 것을 바로 알 수 있게 한다. */
+    /* 최저가와 제품 검색 버튼은 스크롤을 따라와, 둘 다를 골라 길어진 결과의 아래쪽에서도 보인다. */
     .result-side {
+        position: sticky;
+        top: var(--space-24);
         display: flex;
         flex: 1 1 320px;
         flex-direction: column;
