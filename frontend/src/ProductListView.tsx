@@ -523,11 +523,7 @@ function ProductCard({ product, onDetail }: { product: Product; onDetail: (produ
         </dl>
       </div>
       <div className="product-card__action">
-        <button
-          className="button button--neutral button--wide product-card__detail"
-          type="button"
-          onClick={() => onDetail(product.id)}
-        >
+        <button className="button button--wide product-card__detail" type="button" onClick={() => onDetail(product.id)}>
           상세 보기
         </button>
       </div>

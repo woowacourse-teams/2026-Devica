@@ -7,21 +7,37 @@
 }
 
 html {
-    color: var(--on-surface);
-    background: var(--surface);
+    color: var(--text);
+    background: var(--bg);
 }
 
 /* 좌우 여백은 .probe 와 .site-*__inner 가 각자 갖는다. body 는 비워 둔다. */
 body {
     min-width: 320px;
     margin: 0;
-    font-family: Pretendard, Inter, sans-serif;
+    font-family: var(--font-sans);
     font-size: var(--body-lg-font-size);
     line-height: var(--body-lg-line-height);
+    letter-spacing: -0.025em;
+    -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+    letter-spacing: inherit;
 }
 
 a {
     color: inherit;
+}
+
+/* 키보드 포커스는 어느 테마에서나 lime 외곽선이다. 라이트 테마의 lime 은 primary 다. */
+:focus-visible {
+    outline: 2px solid var(--lime);
+    outline-offset: 2px;
 }
 
 /* 본문이 짧아도 푸터가 화면 아래에 오게 한다. 원본은 헤더 높이를 상수로 빼 두었는데,

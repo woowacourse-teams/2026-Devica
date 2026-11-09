@@ -1,115 +1,200 @@
-/* 모든 화면의 헤더·푸터는 최종 랜딩페이지를 기준으로 함께 바뀐다. */
+/* 모든 화면이 함께 쓰는 헤더·푸터. Ring 의 Header·MobileMenu 를 따른다. */
 .site-header,
 .site-footer {
-    background: #fff;
-    font-family: var(--site-font-family);
-    line-height: normal;
+    background: var(--bg);
     word-break: keep-all;
 }
+
 .site-header {
-    border-bottom: 1px solid #ddd8d3;
+    position: relative;
+    z-index: 10;
+    border-bottom: 1px solid var(--header-rule);
 }
+
 .site-header__inner,
 .site-footer__inner {
-    width: calc(100% - 112px);
-    max-width: 1152px;
+    max-width: var(--content);
     margin: 0 auto;
+    padding: 0 var(--page-gutter);
 }
+
 .site-header__inner {
-    height: 76px;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
+    gap: var(--space-16);
+    padding-top: var(--space-24);
+    padding-bottom: var(--space-24);
 }
+
 .site-logo {
-    font-size: 26px;
-    font-weight: 850;
-    letter-spacing: 1.5px;
+    color: var(--text);
+    font-size: 24px;
+    font-weight: 700;
     text-decoration: none;
-    color: #1a1c1c;
 }
+
 .site-nav {
     display: flex;
-    align-items: center;
-    gap: 30px;
+    flex-wrap: wrap;
+    gap: var(--space-4);
 }
+
 .site-nav__item {
-    color: #504b46;
-    font-size: 14px;
-    font-weight: 400;
+    padding: 12px 14px;
+    color: var(--text-muted);
+    font-size: 16px;
     white-space: nowrap;
     text-decoration: none;
+    transition: color 150ms ease-out;
 }
+
 .site-nav__item:hover,
 .site-nav__item[aria-current="page"] {
-    color: var(--accent);
-    text-decoration: underline;
-    text-underline-offset: 5px;
+    color: var(--text);
 }
-.site-header a:focus-visible,
-.site-footer a:focus-visible {
-    outline: 3px solid var(--accent);
-    outline-offset: 4px;
+
+.site-nav__item[aria-current="page"] {
+    font-weight: 600;
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .site-nav__item {
+        transition: none;
+    }
+}
+
+.site-menu-button,
+.site-menu-start {
+    display: none;
+}
+
 .site-footer {
-    border-top: 1px solid #ddd8d3;
+    border-top: 1px solid var(--divider);
 }
+
 .site-footer__inner {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
     align-items: center;
-    gap: 25px;
-    padding: 23px 0;
+    gap: var(--space-16);
+    padding-top: var(--space-32);
+    padding-bottom: var(--space-32);
+    color: var(--text-muted);
+    font-size: 14px;
 }
-.site-footer__inner p {
-    margin: 0;
-    color: #8a7c6f;
-    font-size: 11px;
+
+.site-footer__brand {
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 600;
 }
-.site-footer__contact {
-    grid-column: 2;
-    text-align: center;
-    line-height: 1.8;
+
+.site-footer__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-20);
 }
-.site-footer__inner a {
+
+.site-footer a {
+    padding: var(--space-8) 0;
+    color: var(--text-muted);
     text-decoration: none;
 }
-.site-footer__inner a:hover,
-.site-footer__inner a:focus-visible {
-    text-decoration: underline;
+
+.site-footer a:hover {
+    color: var(--text);
 }
-@media (max-width: 800px) {
-    .site-header__inner,
-    .site-footer__inner {
-        width: calc(100% - 40px);
-    }
+
+.site-footer__contact {
+    flex-basis: 100%;
+    margin: 0;
+}
+
+@media (max-width: 767px) {
     .site-header__inner {
         height: 64px;
+        padding: 0 var(--space-8) 0 var(--space-20);
     }
-    .site-nav {
-        gap: 16px;
-    }
-    .site-nav__item {
-        font-size: 12px;
-    }
-    .site-footer__inner {
-        grid-template-columns: 1fr;
-    }
-    .site-footer__contact {
-        grid-column: 1;
-    }
-}
-@media (max-width: 420px) {
-    .site-header__inner {
-        height: 56px;
-        gap: 12px;
-    }
+
     .site-logo {
         font-size: 20px;
-        letter-spacing: 1px;
     }
+
+    .site-menu-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border: 0;
+        border-radius: var(--radius-12);
+        color: var(--text);
+        background: transparent;
+        cursor: pointer;
+    }
+
     .site-nav {
-        gap: 12px;
+        display: none;
+    }
+
+    /* 메뉴는 헤더 아래 화면 전체를 덮는다. */
+    .site-header[data-menu-open="true"] .site-nav {
+        position: fixed;
+        inset: 64px 0 0;
+        display: flex;
+        flex-direction: column;
+        flex-wrap: nowrap;
+        gap: 0;
+        padding: var(--space-8) var(--space-20) var(--space-40);
+        overflow-y: auto;
+        background: var(--bg);
+    }
+
+    .site-header[data-menu-open="true"] .site-nav__item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        min-height: 64px;
+        padding: 0;
+        border-bottom: 1px solid var(--divider);
+        color: var(--text);
+        font-size: 20px;
+        font-weight: 600;
+    }
+
+    .site-header[data-menu-open="true"] .site-nav__item:first-child {
+        border-top: 1px solid var(--divider);
+    }
+
+    .site-header[data-menu-open="true"] .site-nav__item::after {
+        content: "→";
+        color: var(--accent);
+    }
+
+    .site-header[data-menu-open="true"] .site-menu-start {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-12);
+        margin-top: auto;
+        padding: var(--space-24);
+        border-radius: var(--radius-24);
+        border: 1px solid var(--divider);
+        background: var(--surface-1);
+    }
+
+    .site-menu-start span {
+        color: var(--text-muted);
+        font-size: 14px;
+    }
+
+    .site-footer__inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-12);
+        padding-top: var(--space-24);
+        padding-bottom: var(--space-40);
     }
 }

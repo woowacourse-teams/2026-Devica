@@ -144,7 +144,7 @@ function OfferRow({ offer, lowest }: { offer: Offer; lowest: boolean }) {
       <strong className="product-offer__price">{formatPrice(offer.price)}</strong>
       {url ? (
         <a
-          className={`button ${lowest ? 'button--primary' : 'button--neutral'} product-offer__buy`}
+          className={`button ${lowest ? 'button--primary' : ''} product-offer__buy`}
           href={url}
           target="_blank"
           rel="noopener noreferrer"

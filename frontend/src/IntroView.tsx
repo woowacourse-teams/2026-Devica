@@ -87,7 +87,7 @@ export function IntroView({
           {questionsLoading ? '질문을 불러오는 중…' : '내 작업 환경에 맞게 조정하기'}
         </button>
         <button
-          className="button button--neutral button--wide"
+          className="button button--wide"
           id="baseline-product-button"
           type="button"
           disabled={unavailable}
