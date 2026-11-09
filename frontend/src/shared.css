@@ -11,8 +11,8 @@
 /* 원본의 .status-panel, .intro-steps, .baseline-card, .spec-card ... 나열을 대체한다. */
 .bordered-panel {
     border-radius: var(--radius-box);
-    border: 1px solid var(--on-surface);
-    background: var(--surface-container-lowest);
+    border: 1px solid var(--divider);
+    background: var(--surface-1);
 }
 
 .probe {
@@ -20,7 +20,7 @@
     width: 100%;
     max-width: 1120px;
     margin: 0 auto;
-    padding: var(--gutter) var(--margin-mobile) 48px;
+    padding: var(--gutter) var(--page-gutter) 48px;
 }
 
 .eyebrow {
@@ -35,50 +35,60 @@
     color: var(--on-surface-variant);
 }
 
+/* Ring 의 Button. 기본은 보조(outline) 버튼이고, 화면에 하나뿐인 주 버튼만 .button--primary 다. */
 .button {
-    border-radius: var(--radius-control);
-    min-height: 52px;
-    border: 1px solid var(--primary);
-    padding: var(--density-med) var(--gutter);
-    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-8);
+    border-radius: var(--radius-pill);
+    min-height: var(--control-md);
+    border: 1.5px solid var(--control);
+    padding: 0 var(--space-24);
+    color: var(--text);
+    background: var(--field);
+    font-size: 16px;
     font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
     transition:
-        background-color 120ms ease-out,
-        border-color 120ms ease-out,
-        color 120ms ease-out;
+        background-color 150ms ease-out,
+        border-color 150ms ease-out,
+        color 150ms ease-out;
 }
 
-.button:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
+.button:hover:not(:disabled) {
+    border-color: var(--accent);
+}
+
+.button:active:not(:disabled) {
+    background: var(--tint);
 }
 
 .button--primary {
-    border-color: var(--accent);
-    color: var(--on-primary);
-    background: var(--accent);
-}
-
-.button--primary:hover:not(:disabled) {
-    color: var(--accent);
-    background: var(--on-primary);
-}
-
-/* 주요 버튼이지만 강조색을 쓰지 않는다. 한 화면에 강조색 버튼이 몰리지 않게 할 때 쓴다. */
-.button--neutral {
+    border: 0;
     color: var(--on-primary);
     background: var(--primary);
 }
 
-.button--neutral:hover:not(:disabled) {
-    color: var(--primary);
-    background: var(--on-primary);
+.button--primary:hover:not(:disabled) {
+    background: var(--primary-bright);
+}
+
+.button--primary:active:not(:disabled) {
+    background: var(--primary-deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .button {
+        transition: none;
+    }
 }
 
 .button:disabled {
-    border-color: var(--outline-variant);
-    color: var(--outline);
-    background: var(--surface-container);
+    border-color: transparent;
+    color: var(--control);
+    background: var(--surface-2);
     cursor: not-allowed;
 }
 
@@ -160,7 +170,5 @@
     .probe {
         padding-top: 40px;
         padding-bottom: 64px;
-        padding-right: var(--margin-desktop);
-        padding-left: var(--margin-desktop);
     }
 }

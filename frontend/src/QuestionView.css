@@ -111,7 +111,7 @@
 
 .question-option:focus-visible:not([aria-pressed="true"]) {
     background: var(--inverse-primary);
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--lime);
     outline-offset: 2px;
 }
 

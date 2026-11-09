@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { initAnalytics } from './analytics';
+import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import './tokens.css';
 import './index.css';
 import './shared.css';

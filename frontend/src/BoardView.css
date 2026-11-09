@@ -82,7 +82,7 @@
 
 .board-list__link:focus-visible,
 .board-pagination a:focus-visible {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--lime);
     outline-offset: 2px;
 }
 
@@ -190,7 +190,7 @@
 
 .board-field input:focus,
 .board-field textarea:focus {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
 
