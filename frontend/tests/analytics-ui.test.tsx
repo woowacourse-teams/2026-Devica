@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { track } from '../src/analytics';
-import { LandingGuide } from '../src/LandingGuide';
+import { LandingBoardDemo, LandingDemo } from '../src/LandingDemo';
 import { LANDING_GUIDES } from '../src/landingGuides';
 import { go } from '../src/routes';
 import { ServiceEntryLink } from '../src/ServiceEntryLink';
@@ -206,7 +206,7 @@ describe('실제 노출 조건', () => {
 
 describe.each(LANDING_GUIDES)('$title 제목 측정', (guide) => {
   test('제목을 본 뒤 시작 링크를 누르면 실제 순서와 목적지를 기록한다', () => {
-    render(<LandingGuide guide={guide} />);
+    render(guide.id === 'find-specs' ? <LandingDemo guide={guide} /> : <LandingBoardDemo guide={guide} />);
     intersect(screen.getByRole('heading', { name: guide.title, level: 3 }), 1);
     advance(300);
     fireEvent.click(screen.getByRole('link', { name: guide.linkText }));

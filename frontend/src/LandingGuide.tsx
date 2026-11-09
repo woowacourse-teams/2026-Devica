@@ -1,11 +1,11 @@
-import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { type KeyboardEvent, type RefObject, useEffect, useState } from 'react';
 import type { LandingGuideContent } from './landingGuides';
 import { ServiceEntryLink } from './ServiceEntryLink';
 import { useAnalyticsView } from './useAnalyticsView';
 
-export function useCarousel() {
-  const trackRef = useRef<HTMLElement>(null);
+export function useCarousel(trackRef: RefObject<HTMLElement | null>, navigate?: (left: number) => void) {
   const [edges, setEdges] = useState({ start: true, end: false });
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -16,6 +16,11 @@ export function useCarousel() {
       const start = track.scrollLeft <= 3;
       const end = track.scrollLeft >= track.scrollWidth - track.clientWidth - 2;
       setEdges((previous) => (previous.start === start && previous.end === end ? previous : { start, end }));
+      const first = track.children[0];
+      const second = track.children[1];
+      if (first instanceof HTMLElement && second instanceof HTMLElement) {
+        setIndex(Math.round(track.scrollLeft / (second.offsetLeft - first.offsetLeft)));
+      }
     }
 
     const observer = new ResizeObserver(updateEdges);
@@ -26,7 +31,7 @@ export function useCarousel() {
       observer.disconnect();
       track.removeEventListener('scroll', updateEdges);
     };
-  }, []);
+  }, [trackRef]);
 
   function move(destination: 'previous' | 'next' | 'first' | 'last') {
     const track = trackRef.current;
@@ -35,13 +40,17 @@ export function useCarousel() {
     const second = track.children[1];
     if (!(first instanceof HTMLElement) || !(second instanceof HTMLElement)) return;
 
-    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
-    if (destination === 'first' || destination === 'last') {
-      track.scrollTo({ left: destination === 'first' ? 0 : track.scrollWidth, behavior });
-    } else {
-      const distance = second.offsetLeft - first.offsetLeft;
-      track.scrollBy({ left: destination === 'previous' ? -distance : distance, behavior });
+    const max = track.scrollWidth - track.clientWidth;
+    const distance = second.offsetLeft - first.offsetLeft;
+    const current = Math.round(track.scrollLeft / distance) * distance;
+    const targets = { first: 0, last: max, previous: current - distance, next: current + distance };
+    const left = Math.min(Math.max(targets[destination], 0), max);
+    if (navigate) {
+      navigate(left);
+      return;
     }
+    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+    track.scrollTo({ left, behavior });
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLElement>) {
@@ -66,7 +75,7 @@ export function useCarousel() {
     }
   }
 
-  return { trackRef, edges, move, onKeyDown };
+  return { edges, index, move, onKeyDown };
 }
 
 export function CarouselArrows({
@@ -99,38 +108,25 @@ export function CarouselArrows({
   );
 }
 
-export function LandingGuide({ guide }: { guide: LandingGuideContent }) {
+export function GuideHeading({ guide }: { guide: LandingGuideContent }) {
   const guideView = useAnalyticsView<HTMLHeadingElement>('landing_guide_viewed', { guide: guide.id });
 
   return (
-    <section className="landing-guide" id={guide.id} aria-labelledby={`${guide.id}-title`} data-landing-reveal="">
-      <div className="landing-guide__heading">
-        <div>
-          <p className="landing-guide__eyebrow">{guide.eyebrow}</p>
-          <h3 id={`${guide.id}-title`} ref={guideView.ref}>
-            {guide.title}
-          </h3>
-        </div>
-        <ServiceEntryLink
-          className="landing-textlink"
-          href={guide.href}
-          destination={guide.id === 'find-specs' ? 'spec_finder' : 'board'}
-          entryPoint="landing_guide"
-        >
-          {guide.linkText} <span aria-hidden="true">→</span>
-        </ServiceEntryLink>
+    <div className="landing-guide__heading">
+      <div>
+        <p className="landing-guide__eyebrow">{guide.eyebrow}</p>
+        <h3 id={`${guide.id}-title`} ref={guideView.ref}>
+          {guide.title}
+        </h3>
       </div>
-      <ol className="landing-guide__steps">
-        {guide.steps.map((step, index) => (
-          <li className="landing-guide__step" key={step.title}>
-            <span className="landing-guide__number">{String(index + 1).padStart(2, '0')}</span>
-            <span className="landing-guide__copy">
-              <b>{step.title}</b>
-              <span className="landing-guide__description">{step.description}</span>
-            </span>
-          </li>
-        ))}
-      </ol>
-    </section>
+      <ServiceEntryLink
+        className="landing-textlink"
+        href={guide.href}
+        destination={guide.id === 'find-specs' ? 'spec_finder' : 'board'}
+        entryPoint="landing_guide"
+      >
+        {guide.linkText} <span aria-hidden="true">→</span>
+      </ServiceEntryLink>
+    </div>
   );
 }

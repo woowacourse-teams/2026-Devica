@@ -21,6 +21,7 @@ html:has(.landing-page) {
 .landing-page {
     /* 겹친 헤더의 높이. 위아래 여백 24px, 메뉴 48px, 밑줄 1px 이다. */
     --landing-header: 97px;
+    overflow-x: clip;
     color: var(--text);
     word-break: keep-all;
 }
@@ -53,11 +54,20 @@ html:has(.landing-page) {
 }
 
 .landing-hero__copy > :nth-child(2) {
-    --landing-reveal-delay: 80ms;
+    --landing-reveal-delay: 450ms;
 }
 
 .landing-hero__copy > :nth-child(3) {
-    --landing-reveal-delay: 160ms;
+    --landing-reveal-delay: 600ms;
+}
+
+.landing-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 .landing-page [data-landing-reveal]:focus-visible,
@@ -104,6 +114,42 @@ html:has(.landing-page) {
     background: color-mix(in srgb, var(--lime) 85%, var(--text));
 }
 
+/* 주 버튼 위로 몇 초마다 빛줄기가 한 번 지나간다. */
+@media (prefers-reduced-motion: no-preference) {
+    .landing-cta--lime {
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+    }
+
+    .landing-cta--lime::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(
+            110deg,
+            transparent 30%,
+            color-mix(in srgb, var(--text) 55%, transparent) 50%,
+            transparent 70%
+        );
+        transform: translateX(-100%);
+        animation: landing-cta-shine 4.5s ease-in-out 1.2s infinite;
+        pointer-events: none;
+    }
+}
+
+@keyframes landing-cta-shine {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    30%,
+    100% {
+        transform: translateX(100%);
+    }
+}
+
 .landing-cta--primary {
     color: var(--on-primary);
     background: var(--primary);
@@ -147,11 +193,16 @@ html:has(.landing-page) {
 }
 
 /* 큰 고리와 그 안의 유리 구슬. 왼쪽과 아래는 바탕색으로 덮어 글자가 묻히지 않게 한다. */
-.landing-hero__orb {
+.landing-hero__orb,
+.landing-hero::after {
     position: absolute;
     inset: 0;
     z-index: -1;
     pointer-events: none;
+}
+
+.landing-hero::after {
+    content: "";
     background:
         linear-gradient(90deg, color-mix(in srgb, var(--bg) 85%, transparent) 0%, transparent 55%),
         linear-gradient(180deg, transparent calc(100% - 200px), var(--bg) 100%);
@@ -166,7 +217,6 @@ html:has(.landing-page) {
 }
 
 .landing-hero__orb::before {
-    z-index: -1;
     right: -420px;
     width: 1100px;
     height: 1100px;
@@ -185,7 +235,6 @@ html:has(.landing-page) {
 }
 
 .landing-hero__orb::after {
-    z-index: -1;
     right: -320px;
     width: 640px;
     height: 640px;
@@ -201,6 +250,41 @@ html:has(.landing-page) {
         0 0 0 1px color-mix(in srgb, var(--text) 35%, transparent),
         0 0 30px 6px color-mix(in srgb, var(--accent) 60%, transparent),
         0 0 90px 24px color-mix(in srgb, var(--primary-bright) 35%, transparent);
+}
+
+/* 마우스를 따라 고리는 조금, 구슬은 더 많이 움직여 깊이감이 생긴다. */
+.landing-hero__orb::before {
+    translate: calc(var(--tilt-x, 0) * -18px) calc(var(--tilt-y, 0) * -14px);
+    transition: translate 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-hero__orb::after {
+    translate: calc(var(--tilt-x, 0) * 40px) calc(var(--tilt-y, 0) * 32px);
+    transition: translate 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 고리와 구슬이 엇갈린 박자로 커졌다 작아져 숨쉬듯 보인다. */
+@media (prefers-reduced-motion: no-preference) {
+    .landing-hero__orb::before {
+        animation: landing-orb-breathe 7s ease-in-out infinite;
+    }
+
+    .landing-hero__orb::after {
+        animation: landing-orb-breathe 7s ease-in-out -3.5s infinite;
+    }
+}
+
+@keyframes landing-orb-breathe {
+    0%,
+    100% {
+        opacity: 0.85;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.04);
+    }
 }
 
 .landing-hero__copy {
@@ -220,6 +304,90 @@ html:has(.landing-page) {
 
 .landing-hero__highlight {
     color: var(--accent);
+}
+
+/* 제목은 낱말마다 흐릿한 상태에서 차례로 또렷해지며 올라온다. "가볍게." 는 lime 과 accent 사이를 오가며 빛난다. */
+.landing-hero__highlight {
+    background: linear-gradient(
+        100deg,
+        var(--accent) 0%,
+        var(--accent) 35%,
+        var(--lime) 50%,
+        var(--accent) 65%,
+        var(--accent) 100%
+    );
+    background-size: 250% 100%;
+    background-position: 100% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .landing-hero__word {
+        display: inline-block;
+        animation: landing-word-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        animation-delay: calc(150ms + var(--word, 0) * 70ms);
+    }
+
+    .landing-hero__word.landing-hero__highlight {
+        animation:
+            landing-word-in 900ms cubic-bezier(0.22, 1, 0.36, 1) calc(150ms + var(--word, 0) * 70ms) both,
+            landing-highlight-shine 4s ease-in-out 1.4s infinite;
+    }
+}
+
+.landing-hero__word:nth-of-type(2) {
+    --word: 1;
+}
+
+.landing-hero__word:nth-of-type(3) {
+    --word: 2;
+}
+
+.landing-hero__word:nth-of-type(4) {
+    --word: 3;
+}
+
+.landing-hero__word:nth-of-type(5) {
+    --word: 4;
+}
+
+.landing-hero__word:nth-of-type(6) {
+    --word: 5;
+}
+
+.landing-hero__word:nth-of-type(7) {
+    --word: 6;
+}
+
+.landing-hero__word:nth-of-type(8) {
+    --word: 7;
+}
+
+@keyframes landing-word-in {
+    from {
+        opacity: 0;
+        filter: blur(12px);
+        transform: translateY(0.4em);
+    }
+
+    to {
+        opacity: 1;
+        filter: blur(0);
+        transform: none;
+    }
+}
+
+@keyframes landing-highlight-shine {
+    0% {
+        background-position: 100% 0;
+    }
+
+    45%,
+    100% {
+        background-position: 0 0;
+    }
 }
 
 .landing-hero__lead {
@@ -264,6 +432,281 @@ html:has(.landing-page) {
     font-size: 48px;
     font-weight: 700;
     line-height: 1.2;
+}
+
+/* 제품 추천받기 시연. 섹션이 길게 이어지는 동안 화면은 고정되고, 스크롤에 따라 단계가 넘어간다.
+   --demo-enter(들어오는 정도)와 --demo-progress(전체 진행)는 LandingDemo 가 스크롤 위치로 정한다. */
+.landing-demo {
+    padding-top: 0;
+}
+
+.landing-demo__sticky {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-32);
+    height: 100vh;
+    padding: var(--space-48) 0;
+    box-sizing: border-box;
+}
+
+.landing-demo__stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-48);
+    perspective: 1400px;
+}
+
+.landing-demo__frame {
+    overflow: hidden;
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-24);
+    background: var(--surface-1);
+    box-shadow:
+        0 40px 120px color-mix(in srgb, var(--primary) 35%, transparent),
+        0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
+    transform-origin: 50% 100%;
+    transform: rotateX(calc((1 - var(--demo-enter, 1)) * 24deg)) scale(calc(0.86 + var(--demo-enter, 1) * 0.14));
+    opacity: calc(0.3 + var(--demo-enter, 1) * 0.7);
+}
+
+.landing-demo__bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-16);
+    padding: var(--space-12) var(--space-20);
+    border-bottom: 1px solid var(--divider);
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.landing-demo__dots {
+    width: 52px;
+    height: 12px;
+    background:
+        radial-gradient(circle 6px at 6px 6px, var(--danger) 98%, transparent),
+        radial-gradient(circle 6px at 26px 6px, var(--lime) 98%, transparent),
+        radial-gradient(circle 6px at 46px 6px, var(--accent) 98%, transparent);
+}
+
+.landing-demo__screens {
+    position: relative;
+    height: 360px;
+}
+
+.landing-demo__screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-20);
+    padding: var(--space-32);
+    transition:
+        opacity 450ms ease,
+        transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-demo__screen {
+    justify-content: center;
+}
+
+.landing-demo__screen[data-state="next"] {
+    opacity: 0;
+    transform: translateY(32px);
+}
+
+.landing-demo__screen[data-state="past"] {
+    opacity: 0;
+    transform: translateY(-32px);
+}
+
+.landing-demo__q {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.landing-demo__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-12);
+}
+
+.landing-demo__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.landing-demo__option {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-16) var(--space-20);
+    border: 1.5px solid var(--divider);
+    border-radius: var(--radius-16);
+    background: var(--field);
+    font-size: 16px;
+}
+
+.landing-demo__option b {
+    font-size: 18px;
+}
+
+.landing-demo__option small {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.landing-demo__option[data-muted] {
+    opacity: 0.45;
+}
+
+/* 고른 선택지는 화면이 넘어온 뒤 눌린 것처럼 테두리가 켜진다. */
+.landing-demo__screen [data-picked] {
+    transition:
+        border-color 300ms ease 500ms,
+        background-color 300ms ease 500ms,
+        box-shadow 300ms ease 500ms;
+}
+
+.landing-demo__screen[data-state="active"] [data-picked] {
+    border-color: var(--lime);
+    background: color-mix(in srgb, var(--lime) 10%, var(--field));
+    box-shadow: 0 0 24px color-mix(in srgb, var(--lime) 25%, transparent);
+}
+
+.landing-demo__meter {
+    height: 6px;
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
+}
+
+.landing-demo__meter span {
+    display: block;
+    width: 40%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--accent);
+}
+
+.landing-demo__specs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-12);
+}
+
+.landing-demo__specs span {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    padding: var(--space-20);
+    border: 1.5px solid var(--divider);
+    border-radius: var(--radius-16);
+    background: var(--surface-2);
+}
+
+.landing-demo__specs small {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.landing-demo__specs b {
+    font-size: 28px;
+}
+
+.landing-demo__reason {
+    padding: var(--space-16) var(--space-20);
+    border-left: 3px solid var(--lime);
+    border-radius: var(--radius-8);
+    color: var(--text-muted);
+    background: var(--tint);
+    font-size: 15px;
+}
+
+.landing-demo__product {
+    display: flex;
+    align-items: center;
+    gap: var(--space-16);
+    padding: var(--space-12) var(--space-16);
+    border: 1.5px solid var(--divider);
+    border-radius: var(--radius-16);
+    background: var(--field);
+}
+
+.landing-demo__product > span:not(.landing-demo__thumb) {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.landing-demo__product small {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.landing-demo__product em {
+    color: var(--lime);
+    font-size: 14px;
+    font-style: normal;
+    font-weight: 600;
+}
+
+.landing-demo__thumb {
+    flex: none;
+    width: 56px;
+    height: 40px;
+    border-radius: var(--radius-8);
+    background: linear-gradient(135deg, var(--surface-2), var(--illustration));
+}
+
+.landing-demo__status {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+}
+
+.landing-demo__count {
+    color: var(--text-muted);
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+}
+
+.landing-demo__count span {
+    color: var(--accent);
+    font-size: 40px;
+    font-weight: 700;
+}
+
+.landing-demo__title {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.landing-demo__description {
+    min-height: 3.2em;
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+/* 막대 하나가 다섯 단계 전체의 진행을 보여 준다. */
+.landing-demo__progress {
+    height: 4px;
+    margin-top: var(--space-8);
+    border-radius: var(--radius-pill);
+    background: var(--divider);
+}
+
+.landing-demo__progress span {
+    display: block;
+    width: calc(var(--demo-progress, 0) * 100%);
+    height: 100%;
+    border-radius: inherit;
+    background: var(--lime);
 }
 
 /* 사용법 */
@@ -361,56 +804,273 @@ html:has(.landing-page) {
     font-weight: 700;
 }
 
-.landing-guide__steps {
+/* 질문 게시판 이용 시연. 제품 추천받기처럼 스크롤에 따라 넘어가되, 단계 목록을 왼쪽에 두고
+   고른 단계 아래 선이 그 단계 안에서의 진행을 보여 준다. 단계를 누르면 그 위치로 스크롤한다. */
+/* 두 시연은 화면 가운데에 놓여 앞뒤로 빈 공간이 생긴다. 뒤 시연을 그만큼 끌어올려
+   제품 추천받기가 끝나면 질문 게시판이 바로 이어지게 한다. */
+.landing-demo + .landing-demo {
+    margin-top: calc(-1 * max(0px, 100vh - 600px));
+}
+
+.landing-board__stage {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: var(--space-12);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    align-items: center;
+    gap: var(--space-48);
+}
+
+.landing-board__steps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-.landing-guide__step {
+.landing-board__step {
+    position: relative;
     display: flex;
-    flex-direction: column;
-    gap: var(--space-12);
-    padding: var(--space-24);
-    border: 1.5px solid var(--divider);
-    border-radius: var(--radius-24);
+    gap: var(--space-16);
+    width: 100%;
+    padding: var(--space-20);
+    overflow: hidden;
+    border: 1.5px solid transparent;
+    border-radius: var(--radius-16);
+    color: var(--text-muted);
+    background: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        border-color 300ms ease,
+        background-color 300ms ease,
+        color 300ms ease;
 }
 
-.landing-guide__step:last-child {
-    border-color: transparent;
-    background: var(--surface-2);
+.landing-board__step:hover {
+    color: var(--text);
 }
 
-.landing-guide__number {
-    color: var(--accent);
-    font-size: 40px;
+.landing-board__step[aria-pressed="true"] {
+    border-color: var(--divider);
+    color: var(--text);
+    background: var(--surface-1);
+}
+
+.landing-board__number {
+    flex: none;
+    width: 40px;
+    color: var(--divider);
+    font-size: 24px;
     font-weight: 700;
+    transition: color 300ms ease;
 }
 
-.landing-guide__step:last-child .landing-guide__number {
-    color: var(--lime);
+.landing-board__step[aria-pressed="true"] .landing-board__number {
+    color: var(--accent);
 }
 
-.landing-guide__copy {
+.landing-board__copy {
     display: flex;
     flex-direction: column;
-    gap: var(--space-12);
+    gap: var(--space-8);
 }
 
-.landing-guide__copy b {
+.landing-board__copy b {
     font-size: 18px;
 }
 
-.landing-guide__description {
+.landing-board__description {
+    display: none;
     color: var(--text-muted);
     font-size: 14px;
     line-height: 1.6;
 }
 
-/* 기술 소개 */
+.landing-board__step[aria-pressed="true"] .landing-board__description {
+    display: block;
+}
+
+/* 고른 단계 아래 선이 다음 단계로 넘어갈 때까지 차오른다. 멈추면 선도 멈춘다. */
+.landing-board__timer {
+    position: absolute;
+    right: var(--space-20);
+    bottom: 0;
+    left: var(--space-20);
+    height: 2px;
+    background: var(--divider);
+}
+
+.landing-board__timer-fill {
+    display: block;
+    width: clamp(0%, (var(--demo-step, 0) - var(--step-index, 0)) * 100%, 100%);
+    height: 100%;
+    background: var(--lime);
+}
+
+.landing-board__frame {
+    transform: rotateY(calc(-6deg - (1 - var(--demo-enter, 1)) * 18deg));
+    transform-origin: 0 50%;
+}
+
+.landing-board__stage {
+    perspective: 1400px;
+}
+
+.landing-board__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+}
+
+.landing-board__chip {
+    padding: var(--space-8) var(--space-16);
+    border: 1.5px solid var(--divider);
+    border-radius: var(--radius-pill);
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.landing-board__row,
+.landing-board__post,
+.landing-board__field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    padding: var(--space-16) var(--space-20);
+    border: 1.5px solid var(--divider);
+    border-radius: var(--radius-16);
+    background: var(--field);
+}
+
+.landing-board__line {
+    display: block;
+    width: 100%;
+    height: 10px;
+    border-radius: var(--radius-pill);
+    background: var(--text-muted);
+    opacity: 0.6;
+}
+
+.landing-board__line--muted {
+    background: var(--divider);
+    opacity: 1;
+}
+
+.landing-board__line--short {
+    width: 28%;
+    background: var(--divider);
+    opacity: 1;
+}
+
+.landing-board__label {
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.landing-board__answer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    padding: var(--space-12) var(--space-16);
+    border: 1.5px solid var(--divider);
+    border-radius: var(--radius-16);
+}
+
+.landing-board__avatar {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--primary));
+}
+
+.landing-board__field {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.landing-board__field--body {
+    flex-direction: column;
+    align-items: stretch;
+    min-height: 96px;
+}
+
+.landing-board__caret {
+    width: 2px;
+    height: 18px;
+    background: var(--lime);
+    animation: landing-board-caret 1s steps(1) infinite;
+}
+
+@keyframes landing-board-caret {
+    50% {
+        opacity: 0;
+    }
+}
+
+.landing-board__submit {
+    align-self: flex-end;
+    padding: var(--space-12) var(--space-24);
+    border: 1.5px solid var(--divider);
+    border-radius: var(--radius-pill);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* 기술 소개. 화면이 충분히 크면 섹션을 고정하고, 세로 스크롤만큼 카드를 옆으로 넘긴다.
+   작은 화면이나 움직임 줄이기에서는 손으로 넘기는 가로 스크롤 그대로 둔다. */
+.landing-tech__pin {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-40);
+}
+
+.landing-tech__scroller[data-pinned] .landing-tech__pin {
+    position: sticky;
+    top: 0;
+    justify-content: center;
+    gap: var(--space-24);
+    height: 100vh;
+    box-sizing: border-box;
+}
+
+.landing-tech__count {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.landing-tech__count-current {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.landing-tech__track {
+    display: flex;
+    gap: var(--space-16);
+    padding-bottom: var(--space-8);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+}
+
+.landing-tech__track::-webkit-scrollbar {
+    display: none;
+}
+
+.landing-tech__count {
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.landing-tech__count-current {
+    color: var(--accent);
+    font-weight: 700;
+}
+
 .landing-tech__track {
     display: flex;
     gap: var(--space-16);
@@ -603,6 +1263,39 @@ html:has(.landing-page) {
     }
 }
 
+/* 점이 지나가는 단계 카드가 잠깐 빛난다. 점은 맨 위에서 출발해 2초마다 다음 카드에 닿는다. */
+@media (prefers-reduced-motion: no-preference) {
+    .landing-loop:not([data-landing-reveal="pending"]) .landing-loop__step {
+        animation: landing-loop-glow 8s linear infinite;
+    }
+
+    .landing-loop:not([data-landing-reveal="pending"]) .landing-loop__step--2 {
+        animation-delay: 2s;
+    }
+
+    .landing-loop:not([data-landing-reveal="pending"]) .landing-loop__step--3 {
+        animation-delay: 4s;
+    }
+
+    .landing-loop:not([data-landing-reveal="pending"]) .landing-loop__step--4 {
+        animation-delay: 6s;
+    }
+}
+
+@keyframes landing-loop-glow {
+    0%,
+    16% {
+        box-shadow:
+            0 0 0 2px var(--lime),
+            0 0 24px 4px color-mix(in srgb, var(--lime) 45%, transparent);
+    }
+
+    28%,
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
 @keyframes landing-loop-orbit {
     to {
         transform: rotate(360deg);
@@ -787,6 +1480,50 @@ html:has(.landing-page) {
     font-weight: 600;
 }
 
+/* 고정해서 넘길 때는 카드가 한 화면에 들어오도록 간격과 글자를 줄인다. */
+/* 트랙을 화면 양끝까지 넓혀 카드가 화면 가장자리에서 들어오고 나가게 한다.
+   첫 카드는 여전히 본문 왼쪽 선에서 시작한다. */
+.landing-tech__scroller[data-pinned] .landing-tech__track {
+    margin-inline: calc(50% - 50vw);
+    padding-inline: calc(50vw - 50%);
+    overflow-x: hidden;
+    scroll-snap-type: none;
+}
+
+/* 가운데 카드는 또렷하게, 옆에 걸친 카드는 작고 흐리게. --card-focus 는 useHorizontalPin 이 정한다. */
+.landing-tech__scroller[data-pinned] .landing-tech__card {
+    opacity: calc(0.35 + var(--card-focus, 1) * 0.65);
+    transform: scale(calc(0.94 + var(--card-focus, 1) * 0.06));
+}
+
+.landing-tech__scroller[data-pinned] .landing-tech__card {
+    gap: var(--space-32);
+    padding: var(--space-32);
+}
+
+.landing-tech__scroller[data-pinned] .landing-tech__visual {
+    min-height: 0;
+    padding: var(--space-24);
+}
+
+.landing-tech__scroller[data-pinned] .landing-tech__card h3 {
+    margin-bottom: 0;
+    font-size: 22px;
+}
+
+.landing-tech__scroller[data-pinned] .landing-tech__result {
+    padding: var(--space-16) var(--space-20);
+}
+
+.landing-tech__scroller[data-pinned] .landing-tech__result strong {
+    font-size: 32px;
+}
+
+.landing-tech__scroller[data-pinned] .landing-description {
+    font-size: 15px;
+    line-height: 1.6;
+}
+
 .landing-arrows {
     display: flex;
     gap: var(--space-8);
@@ -895,6 +1632,35 @@ html:has(.landing-page) {
         linear-gradient(150deg, var(--primary-bright) 0%, var(--primary) 55%, var(--primary-deep) 100%);
 }
 
+/* 패널 위로 큰 빛 덩어리가 천천히 떠다닌다. */
+@media (prefers-reduced-motion: no-preference) {
+    .landing-closing__panel {
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+    }
+
+    .landing-closing__panel::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        top: -40%;
+        left: -20%;
+        width: 70%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 55%, transparent), transparent);
+        animation: landing-closing-drift 12s ease-in-out infinite alternate;
+        pointer-events: none;
+    }
+}
+
+@keyframes landing-closing-drift {
+    to {
+        transform: translate(110%, 70%);
+    }
+}
+
 .landing-closing__copy {
     display: flex;
     flex: 1 1 360px;
@@ -922,6 +1688,74 @@ html:has(.landing-page) {
 }
 
 @media (max-width: 767px) {
+    .landing-demo__sticky {
+        justify-content: flex-start;
+        gap: var(--space-20);
+        height: 100svh;
+        padding-top: var(--space-40);
+        padding-bottom: var(--space-24);
+    }
+
+    .landing-demo__stage {
+        grid-template-columns: 1fr;
+        gap: var(--space-20);
+    }
+
+    .landing-demo__screens {
+        height: 300px;
+    }
+
+    .landing-demo__screen {
+        gap: var(--space-16);
+        padding: var(--space-20);
+    }
+
+    .landing-demo__q {
+        font-size: 18px;
+    }
+
+    .landing-demo__option {
+        padding: var(--space-12) var(--space-16);
+        font-size: 14px;
+    }
+
+    .landing-demo__option b {
+        font-size: 15px;
+    }
+
+    .landing-demo__specs {
+        gap: var(--space-8);
+    }
+
+    .landing-demo__specs span {
+        padding: var(--space-12);
+    }
+
+    .landing-demo__specs b {
+        font-size: 17px;
+        white-space: nowrap;
+    }
+
+    .landing-demo__reason {
+        font-size: 13px;
+    }
+
+    .landing-demo__status {
+        gap: var(--space-4);
+    }
+
+    .landing-demo__count span {
+        font-size: 24px;
+    }
+
+    .landing-demo__title {
+        font-size: 18px;
+    }
+
+    .landing-demo__description {
+        font-size: 14px;
+    }
+
     .landing-page {
         --landing-header: calc(var(--header-height-mobile) + 1px);
     }
@@ -935,7 +1769,7 @@ html:has(.landing-page) {
         );
     }
 
-    .landing-hero__orb {
+    .landing-hero::after {
         background: linear-gradient(
             180deg,
             transparent calc(100% - 480px),
@@ -1044,29 +1878,53 @@ html:has(.landing-page) {
         font-size: 14px;
     }
 
-    .landing-guide__steps {
+    .landing-demo + .landing-demo {
+        margin-top: calc(-1 * max(0px, 100svh - 680px));
+    }
+
+    .landing-board__stage {
         grid-template-columns: 1fr;
-        gap: var(--space-8);
+        gap: var(--space-20);
     }
 
-    .landing-guide__step {
-        flex-direction: row;
-        gap: var(--space-16);
-        padding: 18px;
-        border-radius: var(--radius-16);
+    .landing-board__frame {
+        order: -1;
+        transform: none;
     }
 
-    .landing-guide__number {
-        flex: none;
-        width: 36px;
-        font-size: 24px;
+    .landing-board__frame .landing-demo__screens {
+        height: 300px;
     }
 
-    .landing-guide__copy {
-        gap: var(--space-4);
+    .landing-board__answer {
+        padding: var(--space-8) var(--space-12);
     }
 
-    .landing-guide__copy b {
+    .landing-board__chips {
+        flex-wrap: nowrap;
+    }
+
+    .landing-board__chip {
+        padding: 6px var(--space-12);
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .landing-board__row:nth-child(3) {
+        display: none;
+    }
+
+    .landing-board__step {
+        gap: var(--space-12);
+        padding: var(--space-16);
+    }
+
+    .landing-board__number {
+        width: 32px;
+        font-size: 20px;
+    }
+
+    .landing-board__copy b {
         font-size: 16px;
     }
 
@@ -1232,6 +2090,22 @@ html:has(.landing-page) {
 }
 
 @media (prefers-reduced-motion: reduce), print {
+    .landing-demo__frame {
+        transform: none;
+        opacity: 1;
+    }
+
+    .landing-demo__screen,
+    .landing-demo__screen [data-picked],
+    .landing-board__step,
+    .landing-board__number {
+        transition: none;
+    }
+
+    .landing-board__caret {
+        animation: none;
+    }
+
     html:has(.landing-page) {
         scroll-behavior: auto;
     }
