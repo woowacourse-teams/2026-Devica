@@ -252,6 +252,7 @@ python3 "$ST/survey.py" survey-check <BASE> <purpose> "$ST/tmp/instruction.json"
 - `effects`: 참조 정리와 `reasons` 로 바뀌는 규칙·매핑·안내·노출 조건. `after` 가 `null` 이면 지운다.
 - `retired_changes`: 지운 코드 목록에 더할 줄(`added`), 고쳐 쓸 줄(`rewritten`), 되살려 지울 줄(`removed`), 함께 지울 기한 지난 줄(`expired`). 날짜는 `today`(서울)다.
 - `screen`: 바뀐 질문 화면의 전후.
+- `merged_into`: 합치기에서 문구·설명이 바뀐 합쳐지는 선택지의 코드와 전후. 바뀌지 않았거나 합치기가 아니면 `null`.
 
 그 뒤 `cp "$WT/<SNAP>" "$ST/tmp/before.json"` 로 고치기 전 스냅숏을 둔다.
 
@@ -382,11 +383,12 @@ python3 "$ST/survey.py" survey-verify "$ST/tmp/plan.json" "$WT/<DEF>"
    ## 5. 고려한 대안 및 리뷰 포인트
 
    - **지표 표시**: 이 개선은 지표 신호를 근거에 썼습니다. 지표 신호가 사용자 의견을 대신한 근거입니다.
+   - **합쳐지는 선택지의 문구 변경**: `<merged_into.code>` 의 문구·설명이 <before> 에서 <after> 로 바뀌었습니다. 옛 두 선택지를 고른 답이 모두 이 선택지로 읽히므로, 새 문구가 옛 두 선택지의 뜻을 모두 담는지 확인해 주세요.
    - **영향받는 열린 의견 이슈**: <번호 목록 또는 "없음">
    - **배포되지 않은 변경**: <목록과 "운영 사용자가 겪을 변화는 위 결과 변화와 다를 수 있습니다", 또는 "없음">
    - 무작위 사례를 다시 뽑은 커밋은 검토하지 않아도 됩니다. <S5-1 을 건너뛰었으면 이 줄을 뺀다>
    ```
-   `Closes` 는 `issues` 마다 둔다. `지표 표시` 항목은 `basis` 가 `METRIC` 이나 `USER_AND_METRIC` 일 때만 둔다.
+   `Closes` 는 `issues` 마다 둔다. `지표 표시` 항목은 `basis` 가 `METRIC` 이나 `USER_AND_METRIC` 일 때만, `합쳐지는 선택지의 문구 변경` 항목은 `merged_into` 가 있을 때만 둔다.
 3. **push 와 PR.** 6-4 와 같고, 제목은 `[FIX] 제품 추천 설문 <target.question> <label> (피드백 #<ISSUE>)` 다.
 
 ## 7. 개선 결과 남기기

@@ -369,6 +369,19 @@ def planned_retired(lines, ins, on):
     return [l for l in out if not C.expired(l, on)], changes
 
 
+def merged_into(ins):
+    # 합치기에서 문구·설명이 바뀐 합쳐지는 선택지. 점검은 새 문구의 뜻을 보지 않아 PR 에서 검토하게 한다
+    if ins['kind'] != 'MERGE_OPTION':
+        return None
+    pick = lambda q, c: next(({'content': x['content'], 'description': x.get('description')} for x in q['options'] if x['code'] == c), None)
+    for l in ins.get('retire') or []:
+        if l.get('to'):
+            before, after = pick(ins['from'], l['to']), pick(ins['to'], l['to'])
+            if before != after:
+                return {'code': l['to'], 'before': before, 'after': after}
+    return None
+
+
 def screen(d, code):
     # 질문 화면: 현재 사양 단계가 아니고 질문이 하나뿐인 하나 고르기 화면은 고르면 바로 넘어간다(QuestionView)
     steps = d['survey']['steps']
@@ -377,7 +390,7 @@ def screen(d, code):
             if q['code'] == code:
                 auto = s.get('layout') != 'CURRENT_SPEC' and len(s['questions']) == 1 and (q.get('input') or 'SINGLE') == 'SINGLE'
                 return {'step': i + 1, 'title': q['title'], 'description': q.get('description'),
-                        'options': [x['content'] + (f" ({x['description']})" if x.get('description') else '') for x in q['options']], 'input': q.get('input') or 'SINGLE',
+                        'options': [x['content'] + (f" — 설명: {x['description']}" if x.get('description') else '') for x in q['options']], 'input': q.get('input') or 'SINGLE',
                         'exclusive': q.get('exclusive'), 'next': '고르면 바로 넘어감' if auto else '다음 버튼'}
     return None
 
@@ -402,7 +415,7 @@ def plan(d, lines, history, ins, on):
     return {'ok': True, 'errors': [], 'purpose': ins['purpose'], 'today': on.isoformat(), 'kind': ins['kind'],
             'label': KINDS[ins['kind']], 'question': q, 'definition': p, 'retired': retired, 'retired_changes': changes,
             'lines': lines if retired is None else retired,
-            'effects': effects, 'gone': gone, 'new_rule': ins.get('rule'),
+            'effects': effects, 'gone': gone, 'new_rule': ins.get('rule'), 'merged_into': merged_into(ins),
             'screen': {'before': screen(d, q), 'after': screen(p, ins['to']['code']) if ins['to'] else None}}
 
 

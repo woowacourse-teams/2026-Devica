@@ -865,7 +865,10 @@ class SurveyPlanTest(unittest.TestCase):
                                                                     for x in opt('OFTEN', 'NEVER')])}
         p = self.plan(described)
         self.assertTrue(p['ok'])
-        self.assertIn('often (자주·한두 번)', p['screen']['after']['options'])  # 설명만 바뀌어도 화면 전후에 보인다
+        self.assertEqual(p['merged_into'], {'code': 'OFTEN', 'before': {'content': 'often', 'description': None},
+                                            'after': {'content': 'often', 'description': '자주·한두 번'}})
+        self.assertIsNone(self.plan(merge_once())['merged_into'])
+        self.assertIn('often — 설명: 자주·한두 번', p['screen']['after']['options'])  # 설명만 바뀌어도 화면 전후에 보인다
         reordered = {**merge_once(), 'to': question(SHORT, options=list(reversed(renamed('OFTEN'))))}
         self.assertIn('from 과 to 의 차이가 MERGE_OPTION 와 맞지 않는다', self.plan(reordered)['errors'])
         delete_renamed = {**delete_once(), 'to': question(SHORT, options=renamed('OFTEN'))}
