@@ -113,12 +113,12 @@ survey:
             - { code: NO_EXPERIENCE, content: 아직 다뤄본 적이 없다 }
 
     - questions:
-        - code: SLOWDOWN
-          title: 프로그램을 여러 개 켜두면 멈추거나 껐다 켜야 했나요?
+        - code: MULTI_APP_SLOWDOWN
+          title: 개발 도구, 크롬, 메신저 등 여러 앱을 함께 켜 두면 노트북이 느려지나요?
           options:
-            - { code: OFTEN, content: 자주 그렇다 }
+            - { code: OFTEN, content: 자주 느려진다 }
             - { code: SOMETIMES, content: 가끔 느려진다 }
-            - { code: FINE, content: 괜찮다 }
+            - { code: FINE, content: 느려지지 않는다 }
             - { code: UNKNOWN, content: 잘 모르겠다 }
 
     - questions:
@@ -184,11 +184,11 @@ rules:
     reason: 개발 환경을 띄워 두면 그만큼 메모리를 차지합니다.
   - criterion: MEMORY
     weight: 2
-    when: { question: SLOWDOWN, anyOf: [ OFTEN ] }
+    when: { question: MULTI_APP_SLOWDOWN, anyOf: [ OFTEN ] }
     reason: 여러 프로그램을 함께 사용할 때 겪은 불편을 고려해 메모리에 여유를 두었습니다.
   - criterion: MEMORY
     weight: 1
-    when: { question: SLOWDOWN, anyOf: [ SOMETIMES ] }
+    when: { question: MULTI_APP_SLOWDOWN, anyOf: [ SOMETIMES ] }
     reason: 가끔 느려진 경험을 반영했습니다.
   - criterion: MEMORY
     weight: 1
@@ -207,8 +207,8 @@ rules:
     when:
       all:
         - { question: CURRENT_MEMORY, anyOf: [ GB_32 ] }
-        - { question: SLOWDOWN, anyOf: [ OFTEN ] }
-    reason: 지금 32GB 에서도 여러 프로그램을 함께 쓸 때 자주 멈춘 점을 반영했습니다.
+        - { question: MULTI_APP_SLOWDOWN, anyOf: [ OFTEN ] }
+    reason: 지금 32GB 에서도 여러 앱을 함께 쓸 때 자주 느려진 점을 반영했습니다.
 
   - criterion: STORAGE
     weight: 3
