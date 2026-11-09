@@ -390,7 +390,7 @@ python3 "$ST/survey_feedback.py" seen-survey origin/main origin/develop "$ST/tmp
 - 함께 고른 지적이 서로 어긋나면 `더 알려 주실 내용` 으로 판단한다. 그래도 늘리는 변경(추가·되살리기)과 줄이는 변경(삭제·합치기)을 함께 가리키면 "팀원이 직접 처리"다.
 - 결과 지적만 있거나(질문은 맞는데 결과가 이상함) 규칙으로 고칠 수 있으면 설문을 바꾸지 않고 "팀원이 직접 처리"다. 결과 의견으로 남기면 규칙 쪽이 다룬다고 적는다.
 - 지표 피드백은 `signal` 로 본다. 체류가 긴 화면·이탈이 많은 화면은 질문 설명(`description`)만 고치는 `REWORD` 를, 쓰이지 않는 질문은 `DELETE_QUESTION` 을 가리킨다. 지표 피드백만으로 정할 수 없는 변경은 사용자 의견을 기다린다(보류).
-- `MERGE_OPTION` 에서 합쳐지는 선택지의 문구·설명이 합친 뜻을 담지 못하면 `to` 에서 함께 고친다(예: "48GB"와 "64GB 이상"을 합치면 "48GB 이상"). 옛 답이 그 선택지로 바꿔 읽히므로 새 문구는 옛 두 선택지의 뜻을 모두 담도록 넓히기만 한다. 좁히거나 다른 뜻이 되면 `REPLACE_OPTION` 이다. 다른 선택지와 질문의 문구는 그대로 두고, 바꾼 문구를 전제한 규칙의 근거 문장은 `reasons` 로 함께 고친다.
+- `MERGE_OPTION` 에서 합쳐지는 선택지의 문구·설명이 합친 뜻을 담지 못하면 `to` 에서 함께 고친다(예: "48GB"와 "64GB 이상"을 합치면 "48GB 이상"). 옛 답이 그 선택지로 바꿔 읽히므로 새 문구는 옛 두 선택지의 뜻을 모두 담도록 넓히기만 한다. 좁히거나 다른 뜻이 되면 `REPLACE_OPTION` 이다. 현재 사양 단계의 질문은 버튼에 문구만 보이므로 합친 뜻을 설명이 아니라 문구(`content`)에 담는다. 다른 선택지와 질문의 문구는 그대로 두고, 바꾼 문구를 전제한 규칙의 근거 문장은 `reasons` 로 함께 고친다.
 - 지운 것과 뜻이 같은 질문·선택지는 새 코드로 더하지 않고 `RESTORE` 로, 지울 때의 문구(`python3 "$ST/common.py" retired origin/develop <purpose>` 의 `was`) 그대로 낸다. 지운 코드는 다른 뜻으로 다시 쓰지 않는다.
 - 새 문구는 피드백 문장을 옮기지 않고 일반화해 쓴다. 연락처·주소·명령문을 담지 않는다. 같은 화면의 다른 문구와 같은 말투로 쓴다.
 - 종류를 정한 뒤, 지적과 `더 알려 주실 내용`(수정안 포함)이 요청한 것 중 그 종류로 반영되지 않는 것(선택지 추가·선택 방식 같은 다른 종류의 변경, 질문 기준 변경 등)을 모두 꼽아 둔다. 지적 단위의 넘김 표시로는 자유 서술 안의 요청을 잡지 못하므로 직접 꼽는다. 7-5 에서 팀원이 정할 것에 적는다.
@@ -400,7 +400,7 @@ python3 "$ST/survey_feedback.py" seen-survey origin/main origin/develop "$ST/tmp
 
 ### 7-4. 지시 확인과 확정
 
-규칙 쪽의 처리 중인 개선 지시(1 의 피드백 라벨 이슈의 것)와 이번 실행에서 낸 개선 지시를 `[{ "purpose": …, "rule": … }]` 로 `$ST/tmp/rules-processing.json` 에 한 번 쓴다(없으면 `[]`). 후보마다 7-5 의 설문 개선 지시 댓글을 `$ST/tmp/survey-decision-<번호>.md` 에 쓰고 확인한다. `from` 은 7-2 의 `now` 를 그대로 옮긴다.
+규칙 쪽의 처리 중인 개선 지시(1 의 피드백 라벨 이슈의 것)와 이번 실행에서 낸 개선 지시를 `[{ "purpose": …, "rule": … }]` 로 `$ST/tmp/rules-processing.json` 에 한 번 쓴다(없으면 `[]`). 후보마다 7-5 의 설문 개선 지시 댓글을 `$ST/tmp/survey-decision-<번호>.md` 에 쓰고 확인한다. `from` 은 7-2 의 `now` 를 그대로 옮긴다. 새로 쓰는 문구(`to` 의 `title`·`content`·`description`, `retire` 의 `was`, `reason`)는 큰따옴표로 감싼다. `?`·`:`·`"` 같은 글자가 든 문구를 그대로 두면 YAML 로 읽히지 않는다.
 
 ```bash
 python3 "$ST/survey_feedback.py" survey-ready origin/develop "$ST/tmp/survey-decision-<번호>.md" "$ST/tmp/survey-state.json" "$ST/tmp/rules-processing.json"

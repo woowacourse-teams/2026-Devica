@@ -73,6 +73,10 @@ def questions_of(d):
     return {q['code']: q for step in d['survey']['steps'] for q in step['questions']}
 
 
+def current_spec(d, code):
+    return any(s.get('layout') == 'CURRENT_SPEC' and code in [q['code'] for q in s['questions']] for s in d['survey']['steps'])
+
+
 def codes(q):
     return [o['code'] for o in q['options']] if q else []
 
@@ -126,6 +130,10 @@ def shape_errors(d, ins):
     into = {l.get('to') for l in ins.get('retire') or []
             if l.get('question') == q and l.get('option') == o} if kind == 'MERGE_OPTION' else set()
     loose = lambda x: without(x, 'content', 'description') if x['code'] in into else x
+    # 현재 사양 화면의 버튼은 문구만 보여 준다. 설명을 고쳐도 사용자에게 보이지 않는다
+    desc = lambda q_, c: next((x.get('description') for x in q_['options'] if x['code'] == c), None)
+    if current_spec(d, q) and any(desc(f, c) != desc(t, c) for c in into):
+        errs.append('현재 사양 화면은 선택지 설명을 보여 주지 않는다. 합친 뜻은 문구(content)에 담는다')
     kept_same = [loose(x) for x in f['options'] if x['code'] in codes(t)] == [loose(x) for x in t['options'] if x['code'] in codes(f)]
     rest_same = without(f, 'options', 'exclusive') == without(t, 'options', 'exclusive')
     exclusive = f.get('exclusive')
@@ -383,14 +391,15 @@ def merged_into(ins):
 
 
 def screen(d, code):
-    # 질문 화면: 현재 사양 단계가 아니고 질문이 하나뿐인 하나 고르기 화면은 고르면 바로 넘어간다(QuestionView)
+    # 질문 화면: 현재 사양 단계는 선택지 설명을 보여 주지 않는다. 현재 사양 단계가 아니고 질문이 하나뿐인 하나 고르기 화면은 고르면 바로 넘어간다(QuestionView)
     steps = d['survey']['steps']
     for i, s in enumerate(steps):
         for q in s['questions']:
             if q['code'] == code:
-                auto = s.get('layout') != 'CURRENT_SPEC' and len(s['questions']) == 1 and (q.get('input') or 'SINGLE') == 'SINGLE'
+                spec = s.get('layout') == 'CURRENT_SPEC'
+                auto = not spec and len(s['questions']) == 1 and (q.get('input') or 'SINGLE') == 'SINGLE'
                 return {'step': i + 1, 'title': q['title'], 'description': q.get('description'),
-                        'options': [x['content'] + (f" — 설명: {x['description']}" if x.get('description') else '') for x in q['options']], 'input': q.get('input') or 'SINGLE',
+                        'options': [x['content'] + (f" — 설명: {x['description']}" if x.get('description') and not spec else '') for x in q['options']], 'input': q.get('input') or 'SINGLE',
                         'exclusive': q.get('exclusive'), 'next': '고르면 바로 넘어감' if auto else '다음 버튼'}
     return None
 
