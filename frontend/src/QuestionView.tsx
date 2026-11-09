@@ -3,10 +3,15 @@ import { ChoiceGroup } from './ChoiceGroup';
 import type { Answers, Question, Screen } from './questions';
 import './QuestionView.css';
 
-const HINT = '선택한 항목을 한 번 더 누르면 해제됩니다.';
-const SINGLE_HINT = '하나를 고르면 바로 다음 질문으로 넘어가요.';
-// 고른 항목이 눌린 모습으로 바뀌자마자 넘어간다. 선택지 배경 전환(120ms)과 맞춘다. 더 길면 멈칫한다.
-const ADVANCE_DELAY_MS = 120;
+const HINT = '선택한 항목을 한 번 더 누르면 해제돼요.';
+const MULTI_SENTENCE = '여러 개를 선택할 수 있어요.';
+
+function descriptionOf(screen: Screen): string | null {
+  const rest = screen.description?.replace(MULTI_SENTENCE, '').trim() ?? '';
+  return rest === '' ? null : rest;
+}
+// 고른 항목에 체크 표시가 붙은 것을 본 뒤 넘어간다. 120ms 는 선택이 보이기도 전에 화면이 바뀌어 부자연스러웠다.
+const ADVANCE_DELAY_MS = 400;
 
 const SURVEY_FEEDBACK_FORM_URL = 'https://github.com/woowacourse-teams/2026-Devica/issues/new';
 
@@ -64,7 +69,7 @@ export function QuestionView({ purpose, surveyVersion, screens, index, answers, 
   const nextLabel = skippable ? '건너뛰기' : last ? '결과 보기' : '다음';
 
   // 단일 선택 질문 하나뿐인 화면은 고르는 순간 답이 정해지므로 바로 넘어간다 (#177).
-  // 선택지를 고르는 것이 유일한 진행 수단이라 아래 버튼을 두지 않는다 (#181). 이미 고른 선택지를 눌러도 그 답으로 넘어간다.
+  // 답하기 전에는 선택지를 고르는 것이 유일한 진행 수단이라 다음 버튼을 두지 않는다 (#181). 되돌아와 이미 답이 있으면 다음 버튼으로 그대로 넘어간다.
   const single =
     !screen.currentSpec && screen.questions.length === 1 && screen.questions[0].question.input === 'SINGLE'
       ? screen.questions[0].question.code
@@ -91,13 +96,13 @@ export function QuestionView({ purpose, surveyVersion, screens, index, answers, 
       <div className="question-content" id="question-content">
         <div className="flow-head">
           <h1 className="question-heading">{screen.title}</h1>
-          {screen.description !== null && <p className="flow-head__description">{screen.description}</p>}
-          <p className="flow-head__description">{single === null ? HINT : SINGLE_HINT}</p>
+          {descriptionOf(screen) !== null && <p className="flow-head__description">{descriptionOf(screen)}</p>}
         </div>
 
         {screen.currentSpec ? (
           <div className="current-spec-form">
             <SpecCheckGuide />
+            <p className="question-hint">{HINT}</p>
             <CurrentSpecFields screen={screen} answers={answers} onAnswer={onAnswer} />
           </div>
         ) : (
@@ -114,6 +119,7 @@ export function QuestionView({ purpose, surveyVersion, screens, index, answers, 
             ))}
           </div>
         )}
+        {!screen.currentSpec && single === null && <p className="question-hint">{HINT}</p>}
       </div>
 
       <p className="question-feedback">
@@ -128,7 +134,7 @@ export function QuestionView({ purpose, surveyVersion, screens, index, answers, 
         <button className="button" id="previous-button" type="button" onClick={onPrevious}>
           ← 이전
         </button>
-        {single === null && (
+        {(single === null || answered) && (
           <button
             className={`button ${skippable ? 'button--skip' : 'button--primary'}`}
             id="next-button"
@@ -153,9 +159,7 @@ function CurrentSpecFields({ screen, answers, onAnswer }: Pick<Props, 'answers' 
     <>
       {screen.questions.map(({ question, label }, order) => (
         <Fragment key={question.code}>
-          <fieldset
-            className={`current-spec-field${question.code.endsWith('_CPU') ? ' current-spec-field--wide' : ''}`}
-          >
+          <fieldset className="current-spec-field">
             <legend>{label}</legend>
             <ChoiceGroup
               choices={question.options.map((option) => ({ value: option.code, label: option.content }))}
@@ -165,7 +169,7 @@ function CurrentSpecFields({ screen, answers, onAnswer }: Pick<Props, 'answers' 
           </fieldset>
           {/* 프로세서는 OS 다음 자리다. 고르기 전이라 선택지가 없어도 자리는 지킨다. */}
           {order === 0 && !hasCpu && (
-            <fieldset className="current-spec-field current-spec-field--wide">
+            <fieldset className="current-spec-field">
               <legend>PROCESSOR</legend>
               <p className="choice-notice">OS를 먼저 선택해 주세요</p>
             </fieldset>
@@ -224,7 +228,13 @@ function QuestionGroup({ question, label, chosen, onAnswer, onPick }: GroupProps
 
   return (
     <fieldset className="question-group">
-      {label !== null && <legend>{label}</legend>}
+      <legend className="question-group__legend">
+        {label !== null && <span>{label}</span>}
+        <span className="question-mode">
+          {question.input === 'SINGLE' ? '하나만 선택' : '여러 개 선택'}
+          {onPick !== undefined && ' · 고르면 바로 넘어가요'}
+        </span>
+      </legend>
       {question.options.map((option) => (
         <button
           className={`question-option question-option--${question.input === 'SINGLE' ? 'single' : 'multi'}${option.code === exclusiveCode ? ' question-option--exclusive' : ''}`}

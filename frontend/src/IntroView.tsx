@@ -61,7 +61,7 @@ export function IntroView({
       <div className="flow-head">
         <p className="flow-head__eyebrow">{categoryName ? `${categoryName} · ${purposeName}` : purposeName}</p>
         <h1 id="intro-title">기본 권장 사양</h1>
-        <p className="flow-head__description">{purposeName}에 필요한 기본 사양입니다.</p>
+        <p className="flow-head__description">질문에 답하기 전, 가볍게 쓰는 경우를 기준으로 잡은 사양입니다.</p>
       </div>
 
       <section className="baseline-list" id="initial-spec-list" aria-label="OS별 기본 권장 사양">

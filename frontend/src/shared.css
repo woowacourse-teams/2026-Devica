@@ -302,6 +302,24 @@
         linear-gradient(150deg, var(--primary-bright) 0%, var(--primary) 55%, var(--primary-deep) 100%);
 }
 
+/* 카드 제목 앞의 OS 표시. 파란 카드 위에서는 반투명 칸, 어두운 카드에서는 화면별로 색을 정한다. */
+.os-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.os-icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-12);
+    background: var(--on-primary-tile);
+}
+
 .spec-tiles {
     display: grid;
     gap: var(--space-8);
@@ -339,8 +357,13 @@
         padding: var(--space-32);
     }
 
+    /* 프로세서 이름은 길어 한 줄을 다 쓰고, 나머지는 두 칸씩 놓는다. */
     .spec-tiles {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: var(--space-12);
+    }
+
+    .spec-tiles > :first-child {
+        grid-column: 1 / -1;
     }
 }

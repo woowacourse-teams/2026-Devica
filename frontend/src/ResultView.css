@@ -69,6 +69,24 @@
     order: 2;
 }
 
+.result-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-20);
+}
+
+.result-both-note {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.result-both-note a {
+    color: var(--link);
+    white-space: nowrap;
+    font-weight: 600;
+}
+
 .result-card {
     border-radius: var(--radius-24);
     overflow: hidden;
@@ -81,19 +99,20 @@
 
 .result-card__head {
     display: flex;
-    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     gap: var(--space-12);
 }
 
 .result-card__head h2 {
+    min-width: 0;
     font-size: 18px;
     font-weight: 600;
     line-height: 1.3;
 }
 
 .result-card__actions {
+    flex: none;
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-8);
@@ -200,6 +219,11 @@
     font-weight: 600;
 }
 
+/* 추천 값이 화면에서 가장 먼저 읽히도록 기본 권장 사양보다 크게 쓴다. */
+.result-card .spec-tile dd {
+    font-size: 24px;
+}
+
 .result-card__bottom {
     display: flex;
     flex-direction: column;
@@ -248,10 +272,25 @@
     line-height: 1.6;
 }
 
-.result-reasons svg {
+/* 같은 항목의 근거는 한 줄에 묶고, 어느 항목의 근거인지는 앞에 한 번만 붙인다. */
+.result-reasons__texts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+}
+
+.result-reasons__tag {
     flex: none;
-    margin-top: 3px;
+    min-width: 92px;
+    margin-top: 2px;
+    border-radius: var(--radius-8);
+    padding: 2px var(--space-8);
     color: var(--accent);
+    background: var(--tint);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
 }
 
 .result-feedback {
@@ -328,6 +367,10 @@
     font-size: 20px;
 }
 
+.result-price__list[data-recalculating="true"] strong {
+    opacity: 0.5;
+}
+
 .result-price__failed {
     margin: 0;
     color: var(--text-muted);
@@ -362,6 +405,11 @@
         flex: 999 1 560px;
     }
 
+    .result-card .spec-tile dd {
+        font-size: 28px;
+    }
+
+    /* 둘 다를 고르면 두 결과를 나란히 두어, 아래에 다른 OS 결과가 있다는 것을 바로 알 수 있게 한다. */
     .result-side {
         display: flex;
         flex: 1 1 320px;
@@ -410,6 +458,9 @@
     }
 
     .result-price__list li {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
         font-size: 16px;
     }
 

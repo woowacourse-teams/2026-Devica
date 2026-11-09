@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { OsIcon } from './BaselineCard';
 import { ChoiceGroup } from './ChoiceGroup';
 import { type Fetched, useFetched } from './fetched';
 import {
@@ -124,24 +125,34 @@ export function ResultView({
 
       <div className="result-body">
         <div className="result-main" id="spec-list">
-          {visible.map((spec, index) => (
-            <SpecCard
-              key={osValueOf(spec)}
-              spec={spec}
-              edited={edited[index]}
-              tiers={tiers}
-              tiersFailed={tiersFailed}
-              onRetryTiers={onRetryTiers}
-              onReset={() => onResetEdits(osValueOf(spec))}
-              onEdit={(code, value) =>
-                onEdit(
-                  osValueOf(spec),
-                  code,
-                  value === spec.items.find((item) => item.code === code)?.value ? null : value,
-                )
-              }
-            />
-          ))}
+          {visible.length > 1 && (
+            <p className="result-both-note">
+              {minPriceLabels.join('·')} 결과를 차례로 보여 드려요.{' '}
+              <a href={`#spec-card-${osValueOf(visible[visible.length - 1])}`}>
+                {minPriceLabels[minPriceLabels.length - 1]} 결과로 이동 ↓
+              </a>
+            </p>
+          )}
+          <div className="result-cards">
+            {visible.map((spec, index) => (
+              <SpecCard
+                key={osValueOf(spec)}
+                spec={spec}
+                edited={edited[index]}
+                tiers={tiers}
+                tiersFailed={tiersFailed}
+                onRetryTiers={onRetryTiers}
+                onReset={() => onResetEdits(osValueOf(spec))}
+                onEdit={(code, value) =>
+                  onEdit(
+                    osValueOf(spec),
+                    code,
+                    value === spec.items.find((item) => item.code === code)?.value ? null : value,
+                  )
+                }
+              />
+            ))}
+          </div>
           <p className="result-feedback">
             제품 추천 결과가 나와 맞지 않나요?{' '}
             <a href={feedbackUrl()} target="_blank" rel="noopener noreferrer">
@@ -188,11 +199,19 @@ type MinPricesProps = {
 };
 
 function MinPrices({ labels, prices }: MinPricesProps) {
+  const shown = useRef<{ labels: string; data: (number | null)[] } | null>(null);
+  const labelKey = labels.join();
+  if (prices.data !== null) {
+    shown.current = { labels: labelKey, data: prices.data };
+  }
+  const previous = shown.current?.labels === labelKey ? shown.current.data : null;
+  const data = prices.data ?? previous;
+  const recalculating = prices.data === null && previous !== null;
   const priceText = (index: number) => {
-    if (prices.data === null) {
+    if (data === null) {
       return '계산 중…';
     }
-    const price = prices.data[index];
+    const price = data[index];
     return price === null ? '판매 중인 제품 없음' : `${formatPrice(price)}부터`;
   };
 
@@ -207,7 +226,12 @@ function MinPrices({ labels, prices }: MinPricesProps) {
     );
   }
   return (
-    <ul className="result-price__list" role="status">
+    <ul
+      className="result-price__list"
+      role="status"
+      aria-busy={prices.data === null}
+      data-recalculating={recalculating}
+    >
       {labels.map((label, index) => (
         <li key={label}>
           <span>
@@ -241,16 +265,21 @@ function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, onEdit, onRe
     const item = itemOf(edited, code);
     return recommended === undefined || item === undefined ? [] : [{ code, label, recommended, item }];
   });
-  const reasonItems = [itemOf(spec, 'OS'), ...rows.map(({ recommended }) => recommended)];
-  const reasons = reasonItems.flatMap((target) =>
-    (target?.reasons ?? []).map((reason, order) => ({ key: `${target?.code}-${order}`, reason })),
-  );
+  const osItem = itemOf(spec, 'OS');
+  const reasonItems = [
+    ...(osItem === undefined ? [] : [{ label: 'OS', recommended: osItem }]),
+    ...rows.map(({ label, recommended }) => ({ label, recommended })),
+  ];
+  const reasons = reasonItems.filter(({ recommended }) => recommended.reasons.length > 0);
 
   return (
-    <article className="result-card" aria-labelledby={titleId}>
+    <article className="result-card" id={`spec-card-${os}`} aria-labelledby={titleId}>
       <div className="spec-panel result-card__top">
         <div className="result-card__head">
-          <h2 id={titleId}>{OS_LABEL[os] ?? os} 제품 추천 결과</h2>
+          <h2 className="os-title" id={titleId}>
+            <OsIcon spec={spec} />
+            {OS_LABEL[os] ?? os} 제품 추천 결과
+          </h2>
           <span className="result-card__actions">
             {editProperties(spec, edited) !== null && (
               <button className="result-card__button result-card__button--plain" type="button" onClick={onReset}>
@@ -332,22 +361,14 @@ function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, onEdit, onRe
               <>
                 <h3>이렇게 추천한 이유</h3>
                 <ul className="result-reasons">
-                  {reasons.map(({ key, reason }) => (
-                    <li key={key}>
-                      <svg
-                        aria-hidden="true"
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M5 12l5 5L20 7" />
-                      </svg>
-                      <span>{reason}</span>
+                  {reasons.map(({ label, recommended }) => (
+                    <li key={recommended.code}>
+                      <span className="result-reasons__tag">{label}</span>
+                      <span className="result-reasons__texts">
+                        {recommended.reasons.map((reason) => (
+                          <span key={reason}>{reason}</span>
+                        ))}
+                      </span>
                     </li>
                   ))}
                 </ul>

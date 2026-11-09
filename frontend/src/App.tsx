@@ -175,7 +175,7 @@ export function App() {
           </Route>
         </Switch>
       </main>
-      <SiteFooter onGuide={openFaq} onProductList={openSearch} boardHref={boardHref} onBoard={() => go(boardHref)} />
+      <SiteFooter />
     </>
   );
 }

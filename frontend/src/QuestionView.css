@@ -3,6 +3,7 @@
 .question-view {
     width: 100%;
     max-width: var(--content-survey);
+    min-height: calc(100svh - var(--header-height-mobile) - 16px);
     margin: 0 auto;
 }
 
@@ -70,10 +71,30 @@
     padding: 0;
 }
 
-.question-group legend {
+.question-group__legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-8);
     margin-bottom: var(--space-12);
     padding: 0;
     font-weight: 700;
+}
+
+/* 고르는 방식(하나만·여러 개)을 선택지 바로 위에 표시해, 설명 문장보다 먼저 눈에 띄게 한다. */
+.question-mode {
+    border-radius: var(--radius-pill);
+    padding: var(--space-4) 10px;
+    color: var(--accent);
+    background: var(--tint);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.question-hint {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
 }
 
 /* Ring 의 선택지 행. 왼쪽 표시는 여러 개 고르는 질문이면 네모, 하나만 고르는 질문이면 동그라미다. */
@@ -232,9 +253,11 @@
     background: transparent;
 }
 
+/* 이전·다음 버튼은 화면 아래에 띄워 둔다. 내용이 짧아도 화면 바닥에 오도록 섹션이 화면 높이를 채우고 버튼을 아래로 민다. */
 /* 좁은 화면은 이전 버튼을 왼쪽에 작게, 다음 버튼을 남은 너비로 둔다. */
 .sticky-actions.question-actions {
     grid-template-columns: auto 1fr;
+    margin-top: auto;
 }
 
 .question-actions > :only-child {
@@ -242,6 +265,10 @@
 }
 
 @media (min-width: 768px) {
+    .question-view {
+        min-height: calc(100svh - 136px);
+    }
+
     .progress-track {
         height: 8px;
     }
@@ -269,30 +296,17 @@
         height: 28px;
     }
 
-    /* 질문이 둘인 화면은 나란히 놓는다. */
-    .question-groups:has(> :nth-child(2)) {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        align-items: start;
-    }
-
-    .current-spec-form {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    /* 긴 프로세서 이름이 좁은 칸에서 여러 줄로 꺾이지 않게 전폭을 준다. */
-    .current-spec-field--wide,
-    .current-spec-form > .spec-guide {
-        grid-column: 1 / -1;
-    }
-
     .question-feedback__hint {
         display: inline;
     }
 
+    /* 넓은 화면에서도 이전·다음 버튼을 화면 아래에 띄워 둔다. */
     .sticky-actions.question-actions {
+        position: sticky;
         display: flex;
         justify-content: space-between;
-        padding-top: var(--space-8);
+        padding: var(--space-16) 0 var(--space-24);
+        background: linear-gradient(180deg, transparent 0%, var(--bg) 32%);
     }
 }
 
