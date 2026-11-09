@@ -252,7 +252,7 @@ test('최저가는 보이는 OS 마다 고친 사양으로 조회해 보여 준�
   );
 });
 
-test('OS 권장안의 안내는 그 OS 카드에만 보인다', () => {
+test('OS 권장안의 안내는 그 OS 카드에만 보이고, 직접 수정하는 중에도 남는다', () => {
   const WINDOWS: Spec = {
     preferred: false,
     notes: ['iOS 앱 빌드에는 Mac 이 필요합니다.'],
@@ -276,6 +276,11 @@ test('OS 권장안의 안내는 그 OS 카드에만 보인다', () => {
   );
   const [macCard, windowsCard] = screen.getAllByRole('article');
   expect(within(macCard).queryByRole('region', { name: '안내' })).toBeNull();
+  expect(within(windowsCard).getByRole('region', { name: '안내' }).textContent).toBe(
+    'iOS 앱 빌드에는 Mac 이 필요합니다.',
+  );
+
+  fireEvent.click(within(windowsCard).getByRole('button', { name: '직접 수정' }));
   expect(within(windowsCard).getByRole('region', { name: '안내' }).textContent).toBe(
     'iOS 앱 빌드에는 Mac 이 필요합니다.',
   );

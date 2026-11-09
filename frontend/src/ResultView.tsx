@@ -426,29 +426,24 @@ function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, onEdit, onRe
         </dl>
       </div>
       <div className="result-card__bottom">
-        {editing ? (
-          <p className="result-card__hint">값을 바꾸면 최저가를 바로 다시 계산해요.</p>
-        ) : (
+        {editing && <p className="result-card__hint">값을 바꾸면 최저가를 바로 다시 계산해요.</p>}
+        {spec.notes.length > 0 && (
+          <section className="result-card__notes" aria-label="안내">
+            {spec.notes.map((note) => (
+              <p className="result-card__note" key={note}>
+                {note}
+              </p>
+            ))}
+          </section>
+        )}
+        {!editing && reasons.length > 0 && (
           <>
-            {spec.notes.length > 0 && (
-              <section className="result-card__notes" aria-label="안내">
-                {spec.notes.map((note) => (
-                  <p className="result-card__note" key={note}>
-                    {note}
-                  </p>
-                ))}
-              </section>
-            )}
-            {reasons.length > 0 && (
-              <>
-                <h3>이렇게 추천한 이유</h3>
-                <ul className="result-reasons">
-                  {reasons.map(({ label, recommended }) => (
-                    <ReasonItem key={recommended.code} label={label} reasons={recommended.reasons} />
-                  ))}
-                </ul>
-              </>
-            )}
+            <h3>이렇게 추천한 이유</h3>
+            <ul className="result-reasons">
+              {reasons.map(({ label, recommended }) => (
+                <ReasonItem key={recommended.code} label={label} reasons={recommended.reasons} />
+              ))}
+            </ul>
           </>
         )}
       </div>
