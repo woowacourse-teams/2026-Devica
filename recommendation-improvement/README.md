@@ -4,17 +4,6 @@
 
 정의서는 제품 추천의 질문과 규칙을 담은 YAML 파일로, 사용 목적마다 하나씩 `src/main/resources/recommendation/purposes/` 에 있다. 이 시스템은 정의서의 규칙과 설문(질문·선택지)을 고친다. 매핑과 점수 구간은 여러 규칙의 효과를 함께 바꾸므로 팀원이 고친다.
 
-## 할 수 있는 개선
-
-근거가 사용자 의견인지 지표인지에 따라 고칠 수 있는 범위가 다르다. 지표는 무언가 이상하다는 것까지만 알려 주고 무엇을 바꿔야 하는지는 알려 주지 않기 때문이다.
-
-| 고치는 것 | 사용자 의견으로 | 지표로 |
-|---|---|---|
-| 규칙 (알고리즘) | 점수, 조건, 근거 문장 고치기와 규칙 더하기 | 점수 올리기·내리기 (답 바꾸기, 결과 값 직접 고치기) |
-| 설문 (콘텐츠) | 문구 수정, 질문 옮기기, 질문·선택지 더하기·지우기·합치기·대체·쪼개기, 선택 방식 바꾸기 | 질문 설명 고치기 (같은 화면의 긴 체류와 많은 이탈), 쓰이지 않는 질문 지우기 (팀원 승인 뒤) |
-
-지우거나 바꾸는 설문 변경은 서로 다른 사용자의 의견 2건이 필요하다. 변경마다 필요한 근거는 [Feedback Analyzer 명세](interface/components/feedback-analyzer.md)가 정한다.
-
 ## 시스템 구조
 
 ```mermaid
@@ -115,6 +104,26 @@ flowchart TB
 - Feedback Analyzer 가 정의서로 고칠 수 없다고 표시한 피드백(매핑·점수 구간·코드 변경, 루프가 하지 않는 설문 변경, 제품 추천과 무관한 제보)과 개선 PR 이 반려된 피드백을 직접 처리하거나 닫는다.
 - 쓰이지 않는 질문의 설문 지표 피드백을 보고, 지워도 되면 `product-recommendation-approved` 라벨을 단다.
 - 판단이 "이미 바뀜"이나 "재현할 수 없음"인 피드백을 확인해 닫는다.
+
+## 할 수 있는 개선
+
+루프가 개선하는 것은 정의서의 **규칙**과 **설문** 두 가지다. 규칙은 설문 답에 따라 제품 추천 결과의 항목 점수를 올리고 내린다.
+
+```yaml
+- criterion: MEMORY                                    # 메모리를
+  weight: 2                                            # 2점 올린다 (점수)
+  when: { question: SLOWDOWN, anyOf: [ OFTEN ] }       # "자주 멈춘다"고 답했을 때 (조건)
+  reason: 여러 프로그램을 함께 사용할 때 겪은 불편을 고려해 메모리에 여유를 두었습니다.  # 결과 화면에 보이는 이유 (근거 문장)
+```
+
+개선의 근거는 사용자 의견과 지표다. 사용자 의견은 사용자가 결과 화면이나 질문 화면의 버튼으로 남긴 이슈다. 지표는 Metric Collector 가 만든 이슈로, 결과를 보고 답을 바꿔 다시 본 사용자, 제품 추천 결과를 직접 고쳐 검색한 사용자, 질문 화면에서 오래 머물거나 그만둔 사용자를 모은 것이다. 어느 규칙에도 쓰이지 않는 질문도 지표로 찾는다. 지표는 무언가 이상하다는 것까지만 알려 주고 무엇을 바꿔야 하는지는 알려 주지 않는다. 그래서 지표로 할 수 있는 개선은 좁다.
+
+| 개선 대상 | 사용자 의견으로 | 지표로 |
+|---|---|---|
+| 규칙 | 점수·조건·근거 문장 개선, 규칙 더하기·지우기 | 점수 올리기·내리기 |
+| 설문 | 문구 개선, 질문 옮기기, 질문·선택지 더하기·지우기·바꾸기, 선택지 합치기, 하나 고르기와 여러 개 고르기 바꾸기 | 질문 설명 개선, 쓰이지 않는 질문 지우기 |
+
+결과에 쓰이는 질문·선택지를 지우거나 바꾸는 설문 변경은 서로 다른 사용자의 의견 2건이 필요하다. 모든 사용자의 화면과 기존 답이 바뀌므로, 한 사람만의 사정이 아닌지 확인하려는 것이다. 결과에 쓰이지 않는 것은 의견 1건과 지표 1개로도 지울 수 있다. 쓰이지 않는 질문을 지표만으로 지울 때는 팀원이 그 이슈에 승인 라벨을 달아야 한다. 변경마다 필요한 근거는 [Feedback Analyzer 명세](interface/components/feedback-analyzer.md)가 정한다.
 
 ## 원칙
 
@@ -217,7 +226,7 @@ recommendation-improvement/
 - Recommendation Improver 는 사용자의 작업과 분리된 작업 공간에서 실행된다.
 - 구성 요소마다 필요한 권한과 환경은 [`interface/components/`](interface/components/)의 "의존하는 외부 시스템"에 있다.
 
-지금은 에이전트가 정해진 주기마다 지시문을 따라 실행된다. 구성 요소마다 지시문(`<구성 요소>/prompt.md`)과 스크립트(`signals.py`·`snapshot.py`, 공통 `common.py`)가 있고, 실행될 때마다 `origin/develop` 에서 새로 읽어 온다. 매번 같은 준비는 실행 스크립트(`schedule/run.sh`)가 하고, 에이전트는 지시문의 판단만 맡는다. 리뷰를 거쳐 머지된 내용만 실행되고, 지시문이 바뀌어도 작업을 다시 등록하지 않아도 된다. 구현을 바꾸면 이 절과 구성 요소 디렉터리를 새 구현의 것으로 바꾸고, 이전 작업은 끈다.
+지금은 에이전트가 정해진 주기마다 지시문을 따라 실행된다. 구성 요소마다 지시문(`<구성 요소>/prompt.md`)과 스크립트(`signals.py`·`survey_feedback.py`·`snapshot.py`·`survey.py`, 공통 `common.py`)가 있고, 실행될 때마다 `origin/develop` 에서 새로 읽어 온다. 매번 같은 준비는 실행 스크립트(`schedule/run.sh`)가 하고, 에이전트는 지시문의 판단만 맡는다. 리뷰를 거쳐 머지된 내용만 실행되고, 지시문이 바뀌어도 작업을 다시 등록하지 않아도 된다. 구현을 바꾸면 이 절과 구성 요소 디렉터리를 새 구현의 것으로 바꾸고, 이전 작업은 끈다.
 
 ### 1. 준비하기
 
@@ -269,7 +278,7 @@ recommendation-improvement/
 |---|---|---|
 | `metric-collector` | 하루 한 번 | 셸 명령 `git` `gh` `python3` `ruby`. `~/.devica-product-recommendation/metric-collector` 쓰기. PostHog `project-get`, `execute-sql` |
 | `feedback-analyzer` | 하루 한 번, `metric-collector` 보다 늦은 시각 | 셸 명령 `git` `gh` `python3` `ruby`. `~/.devica-product-recommendation/feedback-analyzer` 쓰기 |
-| `recommendation-improver` | 몇 시간마다 | 셸 명령 `git` `gh` `python3` `ruby` `docker` `./gradlew`. `~/.devica-product-recommendation/recommendation-improver` 쓰기와 그 안의 작업 공간 파일 편집 |
+| `recommendation-improver` | 몇 시간마다 | 셸 명령 `git` `gh` `python3` `ruby` `docker` `./gradlew` `cd` `cp`, `UPDATE_SNAPSHOT=true`·`REGENERATE_SNAPSHOT=true` 로 시작하는 명령. `~/.devica-product-recommendation/recommendation-improver` 쓰기와 그 안의 작업 공간 파일 편집 |
 
 ### 3. 첫 실행 확인하기
 
