@@ -2056,6 +2056,11 @@ html:has(.landing-page) {
         height: auto;
     }
 
+    /* 고정되지 않아 단계가 짧은 스크롤에 다 지나가므로, 틀 안 화면까지 내려가면 어지럽다. 맨 위만 보여 준다. */
+    .landing-screen__shot {
+        translate: none;
+    }
+
     /* 위아래 40px 자리만큼 너비도 줄여(40 × 390/844) 틀이 휴대폰 비율을 지키게 한다. */
     .landing-screen__stack {
         width: calc(100% - 18.5px);
