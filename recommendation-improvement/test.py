@@ -3,6 +3,7 @@
 # run.sh 는 임시 git 저장소와 가짜 claude 로 준비·잠금만 본다.
 #
 #   python3 test.py
+import datetime
 import importlib.util
 import json
 import os
@@ -1014,6 +1015,33 @@ class SurveyFlowTest(unittest.TestCase):
             self.assertEqual(json.load(f), schema('improvement-instruction')['examples'][0])
         rows[3]['body'] = rows[3]['body'].replace('decision', 'survey-decision')
         self.assertEqual(survey.next_instruction(tmp('\n'.join(json.dumps(r, ensure_ascii=False) for r in rows)), out)['target']['url'], 'u6')
+
+    def test_형식이_틀린_지시와_결과는_짝짓지_않는다(self):
+        result = lambda body: f'<!-- product-recommendation:survey-result -->\n{body}'
+        ins = lambda data: f'<!-- product-recommendation:survey-decision -->\n```yaml\n{json.dumps(data, ensure_ascii=False)}\n```'
+        row = lambda i, body: {'issue': 1, 'id': i, 'created_at': f'2026-11-0{i}T00:00:00Z', 'html_url': f'u{i}', 'body': body}
+        good = result('```yaml\noutcome: NOT_OPENED\nreason: x\n```')
+        out = tmp('')
+        cases = [
+            ([row(1, ins(delete_once())), row(2, result('YAML 없음'))], 'u1', ['u2']),
+            ([row(1, ins(delete_once())), row(2, ins({'kind': 'X'})), row(3, good)], None, ['u2']),
+        ]
+        for rows, target, invalid in cases:
+            got = survey.next_instruction(tmp('\n'.join(json.dumps(r, ensure_ascii=False) for r in rows)), out)
+            self.assertEqual(got['target'] and got['target']['url'], target)
+            self.assertEqual([i['url'] for i in got['invalid']], invalid)
+
+    def test_이름이_여러_번_바뀐_질문을_지우면_이어진_옛_질문_줄도_drop_으로_바꾼다(self):
+        lines = [{'question': 'A', 'to': 'B', 'was': '가', 'retiredAt': '2026-10-01'},
+                 {'question': 'B', 'to': 'C', 'was': '나', 'retiredAt': '2026-10-15'},
+                 {'question': 'X', 'to': 'Y', 'was': '다', 'retiredAt': '2026-10-15'}]
+        ins = {'kind': 'DELETE_QUESTION', 'target': {'question': 'C'}, 'to': None,
+               'retire': [{'question': 'C', 'drop': True, 'was': '라'}]}
+        rows, _ = survey.planned_retired(lines, ins, datetime.date(2026, 11, 1))
+        by = {l['question']: l for l in rows}
+        self.assertTrue(by['A'].get('drop') and 'to' not in by['A'])
+        self.assertTrue(by['B'].get('drop') and 'to' not in by['B'])
+        self.assertEqual(by['X']['to'], 'Y')
 
     def setUp(self):
         self.wt = tempfile.mkdtemp()

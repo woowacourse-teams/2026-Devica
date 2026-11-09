@@ -36,12 +36,20 @@ def marker_name(body):
 
 
 def next_instruction(comments_path, out_path):
-    # 이슈·종류마다 지시 I 의 결과는 I 뒤, 같은 종류의 다음 지시 앞에 있는 첫 결과다
+    # 이슈·종류마다 지시 I 의 결과는 I 뒤, 같은 종류의 다음 지시 앞에 있는 첫 결과다.
+    # Feedback Analyzer 와 같게 형식이 맞는 지시와 결과만 짝짓는다
     comments = sorted((json.loads(l) for l in C.read(comments_path).splitlines() if l.strip()),
                       key=lambda c: (c['created_at'], c['id']))
-    pending, waiting = [], {}
+    pending, waiting, invalid = [], {}, []
     for c in comments:
         name = marker_name(c['body'])
+        if name not in FAMILIES and name not in FAMILIES.values():
+            continue
+        b = C.block(c['body'])
+        if b['errors']:
+            invalid.append({'issue': c['issue'], 'url': c['html_url'], 'errors': b['errors']})
+            continue
+        c = dict(c, name=name, data=b['data'])
         for ins, res in FAMILIES.items():
             k = (c['issue'], ins)
             if name == ins:
@@ -50,16 +58,13 @@ def next_instruction(comments_path, out_path):
                 waiting[k] = c
             elif name == res:
                 waiting.pop(k, None)
-    invalid = []
-    for c in sorted(pending + list(waiting.values()), key=lambda c: (c['created_at'], c['id'])):
-        b = C.block(c['body'])
-        if b['errors']:
-            invalid.append({'issue': c['issue'], 'url': c['html_url'], 'errors': b['errors']})
-            continue
-        with open(out_path, 'w', encoding='utf-8') as f:
-            json.dump(b['data'], f, ensure_ascii=False, indent=1)
-        return {'target': {'kind': marker_name(c['body']), 'issue': c['issue'], 'url': c['html_url']}, 'invalid': invalid}
-    return {'target': None, 'invalid': invalid}
+    todo = sorted(pending + list(waiting.values()), key=lambda c: (c['created_at'], c['id']))
+    if not todo:
+        return {'target': None, 'invalid': invalid}
+    c = todo[0]
+    with open(out_path, 'w', encoding='utf-8') as f:
+        json.dump(c['data'], f, ensure_ascii=False, indent=1)
+    return {'target': {'kind': c['name'], 'issue': c['issue'], 'url': c['html_url']}, 'invalid': invalid}
 
 
 # ---- 정의서 다루기 ----
@@ -315,6 +320,18 @@ def planned_retired(lines, ins, on):
     gone_q = {q} if kind == 'DELETE_QUESTION' or qline and qline.get('drop') else set()
     new_q = qline['to'] if qline and qline.get('to') else None
     fate = {(l['question'], l['option']): l.get('to') for l in given if 'option' in l}
+    nxt = {l['question']: l.get('to') for l in lines if 'option' not in l and not l.get('dropInvalid')}
+
+    def ends_in_gone(code):
+        # 질문 줄은 이름이 여러 번 바뀌면 to 가 이어진다. 끝이 지우는 질문이면 그 줄도 drop 이어야 서버가 받는다
+        seen = set()
+        while code and code not in seen:
+            if code in gone_q:
+                return True
+            seen.add(code)
+            code = nxt.get(code)
+        return False
+
     out, changes = [], {'added': [], 'rewritten': [], 'removed': [], 'expired': []}
     for l in lines:
         before, l = l, dict(l)
@@ -323,7 +340,7 @@ def planned_retired(lines, ins, on):
         if restored or not is_qline and l['question'] in gone_q:
             changes['removed'].append(before)
             continue
-        if is_qline and l.get('to') in gone_q:
+        if is_qline and ends_in_gone(l.get('to')):
             l.pop('to')
             l['drop'] = True
         if new_q and l['question'] == q and not is_qline:
