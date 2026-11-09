@@ -55,7 +55,11 @@
 
 /* Ring 의 SegmentedControl. 하나의 스위치로 읽히도록 알약 바탕 안에 칸을 붙여 놓고, 고른 칸만 채운다. */
 .choice-group--segmented {
-    flex-wrap: nowrap;
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-auto-columns: 1fr;
+    grid-auto-flow: column;
     align-self: flex-start;
     gap: 0;
     padding: var(--space-4);
@@ -63,11 +67,26 @@
     background: var(--surface-2);
 }
 
+/* 고른 칸을 채우는 막대. 칸 너비가 같아 순서만으로 자리를 정하고, 고른 칸이 바뀌면 옆으로 미끄러져 간다. */
+.choice-group__thumb {
+    position: absolute;
+    z-index: -1;
+    top: var(--space-4);
+    bottom: var(--space-4);
+    left: var(--space-4);
+    width: calc((100% - 2 * var(--space-4)) / var(--segment-count));
+    border-radius: var(--radius-pill);
+    background: var(--primary);
+    translate: calc(var(--segment-index) * 100%) 0;
+    transition: translate 280ms cubic-bezier(0.2, 0, 0, 1);
+}
+
 .choice-group--segmented .chip {
     justify-content: center;
     border: 0;
     padding: 0 var(--space-20);
     font-size: 16px;
+    transition: color 200ms ease-out;
 }
 
 .choice-group--segmented .chip:hover:not(:disabled):not([aria-pressed="true"]) {
@@ -78,11 +97,13 @@
     border: 0;
     padding: 0 var(--space-20);
     color: var(--on-primary);
-    background: var(--primary);
+    background: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .chip {
+    .chip,
+    .choice-group--segmented .chip,
+    .choice-group__thumb {
         transition: none;
     }
 }
