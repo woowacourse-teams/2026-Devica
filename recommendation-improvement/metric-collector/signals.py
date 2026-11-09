@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
 # Metric Collector 예약 작업의 스크립트. 함께 쓰는 명령(common.py 머리 주석)에 아래 전용 명령을 더한다.
-# common.py 와 같은 디렉터리에 두고 실행한다.
+# common.py, 그리고 "쓰인다"를 Recommendation Improver 와 같게 보려고 snapshot.py·survey.py 와 같은 디렉터리에 두고 실행한다.
 from common import *  # noqa: F401,F403
 from common import COMMANDS, json, sys
+import survey as S
 
 #   signals.py signals SESSIONS_FILE PROD_BASE_URL LOOKBACK_DAYS [EDITS_FILE]   신호를 같은 신호끼리 묶은 결과(제목·본문 포함)
 #   signals.py issue   BODY_FILE                                    지표 피드백의 신호 키와 배포를 기다리는 걸린 규칙
+#   signals.py survey  PAGEVIEWS_FILE SPEC                          설문 신호(제목·본문 포함)와 화면별 체류·이탈. SPEC 은 기준값 표가 든 명세 파일이나 git ref
+#   signals.py survey-issue BODY_FILE                               설문 지표 피드백의 신호 키와 배포 대기 여부
+# PAGEVIEWS_FILE 은 SESSIONS_FILE 과 같은 모양이고, 질문 화면(/questions/N)과 결과 화면의 $pageview 다.
 # SESSIONS_FILE 은 prompt.md 의 HogQL 결과에서 세션마다 views 한 칸을 꺼내 모은 JSON 배열이다.
 # view = [유닉스 초, 이벤트, 경로, purpose, category, "질문.선택지&질문.선택지…"]
 # EDITS_FILE 은 추천 결과를 직접 고친 기록이다. 세션·사용 목적·OS 마다 마지막 기록 하나를 쿼리가 골라 둔 JSON 배열이다.
 # edit = [유닉스 초, purpose, category, "질문.선택지&…", OS, CPU 추천, CPU 고친 값, 메모리 추천, 메모리 고친 값, 저장 공간 추천, 저장 공간 고친 값]
 from collections import Counter
 from datetime import timedelta
+from statistics import median
+import ast
+import hashlib
 
 MAIN = os.environ.get('MAIN_REF', 'origin/main')
 DEVELOP = os.environ.get('DEVELOP_REF', 'origin/develop')
@@ -44,6 +51,9 @@ def load_sessions(path):
     data = json.loads(read(path))
     if isinstance(data, dict):
         data = data.get('results') or []
+    if isinstance(data, str):
+        # 커넥터가 돌려준 표 모양 그대로: 첫 줄은 열 이름, 그 뒤 한 줄에 한 행(파이썬 표기)
+        data = [ast.literal_eval(l) for l in data.splitlines()[1:] if l.strip()]
     out = []
     for row in data:
         # 쿼리 결과 행([views])을 그대로 넣었어도 받는다
@@ -177,16 +187,22 @@ def signals(path, prod, days, edits_path=None):
             dm, dd = definition(MAIN, purpose), definition(DEVELOP, purpose)
             defs[purpose] = dm
             rule_state[purpose] = (diff(dm, dd), history(MAIN, purpose, start_iso), interpretation_changed(dm, dd),
-                                   interpretation_history(MAIN, purpose, start_iso)) if dm else None
+                                   interpretation_history(MAIN, purpose, start_iso), survey_changed(dm, dd),
+                                   survey_history(MAIN, purpose, start_iso)) if dm else None
         dm = defs[purpose]
         if dm is None:
             return 'main 에 정의서가 없음(정의서 전체가 배포를 기다림)'
-        pending, deployed, interpretation_pending, interpretation_deployed = rule_state[purpose]
+        pending, deployed, interpretation_pending, interpretation_deployed, survey_pending, survey_deployed = rule_state[purpose]
         # 점수 해석 규칙은 어느 답 조합에 걸리는지 답만으로 알 수 없어, 바뀌면 그 사용 목적의 세션을 모두 버린다
         if interpretation_pending:
             return '배포를 기다리는 점수 해석 규칙이 있음'
         if any(at < ts(t) for t in interpretation_deployed):
             return '배포 전에 본 점수 해석 규칙'
+        # 선택지를 합치거나 지우면 같은 답이 배포 전후에 다른 사용자를 담는다
+        if survey_pending:
+            return '배포를 기다리는 설문 뜻 변경이 있음'
+        if any(at < ts(t) for t in survey_deployed):
+            return '설문 뜻이 바뀌기 전에 본 결과'
         hit_any = lambda ch: any(hit(dm, ch['before'], a) or hit(dm, ch['after'], a) for a in seen)
         if any(hit_any(ch) for ch in pending):
             return '배포를 기다리는 규칙에 걸림'
@@ -333,6 +349,8 @@ def issue(body_path):
     out['pending'] = [ch['key'] for ch in diff(dm, dd) if hit_any(ch)]
     if interpretation_changed(dm, dd):
         out['pending'].append('interpretation')
+    if survey_changed(dm, dd):
+        out['pending'].append('survey')
     return out
 
 
@@ -342,10 +360,266 @@ def stale(body_path, new_path):
     return {'stale': lines(body_path) != lines(new_path)}
 
 
+# ---- 설문 신호 ----
+
+SURVEY_PREFIX = '[제품 추천 설문 지표]'
+DWELL, EXIT, UNUSED = '체류가 긴 화면', '이탈이 많은 화면', '쓰이지 않는 질문'
+SURVEY_TITLE = {DWELL: '화면에서 오래 머물러요', EXIT: '화면에서 이탈이 많아요', UNUSED: '질문이 어디에도 쓰이지 않아요'}
+SPEC_PATH = 'recommendation-improvement/interface/components/metric-collector.md'
+DEPLOY_MARGIN = 30 * 60  # main 커밋 뒤 운영 배포가 끝나기까지. 이 사이에 시작한 세션은 어느 정의서를 봤는지 모른다
+QUESTION_PATH = re.compile(r'/questions/(\d+)')
+
+
+def survey_changed(d1, d2):
+    # 설문의 뜻이 바뀌었는지(d1 → d2). 질문·선택지를 더하기만 했거나 문구만 바꾼 것은 아니다
+    if not d1 or not d2:
+        return False
+    q1, q2 = S.questions_of(d1), S.questions_of(d2)
+    shape = lambda q: ((q.get('input') or 'SINGLE'), q.get('exclusive'), q.get('showWhen'))
+    options = lambda q: {o['code'] for o in q.get('options') or []}
+    return any(c not in q2 or not options(q) <= options(q2[c]) or shape(q) != shape(q2[c])
+               for c, q in q1.items())
+
+
+def survey_history(ref, purpose, since=None):
+    return [time for _, time, _, before, after in definition_commits(ref, purpose, since)
+            if survey_changed(before, after)]
+
+
+def main_commits(purpose):
+    # main 에서 정의서가 바뀐 커밋 [(유닉스 초, sha, 제목)], 오래된 것부터
+    lines = git('log', '--first-parent', '--format=%H%x1f%cI%x1f%s', MAIN, '--', DEF_PATH.format(purpose)).stdout.splitlines()
+    return [(ts(utc(t)), sha, subject) for sha, t, subject in (l.split('\x1f', 2) for l in reversed(lines))]
+
+
+def survey_version(ref, purpose):
+    # 설문 API 의 version 과 같다: 정의서 파일 바이트의 SHA-256 앞 12자
+    if os.path.isfile(ref):
+        with open(ref, 'rb') as f:
+            raw = f.read()
+    else:
+        raw = subprocess.run(['git', '-C', repo(), 'show', f'{ref}:{DEF_PATH.format(purpose)}'], capture_output=True).stdout
+    return hashlib.sha256(raw).hexdigest()[:12]
+
+
+def thresholds(spec):
+    # 명세의 기준값 표. 하나라도 읽을 수 없으면 None
+    text = read(spec) if os.path.isfile(spec) else git('show', f'{spec}:{SPEC_PATH}').stdout
+    cell = lambda name: (re.search(rf'^\| {re.escape(name)} \|[^|\n]*\|([^|\n]*)\|', text, re.M) or [None, ''])[1].strip()
+
+    def nums(name, pattern):
+        m = re.fullmatch(pattern, cell(name))
+        return [float(x) for x in m.groups()] if m else None
+
+    def days(name):
+        m = re.fullmatch(r'(?:최근 )?(\d+)(주|일)', cell(name))
+        return int(m[1]) * (7 if m[2] == '주' else 1) if m else None
+
+    t = {'days': days('설문 조회 기간'), 'sample': nums('화면 최소 표본', r'(\d+)세션'),
+         'dwell': nums('긴 체류', r'([\d.]+)배, (\d+)초'), 'exit': nums('많은 이탈', r'([\d.]+)배, ([\d.]+)%, (\d+)세션'),
+         'unused_days': days('쓰이지 않은 기간')}
+    return t if all(t.values()) else None
+
+
+def screens(d, answers=None):
+    # resolveScreens 와 같다. 답이 없으면(중간에 그만둔 세션) 노출 조건과 상관없이 정해지는 앞쪽 화면까지만
+    out = []
+    for step in d['survey']['steps']:
+        qs = step['questions']
+        if answers is None:
+            if all(q.get('showWhen') for q in qs):
+                break
+        elif not any(q.get('showWhen') is None or ev(q['showWhen'], answers) for q in qs):
+            continue
+        out.append(step)
+    return out
+
+
+def step_of(d, code):
+    # 첫 질문 코드가 code 인 단계. 화면 하나를 이 코드로 가리킨다
+    return next((s for s in (d or {'survey': {'steps': []}})['survey']['steps'] if s['questions'][0]['code'] == code), None)
+
+
+def survey_runs(views, start_ts):
+    # (사용 목적, 결과 화면 앞의 질문 화면 이동 [(시각, 번호)], 결과 화면 또는 None). 잇단 같은 번호는 하나로 본다
+    by = {}
+    for v in views:
+        if v['purpose']:
+            by.setdefault(v['purpose'], []).append(v)
+    for purpose, vs in by.items():
+        first = next((i for i, v in enumerate(vs) if QUESTION_PATH.fullmatch(v['path'])), None)
+        if first is None or vs[first]['ts'] < start_ts:
+            continue
+        run, result = [], None
+        for v in vs[first:]:
+            if v['path'] == '/result':
+                result = v
+                break
+            m = QUESTION_PATH.fullmatch(v['path'])
+            if m and not (run and run[-1][1] == int(m[1])):
+                run.append((v['ts'], int(m[1])))
+        yield purpose, run, result
+
+
+def survey(path, spec):
+    t = thresholds(spec)
+    if t is None:
+        return {'thresholds': None, 'groups': [], 'screens': [], 'dropped': {}}
+    now = datetime.now(timezone.utc)
+    start = now - timedelta(days=t['days'])
+    period = f"{start.strftime('%Y-%m-%d')} ~ {now.strftime('%Y-%m-%d')}"
+    dropped, commits, defs, stats = Counter(), {}, {}, {}
+
+    def at(ref, purpose):
+        if (ref, purpose) not in defs:
+            defs[ref, purpose] = definition(ref, purpose)
+        return defs[ref, purpose]
+
+    runs = (r for views in load_sessions(path) for r in survey_runs(views, int(start.timestamp())))
+    for key, (purpose, run, result) in enumerate(runs):
+        if purpose not in commits:
+            commits[purpose] = main_commits(purpose)
+        t0, t1 = run[0][0], (result or {'ts': run[-1][0]})['ts']
+        seen = [c for c in commits[purpose] if c[0] <= t0]
+        if not seen:
+            dropped['main 에 정의서가 없던 때'] += 1
+            continue
+        if t0 - seen[-1][0] < DEPLOY_MARGIN or any(t0 < c[0] <= t1 for c in commits[purpose]):
+            dropped['배포 중이거나 도중에 배포된 세션'] += 1
+            continue
+        d, now_main = at(seen[-1][1], purpose), at(MAIN, purpose)
+        if d is None or now_main is None:
+            dropped['main 에 정의서가 없던 때'] += 1
+            continue
+        listed = screens(d, result['answers'] if result else None)
+        if result and any(not 1 <= n <= len(listed) for _, n in run):
+            dropped['화면 번호가 화면 수를 넘음'] += 1
+            continue
+        for i, (when, n) in enumerate(run):
+            if not 1 <= n <= len(listed):
+                continue
+            step = listed[n - 1]
+            code = step['questions'][0]['code']
+            if step.get('layout') == 'CURRENT_SPEC':
+                continue
+            # 세션이 본 화면이 지금 main 의 것과 다르면 바뀐 설문의 효과와 섞인다
+            if step != step_of(now_main, code):
+                dropped['지금 main 과 다른 화면(세션·화면)'] += 1
+                continue
+            s = stats.setdefault((purpose, code), {'entered': set(), 'exits': 0, 'dwell': {}})
+            s['entered'].add(key)
+            following = run[i + 1][1] if i + 1 < len(run) else None
+            if key not in s['dwell'] and (following == n + 1 or following is None and result):
+                s['dwell'][key] = (run[i + 1][0] if following else result['ts']) - when
+            if following is None and not result:
+                s['exits'] += 1
+
+    groups, rows = [], []
+    for purpose in sorted({p for p, _ in stats} | set(main_purposes())):
+        dm, dd = at(MAIN, purpose), at(DEVELOP, purpose)
+        if dm is None:
+            continue
+        listed = dm['survey']['steps']
+        fixed = {s['questions'][0]['code'] for s in screens(dm)}
+        here = []
+        for n, step in enumerate(listed, 1):
+            code = step['questions'][0]['code']
+            s = stats.get((purpose, code))
+            if not s:
+                continue
+            dwell = sorted(s['dwell'].values())
+            here.append({'purpose': purpose, 'screen': n, 'code': code, 'questions': len(step['questions']),
+                         'sessions': len(s['entered']), 'dwell_median': median(dwell) if dwell else None,
+                         # 중간에 그만둔 세션은 앞쪽 화면에서만 어디서 그만뒀는지 안다. 그 뒤 화면은 이탈률을 내지 않는다
+                         'exits': s['exits'] if code in fixed and n > 1 else None,
+                         'pending': step != step_of(dd, code)})
+        rows += here
+        big = [r for r in here if r['sessions'] >= t['sample'][0]]
+        rates = [r['exits'] / r['sessions'] for r in big if r['exits'] is not None]
+        exit_median = median(rates) if rates else None
+        for r in big:
+            others = [o['dwell_median'] for o in big if o['questions'] == 1 and o is not r and o['dwell_median'] is not None]
+            base = median(others) if others else None
+            dwell = r['dwell_median'] / r['questions'] if r['dwell_median'] is not None else None
+            if base is not None and dwell is not None and dwell >= t['dwell'][0] * base and dwell >= t['dwell'][1]:
+                per = f", 질문 {r['questions']}개라 질문당 {dwell:g}초" if r['questions'] > 1 else ''
+                groups.append(survey_group(dm, purpose, r['code'], DWELL, r['pending'], period, [
+                    f"- 이 화면: 체류 중앙값 {r['dwell_median']:g}초 ({r['sessions']}세션{per})",
+                    f'- 비교: 같은 사용 목적의 다른 단일 질문 화면 체류 중앙값들의 중앙값 {base:g}초']))
+            if r['exits'] is not None and exit_median is not None:
+                rate = r['exits'] / r['sessions']
+                if rate >= t['exit'][0] * exit_median and rate * 100 >= t['exit'][1] and r['exits'] >= t['exit'][2]:
+                    groups.append(survey_group(dm, purpose, r['code'], EXIT, r['pending'], period, [
+                        f"- 이 화면: 이탈 {rate * 100:.0f}% ({r['exits']} / {r['sessions']}세션)",
+                        f'- 비교: 같은 사용 목적 화면의 이탈률 중앙값 {exit_median * 100:.0f}%']))
+        groups += unused(purpose, dm, dd, commits.get(purpose) or main_commits(purpose), now, t['unused_days'], at)
+    return {'thresholds': t, 'period': period, 'groups': groups, 'screens': rows, 'dropped': dict(dropped)}
+
+
+def main_purposes():
+    out = git('ls-tree', '--name-only', f'{MAIN}:{os.path.dirname(DEF_PATH)}').stdout.split()
+    return [f[:-4] for f in out if f.endswith('.yml') and not f.endswith('.retired.yml')]
+
+
+def unused(purpose, dm, dd, history, now, min_days, at):
+    out = []
+    for code, q in S.questions_of(dm).items():
+        if S.used(dm, code):
+            continue
+        # 지금까지 이어서 쓰이지 않은 커밋들 중 가장 오래된 것이 그렇게 된 커밋이다
+        since = None
+        for c in reversed(history):
+            d = at(c[1], purpose)
+            if d is None or code not in S.questions_of(d) or S.used(d, code):
+                break
+            since = c
+        if since is None or now.timestamp() - since[0] < min_days * 86400:
+            continue
+        pending = dd is None or S.questions_of(dd).get(code) != q or S.used(dd, code)
+        out.append(survey_group(dm, purpose, code, UNUSED, pending, None, [
+            f'- 쓰이지 않게 된 커밋: {since[1][:7]} {since[2]} ({iso(since[0])[:10]})',
+            f'- 지난 기간: {int((now.timestamp() - since[0]) // 86400)}일']))
+    return out
+
+
+def survey_key(purpose, signal, code):
+    return json.dumps(['SURVEY', purpose, signal, code], ensure_ascii=False)
+
+
+def survey_group(dm, purpose, code, signal, pending, period, basis):
+    step = step_of(dm, code) or next(s for s in dm['survey']['steps'] if any(q['code'] == code for q in s['questions']))
+    codes = [code] if signal == UNUSED else [q['code'] for q in step['questions']]
+    title = S.questions_of(dm)[code]['title'] if signal == UNUSED else step.get('title') or step['questions'][0]['title']
+    body = '\n'.join([
+        '### 사용 목적', '', purpose, '', '### 질문', '', ', '.join(codes), '', '### 질문 제목', '', title, '',
+        '### 이 화면에서 고른 답', '', '_No response_', '', '### 지금까지 고른 답', '', '_No response_', '',
+        '### 설문 버전', '', survey_version(MAIN, purpose), '', '### 어떤 점이 맞지 않았나요?', '', '기타', '',
+        '### 더 알려 주실 내용', '', '_No response_', '', '### 근거 지표', '',
+        *([f'- 기간: {period}'] if period else []), f'- 신호: {signal}', *basis, ''])
+    return {'key': survey_key(purpose, signal, code), 'purpose': purpose, 'signal': signal, 'questions': codes,
+            'pending': pending, 'title': f'{SURVEY_PREFIX} {purpose} "{title}" {SURVEY_TITLE[signal]}', 'body': body}
+
+
+def survey_issue(body_path):
+    text = read(body_path)
+    f = fields(text)
+    purpose, code = f.get('사용 목적', ''), f.get('질문', '').split(',')[0].strip()
+    signal = (re.search(r'^- 신호: (.+)$', f.get('근거 지표', ''), re.M) or [None, ''])[1].strip()
+    dm, dd = definition(MAIN, purpose), definition(DEVELOP, purpose)
+    if signal == UNUSED:
+        q = S.questions_of(dm).get(code) if dm else None
+        pending = q is None or dd is None or S.questions_of(dd).get(code) != q or S.used(dd, code)
+    else:
+        pending = dm is None or step_of(dm, code) != step_of(dd, code)
+    return {'key': survey_key(purpose, signal, code), 'pending': bool(pending)}
+
+
 COMMANDS.update({
     'signals': lambda r: signals(*r),
     'issue': lambda r: issue(*r),
     'stale': lambda r: stale(*r),
+    'survey': lambda r: survey(*r),
+    'survey-issue': lambda r: survey_issue(*r),
 })
 
 if __name__ == '__main__':

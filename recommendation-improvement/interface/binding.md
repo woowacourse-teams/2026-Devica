@@ -8,19 +8,25 @@
 
 | 산출물 | 저장 위치 | 식별 | 유효 조건 |
 |---|---|---|---|
-| [사용자 행동 지표](artifacts/user-behavior-metrics.schema.yml) | PostHog 프로젝트 `638813` 의 이벤트 | `event` 가 `recommendation_result_viewed` 또는 `recommended_spec_edited`, `$current_url` 이 운영 사이트 | — |
-| [피드백](artifacts/feedback.md) | `product-recommendation-feedback` 라벨이 붙은 이슈. PR 은 제외 | 제목 머리말. `[제품 추천 의견]` 은 사용자 피드백, `[제품 추천 지표]` 는 지표 피드백 | 지표 피드백은 팀원 작성. 아니면 사용자 피드백으로 본다 |
+| [사용자 행동 지표](artifacts/user-behavior-metrics.schema.yml) | PostHog 프로젝트 `638813` 의 이벤트 | `event` 가 `recommendation_result_viewed`, `recommended_spec_edited`, `$pageview` 중 하나, `$current_url` 이 운영 사이트 | — |
+| [피드백](artifacts/feedback.md) | `product-recommendation-rule-feedback` 라벨이 붙은 이슈. PR 은 제외 | 제목 머리말. `[제품 추천 의견]` 은 사용자 피드백, `[제품 추천 지표]` 는 지표 피드백 | 지표 피드백은 팀원 작성. 아니면 사용자 피드백으로 본다 |
+| [설문 피드백](artifacts/feedback.md#설문-피드백) | `product-recommendation-survey-feedback` 라벨이 붙은 이슈. PR 은 제외 | 제목 머리말. `[제품 추천 설문 의견]` 은 사용자 피드백, `[제품 추천 설문 지표]` 는 지표 피드백, `[제품 추천 의견]` 은 넘겨받은 결과 의견 | 지표 피드백은 팀원 작성. 넘겨받은 결과 의견은 넘김이 있을 때만. 넘김 없는 팀원 작성 사용자 피드백은 근거로 세지 않는다 |
+| [넘김](artifacts/handover.schema.yml) | 넘긴 이슈의 댓글 | 첫 줄 `<!-- product-recommendation:handover -->` | 팀원 작성. 여러 개면 처음 것만 |
 | [분석 결과](artifacts/analysis-result.schema.yml) | 분석한 피드백 이슈의 댓글 | 첫 줄 `<!-- product-recommendation:analysis -->` | 팀원 작성. 여러 개면 가장 최근 것이 지금의 판단 |
+| [설문 분석 결과](artifacts/survey-analysis.schema.yml) | 분석한 설문 피드백 이슈의 댓글 | 첫 줄 `<!-- product-recommendation:survey-analysis -->` | 분석 결과와 같다 |
 | [개선 지시](artifacts/improvement-instruction.schema.yml) | 근거 피드백 중 번호가 가장 작은 이슈의 댓글 | 첫 줄 `<!-- product-recommendation:decision -->` | 팀원 작성 |
+| [설문 개선 지시](artifacts/survey-instruction.schema.yml) | 근거 피드백 중 번호가 가장 작은 이슈의 댓글 | 첫 줄 `<!-- product-recommendation:survey-decision -->` | 팀원 작성 |
 | [개선 결과](artifacts/improvement-result.schema.yml) | 개선 지시가 달린 이슈의 댓글 | 첫 줄 `<!-- product-recommendation:result -->` | 팀원 작성. 같은 이슈에서 이 댓글보다 앞선 개선 지시 중 가장 최근 것의 결과다 |
-| [개선 PR](artifacts/improvement-pr.md) | `develop` 으로 가는 PR | 본문 첫 줄 `<!-- product-recommendation:improvement -->` | — |
+| [설문 개선 결과](artifacts/improvement-result.schema.yml) | 설문 개선 지시가 달린 이슈의 댓글 | 첫 줄 `<!-- product-recommendation:survey-result -->` | 개선 결과와 같다. 짝은 설문 개선 지시다 |
+| [개선 PR](artifacts/improvement-pr.md) | `develop` 으로 가는 PR | 본문 첫 줄 `<!-- product-recommendation:improvement -->`. 규칙 쪽과 설문 쪽이 같다 | — |
+| 승인 | 설문 지표 피드백 이슈의 라벨 | `product-recommendation-approved` | 라벨은 팀원만 달 수 있다 |
 
 팀원 작성은 `author_association` 이 `OWNER`, `MEMBER`, `COLLABORATOR` 인 작성자가 쓴 것이다. 구성 요소가 만드는 산출물은 팀원이 쓴 것만 유효하다.
 
 ## 댓글 모양
 
 1. 첫 줄: 마커
-2. 분석 결과만: 사람이 읽는 판단과 근거
+2. 분석 결과와 넘김만: 사람이 읽는 판단과 근거
 3. ```` ```yaml ```` 블록 하나. [artifacts/](artifacts/)의 스키마를 따른다. 따르지 않으면 그 댓글은 산출물이 아니다
 
 댓글 순서는 `created_at`, 같으면 `id` 다.
@@ -46,3 +52,5 @@ issues: [ 251, 257 ]
 | 반려 | 개선 결과의 PR 이 머지되지 않고 닫혔다. 반려 사유는 그 PR 의 팀원 리뷰·댓글이다 |
 | 머지 | 개선 결과의 PR 이 머지됐다 |
 | 중단 | 팀원이 이슈를 닫았고 개선 결과가 없다 |
+
+설문 개선 지시도 같다. 개선 결과 대신 설문 개선 결과를 본다.

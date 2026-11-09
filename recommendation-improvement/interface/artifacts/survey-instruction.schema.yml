@@ -1,0 +1,238 @@
+# 설문 개선 지시
+#
+# Feedback Analyzer 가 내고, Recommendation Improver 가 받는다. 개선 지시(improvement-instruction.schema.yml)의 설문 쪽이다.
+# Recommendation Improver 는 피드백 원문을 읽지 않는다. 이 산출물만 보고 고칠 수 있게 적는다.
+# 어디에 어떤 모양으로 놓이는지는 ../binding.md 에, 종류마다 고치는 방법은 ../components/recommendation-improver.md 에 있다.
+# 질문 모양과 지운 코드 목록의 구조는 서버의 정의서 검사(RecommendationDefinitionValidator)가 본다. 여기서는 구성 요소끼리 맞춰야 하는 것만 거른다.
+
+$schema: https://json-schema.org/draft/2020-12/schema
+title: 설문 개선 지시
+type: object
+additionalProperties: false
+required: [ issues, basis, purpose, kind, target, from, to, reason ]
+properties:
+
+  # 근거가 된 피드백의 이슈 번호. 오름차순
+  issues:
+    type: array
+    minItems: 1
+    items: { type: integer }
+
+  # 근거의 종류. 종류마다 허용되는 근거는 ../components/feedback-analyzer.md 의 지시 조건에 있다
+  #   USER             사용자 의견만 있다
+  #   USER_AND_METRIC  사용자 의견과 설문 지표 피드백이 있다
+  #   METRIC           설문 지표 피드백만 있다
+  basis:
+    enum: [ USER, USER_AND_METRIC, METRIC ]
+
+  # 고칠 정의서. 정의서 파일 이름의 사용 목적 코드다
+  purpose:
+    type: string
+
+  # 변경 종류. 지시 하나에 질문 하나, 종류 하나다
+  #   REWORD            뜻이 같은 문구 수정. 코드와 구조는 그대로다
+  #   ADD_OPTION        선택지 추가
+  #   ADD_QUESTION      질문 추가. 제목 없는 새 단계로 after 의 단계 바로 뒤에 들어간다
+  #   RESTORE           지운 질문·선택지를 지울 때의 문구(지운 코드 목록의 was) 그대로 되살린다
+  #   MERGE_OPTION      선택지를 같은 질문의 다른 선택지로 합친다
+  #   REPLACE_OPTION    선택지를 새 코드로 대체한다. 뜻이 바뀌는 문구 수정도 이것이다
+  #   REPLACE_QUESTION  질문을 새 코드로 대체한다
+  #   DELETE_OPTION     선택지 삭제
+  #   DELETE_QUESTION   질문 삭제
+  #   MOVE_QUESTION     질문을 제목 없는 새 단계로 옮겨 after 의 단계 바로 뒤에 둔다. 질문 내용은 그대로다
+  #   SPLIT_OPTION      선택지 하나를 새 코드의 선택지 여럿으로 나눈다
+  #   CHANGE_INPUT      선택 방식(input)이나 배타 선택지(exclusive)를 바꾼다. 코드는 그대로다
+  kind:
+    enum: [ REWORD, ADD_OPTION, ADD_QUESTION, RESTORE, MERGE_OPTION, REPLACE_OPTION, REPLACE_QUESTION, DELETE_OPTION, DELETE_QUESTION,
+            MOVE_QUESTION, SPLIT_OPTION, CHANGE_INPUT ]
+
+  # 대상. question 은 지금 질문 코드다(ADD_QUESTION 은 새 코드, RESTORE 는 되살릴 코드).
+  # option 은 *_OPTION 과 선택지 RESTORE 에서 대상 선택지 코드다(ADD_OPTION 은 새 코드, MERGE_OPTION·SPLIT_OPTION 은 없어지는 코드)
+  target:
+    type: object
+    additionalProperties: false
+    required: [ question ]
+    properties:
+      question: { type: string }
+      option: { type: string }
+
+  # 대상 질문의 지금 develop 정의서 내용. survey.steps 의 질문 하나 그대로다. 질문이 지금 없으면(ADD_QUESTION, 질문 RESTORE) null.
+  # Recommendation Improver 는 이 값이 지금과 다르면 고치지 않는다
+  from: { $ref: '#/$defs/question' }
+
+  # 고친 뒤의 그 질문. 정의서 질문 모양 그대로다. DELETE_QUESTION 이면 null
+  to: { $ref: '#/$defs/question' }
+
+  # ADD_QUESTION, MOVE_QUESTION, 질문 RESTORE 에서 새 단계 바로 앞 단계에 있는 질문 코드
+  after:
+    type: string
+
+  # 지운 코드 목록(<사용 목적>.retired.yml)에 더할 줄. 옛 코드를 지우거나 바꾸는 종류(MERGE_OPTION, REPLACE_*, DELETE_*, SPLIT_OPTION)에만 있고,
+  # CHANGE_INPUT 은 옛 답이 새 방식에 맞지 않을 때만 dropInvalid 줄 하나가 있다.
+  # retiredAt 은 적지 않는다. Recommendation Improver 가 커밋 날짜로 채운다
+  retire:
+    type: array
+    minItems: 1
+    items: { $ref: '#/$defs/retired' }
+
+  # 함께 바꿀 근거 문장. 바뀌는 선택지 문구를 전제한 규칙의 reason 이다. 결과 값은 바뀌지 않는다
+  reasons:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required: [ criterion, when, from, to ]
+      properties:
+        criterion: { type: string }
+        when: { type: object }
+        os: { enum: [ MAC, WINDOWS ] }
+        from: { type: string }
+        to: { type: string }
+
+  # 새 질문·선택지를 보는 규칙을 함께 더할 때(ADD_OPTION, ADD_QUESTION)만. 개선 지시의 rule 과 change.add, reason.to 를 합친 것이다.
+  # 점수의 크기는 Recommendation Improver 가 개선 지시의 add 와 같은 방법으로 정한다
+  rule:
+    type: object
+    additionalProperties: false
+    required: [ criterion, when, direction, reason ]
+    properties:
+      criterion: { type: string }
+      when: { type: object }
+      os: { enum: [ MAC, WINDOWS ] }
+      direction: { enum: [ UP, DOWN ] }
+      reason: { type: string }
+
+  # 재현 사례. rule 이 있을 때만 있고, 모든 사례에 expected 가 있다. 모양과 뜻은 개선 지시의 cases 와 같다
+  cases:
+    type: array
+    minItems: 1
+    items:
+      type: object
+      additionalProperties: false
+      required: [ issue, answers, expected ]
+      properties:
+        issue: { type: integer }
+        answers:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+        expected:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [ plan, item, direction ]
+            properties:
+              plan: { enum: [ MAC, WINDOWS ] }
+              item: { enum: [ REQUIRED_CPU, MEMORY, STORAGE ] }
+              direction: { enum: [ UP, DOWN ] }
+              current: { type: integer }
+
+  # 지시를 낸 이유. 어느 지시 조건에 해당하는지, 근거 의견의 작성자 수, 지표 신호를 적는다
+  reason:
+    type: string
+    minLength: 1
+
+allOf:
+  # 질문이 지금 없는 종류만 from 이 null 이다
+  - anyOf:
+      - properties: { from: { type: object } }
+      - properties: { kind: { enum: [ ADD_QUESTION, RESTORE ] } }
+  # DELETE_QUESTION 만 to 가 null 이다
+  - anyOf:
+      - properties: { kind: { const: DELETE_QUESTION }, to: { type: 'null' } }
+      - properties: { kind: { not: { const: DELETE_QUESTION } }, to: { type: object } }
+  # 선택지 종류는 target.option 이 있고, 질문 종류는 없다
+  - anyOf:
+      - properties: { kind: { not: { enum: [ ADD_OPTION, MERGE_OPTION, REPLACE_OPTION, DELETE_OPTION, SPLIT_OPTION ] } } }
+      - properties: { target: { required: [ option ] } }
+  - anyOf:
+      - properties: { kind: { not: { enum: [ ADD_QUESTION, REPLACE_QUESTION, DELETE_QUESTION, MOVE_QUESTION, CHANGE_INPUT ] } } }
+      - properties: { target: { not: { required: [ option ] } } }
+  # 옛 코드를 지우거나 바꾸는 종류에만 retire 가 있다. CHANGE_INPUT 은 있을 수도 없을 수도 있다
+  - anyOf:
+      - properties: { kind: { enum: [ MERGE_OPTION, REPLACE_OPTION, REPLACE_QUESTION, DELETE_OPTION, DELETE_QUESTION, SPLIT_OPTION ] } }
+        required: [ retire ]
+      - properties: { kind: { const: CHANGE_INPUT } }
+      - properties: { kind: { not: { enum: [ MERGE_OPTION, REPLACE_OPTION, REPLACE_QUESTION, DELETE_OPTION, DELETE_QUESTION, SPLIT_OPTION, CHANGE_INPUT ] } } }
+        not: { required: [ retire ] }
+  - anyOf:
+      - properties: { kind: { not: { enum: [ ADD_QUESTION, MOVE_QUESTION ] } } }
+      - required: [ after ]
+  # rule 과 cases 는 함께 있고, 추가하는 종류에만 있다
+  - anyOf:
+      - not: { anyOf: [ { required: [ rule ] }, { required: [ cases ] } ] }
+      - required: [ rule, cases ]
+        properties: { kind: { enum: [ ADD_OPTION, ADD_QUESTION ] } }
+
+$defs:
+  # 정의서 survey.steps 의 질문 하나. 칸의 구조는 서버의 정의서 검사가 본다
+  question:
+    type: [ object, 'null' ]
+    required: [ code, title, options ]
+
+  # 지운 코드 목록의 줄 모양에서 retiredAt 을 뺀 것
+  #   질문 줄          { question: 옛 질문 코드, to: 지금 질문 코드 | drop: true, was: 옛 질문 제목 }
+  #   선택지 줄        { question: 지금 질문 코드, option: 옛 선택지 코드, to: 지금 선택지 코드 | drop: true, was: 옛 선택지 문구 }
+  #   dropInvalid 줄   { question: 지금 질문 코드, dropInvalid: true }
+  retired:
+    type: object
+    additionalProperties: false
+    required: [ question ]
+    properties:
+      question: { type: string }
+      option: { type: string }
+      to: { type: string }
+      drop: { const: true }
+      dropInvalid: { const: true }
+      was: { type: string, minLength: 1 }
+    oneOf:
+      - required: [ to, was ]
+      - required: [ drop, was ]
+      - required: [ dropInvalid ]
+        not: { anyOf: [ { required: [ option ] }, { required: [ was ] } ] }
+
+examples:
+  - issues: [ 371, 384 ]
+    basis: USER
+    purpose: BACKEND_DEVELOPMENT
+    kind: DELETE_OPTION
+    target: { question: STORAGE_SHORTAGE, option: ONCE_OR_TWICE }
+    from:
+      code: STORAGE_SHORTAGE
+      title: 용량이 부족해서 뭔가를 지우거나 옮긴 적이 있나요?
+      options: [ { code: OFTEN, content: 자주 있다 }, { code: ONCE_OR_TWICE, content: 한두 번 있다 }, { code: NEVER, content: 없다 } ]
+    to:
+      code: STORAGE_SHORTAGE
+      title: 용량이 부족해서 뭔가를 지우거나 옮긴 적이 있나요?
+      options: [ { code: OFTEN, content: 자주 있다 }, { code: NEVER, content: 없다 } ]
+    retire:
+      - { question: STORAGE_SHORTAGE, option: ONCE_OR_TWICE, drop: true, was: 한두 번 있다 }
+    reason: 결과에 쓰이는 코드의 삭제. 서로 다른 사용자 의견 2건(#371, #384)이 "자주"와 "한두 번"을 구분하기 어렵다고 했다.
+  - issues: [ 390 ]
+    basis: USER
+    purpose: BACKEND_DEVELOPMENT
+    kind: ADD_OPTION
+    target: { question: AI_CODING_TOOL, option: TERMINAL_AGENT }
+    from:
+      code: AI_CODING_TOOL
+      title: AI 코딩 도구를 쓰나요?
+      options: [ { code: AI_EDITOR, content: Cursor 같은 AI 전용 에디터를 쓴다 }, { code: IDE_EXTENSION, content: 기존 IDE 에 확장으로 붙여 쓴다 }, { code: NONE, content: 안 쓴다 } ]
+    to:
+      code: AI_CODING_TOOL
+      title: AI 코딩 도구를 쓰나요?
+      options: [ { code: AI_EDITOR, content: Cursor 같은 AI 전용 에디터를 쓴다 }, { code: IDE_EXTENSION, content: 기존 IDE 에 확장으로 붙여 쓴다 },
+                 { code: TERMINAL_AGENT, content: 터미널에서 AI 에이전트를 띄워 쓴다 }, { code: NONE, content: 안 쓴다 } ]
+    rule:
+      criterion: MEMORY
+      when: { question: AI_CODING_TOOL, anyOf: [ TERMINAL_AGENT ] }
+      direction: UP
+      reason: 터미널 AI 에이전트를 여러 개 띄우면 메모리를 더 씁니다.
+    cases:
+      - issue: 390
+        answers: { PROGRAMMING_LANGUAGE: [ NODE_TYPESCRIPT ], AI_CODING_TOOL: [ TERMINAL_AGENT ] }
+        expected:
+          - { plan: MAC, item: MEMORY, direction: UP }
+    reason: 선택지 추가. 사용자 의견 1건(#390)이 맞는 선택지가 없다고 했고, 메모리가 부족하다는 방향까지 짚어 그 선택지를 보는 규칙을 함께 더한다.
