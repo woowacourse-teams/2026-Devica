@@ -86,7 +86,7 @@
 }
 
 .button:disabled {
-    border: 0;
+    border-color: transparent;
     color: var(--control);
     background: var(--surface-2);
     cursor: not-allowed;

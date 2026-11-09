@@ -115,7 +115,7 @@
 
 @media (max-width: 767px) {
     .site-header__inner {
-        height: 64px;
+        height: var(--header-height-mobile);
         padding: 0 var(--space-8) 0 var(--space-20);
     }
 
@@ -143,7 +143,7 @@
     /* 메뉴는 헤더 아래 화면 전체를 덮는다. */
     .site-header[data-menu-open="true"] .site-nav {
         position: fixed;
-        inset: 64px 0 0;
+        inset: var(--header-height-mobile) 0 0;
         display: flex;
         flex-direction: column;
         flex-wrap: nowrap;

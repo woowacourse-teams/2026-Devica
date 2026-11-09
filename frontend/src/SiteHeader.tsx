@@ -1,6 +1,7 @@
-import { type MouseEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname } from 'wouter/use-browser-location';
-import { go, PATHS } from './routes';
+import { track } from './analytics';
+import { DESKTOP_MEDIA, go, navigateInside, PATHS } from './routes';
 import { ServiceEntryLink } from './ServiceEntryLink';
 import './SiteLayout.css';
 
@@ -13,14 +14,6 @@ type Props = {
   productListActive: boolean;
   guideActive: boolean;
 };
-
-export function navigateInside(event: MouseEvent<HTMLAnchorElement>, navigate: () => void) {
-  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-    return;
-  }
-  event.preventDefault();
-  navigate();
-}
 
 export function SiteHeader({
   onGuide,
@@ -41,12 +34,32 @@ export function SiteHeader({
 
   useEffect(() => {
     if (!menuOpen) return;
+    const close = () => setMenuOpen(false);
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMenuOpen(false);
+      if (event.key === 'Escape') close();
     };
+    const closeOnDesktop = () => {
+      if (window.matchMedia(DESKTOP_MEDIA).matches) close();
+    };
+    const covered = document.querySelectorAll<HTMLElement>('#main-content, .site-footer');
+    for (const element of covered) element.inert = true;
+    document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
+    window.addEventListener('resize', closeOnDesktop);
+    return () => {
+      for (const element of covered) element.inert = false;
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', closeOnEscape);
+      window.removeEventListener('resize', closeOnDesktop);
+    };
   }, [menuOpen]);
+
+  function toggleMenu() {
+    if (!menuOpen && !boardActive) {
+      track('board_entry_viewed', {});
+    }
+    setMenuOpen(!menuOpen);
+  }
 
   return (
     <header className="site-header" data-menu-open={menuOpen}>
@@ -60,7 +73,7 @@ export function SiteHeader({
           aria-label={menuOpen ? '메뉴 닫기' : '메뉴 열기'}
           aria-expanded={menuOpen}
           aria-controls="site-nav"
-          onClick={() => setMenuOpen((open) => !open)}
+          onClick={toggleMenu}
         >
           <svg
             aria-hidden="true"
@@ -76,7 +89,14 @@ export function SiteHeader({
           </svg>
         </button>
         {/* 누르면 앱 안에서 화면을 옮긴다. 새 탭으로 열 때를 위해 href 는 실제 주소를 둔다. */}
-        <nav className="site-nav" id="site-nav" aria-label="주요 메뉴" onClickCapture={() => setMenuOpen(false)}>
+        <nav
+          className="site-nav"
+          id="site-nav"
+          aria-label="주요 메뉴"
+          onClickCapture={(event) => {
+            if (event.target instanceof Element && event.target.closest('a')) setMenuOpen(false);
+          }}
+        >
           <a
             className="site-nav__item"
             id="nav-guide-button"

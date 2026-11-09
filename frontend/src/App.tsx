@@ -31,6 +31,7 @@ import {
   boardEntryUrl,
   conditionOf,
   currentNavState,
+  DESKTOP_MEDIA,
   editEntries,
   editsOf,
   flowEntries,
@@ -82,16 +83,16 @@ export function App() {
   const boardHref = boardEntryUrl(pathname, params);
   const inBoard = isBoardScreen(screen);
 
-  // 질문 게시판과 자주 묻는 질문만 화이트 테마다. 사용자가 바꾸는 기능은 두지 않는다.
-  // 랜딩은 글자색을 직접 정해 두어 다크 바탕에서 읽히지 않는다. 랜딩을 리디자인할 때까지 화이트로 둔다.
+  // 판정을 바꾸면 index.html 의 테마 스크립트도 함께 바꾼다.
   useLayoutEffect(() => {
     document.documentElement.dataset.theme = inBoard || screen === 'faq' || screen === 'home' ? 'light' : 'dark';
   }, [inBoard, screen]);
 
-  // 게시판 진입점은 헤더의 "질문 게시판" 링크다. 게시판 밖의 화면이 바뀔 때마다 그 링크가 보인 것으로 센다.
+  // 게시판 진입점은 헤더의 "질문 게시판" 링크다. 데스크톱은 게시판 밖의 화면이 바뀔 때마다 그 링크가 보인 것으로 센다.
+  // 모바일은 링크가 메뉴 안에 있어 메뉴를 열 때 센다(SiteHeader).
   // biome-ignore lint/correctness/useExhaustiveDependencies: 같은 화면에서 조건만 바꿀 때는 다시 세지 않는다.
   useEffect(() => {
-    if (!inBoard) {
+    if (!inBoard && window.matchMedia(DESKTOP_MEDIA).matches) {
       track('board_entry_viewed', {});
     }
   }, [pathname]);
@@ -175,7 +176,7 @@ export function App() {
           </Route>
         </Switch>
       </main>
-      <SiteFooter />
+      <SiteFooter onGuide={openFaq} onProductList={openSearch} boardHref={boardHref} onBoard={() => go(boardHref)} />
     </>
   );
 }

@@ -1,4 +1,4 @@
-/* 디자인 시스템 Ring 의 토큰. 값은 Ring 의 tokens.json 과 같게 유지한다.
+/* 디자인 시스템 Ring 의 토큰. 값은 Ring 아티팩트(https://claude.ai/artifact/C1okZbLvyhmpLGhYouBzzC)와 같게 유지한다.
    질문 게시판과 자주 묻는 질문은 <html data-theme="light">, 나머지 화면은 다크다. */
 :root,
 [data-theme="dark"] {
@@ -85,12 +85,14 @@
     --content-survey: 760px;
     --content: 1200px;
     --page-gutter: clamp(20px, 5vw, 48px);
+    --header-height-mobile: 64px;
     --font-sans:
         "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui,
         sans-serif;
 }
 
-/* 이전 디자인의 토큰 이름. 화면별 리디자인에서 Ring 이름으로 바꾸면서 지운다. */
+/* 이전 디자인의 토큰 이름. 화면별 리디자인에서 Ring 이름으로 바꾸면서 지운다.
+   :root 에서 한 번 값을 정해 물려주므로 data-theme 은 <html> 에만 둔다. 하위 요소에 두면 이 이름들은 바뀌지 않는다. */
 :root {
     --surface: var(--bg);
     --surface-dim: var(--divider);

@@ -1,3 +1,4 @@
+import type { MouseEvent } from 'react';
 import { navigate } from 'wouter/use-browser-location';
 import {
   COLOR_GAMUT_FILTER_LABELS,
@@ -121,6 +122,16 @@ export function go(to: string, extra: Pick<NavState, 'searching'> = {}): void {
   const from = screenOf(window.location.pathname) ?? undefined;
   navigate(to, { state: { from, ...extra } });
 }
+
+export function navigateInside(event: MouseEvent<HTMLAnchorElement>, navigateTo: () => void): void {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    return;
+  }
+  event.preventDefault();
+  navigateTo();
+}
+
+export const DESKTOP_MEDIA = '(min-width: 768px)';
 
 /** 기록을 쌓지 않고 주소만 바꾼다. 어디서 왔는지는 그대로 둔다. */
 export function replace(to: string, state: NavState = currentNavState()): void {
