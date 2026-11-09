@@ -104,7 +104,9 @@ survey:
 
     - questions:
         - code: AI_CODING_TOOL
-          title: 코딩할 때 어떤 AI 도구를 쓰나요?
+          title: 코딩할 때 어떤 AI 도구를 쓰나요? (복수 선택)
+          input: MULTI
+          exclusive: NONE
           options:
             - { code: AI_EDITOR, content: "에디터 안에서 쓰는 AI (Cursor, IntelliJ의 AI)" }
             - { code: IDE_EXTENSION, content: "따로 쓰는 AI 채팅 (ChatGPT, Claude, Gemini)" }
