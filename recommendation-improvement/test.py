@@ -856,6 +856,12 @@ class SurveyPlanTest(unittest.TestCase):
                                retire=[{'question': 'TOOLS', 'dropInvalid': True}])
         self.assertIn('from 과 to 의 차이가 CHANGE_INPUT 와 맞지 않는다', self.plan(input_and_title)['errors'])
 
+    def test_합치기는_합쳐지는_선택지의_문구만_고칠_수_있다(self):
+        renamed = lambda code: [{**x, 'content': '자주·한두 번'} if x['code'] == code else x for x in opt('OFTEN', 'NEVER')]
+        merge = lambda code: {**merge_once(), 'to': question(SHORT, options=renamed(code))}
+        self.assertTrue(self.plan(merge('OFTEN'))['ok'])
+        self.assertIn('from 과 to 의 차이가 MERGE_OPTION 와 맞지 않는다', self.plan(merge('NEVER'))['errors'])
+
     def test_배타_선택지를_지우면_비우고_대체하면_새_코드로(self):
         to = question(TOOLS, options=opt('A', 'B'))
         line = [{'question': 'TOOLS', 'option': 'NONE', 'drop': True, 'was': 'none'}]

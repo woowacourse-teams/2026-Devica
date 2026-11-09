@@ -122,7 +122,11 @@ def shape_errors(d, ins):
     if errs or f is None or t is None:
         return errs
     removed, added = [c for c in codes(f) if c not in codes(t)], [c for c in codes(t) if c not in codes(f)]
-    kept_same = [x for x in f['options'] if x['code'] in codes(t)] == [x for x in t['options'] if x['code'] in codes(f)]
+    # 합치기는 합쳐지는 선택지의 문구를 합친 뜻에 맞게 고칠 수 있다
+    into = {l.get('to') for l in ins.get('retire') or []
+            if kind == 'MERGE_OPTION' and l.get('question') == q and l.get('option') == o}
+    loose = lambda x: without(x, 'content', 'description') if x['code'] in into else x
+    kept_same = [loose(x) for x in f['options'] if x['code'] in codes(t)] == [loose(x) for x in t['options'] if x['code'] in codes(f)]
     rest_same = without(f, 'options', 'exclusive') == without(t, 'options', 'exclusive')
     exclusive = f.get('exclusive')
     if exclusive == o and kind in ('DELETE_OPTION', 'MERGE_OPTION', 'SPLIT_OPTION'):
