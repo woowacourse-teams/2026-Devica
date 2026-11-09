@@ -15,6 +15,60 @@
     background: var(--surface-1);
 }
 
+/* 없는 주소·주소 형식 오류·불러오기 실패처럼 화면 전체를 대신하는 오류. */
+.error-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-20);
+    min-height: 520px;
+    padding: var(--space-48);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-32);
+    background: radial-gradient(60% 60% at 50% 30%, var(--tint) 0%, transparent 70%), var(--surface-1);
+    text-align: center;
+    word-break: keep-all;
+}
+
+.error-panel__code {
+    margin: 0;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.error-panel h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.error-panel__message {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.error-panel__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-12);
+}
+
+@media (max-width: 767px) {
+    .error-panel {
+        gap: var(--space-16);
+        min-height: calc(100svh - var(--header-height-mobile) - 160px);
+        padding: var(--space-16) 0;
+        border: 0;
+        background: none;
+    }
+}
+
 .probe {
     flex: 1;
     width: 100%;

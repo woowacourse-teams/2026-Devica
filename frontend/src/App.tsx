@@ -85,7 +85,7 @@ export function App() {
 
   // 판정을 바꾸면 index.html 의 테마 스크립트도 함께 바꾼다.
   useLayoutEffect(() => {
-    document.documentElement.dataset.theme = inBoard || screen === 'faq' || screen === 'home' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = inBoard || screen === 'faq' ? 'light' : 'dark';
   }, [inBoard, screen]);
 
   // 게시판 진입점은 헤더의 "질문 게시판" 링크다. 데스크톱은 게시판 밖의 화면이 바뀔 때마다 그 링크가 보인 것으로 센다.
@@ -740,10 +740,11 @@ function NotFound() {
   }, []);
 
   return (
-    <section className="view-panel" aria-labelledby="not-found-title">
+    <section className="error-panel" aria-labelledby="not-found-title">
+      <p className="error-panel__code">404</p>
       <h1 id="not-found-title">페이지를 찾을 수 없습니다</h1>
-      <p className="section-description">주소가 바뀌었거나 잘못 입력되었을 수 있습니다.</p>
-      <button className="button button--primary button--wide" type="button" onClick={() => go(PATHS.home)}>
+      <p className="error-panel__message">주소가 바뀌었거나 잘못 입력되었을 수 있습니다.</p>
+      <button className="button button--primary" type="button" onClick={() => go(PATHS.home)}>
         처음으로
       </button>
     </section>
