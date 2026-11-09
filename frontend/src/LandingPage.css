@@ -663,7 +663,7 @@ html:has(.landing-page) {
 }
 
 /* 실제 화면. 넓은 화면에서는 데스크톱 화면을 테두리만 두른 채로, 좁은 화면에서는 모바일 화면을 휴대폰에 담는다.
-   틀의 비율을 스크린숏과 같게 두어 화면이 잘리지 않는다. 단계가 바뀌면 다음 화면이 아래에서 올라온다. */
+   단계가 바뀌면 다음 화면이 아래에서 올라온다. 틀보다 긴 스크린숏은 스크롤하는 만큼 내려간다. */
 .landing-screen {
     justify-self: center;
     width: min(100%, calc((100vh - 272px) * 1.6));
@@ -692,16 +692,16 @@ html:has(.landing-page) {
     position: absolute;
     inset: 0;
     overflow: hidden;
+    container-type: size;
 }
 
 .landing-screen__shot {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
     display: block;
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: top;
+    height: auto;
     transition:
         opacity 450ms ease,
         transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -715,6 +715,13 @@ html:has(.landing-page) {
 .landing-screen__shot[data-state="past"] {
     opacity: 0;
     transform: scale(0.96);
+}
+
+/* 틀보다 긴 스크린숏은 그 단계를 스크롤하는 만큼 함께 내려간다. 끝까지 내린 뒤에는 단계의 40% 동안 맨 아래에 머물러, 다 본 화면이 곧바로 넘어가지 않게 한다.
+   지난 단계는 맨 아래, 다음 단계는 맨 위에 둔다. 틀과 높이가 같은 스크린숏은 움직일 거리가 0이다. */
+.landing-screen__shot {
+    --shot-progress: clamp(0, (var(--demo-step, 0) - var(--shot-index, 0) - 0.05) / 0.55, 1);
+    translate: 0 calc((100cqh - 100%) * var(--shot-progress));
 }
 
 /* 사용법 */
