@@ -38,6 +38,7 @@ test('설문 의견 남기기는 지금 화면의 질문과 답을 채운 설문
       screens={screens}
       index={0}
       answers={{ PREFERRED_OS: ['MACOS'], IDE: ['JETBRAINS', 'LIGHT_EDITOR'] }}
+      outdated={false}
       onAnswer={() => {}}
       onPrevious={() => {}}
       onNext={() => {}}
@@ -80,6 +81,7 @@ test('한 화면에 질문이 여럿이면 그 화면의 질문과 답만 고른
       screens={screens}
       index={0}
       answers={{ PREFERRED_OS: ['MACOS'], CURRENT_CPU: ['MID'] }}
+      outdated={false}
       onAnswer={() => {}}
       onPrevious={() => {}}
       onNext={() => {}}

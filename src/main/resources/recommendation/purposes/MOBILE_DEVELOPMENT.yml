@@ -109,7 +109,7 @@ survey:
           exclusive: NONE
           options:
             - { code: AI_EDITOR, content: "에디터 안에서 쓰는 AI (Cursor, IntelliJ의 AI)" }
-            - { code: IDE_EXTENSION, content: "따로 쓰는 AI 채팅 (ChatGPT, Claude, Gemini)" }
+            - { code: AI_CHAT, content: "따로 쓰는 AI 채팅 (ChatGPT, Claude, Gemini)" }
             - { code: NONE, content: 사용하지 않음 }
 
     - questions:

@@ -33,12 +33,23 @@ type Props = {
   screens: Screen[];
   index: number;
   answers: Answers;
+  outdated: boolean;
   onAnswer: (code: string, values: string[]) => void;
   onPrevious: () => void;
   onNext: () => void;
 };
 
-export function QuestionView({ purpose, surveyVersion, screens, index, answers, onAnswer, onPrevious, onNext }: Props) {
+export function QuestionView({
+  purpose,
+  surveyVersion,
+  screens,
+  index,
+  answers,
+  outdated,
+  onAnswer,
+  onPrevious,
+  onNext,
+}: Props) {
   const timer = useRef<number | undefined>(undefined);
   // 타이머가 울릴 때는 방금 고른 답이 반영된 onNext 를 불러야 한다.
   const latestNext = useRef(onNext);
@@ -93,6 +104,11 @@ export function QuestionView({ purpose, surveyVersion, screens, index, answers, 
       <div id="question-content">
         <h2 className="question-heading">{screen.title}</h2>
         {screen.description !== null && <p className="question-description">{screen.description}</p>}
+        {outdated && (
+          <p className="notice" role="status">
+            설문이 바뀌어 고르신 답 중 없어진 선택지를 지웠습니다. 이 질문에 다시 답해 주세요.
+          </p>
+        )}
 
         {screen.currentSpec ? (
           <div className="current-spec-form">
