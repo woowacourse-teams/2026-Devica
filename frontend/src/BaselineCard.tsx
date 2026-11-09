@@ -1,4 +1,3 @@
-import { Fragment } from 'react';
 import type { Spec } from './recommendation';
 
 // 원본은 PROCESSOR · MEMORY · STORAGE 만 보여주고 OS 는 카드 제목으로 쓴다.
@@ -18,20 +17,19 @@ export function BaselineCard({ spec }: Props) {
   const os = itemOf('OS');
 
   return (
-    <article className="bordered-panel baseline-card">
-      <p className="eyebrow">기본 권장 사양</p>
+    <article className="spec-panel baseline-card">
       <h2>{os?.displayValue ?? ''}</h2>
-      <dl>
+      <dl className="spec-tiles">
         {ROWS.map(({ code, label }) => {
           const item = itemOf(code);
           if (item === undefined) {
             return null;
           }
           return (
-            <Fragment key={code}>
+            <div className="spec-tile" key={code}>
               <dt>{label}</dt>
               <dd>{item.displayValue}</dd>
-            </Fragment>
+            </div>
           );
         })}
       </dl>

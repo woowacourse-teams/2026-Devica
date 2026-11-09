@@ -89,6 +89,7 @@ test('추천 결과 직접 수정을 누르면 항목을 고를 수 있고, 권�
   render(
     <ResultView
       categoryCode="LAPTOP"
+      purposeCode="BACKEND_DEVELOPMENT"
       specs={[MAC]}
       os="MAC"
       edits={{ MAC: { MEMORY: '32' } }}
@@ -103,7 +104,7 @@ test('추천 결과 직접 수정을 누르면 항목을 고를 수 있고, 권�
   );
   expect(screen.getByText('직접 수정 · 추천 24GB')).toBeTruthy();
 
-  fireEvent.click(screen.getByRole('button', { name: '추천 결과 직접 수정' }));
+  fireEvent.click(screen.getByRole('button', { name: '직접 수정' }));
   const memory = within(screen.getByRole('group', { name: 'MEMORY' }));
   expect(memory.getByRole('button', { name: '32GB' }).getAttribute('aria-pressed')).toBe('true');
   fireEvent.click(memory.getByRole('button', { name: '24GB · 추천' }));
@@ -164,6 +165,7 @@ test('등급을 받지 못하면 CPU 칸에 실패를 알리고 다시 시도할
   render(
     <ResultView
       categoryCode="LAPTOP"
+      purposeCode="BACKEND_DEVELOPMENT"
       specs={[MAC]}
       os="MAC"
       edits={{ MAC: { REQUIRED_CPU: 'BASIC' } }}
@@ -196,6 +198,7 @@ test('되돌리기는 고친 OS 카드에만 보이고, 그 OS 의 고친 값만
   const view = (os: 'MAC' | 'WINDOWS') => (
     <ResultView
       categoryCode="LAPTOP"
+      purposeCode="BACKEND_DEVELOPMENT"
       specs={[MAC, WINDOWS]}
       os={os}
       edits={{ MAC: { MEMORY: '32' } }}
@@ -228,6 +231,7 @@ test('최저가는 보이는 OS 마다 고친 사양으로 조회해 보여 준�
   render(
     <ResultView
       categoryCode="LAPTOP"
+      purposeCode="BACKEND_DEVELOPMENT"
       specs={[MAC]}
       os="MAC"
       edits={{ MAC: { MEMORY: '48' } }}
@@ -257,6 +261,7 @@ test('OS 권장안의 안내는 그 OS 카드에만 보인다', () => {
   render(
     <ResultView
       categoryCode="LAPTOP"
+      purposeCode="BACKEND_DEVELOPMENT"
       specs={[MAC, WINDOWS]}
       os="BOTH"
       edits={{}}

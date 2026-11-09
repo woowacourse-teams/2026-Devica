@@ -4,6 +4,7 @@ import type { Answers, Question, Screen } from './questions';
 import './QuestionView.css';
 
 const HINT = '선택한 항목을 한 번 더 누르면 해제됩니다.';
+const SINGLE_HINT = '하나를 고르면 바로 다음 질문으로 넘어가요.';
 // 고른 항목이 눌린 모습으로 바뀌자마자 넘어간다. 선택지 배경 전환(120ms)과 맞춘다. 더 길면 멈칫한다.
 const ADVANCE_DELAY_MS = 120;
 
@@ -75,47 +76,43 @@ export function QuestionView({ purpose, surveyVersion, screens, index, answers, 
   };
 
   return (
-    <section className="view-panel question-view" id="question-view" aria-live="polite">
-      {/* 선택지가 많아도 스크롤 없이 닿도록 진행 표시 위에 둔다 (#181). */}
-      <button className="text-button view-back-button" id="previous-button" type="button" onClick={onPrevious}>
-        ← 이전
-      </button>
-      <p className="progress-meta">
-        <span id="progress-label">추천 결과 만드는 중</span>
-        <span id="progress-count">
-          {index + 1} / {screens.length}
-        </span>
-      </p>
-      <div className="progress-track" aria-hidden="true">
-        <span id="progress-value" style={{ width: `${((index + 1) / screens.length) * 100}%` }} />
+    <section className="view-panel flow-view question-view" id="question-view" aria-live="polite">
+      <div className="question-progress">
+        <p className="progress-meta">
+          <span id="progress-label">추천 결과 만드는 중</span>
+          <span id="progress-count">{index + 1}번째 질문</span>
+        </p>
+        <div className="progress-track" aria-hidden="true">
+          <span id="progress-value" style={{ width: `${((index + 1) / screens.length) * 100}%` }} />
+        </div>
+        <p className="progress-note">답에 따라 질문이 늘거나 줄 수 있어요.</p>
       </div>
 
-      <div id="question-content">
-        <h2 className="question-heading">{screen.title}</h2>
-        {screen.description !== null && <p className="question-description">{screen.description}</p>}
+      <div className="question-content" id="question-content">
+        <div className="flow-head">
+          <h1 className="question-heading">{screen.title}</h1>
+          {screen.description !== null && <p className="flow-head__description">{screen.description}</p>}
+          <p className="flow-head__description">{single === null ? HINT : SINGLE_HINT}</p>
+        </div>
 
         {screen.currentSpec ? (
           <div className="current-spec-form">
             <SpecCheckGuide />
-            <p className="choice-hint">{HINT}</p>
             <CurrentSpecFields screen={screen} answers={answers} onAnswer={onAnswer} />
           </div>
         ) : (
-          <>
-            {single === null && <p className="choice-hint">{HINT}</p>}
-            <div className="question-groups">
-              {screen.questions.map(({ question, label }) => (
-                <QuestionGroup
-                  key={question.code}
-                  question={question}
-                  label={label}
-                  chosen={answers[question.code] ?? []}
-                  onAnswer={onAnswer}
-                  onPick={single === null ? undefined : (optionCode) => answerAndAdvance(single, optionCode)}
-                />
-              ))}
-            </div>
-          </>
+          <div className="question-groups">
+            {screen.questions.map(({ question, label }) => (
+              <QuestionGroup
+                key={question.code}
+                question={question}
+                label={label}
+                chosen={answers[question.code] ?? []}
+                onAnswer={onAnswer}
+                onPick={single === null ? undefined : (optionCode) => answerAndAdvance(single, optionCode)}
+              />
+            ))}
+          </div>
         )}
       </div>
 
@@ -123,12 +120,15 @@ export function QuestionView({ purpose, surveyVersion, screens, index, answers, 
         이 질문이 내 상황과 맞지 않나요?{' '}
         <a href={surveyFeedbackUrl(purpose, surveyVersion, screen, answers)} target="_blank" rel="noopener noreferrer">
           의견 남기기 ↗
-        </a>
+        </a>{' '}
         <span className="question-feedback__hint">GitHub 계정이 필요해요.</span>
       </p>
 
-      {single === null && (
-        <div className="sticky-actions">
+      <div className="sticky-actions question-actions">
+        <button className="button" id="previous-button" type="button" onClick={onPrevious}>
+          ← 이전
+        </button>
+        {single === null && (
           <button
             className={`button ${skippable ? 'button--skip' : 'button--primary'}`}
             id="next-button"
@@ -137,9 +137,10 @@ export function QuestionView({ purpose, surveyVersion, screens, index, answers, 
             onClick={onNext}
           >
             {nextLabel}
+            {!skippable && <span aria-hidden="true">→</span>}
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   );
 }
@@ -226,14 +227,31 @@ function QuestionGroup({ question, label, chosen, onAnswer, onPick }: GroupProps
       {label !== null && <legend>{label}</legend>}
       {question.options.map((option) => (
         <button
-          className="question-option"
+          className={`question-option question-option--${question.input === 'SINGLE' ? 'single' : 'multi'}${option.code === exclusiveCode ? ' question-option--exclusive' : ''}`}
           type="button"
           key={option.code}
           aria-pressed={chosen.includes(option.code)}
           onClick={() => (onPick ? onPick(option.code) : toggle(option.code))}
         >
-          <span className="question-option__title">{option.content}</span>
-          {option.description !== null && <span className="question-option__description">{option.description}</span>}
+          <span className="question-option__mark" aria-hidden="true">
+            <svg
+              aria-hidden="true"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12l5 5L20 7" />
+            </svg>
+          </span>
+          <span className="question-option__text">
+            <span className="question-option__title">{option.content}</span>
+            {option.description !== null && <span className="question-option__description">{option.description}</span>}
+          </span>
         </button>
       ))}
     </fieldset>
