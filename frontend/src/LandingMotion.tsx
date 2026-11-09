@@ -77,20 +77,65 @@ export function usePointerTilt(targetRef: RefObject<HTMLElement | null>) {
   }, [targetRef]);
 }
 
-const PIN_QUERY = '(min-width: 768px) and (min-height: 720px) and (prefers-reduced-motion: no-preference)';
+function markCardFocus(track: HTMLElement) {
+  const cards = [...track.children].filter((card): card is HTMLElement => card instanceof HTMLElement);
+  const [first, second] = cards;
+  if (first === undefined || second === undefined) return;
+  const distance = second.offsetLeft - first.offsetLeft;
+  for (const card of cards) {
+    const offset = Math.abs(card.offsetLeft - first.offsetLeft - track.scrollLeft) / distance;
+    card.style.setProperty('--card-focus', (1 - Math.min(offset, 1)).toFixed(3));
+  }
+}
+
+function scrollPageToCard(scroller: HTMLElement, track: HTMLElement, left: number) {
+  const max = track.scrollWidth - track.clientWidth;
+  const top = scroller.getBoundingClientRect().top + window.scrollY;
+  window.scrollTo({
+    top: top + (max > 0 ? left / max : 0) * (scroller.offsetHeight - window.innerHeight),
+    behavior: 'smooth',
+  });
+}
+
+const COMPACT_QUERY = '(min-width: 768px) and (prefers-reduced-motion: no-preference)';
 
 export function useHorizontalPin() {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLElement>(null);
-  const [pinned, setPinned] = useState(false);
+  const [compact, setCompact] = useState(false);
+  const [fits, setFits] = useState(false);
+  const pinned = compact && fits;
 
   useEffect(() => {
-    const query = window.matchMedia(PIN_QUERY);
-    const sync = () => setPinned(query.matches);
+    const query = window.matchMedia(COMPACT_QUERY);
+    const sync = () => setCompact(query.matches);
     sync();
     query.addEventListener('change', sync);
     return () => query.removeEventListener('change', sync);
   }, []);
+
+  useEffect(() => {
+    const pin = scrollerRef.current?.firstElementChild;
+    const track = trackRef.current;
+    if (!compact || !(pin instanceof HTMLElement) || track === null) return;
+
+    function measure() {
+      if (!(pin instanceof HTMLElement)) return;
+      const children = [...pin.children].filter((child): child is HTMLElement => child instanceof HTMLElement);
+      const gap = Number.parseFloat(getComputedStyle(pin).rowGap) || 0;
+      const content = children.reduce((sum, child) => sum + child.offsetHeight, 0) + gap * (children.length - 1);
+      setFits(content + 48 <= window.innerHeight);
+    }
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(track);
+    window.addEventListener('resize', measure);
+    measure();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [compact]);
 
   useEffect(() => {
     const scroller = scrollerRef.current;
@@ -103,14 +148,7 @@ export function useHorizontalPin() {
       const rect = scroller.getBoundingClientRect();
       const progress = Math.min(Math.max(-rect.top / Math.max(rect.height - window.innerHeight, 1), 0), 1);
       track.scrollLeft = progress * (track.scrollWidth - track.clientWidth);
-      const cards = [...track.children].filter((card): card is HTMLElement => card instanceof HTMLElement);
-      const [first, second] = cards;
-      if (first === undefined || second === undefined) return;
-      const distance = second.offsetLeft - first.offsetLeft;
-      for (const card of cards) {
-        const offset = Math.abs(card.offsetLeft - first.offsetLeft - track.scrollLeft) / distance;
-        card.style.setProperty('--card-focus', (1 - Math.min(offset, 1)).toFixed(3));
-      }
+      markCardFocus(track);
     }
 
     function onScroll() {
@@ -118,27 +156,78 @@ export function useHorizontalPin() {
       frame = requestAnimationFrame(update);
     }
 
+    function onWheel(event: WheelEvent) {
+      if (scroller === null || track === null || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+      event.preventDefault();
+      const max = Math.max(track.scrollWidth - track.clientWidth, 1);
+      window.scrollBy({
+        top: (event.deltaX * (scroller.offsetHeight - window.innerHeight)) / max,
+        behavior: 'instant',
+      });
+    }
+
+    function onFocusIn(event: FocusEvent) {
+      if (scroller === null || track === null || !(event.target instanceof Element)) return;
+      const card = [...track.children].find((child) => child.contains(event.target as Node));
+      const first = track.firstElementChild;
+      if (!(card instanceof HTMLElement) || !(first instanceof HTMLElement)) return;
+      scrollPageToCard(scroller, track, card.offsetLeft - first.offsetLeft);
+    }
+
     update();
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
+    track.addEventListener('wheel', onWheel, { passive: false });
+    track.addEventListener('focusin', onFocusIn);
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
+      track.removeEventListener('wheel', onWheel);
+      track.removeEventListener('focusin', onFocusIn);
+    };
+  }, [pinned]);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (pinned || track === null) return;
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => markCardFocus(track));
+    };
+    markCardFocus(track);
+    track.addEventListener('scroll', onScroll, { passive: true });
+
+    let nudgeTimer = 0;
+    const observer =
+      typeof IntersectionObserver === 'undefined' || prefersReducedMotion()
+        ? null
+        : new IntersectionObserver(
+            ([entry]) => {
+              if (!entry?.isIntersecting) return;
+              observer?.disconnect();
+              if (track.scrollLeft > 0) return;
+              track.dataset.nudge = '';
+              nudgeTimer = window.setTimeout(() => delete track.dataset.nudge, 1200);
+            },
+            { threshold: 0.6 },
+          );
+    observer?.observe(track);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      track.removeEventListener('scroll', onScroll);
+      observer?.disconnect();
+      window.clearTimeout(nudgeTimer);
     };
   }, [pinned]);
 
   function scrollToLeft(left: number) {
     const scroller = scrollerRef.current;
     const track = trackRef.current;
-    if (scroller === null || track === null) return;
-    const max = track.scrollWidth - track.clientWidth;
-    const top = scroller.getBoundingClientRect().top + window.scrollY;
-    window.scrollTo({
-      top: top + (max > 0 ? left / max : 0) * (scroller.offsetHeight - window.innerHeight),
-      behavior: 'smooth',
-    });
+    if (scroller !== null && track !== null) scrollPageToCard(scroller, track, left);
   }
 
-  return { scrollerRef, trackRef, pinned, scrollToLeft: pinned ? scrollToLeft : undefined };
+  return { scrollerRef, trackRef, compact, pinned, scrollToLeft: pinned ? scrollToLeft : undefined };
 }

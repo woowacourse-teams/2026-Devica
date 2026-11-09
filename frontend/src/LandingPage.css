@@ -1029,11 +1029,14 @@ html:has(.landing-page) {
     gap: var(--space-40);
 }
 
+.landing-tech__scroller[data-compact] .landing-tech__pin {
+    gap: var(--space-24);
+}
+
 .landing-tech__scroller[data-pinned] .landing-tech__pin {
     position: sticky;
     top: 0;
     justify-content: center;
-    gap: var(--space-24);
     height: 100vh;
     box-sizing: border-box;
 }
@@ -1084,7 +1087,9 @@ html:has(.landing-page) {
     display: none;
 }
 
+/* 화면 읽기용 숫자(.landing-sr-only)가 카드를 기준으로 놓여야 트랙 밖으로 새어 페이지가 옆으로 밀리지 않는다. */
 .landing-tech__card {
+    position: relative;
     display: flex;
     flex: 0 0 calc(100% - 120px);
     flex-wrap: wrap;
@@ -1480,7 +1485,6 @@ html:has(.landing-page) {
     font-weight: 600;
 }
 
-/* 고정해서 넘길 때는 카드가 한 화면에 들어오도록 간격과 글자를 줄인다. */
 /* 트랙을 화면 양끝까지 넓혀 카드가 화면 가장자리에서 들어오고 나가게 한다.
    첫 카드는 여전히 본문 왼쪽 선에서 시작한다. */
 .landing-tech__scroller[data-pinned] .landing-tech__track {
@@ -1496,30 +1500,31 @@ html:has(.landing-page) {
     transform: scale(calc(0.94 + var(--card-focus, 1) * 0.06));
 }
 
-.landing-tech__scroller[data-pinned] .landing-tech__card {
+/* 넓은 화면에서는 카드가 한 화면에 들어오도록 간격과 글자를 줄인다. 다 들어올 때만 고정한다. */
+.landing-tech__scroller[data-compact] .landing-tech__card {
     gap: var(--space-32);
     padding: var(--space-32);
 }
 
-.landing-tech__scroller[data-pinned] .landing-tech__visual {
+.landing-tech__scroller[data-compact] .landing-tech__visual {
     min-height: 0;
     padding: var(--space-24);
 }
 
-.landing-tech__scroller[data-pinned] .landing-tech__card h3 {
+.landing-tech__scroller[data-compact] .landing-tech__card h3 {
     margin-bottom: 0;
     font-size: 22px;
 }
 
-.landing-tech__scroller[data-pinned] .landing-tech__result {
+.landing-tech__scroller[data-compact] .landing-tech__result {
     padding: var(--space-16) var(--space-20);
 }
 
-.landing-tech__scroller[data-pinned] .landing-tech__result strong {
+.landing-tech__scroller[data-compact] .landing-tech__result strong {
     font-size: 32px;
 }
 
-.landing-tech__scroller[data-pinned] .landing-description {
+.landing-tech__scroller[data-compact] .landing-description {
     font-size: 15px;
     line-height: 1.6;
 }
@@ -1652,6 +1657,12 @@ html:has(.landing-page) {
         background: radial-gradient(closest-side, color-mix(in srgb, var(--accent) 55%, transparent), transparent);
         animation: landing-closing-drift 12s ease-in-out infinite alternate;
         pointer-events: none;
+    }
+}
+
+@keyframes landing-tech-nudge {
+    40% {
+        translate: -56px 0;
     }
 }
 
@@ -1928,21 +1939,29 @@ html:has(.landing-page) {
         font-size: 16px;
     }
 
+    /* 카드는 화면 가운데에 멈추고 양옆 카드가 조금씩 보인다. 가운데에서 멀수록 작고 흐려진다. */
     .landing-tech__track {
         gap: var(--space-12);
         margin: 0 calc(-1 * var(--page-gutter));
-        padding: 0 var(--page-gutter);
-        scroll-padding-inline: var(--page-gutter);
+        padding: 0 var(--space-32);
     }
 
     /* 모바일 카드는 한 줄로 쌓는다. 그림은 결과 수치 다음, 링크는 맨 끝에 둔다. */
     .landing-tech__card {
-        flex: 0 0 calc(100% - 28px);
+        flex: 0 0 100%;
+        opacity: calc(0.45 + var(--card-focus, 1) * 0.55);
+        transform: scale(calc(0.95 + var(--card-focus, 1) * 0.05));
+        scroll-snap-align: center;
         flex-direction: column;
         flex-wrap: nowrap;
         gap: var(--space-12);
         min-width: 0;
         padding: 22px;
+    }
+
+    /* 카드가 처음 보이면 한 번 옆으로 밀렸다 돌아와, 넘길 수 있다는 것을 보여 준다. */
+    .landing-tech__track[data-nudge] .landing-tech__card {
+        animation: landing-tech-nudge 1100ms cubic-bezier(0.45, 0, 0.25, 1);
     }
 
     .landing-tech__copy {
@@ -2104,6 +2123,10 @@ html:has(.landing-page) {
 
     .landing-board__caret {
         animation: none;
+    }
+
+    .landing-tech__card {
+        transform: none;
     }
 
     html:has(.landing-page) {

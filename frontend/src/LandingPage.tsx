@@ -109,6 +109,7 @@ export function LandingPage() {
         <div
           className="landing-tech__scroller"
           ref={techPin.scrollerRef}
+          data-compact={techPin.compact ? '' : undefined}
           data-pinned={techPin.pinned ? '' : undefined}
           style={techPin.pinned ? { height: 'calc(100vh + 2 * 60vh)' } : undefined}
         >
