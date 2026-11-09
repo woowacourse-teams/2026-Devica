@@ -1307,9 +1307,9 @@ class AnalyzerSurveyStateTest(unittest.TestCase):
     def test_이슈마다_종류와_건수와_대상(self):
         s = self.state()
         by = {i['number']: i for i in s['issues']}
-        self.assertEqual({n: (i['kind'], i['counted'], i['skip']) for n, i in by.items()}, {
-            10: ('USER', True, None), 11: ('USER', False, None), 12: ('HANDED', True, None), 13: ('HANDED', False, '넘김 없음'),
-            14: ('METRIC', True, None), 15: ('USER', True, None), 16: ('USER', True, None)})
+        self.assertEqual({n: (i['kind'], i['skip']) for n, i in by.items()}, {
+            10: ('USER', None), 11: ('USER', None), 12: ('HANDED', None), 13: ('HANDED', '넘김 없음'),
+            14: ('METRIC', None), 15: ('USER', None), 16: ('USER', None)})
         self.assertEqual(by[10]['problems'], ['선택지끼리 구분이 안 돼요', '필요 없는 질문 같아요'])
         self.assertEqual(by[10]['analysis']['data'], {'judgment': 'ON_HOLD', 'question': 'SHORT'})  # 팀원이 쓴 것만
         self.assertEqual((by[12]['questions'], by[12]['problems'], by[12]['result_problems'], by[12]['handover_unfinished']),
@@ -1381,11 +1381,11 @@ class AnalyzerSurveyReadyTest(unittest.TestCase):
         with open(os.path.join(d, 'P.retired.yml'), 'w', encoding='utf-8') as f:
             f.write('codes: []\n')
         issue = lambda n, author, kind='USER', **kw: {'number': n, 'state': 'open', 'skip': None, 'purpose': 'P', 'questions': ['SHORT'],
-                                                       'counted': True, 'kind': kind, 'author': author, 'approved': False,
+                                                       'kind': kind, 'author': author, 'team': False, 'approved': False,
                                                        'signal': None, 'handover': None, **kw}
-        self.issues = {1: issue(1, 'a'), 2: issue(2, 'b'), 3: issue(3, 'a'), 4: issue(4, 'bot', 'METRIC', questions=['VIDEO'], signal='이탈이 많은 화면'),
-                       5: issue(5, 'c', questions=['VIDEO']), 6: issue(6, 'bot', 'METRIC', questions=['VIDEO'], signal=analyzer.UNUSED),
-                       7: issue(7, 'team', counted=False), 8: issue(8, 'd', 'HANDED', handover={'rule_left': [{'rule': {}, 'direction': 'UP'}]})}
+        self.issues = {1: issue(1, 'a'), 2: issue(2, 'b'), 3: issue(3, 'a'), 4: issue(4, 'bot', 'METRIC', questions=['VIDEO'], signal='이탈이 많은 화면', team=True),
+                       5: issue(5, 'c', questions=['VIDEO']), 6: issue(6, 'bot', 'METRIC', questions=['VIDEO'], signal=analyzer.UNUSED, team=True),
+                       7: issue(7, 'team', team=True), 8: issue(8, 'd', 'HANDED', handover={'rule_left': [{'rule': {}, 'direction': 'UP'}]})}
         self.instructions, self.rules = [], []
 
     def ready(self, ins):
@@ -1398,7 +1398,8 @@ class AnalyzerSurveyReadyTest(unittest.TestCase):
         self.assertEqual(self.ready(delete_once())['stage'], 'count')  # ONCE 는 규칙이 쓴다
         self.assertTrue(self.ready(delete_once(issues=[1, 2]))['ok'])
         self.assertEqual(self.ready(delete_once(issues=[1, 3]))['stage'], 'count')  # 같은 작성자
-        self.assertEqual(self.ready(delete_once(issues=[1, 7]))['stage'], 'count')  # 넘김 없는 팀원 의견은 세지 않는다
+        out = self.ready(delete_once(issues=[7]))
+        self.assertEqual((out['ok'], out['need']), (True, '팀원 의견 1건'))  # 팀원 의견은 1건으로 충분하다
         unused = lambda **kw: sins('DELETE_OPTION', 'VIDEO', VIDEO, question(VIDEO, options=opt('YES')), 'NO',
                                    retire=[{'question': 'VIDEO', 'option': 'NO', 'drop': True, 'was': 'no'}], **kw)
         self.assertEqual(self.ready(unused(issues=[5]))['stage'], 'count')
@@ -1430,6 +1431,7 @@ class AnalyzerSurveyReadyTest(unittest.TestCase):
                                    'pr': None, 'reason': None, 'data': {'purpose': 'P'}, **kw}
         self.instructions = [processing()]
         self.assertEqual(self.ready(delete_once(issues=[1, 2]))['stage'], 'hold')
+        self.assertEqual(self.ready(delete_once(issues=[7]))['stage'], 'hold')  # 팀원 의견도 막는 조건은 그대로
         self.instructions = [processing(data={'purpose': 'Q'})]
         self.assertTrue(self.ready(delete_once(issues=[1, 2]))['ok'])
         self.rules = [{'purpose': 'P', 'rule': SDEF['rules'][2]}]

@@ -72,11 +72,11 @@ def survey_state(ref, issues_path, comments_path, prs_path=None):
         latest = lambda name: next((a for a in reversed(arts) if a['name'] == name), None)
         handover = next((a for a in arts if a['name'] == 'handover'), None)
         team, title, f = i['author_association'] in TEAM, i['title'], C.fields(i.get('body') or '')
-        skip, counted = None, True
+        skip = None
         if title.startswith('[제품 추천 설문 지표]') and team:
             kind = 'METRIC'
         elif title.startswith(('[제품 추천 설문 의견]', '[제품 추천 설문 지표]')):
-            kind, counted = 'USER', not team
+            kind = 'USER'
         elif title.startswith('[제품 추천 의견]'):
             kind, skip = 'HANDED', None if handover else '넘김 없음'
         else:
@@ -84,7 +84,7 @@ def survey_state(ref, issues_path, comments_path, prs_path=None):
         h = handover['data'] if handover else {}
         signal = re.search(r'^- 신호: (.+)$', f.get('근거 지표', ''), re.M)
         item = {'number': i['number'], 'state': i['state'], 'created_at': i['created_at'], 'author': i['author'], 'team': team,
-                'kind': kind, 'counted': counted and not skip, 'skip': skip,
+                'kind': kind, 'skip': skip,
                 'purpose': h.get('purpose') if kind == 'HANDED' else f.get('사용 목적', '').strip(),
                 'questions': [h['question']] if h else split(f.get('질문')),
                 'title': None if kind == 'HANDED' else f.get('질문 제목') or None,
@@ -179,8 +179,10 @@ def seen_issue(main, develop, state_path, number):
     return seen_survey(main, develop, i['purpose'], ','.join(i['questions']), i['version'] or '-', i['created_at'], i['title'])
 
 
-def requirement(d, ins, users, metrics, approved):
+def requirement(d, ins, users, metrics, approved, team=False):
     # 명세의 지시 조건 표. (필요한 근거, 만족하는지)
+    if team:
+        return '팀원 의견 1건', True
     kind, q, o = ins['kind'], ins['target']['question'], ins['target'].get('option')
     if kind == 'DELETE_QUESTION' and approved and not used(d, q):
         return '쓰이지 않는 질문 지표 피드백의 승인 라벨', True
@@ -220,7 +222,7 @@ def survey_ready(ref, comment_path, state_path, rules_path, on=None):
 
     by = {i['number']: i for i in state['issues']}
     errs = [] if ins['issues'] == sorted(set(ins['issues'])) else ['issues 가 오름차순이 아니거나 겹친다']
-    users, metrics, approved = set(), [], False
+    users, metrics, approved, team = set(), [], False, False
     check_question = not (kind == 'ADD_QUESTION' or kind == 'RESTORE' and o is None)
     for n in ins['issues']:
         i = by.get(n)
@@ -229,13 +231,12 @@ def survey_ready(ref, comment_path, state_path, rules_path, on=None):
             continue
         if check_question and q not in {C.renamed(lines, x)[0] for x in i['questions']}:
             errs.append(f'#{n} 의 질문에 {q} 가 없다')
-        if not i['counted']:
-            continue
         if i['kind'] == 'METRIC':
             metrics.append(i)
             approved |= i['approved'] and i['signal'] == UNUSED
         else:
             users.add(i['author'])
+            team |= i['team']
     basis = 'USER_AND_METRIC' if users and metrics else 'USER' if users else 'METRIC'
     if ins['basis'] != basis:
         errs.append(f'basis 는 {basis} 이어야 한다')
@@ -249,7 +250,7 @@ def survey_ready(ref, comment_path, state_path, rules_path, on=None):
         misses = [c['issue'] for c in ins['cases'] if not C.ev(ins['rule']['when'], C.visible(p['definition'], c['answers']))]
         if misses:
             return {'ok': False, 'stage': 'rule', 'errors': [f'사례 #{n} 의 답이 함께 더할 규칙에 걸리지 않는다' for n in misses]}
-    need, met = requirement(d, ins, len(users), metrics, approved)
+    need, met = requirement(d, ins, len(users), metrics, approved, team)
     counts = {'need': need, 'users': len(users), 'metrics': [m['number'] for m in metrics]}
     if not met:
         return {'ok': False, 'stage': 'count', 'errors': [f'근거가 모자란다: {need}'], **counts}

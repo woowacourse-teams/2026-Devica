@@ -10,7 +10,7 @@
 |---|---|---|---|
 | [사용자 행동 지표](artifacts/user-behavior-metrics.schema.yml) | PostHog 프로젝트 `638813` 의 이벤트 | `event` 가 `recommendation_result_viewed`, `recommended_spec_edited`, `$pageview` 중 하나, `$current_url` 이 운영 사이트 | — |
 | [피드백](artifacts/feedback.md) | `product-recommendation-rule-feedback` 라벨이 붙은 이슈. PR 은 제외 | 제목 머리말. `[제품 추천 의견]` 은 사용자 피드백, `[제품 추천 지표]` 는 지표 피드백 | 지표 피드백은 팀원 작성. 아니면 사용자 피드백으로 본다 |
-| [설문 피드백](artifacts/feedback.md#설문-피드백) | `product-recommendation-survey-feedback` 라벨이 붙은 이슈. PR 은 제외 | 제목 머리말. `[제품 추천 설문 의견]` 은 사용자 피드백, `[제품 추천 설문 지표]` 는 지표 피드백, `[제품 추천 의견]` 은 넘겨받은 결과 의견 | 지표 피드백은 팀원 작성. 넘겨받은 결과 의견은 넘김이 있을 때만. 넘김 없는 팀원 작성 사용자 피드백은 근거로 세지 않는다 |
+| [설문 피드백](artifacts/feedback.md#설문-피드백) | `product-recommendation-survey-feedback` 라벨이 붙은 이슈. PR 은 제외 | 제목 머리말. `[제품 추천 설문 의견]` 은 사용자 피드백, `[제품 추천 설문 지표]` 는 지표 피드백, `[제품 추천 의견]` 은 넘겨받은 결과 의견 | 지표 피드백은 팀원 작성. 넘겨받은 결과 의견은 넘김이 있을 때만 |
 | [넘김](artifacts/handover.schema.yml) | 넘긴 이슈의 댓글 | 첫 줄 `<!-- product-recommendation:handover -->` | 팀원 작성. 여러 개면 처음 것만 |
 | [분석 결과](artifacts/analysis-result.schema.yml) | 분석한 피드백 이슈의 댓글 | 첫 줄 `<!-- product-recommendation:analysis -->` | 팀원 작성. 여러 개면 가장 최근 것이 지금의 판단 |
 | [설문 분석 결과](artifacts/survey-analysis.schema.yml) | 분석한 설문 피드백 이슈의 댓글 | 첫 줄 `<!-- product-recommendation:survey-analysis -->` | 분석 결과와 같다 |
