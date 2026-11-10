@@ -15,16 +15,20 @@ export function SpecRationale({ item, osLabel, children }: Props) {
   const close = () => ref.current?.close();
   const answered = item.reasons.length > 0;
 
+  if (item.basis === null && !answered) {
+    return children;
+  }
+
   return (
     <>
       <button
         className="rationale-trigger"
         type="button"
         aria-haspopup="dialog"
-        aria-label={`${item.displayName} ${item.displayValue}, 권장 이유 보기`}
         onClick={() => ref.current?.showModal()}
       >
         {children}
+        <span className="rationale-trigger__hint">, 권장 이유 보기</span>
         <InfoIcon />
       </button>
       {createPortal(

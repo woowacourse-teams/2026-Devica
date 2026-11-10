@@ -422,10 +422,17 @@ function SpecCard({
       <div className="result-card__bottom">
         {soldOut && (
           <div className="result-card__sold-out" role="note">
-            <p>
-              이 사양을 모두 갖춘 {osLabel} 노트북은 지금 판매 중인 제품이 없어요. 작업에 필요한 사양을 기준으로
-              추천했기 때문이에요. '직접 수정'으로 일부 항목을 한 단계 낮추거나 다른 OS 결과를 확인해 보세요.
-            </p>
+            {editProperties(spec, edited) === null ? (
+              <p>
+                이 사양을 모두 갖춘 {osLabel} 노트북은 지금 판매 중인 제품이 없어요. 작업에 필요한 사양을 기준으로
+                추천했기 때문이에요. '직접 수정'으로 일부 항목을 한 단계 낮추거나 다른 OS 결과를 확인해 보세요.
+              </p>
+            ) : (
+              <p>
+                직접 수정한 사양을 모두 갖춘 {osLabel} 노트북은 지금 판매 중인 제품이 없어요. 수정한 항목을 다른 값으로
+                바꾸거나 '추천 결과로 되돌리기'를 눌러 보세요.
+              </p>
+            )}
             {otherOs !== null && (
               <button className="text-button" type="button" onClick={() => onChangeOs(otherOs.value as ResultOs)}>
                 {otherOs.label} 결과 보기

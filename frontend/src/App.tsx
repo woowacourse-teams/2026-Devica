@@ -680,11 +680,13 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
     );
   }
 
-  // 앱 밖에서 바로 들어왔으면 이 목록의 권장 사양 화면으로 보낸다. 목록 조건은 권장 사양과 상관없어 뺀다.
+  // 앱 밖에서 바로 들어왔으면 답이 있을 때는 제품 추천 결과로, 없을 때는 기본 권장 사양 화면으로 보낸다.
+  // 목록 조건은 권장 사양과 상관없어 뺀다.
   const resultParams = new URLSearchParams(params);
   for (const [key] of listEntries(null, conditionOf(params))) {
     resultParams.delete(key);
   }
+  const baseline = Object.keys(answersOf(params)).length === 0 && navState.from !== 'result';
 
   return (
     <ProductListView
@@ -693,13 +695,15 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
       categoryCode={category}
       mode="MATCHED"
       specs={specs}
-      baseline={Object.keys(answersOf(params)).length === 0}
-      backLabel={backLabelOf(navState.from ?? 'result')}
+      baseline={baseline}
+      backLabel={backLabelOf(navState.from ?? (baseline ? 'intro' : 'result'))}
       state={state}
       onChangeState={onChangeState}
       searching={navState.searching === true}
       onSearched={finishSearching}
-      onBack={() => goBack(`${PATHS.result}?${resultParams}`)}
+      onBack={() =>
+        goBack(baseline ? `${PATHS.intro}${query(flowEntries(flowOf(params)))}` : `${PATHS.result}?${resultParams}`)
+      }
       onDetail={(id) => go(`/products/${id}`)}
       // 보고 있던 유형 그대로 연다. 맞춤 목록의 조건은 주소에 남아 있어 돌아오면 그대로다.
       onShowAll={() => go(`${PATHS.products}${query([['category', category]])}`)}
