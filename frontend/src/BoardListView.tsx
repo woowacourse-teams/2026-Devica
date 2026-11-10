@@ -53,7 +53,7 @@ export function BoardListView({ scope, page }: { scope: ListScope; page: number 
   );
   return (
     <section className="board-browse__posts" aria-label={`${category.name} ${purpose.name} 질문 목록`}>
-      {compact ? (
+      {compact && page === 0 ? (
         <ScrollingPosts key={`${category.code}:${purpose.code}`} scope={scope} toolbar={toolbar} />
       ) : (
         <PagedPosts scope={scope} page={page} toolbar={toolbar} />
@@ -166,7 +166,7 @@ function ScrollingPosts({ scope, toolbar }: { scope: ListScope; toolbar: ReactNo
         <NoPosts />
       ) : (
         <>
-          <PostList posts={data} />
+          <PostList posts={data} visit={visit} />
           {hasNext && <div ref={setSentinel} />}
           {loading && (
             <p className="board-status board-meta" role="status">
@@ -240,16 +240,17 @@ function NoPosts() {
   );
 }
 
-function rememberScroll() {
-  window.history.replaceState({ ...currentNavState(), scrollY: window.scrollY }, '');
+function rememberScroll(visit?: number) {
+  const state = currentNavState();
+  window.history.replaceState({ ...state, scrollY: window.scrollY, boardVisit: visit ?? state.boardVisit }, '');
 }
 
-function PostList({ posts }: { posts: BoardPostSummary[] }) {
+function PostList({ posts, visit }: { posts: BoardPostSummary[]; visit?: number }) {
   return (
     <ul className="board-list">
       {posts.map((post) => (
         <li key={post.id}>
-          <Link className="board-list__link" href={`/board/posts/${post.id}`} onClick={rememberScroll}>
+          <Link className="board-list__link" href={`/board/posts/${post.id}`} onClick={() => rememberScroll(visit)}>
             <div className="board-list__text">
               <span className="board-list__title">{post.title}</span>
               <BoardByline createdAt={post.createdAt}>

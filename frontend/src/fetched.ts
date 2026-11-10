@@ -15,6 +15,11 @@ export function forgetStartingWith(prefix: string) {
       received.delete(key);
     }
   }
+  for (const flight of loading) {
+    if (flight.startsWith(prefix)) {
+      discarded.add(flight);
+    }
+  }
 }
 
 type Attempt<T> = {
@@ -86,6 +91,7 @@ type Pages<T> = {
 
 // 같은 페이지를 두 번 요청하지 않는다. "키#페이지" 로 적는다.
 const loading = new Set<string>();
+const discarded = new Set<string>();
 // 실패도 key 마다 적는다. 하나만 두면 늦게 실패한 이전 조건이 지금 조건의 실패를 덮는다.
 const failedKeys = new Set<string>();
 // 요청을 시작한 화면이 사라져도, 지금 목록을 보고 있는 화면에 페이지 완료를 알린다.
@@ -137,6 +143,9 @@ export function usePaged<T extends { id: number }>(
     latest
       .current(page)
       .then(({ content, hasNext }) => {
+        if (discarded.has(flight)) {
+          return;
+        }
         const previous = (received.get(key) as Pages<T> | undefined)?.items ?? [];
         // 페이지 사이에 순서가 바뀌면 같은 제품이 다시 올 수 있다.
         const seen = new Set(previous.map((item) => item.id));
@@ -146,8 +155,13 @@ export function usePaged<T extends { id: number }>(
           next: page + 1,
         });
       })
-      .catch(() => failedKeys.add(key))
+      .catch(() => {
+        if (!discarded.has(flight)) {
+          failedKeys.add(key);
+        }
+      })
       .finally(() => {
+        discarded.delete(flight);
         loading.delete(flight);
         pageListeners.forEach((listener) => {
           listener();
@@ -156,10 +170,16 @@ export function usePaged<T extends { id: number }>(
   }, [key]);
 
   useEffect(() => {
-    if (key !== null && !received.has(key)) {
+    if (key !== null) {
+      failedKeys.delete(key);
+    }
+  }, [key]);
+
+  useEffect(() => {
+    if (key !== null && !received.has(key) && !failedKeys.has(key)) {
       more();
     }
-  }, [key, more]);
+  });
 
   const entry = key === null ? undefined : (received.get(key) as Pages<T> | undefined);
   return {
