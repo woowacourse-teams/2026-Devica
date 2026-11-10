@@ -4,7 +4,7 @@ import { track } from './analytics';
 import { BoardByline } from './BoardShared';
 import { BOARD_POSTS_CACHE, type BoardPostSummary, type BoardScope, fetchBoardPosts } from './board';
 import { keepLatestStartingWith, usePaged } from './fetched';
-import { boardUrl, currentNavState, PATHS, query } from './routes';
+import { boardUrl, currentNavState, type NavState, PATHS, query } from './routes';
 import type { Served } from './selection';
 import { useBoardRequest } from './useBoardRequest';
 import { useCompact } from './useCompact';
@@ -35,7 +35,12 @@ export function BoardListView({ scope, page }: { scope: ListScope; page: number 
         </b>
         <span className="board-meta">최신순</span>
       </p>
-      <Link className="button button--primary board-write-button" href={writingUrl}>
+      <Link
+        className="button button--primary board-write-button"
+        href={writingUrl}
+        state={{ from: 'board' } satisfies NavState}
+        onClick={() => rememberScroll()}
+      >
         <svg
           aria-hidden="true"
           width="16"
@@ -57,7 +62,7 @@ export function BoardListView({ scope, page }: { scope: ListScope; page: number 
       {compact && page === 0 ? (
         <ScrollingPosts key={`${category.code}:${purpose.code}`} scope={scope} toolbar={toolbar} />
       ) : (
-        <PagedPosts scope={scope} page={page} toolbar={toolbar} />
+        <PagedPosts key={page} scope={scope} page={page} toolbar={toolbar} />
       )}
     </section>
   );
@@ -68,6 +73,8 @@ function PagedPosts({ scope, page, toolbar }: { scope: ListScope; page: number; 
   const { state, retry } = useBoardRequest(JSON.stringify([category.code, purpose.code, page]), (signal) =>
     fetchBoardPosts(category.code, purpose.code, page, signal),
   );
+  useScrollRestoredAfterLoad(state.status === 'success');
+  const empty = state.status === 'success' && state.data.content.length === 0;
   return (
     <>
       <div className="board-browse__card">
@@ -75,7 +82,7 @@ function PagedPosts({ scope, page, toolbar }: { scope: ListScope; page: number; 
         {state.status === 'loading' && <LoadingPosts />}
         {state.status === 'failed' && <FailedPosts notFound={state.notFound} onRetry={retry} />}
         {state.status === 'success' &&
-          (state.data.content.length === 0 ? (
+          (empty ? (
             page === 0 ? (
               <NoPosts />
             ) : (
@@ -90,10 +97,15 @@ function PagedPosts({ scope, page, toolbar }: { scope: ListScope; page: number; 
             <PostList posts={state.data.content} />
           ))}
       </div>
-      {state.status === 'success' && (
+      {state.status === 'success' && !empty && (
         <nav className="board-pagination" aria-label="게시글 페이지">
           {page > 0 ? (
-            <Link className="button" href={boardUrl(category.code, purpose.code, page - 1)} aria-label="이전 페이지">
+            <Link
+              className="button"
+              href={boardUrl(category.code, purpose.code, page - 1)}
+              aria-label="이전 페이지"
+              onClick={() => rememberScroll()}
+            >
               ← 이전
             </Link>
           ) : (
@@ -105,7 +117,12 @@ function PagedPosts({ scope, page, toolbar }: { scope: ListScope; page: number; 
             {page + 1} 페이지
           </span>
           {state.data.hasNext ? (
-            <Link className="button" href={boardUrl(category.code, purpose.code, page + 1)} aria-label="다음 페이지">
+            <Link
+              className="button"
+              href={boardUrl(category.code, purpose.code, page + 1)}
+              aria-label="다음 페이지"
+              onClick={() => rememberScroll()}
+            >
               다음 →
             </Link>
           ) : (
@@ -130,18 +147,7 @@ function ScrollingPosts({ scope, toolbar }: { scope: ListScope; toolbar: ReactNo
     fetchBoardPosts(category.code, purpose.code, page, UNABORTED),
   );
   const { data, hasNext, loading, failed, more } = posts;
-
-  const restored = useRef(false);
-  useEffect(() => {
-    if (data === null || restored.current) {
-      return;
-    }
-    restored.current = true;
-    const { scrollY } = currentNavState();
-    if (scrollY !== undefined) {
-      window.scrollTo(0, scrollY);
-    }
-  }, [data]);
+  useScrollRestoredAfterLoad(data !== null, hasNext && !failed ? more : undefined);
 
   const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -189,6 +195,26 @@ function ScrollingPosts({ scope, toolbar }: { scope: ListScope; toolbar: ReactNo
       )}
     </div>
   );
+}
+
+function useScrollRestoredAfterLoad(loaded: boolean, more?: () => void) {
+  const restored = useRef(false);
+  useEffect(() => {
+    if (!loaded || restored.current) {
+      return;
+    }
+    const { scrollY } = currentNavState();
+    if (scrollY === undefined) {
+      restored.current = true;
+      return;
+    }
+    window.scrollTo(0, scrollY);
+    if (more !== undefined && document.documentElement.scrollHeight - window.innerHeight < scrollY) {
+      more();
+      return;
+    }
+    restored.current = true;
+  });
 }
 
 function LoadingPosts() {
@@ -252,7 +278,12 @@ function PostList({ posts, visit }: { posts: BoardPostSummary[]; visit?: number 
     <ul className="board-list">
       {posts.map((post) => (
         <li key={post.id}>
-          <Link className="board-list__link" href={`/board/posts/${post.id}`} onClick={() => rememberScroll(visit)}>
+          <Link
+            className="board-list__link"
+            href={`/board/posts/${post.id}`}
+            state={{ from: 'board' } satisfies NavState}
+            onClick={() => rememberScroll(visit)}
+          >
             <div className="board-list__text">
               <span className="board-list__title">{post.title}</span>
               <BoardByline createdAt={post.createdAt}>
