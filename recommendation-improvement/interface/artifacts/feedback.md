@@ -17,7 +17,7 @@
 [제품 추천 지표] Mac 권장안에서 메모리가 과해요
 
 <!-- 한 줄에 하나. 사용자 피드백은 하나, 지표 피드백은 같은 신호를 보인 답 조합마다 한 줄이다. 건수가 많은 것부터 적는다.
-     https://devica.co.kr/result 또는 https://2026-devica.vercel.app/result 로 시작하고,
+     https://devica.co.kr/result, https://dev.devica.co.kr/result, https://2026-devica.vercel.app/result 중 하나로 시작하고,
      고른 선택지마다 answer=질문.선택지 가 하나씩 붙는다. answer 밖의 값이 함께 있을 수 있다.
      같은 답 조합이라도 바꾼 답이 다르면 다른 주소라, 같은 주소가 두 줄 나올 수 있다. -->
 ### 결과 화면 주소
