@@ -1,35 +1,38 @@
-/* FAQ 목록. 질문을 펼치면 아래에 답변이 열린다. 제품 선택 화면과 같은 제목 크기를 쓴다. */
+/* FAQ 목록. 질문을 펼치면 아래에 답변이 열린다. */
 
-.faq-view__title {
-    margin: 0;
-    font-size: var(--headline-lg-font-size);
-    font-weight: var(--headline-lg-font-weight);
-    line-height: var(--headline-lg-line-height);
-    letter-spacing: var(--headline-lg-letter-spacing);
+.faq-view {
+    max-width: var(--content-narrow);
+    width: 100%;
+    margin: 0 auto;
+}
+
+.faq-view__description {
+    display: none;
 }
 
 .faq-list {
     margin: 0;
-    border-top: 1px solid var(--on-surface);
+    border-top: 2px solid var(--rule-strong);
     padding: 0;
     list-style: none;
 }
 
 .faq-item {
-    border-bottom: 1px solid var(--outline-variant);
+    border-bottom: 1px solid var(--divider);
 }
 
 .faq-item__question {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--gutter);
-    padding: var(--gutter) 0;
-    color: var(--on-surface);
-    font-size: var(--body-lg-font-size);
+    gap: var(--space-12);
+    min-height: var(--control-sm);
+    padding: var(--space-16) 0;
+    color: var(--text);
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
-    /* 기본 삼각형 표시는 브라우저마다 달라 지우고 오른쪽 표시로 대신한다. */
+    /* 기본 삼각형 표시는 브라우저마다 달라 지우고 오른쪽 +·− 로 대신한다. */
     list-style: none;
 }
 
@@ -37,39 +40,48 @@
     display: none;
 }
 
-.faq-item__question:hover {
-    background: var(--surface-container-low);
-}
-
-.faq-item__question:focus-visible {
-    outline: 2px solid var(--lime);
-    outline-offset: 2px;
-}
-
 .faq-item__marker {
     flex-shrink: 0;
-    transition: transform 0.15s;
+    color: var(--accent);
 }
 
-.faq-item[open] .faq-item__marker {
-    transform: rotate(180deg);
+.faq-item__marker::before {
+    content: "+";
+}
+
+.faq-item[open] .faq-item__marker::before {
+    content: "−";
 }
 
 .faq-item__answer {
-    padding: 0 0 var(--gutter);
+    padding: 0 0 var(--space-20);
 }
 
 /* 답변은 줄바꿈을 그대로 살린다. */
 .faq-answer {
     margin: 0;
-    color: var(--on-surface);
-    font-size: var(--body-lg-font-size);
-    line-height: var(--body-lg-line-height);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.7;
     white-space: pre-line;
 }
 
-@media (prefers-reduced-motion: reduce) {
-    .faq-item__marker {
-        transition: none;
+@media (min-width: 768px) {
+    .faq-view__description {
+        display: block;
+    }
+
+    .faq-item__question {
+        gap: var(--space-16);
+        padding: var(--space-20) var(--space-4);
+        font-size: 18px;
+    }
+
+    .faq-item__answer {
+        padding: 0 var(--space-4) var(--space-24);
+    }
+
+    .faq-answer {
+        font-size: 16px;
     }
 }

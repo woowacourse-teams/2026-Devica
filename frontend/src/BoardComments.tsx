@@ -1,5 +1,13 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { BoardRequestError, boardDate, createBoardComment, fetchBoardComments } from './board';
+import { BoardByline } from './BoardShared';
+import {
+  BOARD_POSTS_CACHE,
+  type BoardPostSummary,
+  BoardRequestError,
+  createBoardComment,
+  fetchBoardComments,
+} from './board';
+import { updatePagedStartingWith } from './fetched';
 import { useBoardRequest } from './useBoardRequest';
 
 const COMMENT_MAX_LENGTH = 1000;
@@ -30,14 +38,15 @@ export function BoardComments({ postId }: { postId: number }) {
       )}
       {state.status === 'success' &&
         (state.data.length === 0 ? (
-          <p className="board-status">아직 댓글이 없습니다. 첫 번째 답변을 남겨 보세요.</p>
+          <div className="board-status">
+            <p className="board-status__title">아직 댓글이 없습니다.</p>
+            <p className="board-meta">첫 번째 답변을 남겨 보세요.</p>
+          </div>
         ) : (
           <ol className="board-comments__list">
             {state.data.map((comment) => (
               <li key={comment.id}>
-                <p className="board-meta">
-                  익명 · <time dateTime={comment.createdAt}>{boardDate(comment.createdAt)}</time>
-                </p>
+                <BoardByline createdAt={comment.createdAt} />
                 <p className="board-comments__content">{comment.content}</p>
               </li>
             ))}
@@ -67,6 +76,9 @@ function BoardCommentForm({ postId, onCreated }: { postId: number; onCreated: ()
     setState({ status: 'submitting' });
     try {
       await createBoardComment(postId, content, controller.signal);
+      updatePagedStartingWith<BoardPostSummary>(BOARD_POSTS_CACHE, (post) =>
+        post.id === postId ? { ...post, commentCount: post.commentCount + 1 } : post,
+      );
       if (!controller.signal.aborted) {
         setContent('');
         setState({ status: 'success' });
@@ -114,19 +126,38 @@ function BoardCommentForm({ postId, onCreated }: { postId: number; onCreated: ()
             setState({ status: 'idle' });
           }}
         />
-        <span className="board-count" id="board-comment-count">
-          {content.length.toLocaleString('ko-KR')} / 1,000자
-        </span>
       </div>
       {state.status === 'failed' && (
-        <p className="board-error" role="alert">
+        <p className="board-alert" role="alert">
           {state.message}
         </p>
       )}
-      {state.status === 'success' && <p role="status">댓글을 등록했습니다.</p>}
-      <button className="button button--primary" type="submit" disabled={submitting || !valid}>
-        {submitting ? '등록 중…' : '댓글 등록'}
-      </button>
+      {state.status === 'success' && (
+        <p className="board-notice" role="status">
+          <svg
+            aria-hidden="true"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M5 12l5 5L20 7" />
+          </svg>
+          댓글을 등록했습니다.
+        </p>
+      )}
+      <div className="board-comment-form__foot">
+        <span className="board-count" id="board-comment-count">
+          {content.length.toLocaleString('ko-KR')} / 1,000자
+        </span>
+        <button className="button button--primary" type="submit" disabled={submitting || !valid}>
+          {submitting ? '등록 중…' : '댓글 등록'}
+        </button>
+      </div>
     </form>
   );
 }

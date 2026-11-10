@@ -1,5 +1,6 @@
+import type { ReactNode } from 'react';
 import { Link } from 'wouter';
-import type { BoardScope } from './board';
+import { type BoardScope, boardDate } from './board';
 import { PATHS } from './routes';
 import './BoardView.css';
 
@@ -44,11 +45,19 @@ export function BoardLoading({ message = '게시판을 불러오는 중입니다
 
 export function BoardScopeInfo({ scope }: { scope: BoardScope }) {
   return (
-    <div className="board-scope">
-      <p className="board-scope__name">
-        {scope.category.name}
-        {scope.purpose && <> / {scope.purpose.name}</>}
-      </p>
-    </div>
+    <p className="board-scope">
+      {scope.category.name}
+      {scope.purpose && <> / {scope.purpose.name}</>}
+    </p>
+  );
+}
+
+export function BoardByline({ createdAt, children }: { createdAt: string; children?: ReactNode }) {
+  return (
+    <p className="board-meta board-byline">
+      <span className="board-byline__author">익명</span>
+      <time dateTime={createdAt}>{boardDate(createdAt)}</time>
+      {children}
+    </p>
   );
 }

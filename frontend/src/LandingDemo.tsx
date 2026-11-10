@@ -21,7 +21,7 @@ import type { LandingGuideContent } from './landingGuides';
 const FIRST_STEP_CUT = 0.5;
 
 export const RECOMMEND_WEIGHTS = [FIRST_STEP_CUT, 1, 1, 2.5, 1];
-const BOARD_WEIGHTS = [FIRST_STEP_CUT, 1, 1];
+const BOARD_WEIGHTS = [1.5, 1.5, 1];
 
 const sum = (values: readonly number[]) => values.reduce((total, value) => total + value, 0);
 
@@ -38,15 +38,28 @@ const BOARD_SHOTS = [
   { mobile: board3, desktop: board3Desktop },
 ];
 
-export function scrollToDemoStep(section: HTMLElement, index: number, weights: readonly number[]) {
-  const top = section.getBoundingClientRect().top + window.scrollY;
-  const distance = section.offsetHeight - window.innerHeight;
-  const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
-  const middle = sum(weights.slice(0, index)) + weights[index] / 2;
-  window.scrollTo({ top: top + (middle / sum(weights)) * distance, behavior });
+const SHORT_QUERY = '(max-width: 767px) and (max-height: 699px), (min-width: 768px) and (max-height: 499px)';
+const STEP_INSET = 0.04;
+
+function scrollRangeOf(section: HTMLElement) {
+  const viewport = window.innerHeight;
+  const frame = section.querySelector<HTMLElement>('.landing-screen');
+  if (frame !== null && window.matchMedia(SHORT_QUERY).matches) {
+    const rect = frame.getBoundingClientRect();
+    return { start: rect.top + window.scrollY - viewport * 0.15, length: viewport * 0.5 };
+  }
+  return {
+    start: section.getBoundingClientRect().top + window.scrollY,
+    length: section.offsetHeight - viewport,
+  };
 }
 
-const SHORT_QUERY = '(max-width: 767px) and (max-height: 619px)';
+export function scrollToDemoStep(section: HTMLElement, index: number, weights: readonly number[]) {
+  const { start, length } = scrollRangeOf(section);
+  const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+  const position = sum(weights.slice(0, index)) + weights[index] * STEP_INSET;
+  window.scrollTo({ top: start + (position / sum(weights)) * length, behavior });
+}
 
 function useScrollSteps(weights: readonly number[]) {
   const sectionRef = useRef<HTMLElement>(null);
@@ -71,7 +84,8 @@ function useScrollSteps(weights: readonly number[]) {
       const rect = section.getBoundingClientRect();
       const viewport = window.innerHeight;
       const enter = Math.min(Math.max(1 - rect.top / viewport, 0), 1);
-      const pinned = Math.min(Math.max(-rect.top / Math.max(rect.height - viewport, 1), 0), 1);
+      const { start, length } = scrollRangeOf(section);
+      const pinned = Math.min(Math.max((window.scrollY - start) / Math.max(length, 1), 0), 1);
       section.style.setProperty('--demo-enter', enter.toFixed(3));
       section.style.setProperty('--demo-progress', pinned.toFixed(3));
       let position = pinned * sum(weights);

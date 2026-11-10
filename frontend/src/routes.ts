@@ -111,6 +111,7 @@ export type NavState = {
   searching?: boolean;
   filterOpen?: boolean;
   scrollY?: number;
+  boardVisit?: number;
   reviewQuestion?: boolean;
 };
 

@@ -16,8 +16,8 @@ body {
     min-width: 320px;
     margin: 0;
     font-family: var(--font-sans);
-    font-size: var(--body-lg-font-size);
-    line-height: var(--body-lg-line-height);
+    font-size: 16px;
+    line-height: 1.5;
     letter-spacing: -0.025em;
     -webkit-font-smoothing: antialiased;
 }
@@ -63,19 +63,19 @@ h3 {
 
 h1 {
     margin-bottom: 0;
-    font-size: calc(var(--display-font-size) * 0.8);
-    line-height: var(--display-line-height);
-    letter-spacing: var(--display-letter-spacing);
+    font-size: 38.4px;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
 }
 
 h2 {
     margin-bottom: 0;
-    font-size: var(--headline-lg-font-size);
-    line-height: var(--headline-lg-line-height);
+    font-size: 32px;
+    line-height: 1.25;
 }
 
 @media (min-width: 768px) {
     h1 {
-        font-size: var(--display-font-size);
+        font-size: 48px;
     }
 }

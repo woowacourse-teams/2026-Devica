@@ -670,7 +670,7 @@ html:has(.landing-page) {
     overflow: hidden;
     border: 1px solid var(--divider);
     border-radius: var(--radius-8);
-    background: var(--surface-container-high);
+    background: var(--surface-2);
     box-shadow: 0 40px 120px color-mix(in srgb, var(--primary) 35%, transparent);
     transform: translateY(calc((1 - var(--demo-enter, 1)) * 80px));
     opacity: calc(0.3 + var(--demo-enter, 1) * 0.7);
@@ -1787,8 +1787,9 @@ html:has(.landing-page) {
         font-size: 14px;
     }
 
+    /* 앞 시연의 내용은 휴대폰 틀이 520px 로 다 큰 뒤(화면 높이 880px)로는 더 내려가지 않는다. 그 아래 빈 자리만큼만 끌어올린다. */
     .landing-demo + .landing-demo {
-        margin-top: calc(-1 * max(0px, 100svh - 680px));
+        margin-top: calc(-132px - max(0px, 100svh - 880px));
     }
 
     .landing-board__stage {
@@ -1796,44 +1797,46 @@ html:has(.landing-page) {
         gap: var(--space-20);
     }
 
-    /* 화면 모서리가 둥글어 스크린숏의 귀퉁이가 가려지지 않도록, 위아래에 상태 표시줄과 홈 막대 자리를 둔다.
-       틀은 휴대폰 비율(390:844)을 지키고, 그 자리만큼 줄어든 스크린숏을 가운데에 놓는다. 스크린숏 비율로 틀을 잡으면 세로로 길쭉해진다. */
+    /* 틀은 아이폰 본체 비율(71.6 × 147.6mm)이고 테두리 없이 화면이 꽉 찬다. 둥근 모서리에 스크린숏 귀퉁이가 가려지지 않도록
+       위아래에 상태 표시줄과 홈 막대 자리를 둔다. 크기는 모두 --phone-height 에서 비례로 정한다. */
     .landing-screen {
         --phone-height: min(calc(100svh - 360px), 520px);
-        height: var(--phone-height);
         width: auto;
-        padding: 7px;
-        border: 0;
-        border-radius: 34px;
+        padding: 0;
+        border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+        border-radius: calc(var(--phone-height) * 0.08);
     }
 
     .landing-screen__view {
         box-sizing: border-box;
-        width: calc((var(--phone-height) - 14px) * 390 / 844);
-        height: 100%;
-        padding: 24px 0 16px;
+        width: calc(var(--phone-height) * 716 / 1476);
+        height: var(--phone-height);
+        padding: calc(var(--phone-height) * 0.065) 0 calc(var(--phone-height) * 0.04);
         aspect-ratio: auto;
-        border-radius: 27px;
     }
 
     .landing-screen__view::before {
         content: "";
         position: absolute;
-        top: 8px;
+        top: calc(var(--phone-height) * 0.016);
         left: 50%;
-        width: 52px;
-        height: 12px;
+        width: calc(var(--phone-height) * 0.15);
+        height: calc(var(--phone-height) * 0.04);
         border-radius: var(--radius-pill);
-        background: var(--bg);
+        background: color-mix(in srgb, var(--text) 14%, var(--bg));
         transform: translateX(-50%);
+    }
+
+    .landing-screen[data-light] .landing-screen__view::before {
+        background: var(--bg);
     }
 
     .landing-screen__view::after {
         content: "";
         position: absolute;
-        bottom: 6px;
+        bottom: calc(var(--phone-height) * 0.013);
         left: 50%;
-        width: 72px;
+        width: 34%;
         height: 4px;
         border-radius: var(--radius-pill);
         background: color-mix(in srgb, var(--text) 50%, transparent);
@@ -1846,18 +1849,26 @@ html:has(.landing-page) {
 
     .landing-screen__stack {
         position: relative;
-        width: calc((var(--phone-height) - 14px - 40px) * 390 / 844);
         height: 100%;
-        margin: 0 auto;
     }
 
+    /* 단계 카드 셋이 휴대폰 아래에 다 들어오도록 틀을 조금 줄이고, 고르지 않은 카드는 낮게 둔다. */
     .landing-board__stage .landing-screen {
+        --phone-height: min(calc(100svh - 400px), 520px);
         order: -1;
+    }
+
+    .landing-board__steps {
+        gap: var(--space-4);
     }
 
     .landing-board__step {
         gap: var(--space-12);
-        padding: var(--space-16);
+        padding: var(--space-8) var(--space-16);
+    }
+
+    .landing-board__step[aria-pressed="true"] {
+        padding-block: var(--space-12);
     }
 
     .landing-board__number {
@@ -2038,34 +2049,41 @@ html:has(.landing-page) {
     }
 }
 
-/* 가로로 눕힌 휴대폰처럼 낮은 화면에는 시연을 고정할 높이가 없다. 고정을 풀고 휴대폰 크기를 너비로 정한다.
-   기준 높이는 LandingDemo 의 SHORT_QUERY 와 같다. */
-@media (max-width: 767px) and (max-height: 619px) {
+/* 가로로 눕힌 휴대폰처럼 낮은 화면에는 시연을 고정할 높이가 없다. 고정을 풀고, 틀이 화면 안에 지나가는 동안 단계를 넘긴다.
+   기준은 LandingDemo 의 SHORT_QUERY 와 같다. */
+@media (max-width: 767px) and (max-height: 699px), (min-width: 768px) and (max-height: 499px) {
     .landing-demo__sticky {
         position: static;
         height: auto;
     }
 
-    .landing-screen {
-        width: min(64vw, 260px);
-        height: auto;
+    .landing-demo + .landing-demo {
+        margin-top: 0;
     }
 
-    .landing-screen__view {
+    .landing-screen {
         width: 100%;
-        height: auto;
     }
 
     /* 고정되지 않아 단계가 짧은 스크롤에 다 지나가므로, 틀 안 화면까지 내려가면 어지럽다. 맨 위만 보여 준다. */
     .landing-screen__shot {
         translate: none;
     }
+}
 
-    /* 위아래 40px 자리만큼 너비도 줄여(40 × 390/844) 틀이 휴대폰 비율을 지키게 한다. */
-    .landing-screen__stack {
-        width: calc(100% - 18.5px);
-        height: auto;
-        aspect-ratio: 390 / 844;
+/* 옆으로 나란한 배치에서는 목록 높이가 달라지면 가운데 맞춘 틀도 움직여 단계가 다시 바뀐다. 설명을 모두 펼쳐 높이를 고정한다. */
+@media (min-width: 768px) and (max-height: 499px) {
+    .landing-board__description {
+        display: block;
+    }
+}
+
+/* 틀과 단계 설명이 한 화면에 들어오도록 휴대폰 높이를 화면 높이에 맞춘다. */
+@media (max-width: 767px) and (max-height: 699px) {
+    .landing-screen,
+    .landing-board__stage .landing-screen {
+        --phone-height: clamp(240px, calc(100svh - 200px), 536px);
+        width: auto;
     }
 }
 
