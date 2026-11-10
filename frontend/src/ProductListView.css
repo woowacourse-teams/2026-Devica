@@ -45,8 +45,9 @@
         background-color 150ms ease-out;
 }
 
+/* 한 줄에 120px 도 남지 않으면 필터·정렬 버튼이 다음 줄로 내려간다. */
 .product-search {
-    flex: 1 1 0;
+    flex: 1 1 120px;
     min-width: 0;
     gap: var(--space-12);
 }
@@ -203,7 +204,6 @@
 /* 데스크톱의 펼침 패널. 바 아래에서 높이가 늘어나며 열린다. */
 .product-filter-panel {
     display: grid;
-    flex-basis: 100%;
     grid-template-rows: 0fr;
     opacity: 0;
     transition:
@@ -410,7 +410,9 @@ html:has(.product-filter-sheet[open]) {
     list-style: none;
 }
 
+/* 초점으로 스크롤될 때 고정 바 아래에 멈춘다. 바가 두 줄로 접혀도(136px) 가리지 않는 높이다. */
 .product-card {
+    scroll-margin-top: 152px;
     display: flex;
     gap: var(--space-16);
     height: 100%;

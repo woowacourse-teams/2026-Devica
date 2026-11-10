@@ -53,7 +53,7 @@ const SORT_LABELS: { value: SortType; label: string }[] = [
 
 const SORT_SHORT_LABELS: Record<SortType, string> = { PRICE_ASC: '낮은 순', PRICE_DESC: '높은 순' };
 
-const CARD_SPECS = ['CPU', 'MEMORY', 'STORAGE'];
+const CARD_SPECS = ['CPU', 'GPU', 'MEMORY', 'STORAGE'];
 
 const OS_GROUP_LABELS: Record<string, string> = { MAC: 'Mac', WINDOWS: 'Windows' };
 
@@ -443,15 +443,15 @@ export function ProductListView({
             }
           />
         </div>
-        {/* 접어도 DOM 에 남긴다. 사라지면 aria-controls 가 없는 id 를 가리킨다. */}
-        {!compact && (
-          <div className="product-filter-panel" id="product-filter-panel" data-open={filterOpen} inert={!filterOpen}>
-            <div className="product-filter-panel__clip">
-              <div className="product-filter-panel__box">{fields}</div>
-            </div>
-          </div>
-        )}
       </div>
+      {/* 접어도 DOM 에 남긴다. 사라지면 aria-controls 가 없는 id 를 가리킨다. */}
+      {!compact && (
+        <div className="product-filter-panel" id="product-filter-panel" data-open={filterOpen} inert={!filterOpen}>
+          <div className="product-filter-panel__clip">
+            <div className="product-filter-panel__box">{fields}</div>
+          </div>
+        </div>
+      )}
 
       {compact && (
         <FilterSheet
