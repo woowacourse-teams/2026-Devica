@@ -45,8 +45,12 @@ function scrollRangeOf(section: HTMLElement) {
   const viewport = window.innerHeight;
   const frame = section.querySelector<HTMLElement>('.landing-screen');
   if (frame !== null && window.matchMedia(SHORT_QUERY).matches) {
-    const rect = frame.getBoundingClientRect();
-    return { start: rect.top + window.scrollY - viewport * 0.15, length: viewport * 0.5, overflow: 0 };
+    const shift = new DOMMatrix(getComputedStyle(frame).transform).m42;
+    return {
+      start: frame.getBoundingClientRect().top - shift + window.scrollY - viewport * 0.15,
+      length: viewport * 0.5,
+      overflow: 0,
+    };
   }
   const sticky = section.querySelector<HTMLElement>('.landing-demo__sticky');
   const overflow = Math.max(0, (sticky?.offsetHeight ?? 0) - viewport);

@@ -913,6 +913,7 @@ html:has(.landing-page) {
 
 .landing-board__description {
     display: none;
+    min-height: 4.8em;
     color: var(--text-muted);
     font-size: 14px;
     line-height: 1.6;
@@ -1910,10 +1911,6 @@ html:has(.landing-page) {
 
     .landing-board__copy b {
         font-size: 16px;
-    }
-
-    .landing-board__description {
-        min-height: 4.8em;
     }
 
     /* 카드는 화면 가운데에 멈추고 양옆 카드가 조금씩 보인다. 가운데에서 멀수록 작고 흐려진다. */
