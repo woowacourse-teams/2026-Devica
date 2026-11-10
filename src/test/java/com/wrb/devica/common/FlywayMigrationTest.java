@@ -218,7 +218,7 @@ public class FlywayMigrationTest {
         return jdbcTemplate.queryForObject("SELECT id FROM product WHERE code = ?", Long.class, code);
     }
 
-    // 이후 V1.30이 판매처 코드로 바꿀 수 있도록 실제 판매처 이름을 쓴다.
+    // 이후 V1.31이 판매처 코드로 바꿀 수 있도록 실제 판매처 이름을 쓴다.
     private void saveOffer(long productId, long price, String status) {
         jdbcTemplate.update("""
             INSERT INTO product_offer (product_id, name, price, purchase_url, status, created_at, updated_at)
