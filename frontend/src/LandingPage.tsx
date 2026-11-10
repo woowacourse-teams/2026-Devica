@@ -1,6 +1,6 @@
-import { type CSSProperties, useRef } from 'react';
+import { type CSSProperties, type MouseEvent, useRef } from 'react';
 import { track } from './analytics';
-import { LandingBoardDemo, LandingDemo, RECOMMEND_WEIGHTS, scrollToDemoStep } from './LandingDemo';
+import { BOARD_WEIGHTS, LandingBoardDemo, LandingDemo, RECOMMEND_WEIGHTS, scrollToDemoStep } from './LandingDemo';
 import { CarouselArrows, useCarousel } from './LandingGuide';
 import { CountUp, useHorizontalPin, usePointerTilt } from './LandingMotion';
 import { LANDING_GUIDES } from './landingGuides';
@@ -82,8 +82,11 @@ export function LandingPage() {
           <h2 id="landing-how-title">필요한 도움부터 시작하세요.</h2>
         </div>
         <nav className="landing-routes" aria-label="서비스 바로가기" data-landing-reveal="">
-          {/* biome-ignore lint/a11y/useValidAnchor: 클릭은 측정만 하고 href의 기본 앵커 이동을 유지한다. */}
-          <a href="#find-specs" onClick={() => track('landing_guide_link_clicked', { guide: 'find-specs' })}>
+          {/* biome-ignore lint/a11y/useValidAnchor: 앵커 이동을 시연이 화면에 고정되는 첫 단계 위치로 바꾼다. */}
+          <a
+            href="#find-specs"
+            onClick={(event) => moveToDemo(event, 'find-specs', 'find-specs', 0, RECOMMEND_WEIGHTS)}
+          >
             <span className="landing-routes__icon">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 3c.6 4.4 2.6 6.4 7 7-4.4.6-6.4 2.6-7 7-.6-4.4-2.6-6.4-7-7 4.4-.6 6.4-2.6 7-7Z" />
@@ -100,14 +103,9 @@ export function LandingPage() {
           {/* biome-ignore lint/a11y/useValidAnchor: 제품 추천받기 소개로 가는 앵커 이동을 그 소개의 마지막 단계 위치로 바꾼다. */}
           <a
             href="#find-specs"
-            onClick={(event) => {
-              track('landing_guide_link_clicked', { guide: 'product-list' });
-              const section = document.getElementById('find-specs');
-              if (section === null) return;
-              event.preventDefault();
-              scrollToDemoStep(section, RECOMMEND_WEIGHTS.length - 1, RECOMMEND_WEIGHTS);
-              document.getElementById('find-specs-title')?.focus({ preventScroll: true });
-            }}
+            onClick={(event) =>
+              moveToDemo(event, 'product-list', 'find-specs', RECOMMEND_WEIGHTS.length - 1, RECOMMEND_WEIGHTS)
+            }
           >
             <span className="landing-routes__icon">
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -123,8 +121,8 @@ export function LandingPage() {
               사용법 보기 <span aria-hidden="true">↓</span>
             </span>
           </a>
-          {/* biome-ignore lint/a11y/useValidAnchor: 클릭은 측정만 하고 href의 기본 앵커 이동을 유지한다. */}
-          <a href="#use-board" onClick={() => track('landing_guide_link_clicked', { guide: 'use-board' })}>
+          {/* biome-ignore lint/a11y/useValidAnchor: 앵커 이동을 시연이 화면에 고정되는 첫 단계 위치로 바꾼다. */}
+          <a href="#use-board" onClick={(event) => moveToDemo(event, 'use-board', 'use-board', 0, BOARD_WEIGHTS)}>
             <span className="landing-routes__icon">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M5 5h14v10H10l-4 4v-4H5Z" />
@@ -425,6 +423,21 @@ export function LandingPage() {
       </section>
     </div>
   );
+}
+
+function moveToDemo(
+  event: MouseEvent<HTMLAnchorElement>,
+  guide: string,
+  id: string,
+  step: number,
+  weights: readonly number[],
+) {
+  track('landing_guide_link_clicked', { guide });
+  const section = document.getElementById(id);
+  if (section === null) return;
+  event.preventDefault();
+  scrollToDemoStep(section, step, weights);
+  document.getElementById(`${id}-title`)?.focus({ preventScroll: true });
 }
 
 function HeroDevice() {

@@ -598,12 +598,12 @@ html:has(.landing-page) {
 
 .landing-demo__sticky {
     position: sticky;
-    top: 0;
+    top: var(--demo-sticky-top, 0px);
     display: flex;
     flex-direction: column;
     justify-content: center;
     gap: var(--space-32);
-    height: 100vh;
+    min-height: 100vh;
     padding: var(--space-48) 0;
     box-sizing: border-box;
 }
@@ -1662,8 +1662,6 @@ html:has(.landing-page) {
     .landing-demo__sticky {
         justify-content: flex-start;
         gap: var(--space-20);
-        top: var(--demo-sticky-top, 0px);
-        height: auto;
         min-height: 100svh;
         padding-top: clamp(var(--space-16), calc(100svh - 700px), var(--space-40));
         padding-bottom: var(--space-24);
@@ -1914,6 +1912,10 @@ html:has(.landing-page) {
         font-size: 16px;
     }
 
+    .landing-board__description {
+        min-height: 4.8em;
+    }
+
     /* 카드는 화면 가운데에 멈추고 양옆 카드가 조금씩 보인다. 가운데에서 멀수록 작고 흐려진다. */
     .landing-tech__track {
         gap: var(--space-12);
@@ -2146,6 +2148,10 @@ html:has(.landing-page) {
     .landing-screen__shot {
         transform: none;
         transition: none;
+    }
+
+    .landing-screen__shot {
+        translate: none;
     }
 
     .landing-screen {

@@ -21,7 +21,7 @@ import type { LandingGuideContent } from './landingGuides';
 const FIRST_STEP_CUT = 0.5;
 
 export const RECOMMEND_WEIGHTS = [FIRST_STEP_CUT, 1, 1, 2.5, 1];
-const BOARD_WEIGHTS = [1.5, 1.5, 1];
+export const BOARD_WEIGHTS = [1.5, 1.5, 1];
 
 const sum = (values: readonly number[]) => values.reduce((total, value) => total + value, 0);
 
@@ -46,11 +46,15 @@ function scrollRangeOf(section: HTMLElement) {
   const frame = section.querySelector<HTMLElement>('.landing-screen');
   if (frame !== null && window.matchMedia(SHORT_QUERY).matches) {
     const rect = frame.getBoundingClientRect();
-    return { start: rect.top + window.scrollY - viewport * 0.15, length: viewport * 0.5 };
+    return { start: rect.top + window.scrollY - viewport * 0.15, length: viewport * 0.5, overflow: 0 };
   }
+  const sticky = section.querySelector<HTMLElement>('.landing-demo__sticky');
+  const overflow = Math.max(0, (sticky?.offsetHeight ?? 0) - viewport);
+  const offset = overflow + Number.parseFloat(getComputedStyle(section).paddingTop);
   return {
-    start: section.getBoundingClientRect().top + window.scrollY,
-    length: section.offsetHeight - viewport,
+    start: section.getBoundingClientRect().top + window.scrollY + offset,
+    length: section.offsetHeight - viewport - offset,
+    overflow,
   };
 }
 
@@ -84,12 +88,9 @@ function useScrollSteps(weights: readonly number[]) {
       const rect = section.getBoundingClientRect();
       const viewport = window.innerHeight;
       const enter = Math.min(Math.max(1 - rect.top / viewport, 0), 1);
-      const { start, length } = scrollRangeOf(section);
+      const { start, length, overflow } = scrollRangeOf(section);
       const pinned = Math.min(Math.max((window.scrollY - start) / Math.max(length, 1), 0), 1);
-      const sticky = section.firstElementChild;
-      if (sticky instanceof HTMLElement) {
-        section.style.setProperty('--demo-sticky-top', `${Math.min(0, viewport - sticky.offsetHeight)}px`);
-      }
+      section.style.setProperty('--demo-sticky-top', `${-overflow}px`);
       section.style.setProperty('--demo-enter', enter.toFixed(3));
       section.style.setProperty('--demo-progress', pinned.toFixed(3));
       let position = pinned * sum(weights);
@@ -108,10 +109,14 @@ function useScrollSteps(weights: readonly number[]) {
     }
 
     update();
+    const resize = new ResizeObserver(onScroll);
+    const sticky = section.querySelector('.landing-demo__sticky');
+    if (sticky !== null) resize.observe(sticky);
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
     return () => {
       cancelAnimationFrame(frame);
+      resize.disconnect();
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
     };
