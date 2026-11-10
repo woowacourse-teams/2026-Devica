@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { OsIcon } from './BaselineCard';
 import { ChoiceGroup } from './ChoiceGroup';
 import { type Fetched, useFetched } from './fetched';
 import {
@@ -12,11 +13,12 @@ import {
   specCondition,
 } from './products';
 import { osValueOf, type Spec, type SpecItem } from './recommendation';
+import { boardUrl, go, navigateInside } from './routes';
+import { PURPOSE_DISPLAY } from './selection';
 import './ResultView.css';
 
-// 원본은 OS 행과 나머지 세 항목을 이 순서로 보여준다. GPU·화면은 원본에 없고, 정의서가 요구할 때만 서버가 준다.
+// OS 는 카드 제목으로 쓰고 나머지를 이 순서로 보여준다. GPU·화면은 정의서가 요구할 때만 서버가 준다.
 const ROWS: { code: string; label: string }[] = [
-  { code: 'OS', label: 'OS' },
   { code: 'REQUIRED_CPU', label: 'PROCESSOR' },
   { code: 'MEMORY', label: 'MEMORY' },
   { code: 'STORAGE', label: 'STORAGE' },
@@ -44,6 +46,7 @@ export type ResultOs = 'MAC' | 'WINDOWS' | 'BOTH';
 
 type Props = {
   categoryCode: string;
+  purposeCode: string;
   specs: Spec[];
   os: ResultOs;
   // 사용자가 고친 사양과, CPU 선택지를 만들 등급이다. 등급을 받지 못했으면 CPU 는 고칠 수 없다.
@@ -62,6 +65,7 @@ type Props = {
 
 export function ResultView({
   categoryCode,
+  purposeCode,
   specs,
   os,
   edits,
@@ -74,13 +78,14 @@ export function ResultView({
   onSearch,
   onReanswer,
 }: Props) {
-  const [editing, setEditing] = useState(false);
   const visible = os === 'BOTH' ? specs : specs.filter((spec) => osValueOf(spec) === os);
   const edited = visible.map((spec) => editedSpec(spec, edits, tiers));
   const minPrices = useFetched(`min-price:${categoryCode}:${JSON.stringify(edited.map(specCondition))}`, () =>
     Promise.all(edited.map((spec) => fetchMinPrice(categoryCode, spec))),
   );
   const minPriceLabels = visible.map((spec) => OS_LABEL[osValueOf(spec)] ?? osValueOf(spec));
+  const purposeName = PURPOSE_DISPLAY.find((purpose) => purpose.code === purposeCode)?.name;
+  const board = boardUrl(categoryCode, purposeCode);
 
   const choices = [
     ...specs.map((spec) => ({ value: osValueOf(spec), label: OS_LABEL[osValueOf(spec)] ?? osValueOf(spec) })),
@@ -88,23 +93,16 @@ export function ResultView({
   ];
 
   return (
-    <section className="view-panel result-view" id="result-view" aria-labelledby="result-title">
-      <p className="eyebrow">내 제품 추천 결과</p>
-      <h2 id="result-title">제품 추천 결과를 확인해 보세요</h2>
-      <p className="section-description">제품 추천 결과를 확인하고 필요에 따라 직접 수정할 수 있습니다.</p>
-
-      {onReanswer !== undefined && (
-        <div className="result-outdated" role="status">
-          <p className="notice">질문이 바뀌어 지금 질문에 맞춰 다시 읽었어요. 처음 본 결과와 다를 수 있어요.</p>
-          <button className="button button--secondary" type="button" onClick={onReanswer}>
-            다시 답하기
-          </button>
+    <section className="view-panel flow-view result-view" id="result-view" aria-labelledby="result-title">
+      <div className="result-head">
+        <div className="flow-head">
+          <p className="flow-head__eyebrow">내 제품 추천 결과{purposeName === undefined ? '' : ` · ${purposeName}`}</p>
+          <h1 id="result-title">제품 추천 결과를 확인해 보세요</h1>
         </div>
-      )}
-
-      <div className="result-os-control">
-        <span>표시할 OS</span>
-        <span id="result-os-control">
+        <div className="result-os-control">
+          <span className="result-os-control__label" aria-hidden="true">
+            표시할 OS
+          </span>
           <ChoiceGroup
             segmented
             label="표시할 OS"
@@ -113,98 +111,219 @@ export function ResultView({
             // 표시할 OS 는 비울 수 없다. 고른 것을 다시 눌러도 그대로 둔다.
             onChange={(value) => value !== null && onChangeOs(value as ResultOs)}
           />
-        </span>
+        </div>
       </div>
+
+      {onReanswer !== undefined && (
+        <div className="result-outdated" role="status">
+          <p className="notice">질문이 바뀌어 지금 질문에 맞춰 다시 읽었어요. 처음 본 결과와 다를 수 있어요.</p>
+          <button className="button" type="button" onClick={onReanswer}>
+            다시 답하기
+          </button>
+        </div>
+      )}
 
       <div className="result-body">
-        <div className="spec-list" id="spec-list">
-          {visible.map((spec, index) => (
-            <SpecCard
-              key={osValueOf(spec)}
-              spec={spec}
-              edited={edited[index]}
-              tiers={tiers}
-              tiersFailed={tiersFailed}
-              onRetryTiers={onRetryTiers}
-              editing={editing}
-              onReset={() => onResetEdits(osValueOf(spec))}
-              onEdit={(code, value) =>
-                onEdit(
-                  osValueOf(spec),
-                  code,
-                  value === spec.items.find((item) => item.code === code)?.value ? null : value,
-                )
-              }
-            />
-          ))}
+        <div className="result-main" id="spec-list">
+          {visible.length > 1 && (
+            <p className="result-both-note">
+              {minPriceLabels.join('·')} 결과를 차례로 보여 드려요.{' '}
+              <a href={`#spec-card-${osValueOf(visible[visible.length - 1])}`}>
+                {minPriceLabels[minPriceLabels.length - 1]} 결과로 이동 ↓
+              </a>
+            </p>
+          )}
+          <div className="result-cards">
+            {visible.map((spec, index) => (
+              <SpecCard
+                key={osValueOf(spec)}
+                spec={spec}
+                edited={edited[index]}
+                tiers={tiers}
+                tiersFailed={tiersFailed}
+                onRetryTiers={onRetryTiers}
+                onReset={() => onResetEdits(osValueOf(spec))}
+                onEdit={(code, value) =>
+                  onEdit(
+                    osValueOf(spec),
+                    code,
+                    value === spec.items.find((item) => item.code === code)?.value ? null : value,
+                  )
+                }
+              />
+            ))}
+          </div>
+          <p className="result-feedback">
+            제품 추천 결과가 나와 맞지 않나요?{' '}
+            <a href={feedbackUrl()} target="_blank" rel="noopener noreferrer">
+              의견 남기기 ↗
+            </a>{' '}
+            <span className="result-feedback__hint">GitHub 계정이 필요해요.</span>
+          </p>
         </div>
-        <MinPrices className="bordered-panel result-min-price--side" labels={minPriceLabels} prices={minPrices} />
-      </div>
 
-      <p className="result-feedback">
-        제품 추천 결과가 나와 맞지 않나요?{' '}
-        <a href={feedbackUrl()} target="_blank" rel="noopener noreferrer">
-          의견 남기기 ↗
-        </a>
-        <span className="result-feedback__hint">GitHub 계정이 필요해요.</span>
-      </p>
-
-      <div className="sticky-actions">
-        <MinPrices className="result-min-price--bar" labels={minPriceLabels} prices={minPrices} />
-        <button
-          className="button button--secondary button--wide"
-          id="edit-spec-button"
-          type="button"
-          aria-pressed={editing}
-          onClick={() => setEditing(!editing)}
-        >
-          {editing ? '수정 마치기' : '추천 결과 직접 수정'}
-        </button>
-        <button className="button button--primary button--wide" id="product-button" type="button" onClick={onSearch}>
-          추천 결과로 제품 검색
-        </button>
+        <div className="result-side">
+          <section className="sticky-actions result-price" aria-labelledby="result-price-title">
+            <h2 className="result-price__title" id="result-price-title">
+              이 사양으로 살 수 있는 최저가
+            </h2>
+            <MinPrices
+              labels={minPriceLabels}
+              prices={minPrices}
+              scope={`${categoryCode}:${purposeCode}:${JSON.stringify(specs.map(specCondition))}`}
+            />
+            <p className="result-price__basis">추천 사양 이상, 지금 판매 중인 노트북 기준</p>
+            <button
+              className="button button--primary button--wide"
+              id="product-button"
+              type="button"
+              onClick={onSearch}
+            >
+              추천 결과로 제품 검색 <span aria-hidden="true">→</span>
+            </button>
+          </section>
+          <a className="result-board" href={board} onClick={(event) => navigateInside(event, () => go(board))}>
+            <span className="result-board__text">
+              <b>아직 고민된다면</b>
+              <span>질문 게시판에서 다른 개발자와 나눠요</span>
+            </span>
+            <span className="result-board__arrow" aria-hidden="true">
+              →
+            </span>
+          </a>
+        </div>
       </div>
     </section>
   );
 }
 
 type MinPricesProps = {
-  className: string;
   labels: string[];
   prices: Fetched<(number | null)[]>;
+  scope: string;
 };
 
-function MinPrices({ className, labels, prices }: MinPricesProps) {
-  const priceText = (index: number) => {
-    if (prices.data === null) {
-      return '계산 중…';
+const knownPrices = new Map<string, number | null>();
+
+function MinPrices({ labels, prices, scope }: MinPricesProps) {
+  const keyOf = (label: string) => `${scope}:${label}`;
+  if (prices.data !== null) {
+    for (const [index, label] of labels.entries()) {
+      knownPrices.set(keyOf(label), prices.data[index] ?? null);
     }
-    const price = prices.data[index];
-    return price === null ? '판매 중인 제품 없음' : `${formatPrice(price)}부터`;
+  }
+  const priceOf = (label: string, index: number) => {
+    if (prices.data !== null) {
+      const price = prices.data[index];
+      return price === null ? '판매 중인 제품 없음' : <RollingPrice value={price} />;
+    }
+    if (!knownPrices.has(keyOf(label))) {
+      return (
+        <>
+          <span className="result-price__placeholder" aria-hidden="true" />
+          <span className="result-price__spoken">계산 중</span>
+        </>
+      );
+    }
+    const price = knownPrices.get(keyOf(label));
+    return price === null || price === undefined ? '판매 중인 제품 없음' : <RollingPrice value={price} />;
   };
 
+  if (prices.failed) {
+    return (
+      <p className="result-price__failed" role="status">
+        최저가를 불러오지 못했어요.{' '}
+        <button className="text-button" type="button" onClick={prices.retry}>
+          다시 시도
+        </button>
+      </p>
+    );
+  }
   return (
-    <div className={`result-min-price ${className}`} role="status">
-      <h3 className="result-min-price__title">이 사양으로 살 수 있는 최저가</h3>
-      {prices.failed ? (
-        <p className="result-min-price__failed">
-          최저가를 불러오지 못했어요.{' '}
-          <button className="text-button" type="button" onClick={prices.retry}>
-            다시 시도
-          </button>
-        </p>
-      ) : (
-        <ul className="result-min-price__list">
-          {labels.map((label, index) => (
-            <li key={label}>
-              <span>{label}</span>
-              <strong>{priceText(index)}</strong>
-            </li>
-          ))}
-        </ul>
+    <ul className="result-price__list" role="status" aria-busy={prices.data === null}>
+      {labels.map((label, index) => (
+        <li key={label}>
+          <span>
+            {label}
+            <span className="result-price__suffix"> 최저가</span>
+          </span>
+          <strong data-recalculating={prices.data === null && knownPrices.has(keyOf(label))}>
+            {priceOf(label, index)}
+          </strong>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+const ROLL_MS = 500;
+
+// 최저가가 바뀌면 이전 값에서 새 값까지 숫자를 굴린 뒤 은은하게 한 번 빛낸다. 굴러가는 숫자는 화면 읽기에서 숨기고 최종 값만 읽힌다.
+function RollingPrice({ value }: { value: number }) {
+  const [shown, setShown] = useState(value);
+  const [rolls, setRolls] = useState(0);
+  const current = useRef(value);
+
+  useEffect(() => {
+    const start = current.current;
+    if (start === value) {
+      return;
+    }
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      current.current = value;
+      setShown(value);
+      return;
+    }
+    const began = performance.now();
+    let frame = requestAnimationFrame(function tick(now) {
+      const progress = Math.min(1, Math.max(0, (now - began) / ROLL_MS));
+      const eased = 1 - (1 - progress) ** 3;
+      current.current = progress === 1 ? value : Math.round((start + (value - start) * eased) / 1000) * 1000;
+      setShown(current.current);
+      if (progress < 1) {
+        frame = requestAnimationFrame(tick);
+      } else {
+        setRolls((count) => count + 1);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+
+  return (
+    <>
+      <span
+        className={rolls > 0 ? 'result-price__value result-price__value--settled' : 'result-price__value'}
+        key={rolls}
+        aria-hidden="true"
+      >
+        {formatPrice(shown)}부터
+      </span>
+      <span className="result-price__spoken">{formatPrice(value)}부터</span>
+    </>
+  );
+}
+
+// 항목마다 첫 근거만 보여 주고, 나머지는 눌러야 펼친다. 근거가 한꺼번에 늘어서면 읽히지 않는다.
+function ReasonItem({ label, reasons }: { label: string; reasons: string[] }) {
+  const [open, setOpen] = useState(false);
+  const [lead, ...rest] = reasons;
+
+  return (
+    <li className="result-reasons__item">
+      <span className="result-reasons__tag">{label}</span>
+      <p className="result-reasons__lead">{lead}</p>
+      {open &&
+        rest.map((reason) => (
+          <p className="result-reasons__more" key={reason}>
+            {reason}
+          </p>
+        ))}
+      {rest.length > 0 && (
+        <button className="result-reasons__toggle" type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
+          {open ? '접기' : `근거 ${rest.length}개 더 보기`}
+        </button>
       )}
-      <p className="result-min-price__basis">추천 사양 이상, 지금 판매 중인 노트북 기준</p>
-    </div>
+    </li>
   );
 }
 
@@ -214,94 +333,120 @@ type SpecCardProps = {
   tiers: CpuTier[] | null;
   tiersFailed: boolean;
   onRetryTiers: () => void;
-  editing: boolean;
   onEdit: (code: string, value: string) => void;
   onReset: () => void;
 };
 
-function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, editing, onEdit, onReset }: SpecCardProps) {
+function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, onEdit, onReset }: SpecCardProps) {
+  const [editing, setEditing] = useState(false);
   const os = osValueOf(spec);
+  const titleId = `spec-card-title-${os}`;
   const itemOf = (target: Spec, code: string): SpecItem | undefined => target.items.find((item) => item.code === code);
+  const rows = ROWS.flatMap(({ code, label }) => {
+    const recommended = itemOf(spec, code);
+    const item = itemOf(edited, code);
+    return recommended === undefined || item === undefined ? [] : [{ code, label, recommended, item }];
+  });
+  const osItem = itemOf(spec, 'OS');
+  const reasonItems = [
+    ...(osItem === undefined ? [] : [{ label: 'OS', recommended: osItem }]),
+    ...rows.map(({ label, recommended }) => ({ label, recommended })),
+  ];
+  const reasons = reasonItems.filter(({ recommended }) => recommended.reasons.length > 0);
 
   return (
-    <article className="bordered-panel spec-card">
-      <div className="spec-card__head">
-        <h3>{OS_LABEL[osValueOf(spec)] ?? osValueOf(spec)} 제품 추천 결과</h3>
-        {editProperties(spec, edited) !== null && (
-          <button className="chip spec-card__reset" type="button" onClick={onReset}>
-            <span aria-hidden="true">↺ </span>추천 결과로 되돌리기
-          </button>
+    <article className="result-card" id={`spec-card-${os}`} aria-labelledby={titleId}>
+      <div className="spec-panel result-card__top">
+        <div className="result-card__head">
+          <h2 className="os-title" id={titleId}>
+            <OsIcon spec={spec} />
+            {OS_LABEL[os] ?? os} 제품 추천 결과
+          </h2>
+          <span className="result-card__actions">
+            {editProperties(spec, edited) !== null && (
+              <button className="result-card__button result-card__button--plain" type="button" onClick={onReset}>
+                <span aria-hidden="true">↺</span>추천 결과로 되돌리기
+              </button>
+            )}
+            <button
+              className={`result-card__button${editing ? ' result-card__button--solid' : ''}`}
+              type="button"
+              aria-pressed={editing}
+              onClick={() => setEditing(!editing)}
+            >
+              {editing ? '수정 마치기' : '직접 수정'}
+            </button>
+          </span>
+        </div>
+        <dl className={editing ? 'result-edit-rows' : 'spec-tiles'}>
+          {rows.map(({ code, label, recommended, item }) => {
+            const choices = editChoices(code, os, tiers);
+            // 권장 값이 선택지에 없어도 되돌릴 수 있게 칩으로 보여 준다.
+            const chips = choices.some((choice) => choice.value === recommended.value)
+              ? choices
+              : [{ value: recommended.value, label: recommended.displayValue }, ...choices];
+            return (
+              <div className={editing ? 'result-edit-row' : 'spec-tile'} key={code} data-os={os}>
+                <dt className="result-row__head">
+                  {label}
+                  {item !== recommended && (
+                    <span className="result-row__badge">직접 수정 · 추천 {recommended.displayValue}</span>
+                  )}
+                </dt>
+                <dd>
+                  {editing && choices.length > 0 ? (
+                    <ChoiceGroup
+                      label={label}
+                      choices={chips.map((chip) => ({
+                        value: chip.value,
+                        label: chip.value === recommended.value ? `${chip.label} · 추천` : chip.label,
+                      }))}
+                      value={item.value}
+                      // 고른 칩을 다시 눌러도 그대로 둔다. 되돌리기는 추천 칩이나 카드의 되돌리기로 한다.
+                      onChange={(value) => value !== null && onEdit(code, value)}
+                    />
+                  ) : (
+                    item.displayValue
+                  )}
+                  {/* CPU 선택지와 고친 등급의 이름은 등급을 받아야 알 수 있다. 고치려 하거나 고친 값이 있을 때만 알린다. */}
+                  {code === 'REQUIRED_CPU' && tiers === null && (editing || item !== recommended) && (
+                    <span className="result-row__status" role="status">
+                      {tiersFailed ? 'CPU 등급을 불러오지 못했어요. ' : 'CPU 등급을 불러오는 중이에요.'}
+                      {tiersFailed && (
+                        <button className="text-button" type="button" onClick={onRetryTiers}>
+                          다시 시도
+                        </button>
+                      )}
+                    </span>
+                  )}
+                </dd>
+              </div>
+            );
+          })}
+        </dl>
+      </div>
+      <div className="result-card__bottom">
+        {editing && <p className="result-card__hint">값을 바꾸면 최저가를 바로 다시 계산해요.</p>}
+        {spec.notes.length > 0 && (
+          <section className="result-card__notes" aria-label="안내">
+            {spec.notes.map((note) => (
+              <p className="result-card__note" key={note}>
+                {note}
+              </p>
+            ))}
+          </section>
+        )}
+        {!editing && reasons.length > 0 && (
+          <>
+            <h3>이렇게 추천한 이유</h3>
+            <ul className="result-reasons">
+              {reasons.map(({ label, recommended }) => (
+                <ReasonItem key={recommended.code} label={label} reasons={recommended.reasons} />
+              ))}
+            </ul>
+          </>
         )}
       </div>
-      {spec.notes.length > 0 && (
-        <section className="bordered-panel spec-row" aria-label="안내">
-          {spec.notes.map((note) => (
-            <p className="spec-row__reason" key={note}>
-              {note}
-            </p>
-          ))}
-        </section>
-      )}
-      {ROWS.map(({ code, label }) => {
-        const recommended = itemOf(spec, code);
-        const item = itemOf(edited, code);
-        if (recommended === undefined || item === undefined) {
-          return null;
-        }
-        const choices = editChoices(code, os, tiers);
-        // 권장 값이 선택지에 없어도 되돌릴 수 있게 칩으로 보여 준다.
-        const chips = choices.some((choice) => choice.value === recommended.value)
-          ? choices
-          : [{ value: recommended.value, label: recommended.displayValue }, ...choices];
-        return (
-          <section className="bordered-panel spec-row" key={code} data-os={os}>
-            <div className="spec-row__head">
-              <span className="spec-row__label">{label}</span>
-              {item !== recommended && (
-                <span className="spec-row__badge">직접 수정 · 추천 {recommended.displayValue}</span>
-              )}
-            </div>
-            {editing && choices.length > 0 ? (
-              <ChoiceGroup
-                label={label}
-                choices={chips.map((chip) => ({
-                  value: chip.value,
-                  label: chip.value === recommended.value ? `${chip.label} · 추천` : chip.label,
-                }))}
-                value={item.value}
-                // 고른 칩을 다시 눌러도 그대로 둔다. 되돌리기는 추천 칩이나 카드의 되돌리기로 한다.
-                onChange={(value) => value !== null && onEdit(code, value)}
-              />
-            ) : (
-              <strong className="spec-row__value">{item.displayValue}</strong>
-            )}
-            {/* CPU 선택지와 고친 등급의 이름은 등급을 받아야 알 수 있다. 고치려 하거나 고친 값이 있을 때만 알린다. */}
-            {code === 'REQUIRED_CPU' && tiers === null && (editing || item !== recommended) && (
-              <p className="spec-row__reason" role="status">
-                {tiersFailed ? 'CPU 등급을 불러오지 못했어요. ' : 'CPU 등급을 불러오는 중이에요.'}
-                {tiersFailed && (
-                  <button className="text-button" type="button" onClick={onRetryTiers}>
-                    다시 시도
-                  </button>
-                )}
-              </p>
-            )}
-            {/* 근거는 추천 값의 것이라 고쳐도 그대로 둔다. 고칠 때마다 근거가 생겼다 사라지면 칸 높이가 바뀌어 아래가 움직인다. */}
-            {/* 근거가 한 줄이면 그대로 보여주고, 여럿이면 기본으로 접어 둔다. 한 항목에 조건이 여럿 걸리면 근거도 여럿이다. */}
-            {recommended.reasons.length === 1 && <p className="spec-row__reason">{recommended.reasons[0]}</p>}
-            {recommended.reasons.length > 1 && (
-              <details className="spec-row__details">
-                <summary>근거 보기</summary>
-                {recommended.reasons.map((reason) => (
-                  <p className="spec-row__reason" key={reason}>
-                    {reason}
-                  </p>
-                ))}
-              </details>
-            )}
-          </section>
-        );
-      })}
     </article>
   );
 }

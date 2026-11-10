@@ -1,6 +1,6 @@
 import { type CSSProperties, useRef } from 'react';
 import { track } from './analytics';
-import { LandingBoardDemo, LandingDemo, scrollToDemoStep } from './LandingDemo';
+import { LandingBoardDemo, LandingDemo, RECOMMEND_WEIGHTS, scrollToDemoStep } from './LandingDemo';
 import { CarouselArrows, useCarousel } from './LandingGuide';
 import { CountUp, useHorizontalPin, usePointerTilt } from './LandingMotion';
 import { LANDING_GUIDES } from './landingGuides';
@@ -105,8 +105,7 @@ export function LandingPage() {
               const section = document.getElementById('find-specs');
               if (section === null) return;
               event.preventDefault();
-              const total = LANDING_GUIDES[0].steps.length;
-              scrollToDemoStep(section, total - 1, total);
+              scrollToDemoStep(section, RECOMMEND_WEIGHTS.length - 1, RECOMMEND_WEIGHTS);
               document.getElementById('find-specs-title')?.focus({ preventScroll: true });
             }}
           >

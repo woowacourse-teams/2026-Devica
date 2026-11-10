@@ -92,12 +92,6 @@
     font-weight: 600;
 }
 
-.site-footer__nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-20);
-}
-
 .site-footer a {
     padding: var(--space-8) 0;
     color: var(--text-muted);

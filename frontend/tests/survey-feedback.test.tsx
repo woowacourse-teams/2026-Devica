@@ -106,6 +106,7 @@ test('결과 응답에 answersOutdated 가 없으면 바꿔 읽지 않은 결과
 const resultView = (onReanswer?: () => void) => (
   <ResultView
     categoryCode="LAPTOP"
+    purposeCode="BACKEND_DEVELOPMENT"
     specs={[]}
     os="BOTH"
     edits={{}}

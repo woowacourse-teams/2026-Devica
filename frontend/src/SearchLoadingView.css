@@ -1,35 +1,35 @@
-/* search-loading-view 전용. 카드 테두리는 shared.css 의 bordered-panel 이 맡는다. */
+/* search-loading-view 전용. */
 
 .search-loading {
     display: flex;
     flex-direction: column;
+    justify-content: center;
     align-items: center;
-    gap: var(--density-med);
-    margin: 64px 0;
-    padding: 40px var(--gutter);
+    gap: var(--space-20);
+    min-height: calc(100svh - var(--header-height-mobile) - 160px);
     text-align: center;
+    word-break: keep-all;
 }
 
-/* 와이어프레임의 격자무늬. 글자를 가리지 않도록 아주 옅게 깐다.
-   bordered-panel 의 background 축약이 나중에 불러와져 덮으므로 두 클래스를 함께 써서 이긴다. */
-.bordered-panel.search-loading {
-    background-image:
-        linear-gradient(var(--surface-container) 1px, transparent 1px),
-        linear-gradient(90deg, var(--surface-container) 1px, transparent 1px);
-    background-size: 32px 32px;
+.search-loading > * {
+    margin: 0;
 }
 
-.search-loading .eyebrow {
-    color: var(--on-surface-variant);
-    letter-spacing: 0.1em;
+.search-loading__mark {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 16, 240, 0.55) 0%, rgba(0, 16, 240, 0) 70%);
 }
 
 /* 로딩 표시가 회전으로 읽히도록 원형을 유지한다. */
 .spinner {
-    width: 48px;
-    height: 48px;
-    border: 2px solid var(--inverse-primary);
-    border-top-color: var(--accent);
+    position: absolute;
+    inset: 16px;
+    border: 5px solid var(--surface-2);
+    border-top-color: var(--primary);
+    border-right-color: var(--accent);
     border-radius: 50%;
     animation: spinner-rotate 900ms linear infinite;
 }
@@ -40,32 +40,58 @@
     }
 }
 
+.search-loading__eyebrow {
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.search-loading h1 {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
 .search-loading__specs {
     display: grid;
-    gap: var(--density-high);
-    width: 100%;
-    margin-top: var(--density-high);
-    padding-top: var(--gutter);
-    border-top: 1px solid var(--outline-variant);
+    gap: var(--space-8);
 }
 
 .search-loading__spec {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--density-high);
     margin: 0;
-    border: 1px solid var(--outline-variant);
-    padding: var(--density-med);
-    color: var(--on-surface-variant);
-    background: var(--surface-container-low);
-    font-size: var(--body-md-font-size);
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.6;
 }
 
-.search-loading__icon {
-    flex: 0 0 auto;
-    width: 1em;
-    height: 1em;
+@media (min-width: 768px) {
+    .search-loading {
+        gap: var(--space-24);
+        min-height: 560px;
+    }
+
+    .search-loading__mark {
+        width: 160px;
+        height: 160px;
+    }
+
+    .spinner {
+        inset: 20px;
+        border-width: 6px;
+    }
+
+    .search-loading h1 {
+        font-size: 40px;
+        line-height: 1.25;
+    }
+
+    .search-loading__spec {
+        padding: var(--space-12) var(--space-20);
+        border: 1px solid var(--divider);
+        border-radius: var(--radius-pill);
+        background: var(--surface-1);
+        font-size: 16px;
+    }
 }
 
 /* 회전이 꺼져도 제목 문구가 진행 중임을 알린다. */

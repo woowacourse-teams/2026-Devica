@@ -4,7 +4,6 @@ import { useHistoryState, usePathname, useSearch } from 'wouter/use-browser-loca
 import { track } from './analytics';
 import { BoardPage } from './BoardPage';
 import { BoardPostPage } from './BoardPostView';
-import { CategoryCards } from './CategoryCards';
 import { FaqView } from './FaqView';
 import { forget, useFetched } from './fetched';
 import { IntroView } from './IntroView';
@@ -176,7 +175,7 @@ export function App() {
           </Route>
         </Switch>
       </main>
-      <SiteFooter onGuide={openFaq} onProductList={openSearch} boardHref={boardHref} onBoard={() => go(boardHref)} />
+      <SiteFooter />
     </>
   );
 }
@@ -262,6 +261,7 @@ function IntroPage({ params, search }: PageProps & { search: string }) {
   const screens = resolveScreens(survey.data ?? { steps: [], version: null }, {});
   return (
     <IntroView
+      categoryCode={category}
       purposeCode={purpose}
       onBack={() => goBack(`${PATHS.purpose}${query([['category', category]])}`, 'purpose')}
       onStart={() => {
@@ -530,6 +530,7 @@ function ResultPage({ params }: PageProps) {
   return (
     <ResultView
       categoryCode={category}
+      purposeCode={purpose}
       specs={specs}
       os={os}
       edits={edits}
@@ -697,7 +698,9 @@ function AllListPage({ params, search }: PageProps & { search: string }) {
   // 유형을 고르기 전에는 추천 흐름의 제품 선택과 같은 화면을 띄우고, 고르면 목록 화면으로 넘어간다.
   if (category === null) {
     return (
-      <CategoryCards
+      <SelectionView
+        categoryCode={null}
+        eyebrow="제품 목록"
         back={{ label: backLabelOf(navState.from ?? 'home'), onClick: onBack }}
         onSelect={(code) => go(`${PATHS.products}${query([['category', code]])}`)}
       />

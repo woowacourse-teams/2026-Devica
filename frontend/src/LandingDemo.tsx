@@ -20,6 +20,11 @@ import type { LandingGuideContent } from './landingGuides';
 
 const FIRST_STEP_CUT = 0.5;
 
+export const RECOMMEND_WEIGHTS = [FIRST_STEP_CUT, 1, 1, 2.5, 1];
+const BOARD_WEIGHTS = [FIRST_STEP_CUT, 1, 1];
+
+const sum = (values: readonly number[]) => values.reduce((total, value) => total + value, 0);
+
 const RECOMMEND_SHOTS = [
   { mobile: rec1, desktop: rec1Desktop },
   { mobile: rec2, desktop: rec2Desktop },
@@ -33,17 +38,17 @@ const BOARD_SHOTS = [
   { mobile: board3, desktop: board3Desktop },
 ];
 
-export function scrollToDemoStep(section: HTMLElement, index: number, total: number) {
+export function scrollToDemoStep(section: HTMLElement, index: number, weights: readonly number[]) {
   const top = section.getBoundingClientRect().top + window.scrollY;
   const distance = section.offsetHeight - window.innerHeight;
   const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
-  const step = index === 0 ? (1 - FIRST_STEP_CUT) / 2 : index;
-  window.scrollTo({ top: top + (step / (total - FIRST_STEP_CUT)) * distance, behavior });
+  const middle = sum(weights.slice(0, index)) + weights[index] / 2;
+  window.scrollTo({ top: top + (middle / sum(weights)) * distance, behavior });
 }
 
 const SHORT_QUERY = '(max-width: 767px) and (max-height: 619px)';
 
-function useScrollSteps(total: number) {
+function useScrollSteps(weights: readonly number[]) {
   const sectionRef = useRef<HTMLElement>(null);
   const [active, setActive] = useState(0);
   const [short, setShort] = useState(false);
@@ -69,10 +74,14 @@ function useScrollSteps(total: number) {
       const pinned = Math.min(Math.max(-rect.top / Math.max(rect.height - viewport, 1), 0), 1);
       section.style.setProperty('--demo-enter', enter.toFixed(3));
       section.style.setProperty('--demo-progress', pinned.toFixed(3));
-      const step = pinned * (total - FIRST_STEP_CUT);
-      const shifted = step < 1 - FIRST_STEP_CUT ? step / (1 - FIRST_STEP_CUT) : step + FIRST_STEP_CUT;
-      section.style.setProperty('--demo-step', shifted.toFixed(3));
-      setActive(Math.min(Math.floor(shifted), total - 1));
+      let position = pinned * sum(weights);
+      let index = 0;
+      while (index < weights.length - 1 && position >= weights[index]) {
+        position -= weights[index];
+        index += 1;
+      }
+      section.style.setProperty('--demo-step', (index + Math.min(position / weights[index], 1)).toFixed(3));
+      setActive(index);
     }
 
     function onScroll() {
@@ -88,23 +97,23 @@ function useScrollSteps(total: number) {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
     };
-  }, [total]);
+  }, [weights]);
 
   function scrollToStep(index: number) {
-    if (sectionRef.current !== null) scrollToDemoStep(sectionRef.current, index, total);
+    if (sectionRef.current !== null) scrollToDemoStep(sectionRef.current, index, weights);
   }
 
   return {
     sectionRef,
     active,
     scrollToStep,
-    height: short ? undefined : `calc(100vh + ${total - FIRST_STEP_CUT} * 70vh)`,
+    height: short ? undefined : `calc(100vh + ${sum(weights)} * 70vh)`,
   };
 }
 
 export function LandingDemo({ guide }: { guide: LandingGuideContent }) {
   const total = guide.steps.length;
-  const { sectionRef, active, height } = useScrollSteps(total);
+  const { sectionRef, active, height } = useScrollSteps(RECOMMEND_WEIGHTS);
 
   const step = guide.steps[active];
 
@@ -170,6 +179,7 @@ function ScreenFrame({
                 loading="lazy"
                 decoding="async"
                 data-state={index === active ? 'active' : index < active ? 'past' : 'next'}
+                style={{ '--shot-index': index } as CSSProperties}
               />
             </picture>
           ))}
@@ -180,7 +190,7 @@ function ScreenFrame({
 }
 
 export function LandingBoardDemo({ guide }: { guide: LandingGuideContent }) {
-  const { sectionRef, active, scrollToStep, height } = useScrollSteps(guide.steps.length);
+  const { sectionRef, active, scrollToStep, height } = useScrollSteps(BOARD_WEIGHTS);
 
   return (
     <section

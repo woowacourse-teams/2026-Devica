@@ -1,257 +1,601 @@
-/* result-view 전용. 카드 테두리는 shared.css 의 bordered-panel 이 맡는다. */
+/* result-view 전용. 그라데이션 카드와 사양 칸은 shared.css 의 spec-panel·spec-tiles 가 맡는다. */
 
-.spec-list {
-    display: grid;
-    gap: var(--density-med);
-    margin: var(--gutter) 0;
+.result-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: var(--space-20);
 }
 
 .result-os-control {
-    display: grid;
-    gap: var(--density-high);
-    margin-top: var(--gutter);
+    display: flex;
+    flex: 1 1 100%;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.result-os-control__label {
+    display: none;
+    color: var(--text-muted);
+    font-size: 14px;
     font-weight: 600;
 }
 
-.spec-card {
-    padding: var(--gutter);
+.result-os-control .choice-group--segmented {
+    align-self: stretch;
 }
 
-.spec-card:only-child {
-    grid-column: 1 / -1;
-}
-
-.spec-row {
-    padding: var(--density-med);
-}
-
-.spec-row__details summary {
-    margin-top: var(--density-high);
-    color: var(--on-surface-variant);
-    font-size: var(--body-sm-font-size);
-    cursor: pointer;
-}
-
-/* 사양 카드 안의 데이터 칸은 외곽 카드의 곡률을 반복하지 않는다. */
-.spec-card .spec-row {
-    border-radius: 0;
-}
-
-.spec-card .spec-row + .spec-row {
-    margin-top: var(--density-high);
-}
-
-.spec-row__value {
-    display: block;
-    margin-top: var(--density-high);
-    font-size: var(--headline-sm-font-size);
-    font-weight: 600;
-}
-
-.spec-row__reason {
-    margin: var(--density-high) 0 0;
-    color: var(--on-surface-variant);
-    font-size: var(--body-md-font-size);
-}
-
-/* 원본은 이 라벨 타이포를 .eyebrow 와 한 블록에 묶어 두었다. 화면이 달라 따로 적는다. */
-.spec-row__label {
-    margin: 0;
-    font-size: var(--label-md-font-size);
-    font-weight: var(--label-md-font-weight);
-    line-height: var(--label-md-line-height);
-    letter-spacing: var(--label-md-letter-spacing);
+.result-os-control .choice-group--segmented .chip {
+    flex: 1;
+    white-space: nowrap;
 }
 
 .result-outdated {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--density-med);
-    margin: 0 0 var(--gutter);
+    gap: var(--space-12);
 }
 
 .result-outdated .notice {
     margin: 0;
 }
 
+/* 좁은 화면은 한 줄로 쌓고, 최저가와 제품 검색 버튼을 하단에 고정한다.
+   고정 막대가 본문 끝까지 붙어 있도록 오른쪽 묶음은 상자를 만들지 않는다. */
+.result-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-24);
+}
+
+.result-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-20);
+    min-width: 0;
+}
+
+.result-side {
+    display: contents;
+}
+
+.result-board {
+    order: 1;
+}
+
+.result-price {
+    order: 2;
+}
+
+/* 흐려지는 구간을 위쪽 여백 안에만 두어, 최저가 줄 뒤로 본문 글자가 비치지 않게 한다. */
+.sticky-actions.result-price {
+    background: linear-gradient(180deg, transparent 0, var(--bg) var(--space-12));
+}
+
+.result-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-20);
+}
+
+.result-both-note {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.result-both-note a {
+    color: var(--link);
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.result-card {
+    border-radius: var(--radius-24);
+    overflow: hidden;
+    background: var(--surface-1);
+}
+
+.result-card__top {
+    gap: var(--space-12);
+}
+
+.result-card__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-12);
+}
+
+.result-card__head h2 {
+    min-width: 0;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.result-card__actions {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+}
+
+/* 그라데이션 위의 보조 버튼. 보통 보조 버튼은 배경이 어두워 파란 바탕에서 묻힌다. */
+.result-card__button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-4);
+    min-height: var(--control-sm);
+    border: 1.5px solid rgba(255, 255, 255, 0.7);
+    border-radius: var(--radius-pill);
+    padding: 0 18px;
+    color: var(--on-primary);
+    background: rgba(0, 0, 0, 0.2);
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.result-card__button:hover {
+    background: rgba(0, 0, 0, 0.32);
+}
+
+.result-card__button--plain {
+    border-color: transparent;
+    background: transparent;
+}
+
+.result-card__button--solid {
+    border-color: transparent;
+    color: var(--primary);
+    background: #ffffff;
+}
+
+.result-card__button--solid:hover {
+    background: rgba(255, 255, 255, 0.88);
+}
+
+.result-row__head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-8);
+}
+
+/* 고친 항목은 라벨 옆 배지로 드러내고, 추천 값을 함께 적어 무엇에서 바꿨는지 보이게 한다. */
+.result-row__badge {
+    border-radius: var(--radius-8);
+    padding: var(--space-4) var(--space-8);
+    color: var(--on-primary);
+    background: rgba(0, 0, 0, 0.28);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.result-row__status {
+    display: block;
+    margin-top: var(--space-8);
+    color: var(--on-primary-muted);
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.result-row__status .text-button {
+    padding: 0;
+    color: var(--on-primary);
+}
+
+/* 고칠 때는 사양 칸이 한 줄씩 쌓이고, 값 자리에 칩이 온다. */
+.spec-tile .result-row__head {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.result-edit-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+    margin: 0;
+}
+
+.result-edit-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+    padding: 18px;
+    border-radius: var(--radius-16);
+    background: rgba(0, 0, 0, 0.22);
+}
+
+.result-edit-row dt {
+    color: var(--on-primary-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.result-edit-row dd {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* 추천 값이 화면에서 가장 먼저 읽히도록 기본 권장 사양보다 크게 쓴다. */
+.result-card .spec-tile dd {
+    font-size: 24px;
+}
+
+.result-card__bottom {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+    padding: var(--space-20);
+}
+
+.result-card__bottom > * {
+    margin: 0;
+}
+
+.result-card__bottom h3 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.result-card__notes {
+    display: grid;
+    gap: var(--space-8);
+}
+
+.result-card__note,
+.result-card__hint {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.result-reasons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    padding: 0;
+    list-style: none;
+}
+
+.result-reasons__item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-8);
+    padding: var(--space-16);
+    border-radius: var(--radius-16);
+    background: var(--surface-2);
+}
+
+/* 어느 항목의 근거인지는 카드 위에 한 번만 붙인다. */
+.result-reasons__tag {
+    border-radius: var(--radius-8);
+    padding: 2px var(--space-8);
+    color: var(--accent);
+    background: var(--tint);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.result-reasons__lead,
+.result-reasons__more {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.result-reasons__more {
+    padding-left: var(--space-12);
+    border-left: 2px solid var(--divider);
+    color: var(--text-muted);
+}
+
+.result-reasons__toggle {
+    border: 0;
+    padding: 0;
+    color: var(--link);
+    background: none;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
 .result-feedback {
-    margin: 0 0 var(--gutter);
-    color: var(--on-surface-variant);
-    font-size: var(--body-md-font-size);
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
 }
 
 .result-feedback a {
     font-weight: 600;
 }
 
-.result-feedback__hint {
-    display: block;
-    margin-top: var(--density-high);
-    font-size: var(--body-sm-font-size);
-}
-
-@media (min-width: 768px) {
-    .spec-list {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-/* 되돌리기는 그 OS 카드의 것이라 카드 제목 옆에 둔다. 버튼이 생기고 사라져도 아래 칸이 움직이지 않게 높이를 버튼에 맞춰 둔다. */
-.spec-card__head {
+.result-board {
     display: flex;
-    min-height: 40px;
-    flex-wrap: wrap;
+    justify-content: space-between;
     align-items: center;
-    gap: var(--density-med);
-    margin-bottom: var(--gutter);
+    gap: var(--space-12);
+    min-height: 64px;
+    padding: var(--space-12) var(--space-20);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-16);
+    color: var(--text);
+    background: var(--surface-1);
+    text-decoration: none;
 }
 
-.spec-card__head > h3 {
-    margin: 0;
-}
-
-/* 카드 안의 작은 동작이라 칩 모양으로 두고, 강조색은 테두리와 글자에만 쓴다. 채우면 아래 제품 검색 버튼과 무게가 같아진다. */
-.spec-card__reset {
-    margin: 0;
+.result-board:hover {
     border-color: var(--accent);
-    color: var(--accent);
-    font-size: var(--body-sm-font-size);
 }
 
-.spec-card__reset:hover:not(:disabled),
-.spec-card__reset:focus-visible {
-    background: color-mix(in srgb, var(--accent) 10%, transparent);
-}
-
-/* 배지도 생기고 사라지므로 라벨 줄 높이를 배지에 맞춰 둔다. */
-.spec-row__head {
+.result-board__text {
     display: flex;
-    min-height: 24px;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--density-high);
+    flex-direction: column;
+    gap: var(--space-4);
 }
 
-/* 고친 항목은 라벨 옆 배지로 드러내고, 추천 값을 함께 적어 무엇에서 바꿨는지 보이게 한다. */
-.spec-row__badge {
-    border-radius: var(--radius-control);
-    padding: 0 var(--density-high);
+.result-board__text span {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.result-board__arrow {
     color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-    font-size: var(--body-sm-font-size);
+    font-size: 20px;
     font-weight: 600;
 }
 
-/* 고칠 때는 값 자리에 칩이 온다. 설문과 같은 칩이라 고르는 방법이 같다. */
-.spec-row .choice-group {
-    margin-top: var(--density-high);
+.result-price__title,
+.result-price__basis {
+    display: none;
 }
 
-/* 최저가는 넓은 화면에서는 추천 사양 오른쪽에 따라다니고, 좁은 화면에서는 하단 버튼 위에 붙는다. */
-.result-body {
-    margin: var(--gutter) 0;
-}
-
-.result-body .spec-list {
-    margin: 0;
-}
-
-.result-min-price__title {
-    margin: 0;
-    font-size: var(--label-md-font-size);
-    font-weight: var(--label-md-font-weight);
-    letter-spacing: var(--label-md-letter-spacing);
-}
-
-.result-min-price__list {
+.result-price__list {
     display: grid;
-    gap: 4px;
+    gap: var(--space-4);
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-.result-min-price__list li {
+.result-price__list li {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
-    gap: var(--density-med);
+    align-items: baseline;
+    gap: var(--space-12);
+    color: var(--text-muted);
+    font-size: 14px;
 }
 
-.result-min-price__failed {
+.result-price__list strong {
+    color: var(--lime);
+    white-space: nowrap;
+    font-size: 20px;
+}
+
+/* 다시 계산하는 동안 이전 가격 위로 빛이 훑고 지나간다. */
+.result-price__list strong[data-recalculating="true"] {
+    color: transparent;
+    background:
+        linear-gradient(
+            100deg,
+            var(--lime) 40%,
+            color-mix(in srgb, var(--lime) 55%, var(--on-primary)) 50%,
+            var(--lime) 60%
+        )
+        0 0 / 300% 100%;
+    background-clip: text;
+    animation: price-shimmer 1.8s ease-in-out infinite;
+}
+
+/* 처음 받는 가격은 숫자 대신 빛이 훑는 막대로 자리를 잡아 둔다. */
+.result-price__placeholder {
+    display: inline-block;
+    width: 8.5em;
+    height: 0.9em;
+    border-radius: var(--radius-pill);
+    vertical-align: middle;
+    background:
+        linear-gradient(
+            100deg,
+            color-mix(in srgb, var(--lime) 18%, transparent) 40%,
+            color-mix(in srgb, var(--lime) 45%, transparent) 50%,
+            color-mix(in srgb, var(--lime) 18%, transparent) 60%
+        )
+        0 0 / 300% 100%;
+    animation: price-shimmer 1.8s ease-in-out infinite;
+}
+
+/* 숫자가 다 굴러가면 은은하게 한 번 빛난다. */
+.result-price__value--settled {
+    display: inline-block;
+    animation: price-settle 700ms ease-out;
+}
+
+.result-price__spoken {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+@keyframes price-shimmer {
+    from {
+        background-position: 100% 0;
+    }
+
+    to {
+        background-position: -200% 0;
+    }
+}
+
+@keyframes price-settle {
+    0%,
+    100% {
+        text-shadow: none;
+    }
+
+    30% {
+        text-shadow: 0 0 10px color-mix(in srgb, var(--lime) 45%, transparent);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .result-price__list strong[data-recalculating="true"] {
+        color: var(--lime);
+        background: none;
+        opacity: 0.5;
+        animation: none;
+    }
+
+    .result-price__value--settled,
+    .result-price__placeholder {
+        animation: none;
+    }
+}
+
+.result-price__failed {
     margin: 0;
-    color: var(--on-surface-variant);
-    font-size: var(--body-md-font-size);
+    color: var(--text-muted);
+    font-size: 14px;
 }
 
-.result-min-price--side {
-    display: none;
-}
+/* 넓은 화면은 사양 카드 오른쪽에 최저가와 게시판 바로가기를 둔다. 자리가 모자라면 카드 아래로 내려간다. */
+@media (min-width: 768px) {
+    .result-os-control {
+        flex: none;
+    }
 
-.result-min-price__basis {
-    display: none;
-}
+    .result-os-control__label {
+        display: block;
+    }
 
-.result-min-price--bar {
-    display: grid;
-    gap: 4px;
-    font-size: var(--body-md-font-size);
-}
+    .result-os-control .choice-group--segmented {
+        align-self: flex-start;
+    }
 
-@media (min-width: 1024px) {
+    .result-os-control .choice-group--segmented .chip {
+        flex: none;
+    }
+
     .result-body {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 240px;
-        align-items: start;
-        gap: var(--density-med);
+        flex-flow: row wrap;
+        align-items: flex-start;
+        gap: var(--space-20);
     }
 
-    .result-min-price--side {
+    .result-main {
+        flex: 999 1 560px;
+    }
+
+    .result-card .spec-tile dd {
+        font-size: 28px;
+    }
+
+    /* 최저가와 제품 검색 버튼은 스크롤을 따라와, 둘 다를 골라 길어진 결과의 아래쪽에서도 보인다. */
+    .result-side {
         position: sticky;
-        top: var(--gutter);
-        display: grid;
-        gap: var(--gutter);
-        padding: var(--gutter);
+        top: var(--space-24);
+        display: flex;
+        flex: 1 1 320px;
+        flex-direction: column;
+        gap: var(--space-16);
+        min-width: 0;
     }
 
-    .bordered-panel.result-min-price--side {
-        border-color: var(--accent);
-        background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+    .result-board {
+        order: 0;
+        min-height: 72px;
+        padding: var(--space-12) var(--space-24);
+        border-radius: var(--radius-24);
     }
 
-    .result-min-price--side .result-min-price__title {
-        font-size: var(--body-md-font-size);
+    .sticky-actions.result-price {
+        order: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-16);
+        padding: var(--space-28);
+        border-radius: var(--radius-32);
+        background: var(--surface-2);
+    }
+
+    .result-price__title {
+        display: block;
+        margin: 0;
+        font-size: 18px;
         font-weight: 600;
     }
 
-    .result-min-price--side .result-min-price__list {
-        gap: var(--density-med);
-    }
-
-    .result-min-price--side .result-min-price__list li {
-        flex-direction: column;
-        gap: 2px;
-    }
-
-    .result-min-price--side .result-min-price__list span {
-        color: var(--on-surface-variant);
-        font-size: var(--body-sm-font-size);
-    }
-
-    .result-min-price--side strong {
-        font-size: var(--headline-md-font-size);
-        font-weight: var(--headline-md-font-weight);
-        line-height: var(--headline-md-line-height);
-    }
-
-    .result-min-price--side .result-min-price__basis {
+    .result-price__basis {
         display: block;
         margin: 0;
-        color: var(--on-surface-variant);
-        font-size: var(--body-sm-font-size);
+        color: var(--text-muted);
+        font-size: 14px;
     }
 
-    .result-min-price--bar {
+    .result-price__suffix {
         display: none;
+    }
+
+    .result-price__list {
+        gap: var(--space-8);
+    }
+
+    .result-price__list li {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        font-size: 16px;
+    }
+
+    .result-price__list strong {
+        font-size: 28px;
+    }
+
+    .result-card {
+        border-radius: var(--radius-32);
+    }
+
+    .result-card__top {
+        gap: var(--space-20);
+        padding: var(--space-28) var(--space-32) var(--space-32);
+    }
+
+    .result-card__head h2 {
+        font-size: 20px;
+    }
+
+    .result-card__bottom {
+        gap: var(--space-16);
+        padding: var(--space-28) var(--space-32);
+    }
+
+    .result-card__bottom h3 {
+        font-size: 18px;
+    }
+
+    /* 넓은 화면은 항목 카드를 두 열로 놓고 같은 줄의 높이를 맞춘다. 하나라도 펼치면 한 열로 바꿔 옆 카드가 짧게 남거나 빈칸이 생기지 않게 한다. */
+    .result-reasons {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-12);
+    }
+
+    .result-reasons:has(.result-reasons__toggle[aria-expanded="true"]) {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
