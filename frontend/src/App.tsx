@@ -18,6 +18,7 @@ import {
   type SortType,
   type SpecEdits,
   specCondition,
+  validTier,
 } from './products';
 import { QuestionView } from './QuestionView';
 import {
@@ -647,13 +648,33 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
   // 제품 추천 결과 화면에서 오면 검색 조건이 채워져 있다. 맞춤 목록의 OS 는 탭이라 늘 있으니, OS 가 없으면
   // 채우지 않고 바로 들어온 주소(예전 공유 링크 등)다. 한 번 채운 뒤 그린다. 제품 추천 결과가 없으면 채울 것이 없다.
   const filled = params.has('os') || recommendation.data?.specs.length === 0;
-  const tiersSettled =
-    tiers.data !== null || tiers.failed || Object.values(edits).every((items) => items.REQUIRED_CPU === undefined);
   useEffect(() => {
-    if (!filled && recommendation.data !== null && tiersSettled) {
+    if (!filled && recommendation.data !== null) {
       replace(`${PATHS.matched}?${withSpecCondition(new URLSearchParams(search), specs)}`);
     }
-  }, [filled, tiersSettled, search, recommendation.data, specs]);
+  }, [filled, search, recommendation.data, specs]);
+  useEffect(() => {
+    const current = new URLSearchParams(search);
+    const os = current.get('os');
+    const cpuTier = current.get('cpuTier');
+    const spec = specs.find((each) => osValueOf(each) === os);
+    if (tiers.data === null || spec === undefined || cpuTier === null || validTier(tiers.data, os, cpuTier) !== null) {
+      return;
+    }
+    const recommended = specCondition(spec);
+    if (recommended.cpuTier === cpuTier) {
+      return;
+    }
+    for (const key of ['cpuTier', 'gpuTier'] as const) {
+      const value = recommended[key];
+      if (value === null) {
+        current.delete(key);
+      } else {
+        current.set(key, value);
+      }
+    }
+    replace(`${PATHS.matched}?${current}`);
+  }, [tiers.data, search, specs]);
   const { state, onChangeState, navState } = useListState(search, matchedOsOf(params, specs));
   const { category, purpose } = flowOf(params);
 
