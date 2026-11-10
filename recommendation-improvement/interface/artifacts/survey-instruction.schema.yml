@@ -34,8 +34,9 @@ properties:
   #   ADD_OPTION        선택지 추가
   #   ADD_QUESTION      질문 추가. 제목 없는 새 단계로 after 의 단계 바로 뒤에 들어간다
   #   RESTORE           지운 질문·선택지를 지울 때의 문구(지운 코드 목록의 was) 그대로 되살린다
-  #   MERGE_OPTION      선택지를 같은 질문의 다른 선택지로 합친다
-  #   REPLACE_OPTION    선택지를 새 코드로 대체한다. 뜻이 바뀌는 문구 수정도 이것이다
+  #   MERGE_OPTION      선택지를 같은 질문의 다른 선택지로 합친다. 합쳐지는 선택지의 문구·설명은 옛 두 선택지의 뜻을 모두 담도록 넓힐 때만 함께 고친다(현재 사양 단계는 문구만). 그 밖에 뜻이 바뀌면 REPLACE_OPTION 이다.
+  #                     코드는 식별자이고 뜻은 문구가 정한다. 합치기로 넓어진 선택지는 코드 이름과 뜻이 다를 수 있다(예: GB_48 이 "48GB 이상")
+  #   REPLACE_OPTION    선택지를 새 코드로 대체한다. 뜻이 바뀌는 문구 수정도 이것이다(합치기에서 합쳐지는 선택지를 넓히는 것은 MERGE_OPTION)
   #   REPLACE_QUESTION  질문을 새 코드로 대체한다
   #   DELETE_OPTION     선택지 삭제
   #   DELETE_QUESTION   질문 삭제

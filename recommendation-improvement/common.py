@@ -516,12 +516,20 @@ def values(body):
     return out
 
 
+# 의견 양식 두 개의 칸 제목과 Metric Collector 가 더하는 칸 제목. 양식을 고치면 함께 고친다(test.py 가 대조한다)
+FIELD_TITLES = ('결과 화면 주소', '어느 권장안인가요?', '어떤 점이 맞지 않았나요?', '더 알려 주실 내용',
+                '사용 목적', '질문', '질문 제목', '이 화면에서 고른 답', '지금까지 고른 답', '설문 버전',
+                '바꾼 답', '고친 값', '근거 지표')
+
+
 def fields(text):
     # 이슈 양식이 만드는 본문: "### 칸 제목" 줄 뒤의 값. 값이 없으면 "_No response_" 이고 빈 문자열로 돌려준다
+    # 칸 제목이 아닌 "### " 줄은 사용자가 자유 서술에 쓴 소제목이라 앞 칸의 값으로 남긴다
+    titles = '|'.join(re.escape(t) for t in FIELD_TITLES)
     out = {}
-    for m in re.finditer(r'^### (.+?)[ \t]*\n(.*?)(?=^### |\Z)', text, re.M | re.S):
+    for m in re.finditer(rf'^### ({titles})[ \t]*\n(.*?)(?=^### (?:{titles})[ \t]*$|\Z)', text, re.M | re.S):
         v = m.group(2).strip()
-        out[m.group(1).strip()] = '' if v == '_No response_' else v
+        out[m.group(1)] = '' if v == '_No response_' else v
     return out
 
 

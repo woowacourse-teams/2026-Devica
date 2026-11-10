@@ -73,6 +73,10 @@ def questions_of(d):
     return {q['code']: q for step in d['survey']['steps'] for q in step['questions']}
 
 
+def current_spec(d, code):
+    return any(s.get('layout') == 'CURRENT_SPEC' and code in [q['code'] for q in s['questions']] for s in d['survey']['steps'])
+
+
 def codes(q):
     return [o['code'] for o in q['options']] if q else []
 
@@ -121,8 +125,20 @@ def shape_errors(d, ins):
             errs.append(f"after 가 지금 다른 질문이 아니다: {ins.get('after')}")
     if errs or f is None or t is None:
         return errs
+    text = lambda v: isinstance(v, str) and v.strip() != ''
+    bad = [x.get('code') for x in t.get('options') or [] if not text(x.get('content')) or x.get('description') is not None and not text(x['description'])]
+    if bad:
+        return [f'to 의 선택지 문구·설명이 비었거나 글자가 아니다: {", ".join(map(str, bad))}']
     removed, added = [c for c in codes(f) if c not in codes(t)], [c for c in codes(t) if c not in codes(f)]
-    kept_same = [x for x in f['options'] if x['code'] in codes(t)] == [x for x in t['options'] if x['code'] in codes(f)]
+    # 합치기는 합쳐지는 선택지의 문구를 합친 뜻에 맞게 고칠 수 있다. retire 의 줄 수·to 는 retire_errors 가 따로 검사한다
+    into = {l.get('to') for l in ins.get('retire') or []
+            if l.get('question') == q and l.get('option') == o} if kind == 'MERGE_OPTION' else set()
+    loose = lambda x: without(x, 'content', 'description') if x['code'] in into else x
+    # 현재 사양 화면의 버튼은 문구만 보여 준다. 설명을 고쳐도 사용자에게 보이지 않는다
+    desc = lambda q_, c: next((x.get('description') for x in q_['options'] if x['code'] == c), None)
+    if current_spec(d, q) and any(desc(f, c) != desc(t, c) for c in into):
+        errs.append('현재 사양 화면은 선택지 설명을 보여 주지 않는다. 합친 뜻은 문구(content)에 담는다')
+    kept_same = [loose(x) for x in f['options'] if x['code'] in codes(t)] == [loose(x) for x in t['options'] if x['code'] in codes(f)]
     rest_same = without(f, 'options', 'exclusive') == without(t, 'options', 'exclusive')
     exclusive = f.get('exclusive')
     if exclusive == o and kind in ('DELETE_OPTION', 'MERGE_OPTION', 'SPLIT_OPTION'):
@@ -365,15 +381,29 @@ def planned_retired(lines, ins, on):
     return [l for l in out if not C.expired(l, on)], changes
 
 
+def merged_into(ins):
+    # 합치기에서 문구·설명이 바뀐 합쳐지는 선택지. 점검은 새 문구의 뜻을 보지 않아 PR 에서 검토하게 한다
+    if ins['kind'] != 'MERGE_OPTION':
+        return None
+    pick = lambda q, c: next(({'content': x['content'], 'description': x.get('description')} for x in q['options'] if x['code'] == c), None)
+    for l in ins.get('retire') or []:
+        if l.get('to'):
+            before, after = pick(ins['from'], l['to']), pick(ins['to'], l['to'])
+            if before != after:
+                return {'code': l['to'], 'before': before, 'after': after}
+    return None
+
+
 def screen(d, code):
-    # 질문 화면: 현재 사양 단계가 아니고 질문이 하나뿐인 하나 고르기 화면은 고르면 바로 넘어간다(QuestionView)
+    # 질문 화면: 현재 사양 단계는 선택지 설명을 보여 주지 않는다. 현재 사양 단계가 아니고 질문이 하나뿐인 하나 고르기 화면은 고르면 바로 넘어간다(QuestionView)
     steps = d['survey']['steps']
     for i, s in enumerate(steps):
         for q in s['questions']:
             if q['code'] == code:
-                auto = s.get('layout') != 'CURRENT_SPEC' and len(s['questions']) == 1 and (q.get('input') or 'SINGLE') == 'SINGLE'
+                spec = s.get('layout') == 'CURRENT_SPEC'
+                auto = not spec and len(s['questions']) == 1 and (q.get('input') or 'SINGLE') == 'SINGLE'
                 return {'step': i + 1, 'title': q['title'], 'description': q.get('description'),
-                        'options': [x['content'] for x in q['options']], 'input': q.get('input') or 'SINGLE',
+                        'options': [x['content'] + (f" — 설명: {x['description']}" if x.get('description') and not spec else '') for x in q['options']], 'input': q.get('input') or 'SINGLE',
                         'exclusive': q.get('exclusive'), 'next': '고르면 바로 넘어감' if auto else '다음 버튼'}
     return None
 
@@ -398,7 +428,7 @@ def plan(d, lines, history, ins, on):
     return {'ok': True, 'errors': [], 'purpose': ins['purpose'], 'today': on.isoformat(), 'kind': ins['kind'],
             'label': KINDS[ins['kind']], 'question': q, 'definition': p, 'retired': retired, 'retired_changes': changes,
             'lines': lines if retired is None else retired,
-            'effects': effects, 'gone': gone, 'new_rule': ins.get('rule'),
+            'effects': effects, 'gone': gone, 'new_rule': ins.get('rule'), 'merged_into': merged_into(ins),
             'screen': {'before': screen(d, q), 'after': screen(p, ins['to']['code']) if ins['to'] else None}}
 
 
