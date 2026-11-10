@@ -399,9 +399,7 @@ export function ProductListView({
           // 탭은 비울 수 없다. 고른 것을 다시 눌러도 그대로 둔다.
           onChange={(os) => os !== null && selectOs(os)}
         />
-        {bothOs && (
-          <p className="product-list-os__note">Mac과 Windows 모두 권장해요. 탭을 바꾸면 다른 OS 제품을 볼 수 있어요.</p>
-        )}
+        {bothOs && <p className="product-list-os__note">탭을 바꾸면 Mac과 Windows 제품을 각각 볼 수 있어요.</p>}
       </div>
       <div className="product-list-bar" id="product-list-bar">
         <label className="product-list-control product-search" htmlFor="product-filter-keyword">

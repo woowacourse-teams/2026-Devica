@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { App } from '../src/App';
+import { forgetStartingWith } from '../src/fetched';
 import type { Spec } from '../src/recommendation';
 
 vi.mock('../src/analytics', () => ({ track: vi.fn() }));
@@ -32,11 +33,12 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  forgetStartingWith('');
   window.history.replaceState({}, '', '/');
   vi.unstubAllGlobals();
 });
 
-const NOTE = 'Mac과 Windows 모두 권장해요. 탭을 바꾸면 다른 OS 제품을 볼 수 있어요.';
+const NOTE = '탭을 바꾸면 Mac과 Windows 제품을 각각 볼 수 있어요.';
 
 function open(search: string) {
   window.history.replaceState({}, '', `/result/products?category=LAPTOP&purpose=BACKEND_DEVELOPMENT&${search}`);
@@ -59,4 +61,46 @@ test('제품 추천 결과에서 OS 를 골랐으면 다른 탭 안내를 보여
   open('specOs=MAC');
   await screen.findByRole('button', { name: 'Windows' });
   expect(screen.queryByText(NOTE)).toBeNull();
+});
+
+test.each([
+  ['CPU 등급', 'cpu-tiers'],
+  ['제품 추천 결과', 'recommendation'],
+])('고친 CPU 가 그 OS 의 등급이 아니면 권장 등급으로 채운다. %s 응답이 먼저 와도 같다', async (_, first) => {
+  // given
+  const responses: Record<string, unknown> = {
+    'cpu-tiers': [
+      { code: 'PRO', name: 'M Pro 칩', os: 'MAC' },
+      { code: 'H', name: '고성능 Core Ultra 7', os: 'WINDOWS' },
+    ],
+    recommendation: { specs: [{ ...spec('MAC', '16'), items: [item('OS', 'MAC'), item('REQUIRED_CPU', 'PRO')] }] },
+  };
+  const pending: Record<string, () => void> = {};
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((url: string) => {
+      const name = Object.keys(responses).find((each) => url.includes(each));
+      if (name === undefined) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => (url.includes('/products?') ? { content: [], hasNext: false } : []),
+        });
+      }
+      return new Promise((resolve) => {
+        pending[name] = () => resolve({ ok: true, json: async () => responses[name] });
+      });
+    }),
+  );
+
+  // when
+  open('specOs=MAC&edit=MAC.REQUIRED_CPU.H');
+  const second = first === 'cpu-tiers' ? 'recommendation' : 'cpu-tiers';
+  await waitFor(() => expect(pending[first]).toBeDefined());
+  pending[first]();
+  await waitFor(() => expect(pending[second]).toBeDefined());
+  pending[second]();
+
+  // then
+  await waitFor(() => expect(new URLSearchParams(window.location.search).get('os')).toBe('MAC'));
+  expect(new URLSearchParams(window.location.search).get('cpuTier')).toBe('PRO');
 });
