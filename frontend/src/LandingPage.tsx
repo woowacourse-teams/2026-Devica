@@ -399,8 +399,7 @@ export function LandingPage() {
               함께 풀어봐요.
             </h2>
             <p className="landing-closing__lead">
-              내 사용 목적에 맞는 사양부터 확인해 보세요.
-              <br />
+              내 사용 목적에 맞는 사양부터 확인해 보세요. <br />
               남은 고민은 다른 개발자와 나눠요.
             </p>
           </div>

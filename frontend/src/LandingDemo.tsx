@@ -38,7 +38,7 @@ const BOARD_SHOTS = [
   { mobile: board3, desktop: board3Desktop },
 ];
 
-const SHORT_QUERY = '(max-width: 767px) and (max-height: 699px), (min-width: 768px) and (max-height: 499px)';
+const SHORT_QUERY = '(max-width: 767px) and (max-height: 499px) and (orientation: landscape)';
 const STEP_INSET = 0.04;
 
 function scrollRangeOf(section: HTMLElement) {
@@ -86,6 +86,10 @@ function useScrollSteps(weights: readonly number[]) {
       const enter = Math.min(Math.max(1 - rect.top / viewport, 0), 1);
       const { start, length } = scrollRangeOf(section);
       const pinned = Math.min(Math.max((window.scrollY - start) / Math.max(length, 1), 0), 1);
+      const sticky = section.firstElementChild;
+      if (sticky instanceof HTMLElement) {
+        section.style.setProperty('--demo-sticky-top', `${Math.min(0, viewport - sticky.offsetHeight)}px`);
+      }
       section.style.setProperty('--demo-enter', enter.toFixed(3));
       section.style.setProperty('--demo-progress', pinned.toFixed(3));
       let position = pinned * sum(weights);

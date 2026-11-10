@@ -179,7 +179,7 @@
         background: var(--surface-1);
     }
 
-    .site-menu-start span {
+    .site-menu-start > span {
         color: var(--text-muted);
         font-size: 14px;
     }
