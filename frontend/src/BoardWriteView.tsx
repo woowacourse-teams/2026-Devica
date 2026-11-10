@@ -2,7 +2,8 @@ import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import { track } from './analytics';
 import { BoardScopeInfo } from './BoardShared';
-import { BoardRequestError, type BoardScope, createBoardPost } from './board';
+import { BOARD_POSTS_CACHE, BoardRequestError, type BoardScope, createBoardPost } from './board';
+import { forgetStartingWith } from './fetched';
 import { boardUrl, replace } from './routes';
 import type { Served } from './selection';
 
@@ -40,6 +41,7 @@ export function BoardWriteView({ scope }: { scope: BoardScope & { purpose: Serve
       );
       // 저장은 됐으므로 화면을 떠났더라도 센다.
       track('question_submitted', {});
+      forgetStartingWith(BOARD_POSTS_CACHE);
       if (!controller.signal.aborted) {
         // 뒤로 가기로 돌아왔을 때 이미 등록한 글을 다시 제출하지 않도록 작성 화면을 상세로 대체한다.
         replace(`/board/posts/${post.id}`);

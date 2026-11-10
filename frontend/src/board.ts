@@ -2,6 +2,7 @@ import type { Served } from './selection';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 export const BOARD_PAGE_SIZE = 20;
+export const BOARD_POSTS_CACHE = 'board-posts:';
 
 export type BoardPostSummary = { id: number; title: string; createdAt: string; commentCount: number };
 export type BoardPostDetail = Omit<BoardPostSummary, 'commentCount'> & {

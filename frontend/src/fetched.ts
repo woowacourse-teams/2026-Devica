@@ -9,6 +9,14 @@ export function forget(key: string) {
   received.delete(key);
 }
 
+export function forgetStartingWith(prefix: string) {
+  for (const key of [...received.keys()]) {
+    if (key.startsWith(prefix)) {
+      received.delete(key);
+    }
+  }
+}
+
 type Attempt<T> = {
   key: string;
   data: T | null;

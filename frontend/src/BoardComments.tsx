@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { BoardByline } from './BoardShared';
-import { BoardRequestError, createBoardComment, fetchBoardComments } from './board';
+import { BOARD_POSTS_CACHE, BoardRequestError, createBoardComment, fetchBoardComments } from './board';
+import { forgetStartingWith } from './fetched';
 import { useBoardRequest } from './useBoardRequest';
 
 const COMMENT_MAX_LENGTH = 1000;
@@ -69,6 +70,7 @@ function BoardCommentForm({ postId, onCreated }: { postId: number; onCreated: ()
     setState({ status: 'submitting' });
     try {
       await createBoardComment(postId, content, controller.signal);
+      forgetStartingWith(BOARD_POSTS_CACHE);
       if (!controller.signal.aborted) {
         setContent('');
         setState({ status: 'success' });

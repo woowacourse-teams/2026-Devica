@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import { track } from './analytics';
 import { BoardByline } from './BoardShared';
-import { type BoardPostSummary, type BoardScope, fetchBoardPosts } from './board';
+import { BOARD_POSTS_CACHE, type BoardPostSummary, type BoardScope, fetchBoardPosts } from './board';
 import { usePaged } from './fetched';
 import { boardUrl, currentNavState, PATHS, query } from './routes';
 import type { Served } from './selection';
@@ -124,7 +124,7 @@ function ScrollingPosts({ scope, toolbar }: { scope: ListScope; toolbar: ReactNo
   useEffect(() => {
     window.history.replaceState({ ...currentNavState(), boardVisit: visit }, '');
   }, [visit]);
-  const posts = usePaged<BoardPostSummary>(`board-posts:${category.code}:${purpose.code}:${visit}`, (page) =>
+  const posts = usePaged<BoardPostSummary>(`${BOARD_POSTS_CACHE}${category.code}:${purpose.code}:${visit}`, (page) =>
     fetchBoardPosts(category.code, purpose.code, page, UNABORTED),
   );
   const { data, hasNext, loading, failed, more } = posts;
