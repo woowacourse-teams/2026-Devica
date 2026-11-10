@@ -167,6 +167,23 @@
     font-weight: 700;
 }
 
+.product-offer__badge--sold-out {
+    color: var(--text);
+    background: var(--divider);
+}
+
+/* 최저가 판매처가 품절이면 이름 옆에 상태를 붙여 지금 살 수 있는 가격과 구분한다. */
+.product-detail__sold-out {
+    margin-left: var(--space-8);
+    border-radius: var(--radius-pill);
+    padding: 2px var(--space-8);
+    color: var(--text);
+    background: var(--divider);
+    font-size: 12px;
+    font-weight: 700;
+    vertical-align: middle;
+}
+
 .product-offer__details {
     grid-area: details;
     min-width: 0;

@@ -172,7 +172,7 @@ export function ResultView({
               prices={minPrices}
               scope={`${categoryCode}:${purposeCode}:${JSON.stringify(specs.map(specCondition))}`}
             />
-            <p className="result-price__basis">추천 사양 이상, 지금 판매 중인 노트북 기준</p>
+            <p className="result-price__basis">추천 사양 이상, 판매 중·일시품절 노트북 기준</p>
             <button
               className="button button--primary button--wide"
               id="product-button"
@@ -215,7 +215,7 @@ function MinPrices({ labels, prices, scope }: MinPricesProps) {
   const priceOf = (label: string, index: number) => {
     if (prices.data !== null) {
       const price = prices.data[index];
-      return price === null ? '판매 중인 제품 없음' : <RollingPrice value={price} />;
+      return price === null ? '가격 정보가 있는 제품 없음' : <RollingPrice value={price} />;
     }
     if (!knownPrices.has(keyOf(label))) {
       return (
@@ -226,7 +226,7 @@ function MinPrices({ labels, prices, scope }: MinPricesProps) {
       );
     }
     const price = knownPrices.get(keyOf(label));
-    return price === null || price === undefined ? '판매 중인 제품 없음' : <RollingPrice value={price} />;
+    return price === null || price === undefined ? '가격 정보가 있는 제품 없음' : <RollingPrice value={price} />;
   };
 
   if (prices.failed) {

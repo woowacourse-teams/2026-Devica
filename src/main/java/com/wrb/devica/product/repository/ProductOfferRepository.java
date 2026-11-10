@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface ProductOfferRepository extends JpaRepository<ProductOffer, Long> {
 
-    List<ProductOffer> findAllByProductIdAndStatusOrderByPriceAscIdAsc(Long productId, OfferStatus status);
+    List<ProductOffer> findAllByProductIdAndStatusInOrderByPriceAscIdAsc(Long productId, List<OfferStatus> statuses);
 
     @Query("""
         SELECT o.id, o.productId, p.code, o.externalItemId, o.purchaseUrl, o.price, o.status

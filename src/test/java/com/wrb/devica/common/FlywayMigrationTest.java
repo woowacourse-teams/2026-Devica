@@ -86,12 +86,46 @@ public class FlywayMigrationTest {
         long soldOutOnly = saveProduct("MIN-PRICE-SOLD-OUT");
         saveOffer(soldOutOnly, 900_000L, "SOLD_OUT");
 
-        // when
-        flyway.migrate();
+        try {
+            // when
+            migrateWithoutCleanTo("1.11");
 
-        // then
-        assertThat(minPriceOf(onSale)).containsExactly(1_500_000L);
-        assertThat(minPriceOf(soldOutOnly)).isEmpty();
+            // then
+            assertThat(minPriceOf(onSale)).containsExactly(1_500_000L);
+            assertThat(minPriceOf(soldOutOnly)).isEmpty();
+        } finally {
+            flyway.migrate();
+        }
+    }
+
+    @Test
+    void 품절_판매처를_포함해_모든_제품의_최저가를_다시_계산한다() {
+        try {
+            // given: V1.32 이전 기준으로 판매 중 판매처만 최저가에 들어가 있다.
+            migrateTo("1.29");
+            long mixed = saveProduct("MIN-PRICE-MIXED");
+            saveOffer(mixed, 3_700_000L, "ON_SALE");
+            saveOffer(mixed, 3_500_000L, "SOLD_OUT");
+            saveOffer(mixed, 3_000_000L, "HIDDEN");
+            saveOffer(mixed, 2_900_000L, "DISCONTINUED");
+            long soldOutOnly = saveProduct("MIN-PRICE-SOLD-OUT-ONLY");
+            saveOffer(soldOutOnly, 900_000L, "SOLD_OUT");
+            long hiddenOnly = saveProduct("MIN-PRICE-HIDDEN-ONLY");
+            saveOffer(hiddenOnly, 800_000L, "HIDDEN");
+            jdbcTemplate.update("INSERT INTO product_min_price (product_id, min_price) VALUES (?, 3700000)", mixed);
+            jdbcTemplate.update("INSERT INTO product_min_price (product_id, min_price) VALUES (?, 800000)", hiddenOnly);
+
+            // when
+            flyway.migrate();
+
+            // then
+            assertThat(minPriceOf(mixed)).containsExactly(3_500_000L);
+            assertThat(minPriceOf(soldOutOnly)).containsExactly(900_000L);
+            assertThat(minPriceOf(hiddenOnly)).isEmpty();
+        } finally {
+            flyway.clean();
+            flyway.migrate();
+        }
     }
 
     @Test
@@ -129,6 +163,14 @@ public class FlywayMigrationTest {
             flyway.clean();
             flyway.migrate();
         }
+    }
+
+    private void migrateWithoutCleanTo(String version) {
+        Flyway.configure()
+            .configuration(flyway.getConfiguration())
+            .target(version)
+            .load()
+            .migrate();
     }
 
     private void migrateTo(String version) {

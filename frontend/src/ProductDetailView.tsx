@@ -73,9 +73,12 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
 
   const description = product.description ?? '';
   // 싼 곳이 위로 오게 둔다. 판매처를 한눈에 견주는 것이 이 목록의 목적이다.
+  // 품절 판매처도 마지막 확인 가격으로 견준다. 가격이 같으면 지금 살 수 있는 판매 중인 곳을 먼저 둔다.
   const offers = [...product.offers].sort(
     (one, other) =>
-      one.price - other.price || (one.id ?? Number.MAX_SAFE_INTEGER) - (other.id ?? Number.MAX_SAFE_INTEGER),
+      one.price - other.price ||
+      Number(isSoldOut(one)) - Number(isSoldOut(other)) ||
+      (one.id ?? Number.MAX_SAFE_INTEGER) - (other.id ?? Number.MAX_SAFE_INTEGER),
   );
   const lowest: Offer | undefined = offers[0];
 
@@ -103,7 +106,12 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
           <div className="product-detail__price">
             <div className="product-detail__price-label">
               <span>최저가</span>
-              {lowest !== undefined && <b className="product-detail__source">{lowest.name}</b>}
+              {lowest !== undefined && (
+                <b className="product-detail__source">
+                  {lowest.name}
+                  {isSoldOut(lowest) && <span className="product-detail__sold-out">일시품절</span>}
+                </b>
+              )}
             </div>
             <strong>{formatPrice(lowest?.price ?? null)}</strong>
           </div>
@@ -142,16 +150,24 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
   );
 }
 
+function isSoldOut(offer: Offer): boolean {
+  return offer.status === 'SOLD_OUT';
+}
+
 function OfferRow({ offer, lowest }: { offer: Offer; lowest: boolean }) {
   const url = webUrl(offer.purchaseUrl);
   const logo = SELLER_LOGOS[offer.name];
   const date = offer.checkedAt && /^\d{4}-\d{2}-\d{2}$/.test(offer.checkedAt) ? offer.checkedAt : null;
+  const soldOut = isSoldOut(offer);
+  // 품절 판매처가 최저가여도 지금 살 수 있는 곳처럼 구매 버튼을 강조하지 않는다.
+  const primary = lowest && !soldOut;
   return (
     <li className={lowest ? 'product-offer product-offer--lowest' : 'product-offer'}>
       <div className="product-offer__name">
         {logo && <img className="product-offer__logo" src={logo} alt="" width={24} height={24} />}
         <strong>{offer.name}</strong>
         {lowest && <span className="product-offer__badge">최저가</span>}
+        {soldOut && <span className="product-offer__badge product-offer__badge--sold-out">일시품절</span>}
       </div>
       <div className="product-offer__details">
         <p className="product-offer__context">
@@ -163,16 +179,17 @@ function OfferRow({ offer, lowest }: { offer: Offer; lowest: boolean }) {
             '확인일 미기록'
           )}
         </p>
+        {soldOut && <p className="product-offer__context">품절 전 마지막으로 확인한 가격</p>}
         {offer.name === '당근' && <p className="product-offer__context">미개봉 매물 참고가 · 검색 결과로 이동</p>}
       </div>
       <strong className="product-offer__price">{formatPrice(offer.price)}</strong>
       {url ? (
         <a
-          className={lowest ? 'button button--primary product-offer__buy' : 'button product-offer__buy'}
+          className={primary ? 'button button--primary product-offer__buy' : 'button product-offer__buy'}
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={`${offer.name} 판매처 보기 (새 창)`}
+          aria-label={soldOut ? `${offer.name} 판매처 보기 (일시품절, 새 창)` : `${offer.name} 판매처 보기 (새 창)`}
         >
           <span className="product-offer__buy-prefix">판매처 </span>보기
           <span aria-hidden="true">↗</span>
