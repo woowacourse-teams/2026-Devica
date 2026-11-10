@@ -51,6 +51,11 @@ export type Screen = {
   questions: { question: Question; label: string | null }[];
 };
 
+export function isScreenAnswered(screen: Screen, answers: Answers): boolean {
+  const isAnswered = ({ question }: { question: Question }) => (answers[question.code]?.length ?? 0) > 0;
+  return screen.currentSpec ? screen.questions.some(isAnswered) : screen.questions.every(isAnswered);
+}
+
 function isVisible(question: Question, answers: Answers): boolean {
   const showWhen = question.showWhen;
   if (showWhen === null) {

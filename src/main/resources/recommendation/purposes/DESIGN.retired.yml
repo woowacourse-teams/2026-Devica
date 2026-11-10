@@ -1,0 +1,2 @@
+codes:
+  - { question: SLOWDOWN, to: MULTI_APP_SLOWDOWN, was: "프로그램을 여러 개 켜두면 멈추거나 껐다 켜야 했나요?", retiredAt: 2026-11-10 }

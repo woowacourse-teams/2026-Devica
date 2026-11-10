@@ -113,14 +113,13 @@ survey:
             - { code: NONE, content: 사용하지 않음 }
 
     - questions:
-        - code: SLOWDOWN
-          title: 앱 개발에 필요한 프로그램을 함께 켰을 때, 작업이 멈추거나 프로그램을 닫아야 했나요?
+        - code: MULTI_APP_SLOWDOWN
+          title: 개발 도구, 크롬, 메신저 등 여러 앱을 함께 켜 두면 노트북이 느려지나요?
           options:
-            - { code: OFTEN, content: 자주 그렇다 }
+            - { code: OFTEN, content: 자주 느려진다 }
             - { code: SOMETIMES, content: 가끔 느려진다 }
-            - { code: FINE, content: 괜찮다 }
+            - { code: FINE, content: 느려지지 않는다 }
             - { code: UNKNOWN, content: 잘 모르겠다 }
-            - { code: NO_EXPERIENCE, content: 아직 개발해 본 적이 없다 }
 
     - questions:
         - code: STORAGE_SHORTAGE
@@ -185,11 +184,11 @@ rules:
     reason: AI 전용 에디터는 모델 연동으로 메모리를 더 씁니다.
   - criterion: MEMORY
     weight: 2
-    when: { question: SLOWDOWN, anyOf: [ OFTEN ] }
+    when: { question: MULTI_APP_SLOWDOWN, anyOf: [ OFTEN ] }
     reason: 여러 프로그램을 함께 사용할 때 겪은 불편을 고려해 메모리에 여유를 두었습니다.
   - criterion: MEMORY
     weight: 1
-    when: { question: SLOWDOWN, anyOf: [ SOMETIMES ] }
+    when: { question: MULTI_APP_SLOWDOWN, anyOf: [ SOMETIMES ] }
     reason: 가끔 느려진 경험을 반영했습니다.
   - criterion: MEMORY
     weight: 1

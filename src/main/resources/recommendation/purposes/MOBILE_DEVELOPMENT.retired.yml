@@ -1,2 +1,4 @@
 codes:
   - { question: AI_CODING_TOOL, option: IDE_EXTENSION, to: AI_EDITOR, was: "기존 IDE 에 확장으로 붙여 쓴다", retiredAt: 2026-11-09 }
+  - { question: SLOWDOWN, to: MULTI_APP_SLOWDOWN, was: "앱 개발에 필요한 프로그램을 함께 켰을 때, 작업이 멈추거나 프로그램을 닫아야 했나요?", retiredAt: 2026-11-10 }
+  - { question: MULTI_APP_SLOWDOWN, option: NO_EXPERIENCE, to: UNKNOWN, was: "아직 개발해 본 적이 없다", retiredAt: 2026-11-10 }
