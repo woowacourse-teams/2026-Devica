@@ -113,7 +113,7 @@ WHERE o.name = '쿠팡'
   );
 
 -- 옛 판매상품 행을 새 ID로 바꾸면 이미 등록된 새 판매상품 행과 같은 상품이 두 가격으로 남는다.
--- V1.28.1 유니크 인덱스도 UPDATE를 막지만, 오류에 모델 코드가 나오도록 먼저 검사한다.
+-- 어느 행이 맞는지 판단할 근거가 없으므로, 판매처를 바꾸기 전에 충돌한 모델 코드를 알리고 중단한다.
 INSERT INTO coupang_offer_duplicate_item_products (product_code)
 SELECT conflict.product_code
 FROM (
