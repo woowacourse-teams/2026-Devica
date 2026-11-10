@@ -21,8 +21,10 @@ public class ProductOfferService {
     private final ProductOfferRepository productOfferRepository;
     private final ProductMinPriceRepository productMinPriceRepository;
 
-    public List<ProductOffer> findOnSaleOffers(Long productId) {
-        return productOfferRepository.findAllByProductIdAndStatusOrderByPriceAscIdAsc(productId, OfferStatus.ON_SALE);
+    // 상세에 보여줄 판매처. 품절 판매처는 마지막 확인 가격과 함께 보여주고, 숨김·단종 판매처는 뺀다.
+    public List<ProductOffer> findDisplayedOffers(Long productId) {
+        return productOfferRepository.findAllByProductIdAndStatusInOrderByPriceAscIdAsc(
+            productId, List.of(OfferStatus.ON_SALE, OfferStatus.SOLD_OUT));
     }
 
     public List<PriceRefreshTarget> findCoupangPriceRefreshTargets() {

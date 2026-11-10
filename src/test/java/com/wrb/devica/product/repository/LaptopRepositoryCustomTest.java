@@ -342,12 +342,12 @@ class LaptopRepositoryCustomTest {
     }
 
     @Test
-    void 판매_중인_오퍼가_없어도_조회하고_최저가는_비워둔다() {
+    void 판매_중인_오퍼가_없어도_조회하고_품절_오퍼만_있으면_마지막_확인_가격을_최저가로_둔다() {
         // given
         onSaleLaptop(laptop().name("판매중"));
         laptopOf(laptop().name("오퍼없음"));
         Laptop soldOut = laptopOf(laptop().name("품절"));
-        productOfferRepository.save(offer().product(soldOut).price(1_000_000L).status(OfferStatus.SOLD_OUT).build());
+        productOfferRepository.save(offer().product(soldOut).price(1_500_000L).status(OfferStatus.SOLD_OUT).build());
         productOfferRepository.save(
             offer().product(soldOut).price(1_000_000L).status(OfferStatus.DISCONTINUED).build());
         minPriceRefresher.refresh(soldOut.getId());
@@ -361,7 +361,7 @@ class LaptopRepositoryCustomTest {
             .containsExactly(
                 tuple("판매중", DEFAULT_PRICE),
                 tuple("오퍼없음", null),
-                tuple("품절", null)
+                tuple("품절", 1_500_000L)
             );
     }
 

@@ -74,7 +74,7 @@ class ProductOfferServiceTest {
     private PlatformTransactionManager transactionManager;
 
     @Test
-    void 판매_중인_판매처만_가격_오름차순으로_반환한다() {
+    void 판매_중이거나_품절인_판매처를_가격_오름차순으로_반환하고_숨김_단종_판매처는_뺀다() {
         // given
         Laptop laptop = laptopRepository.save(laptop()
             .category(productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP)))
@@ -85,11 +85,13 @@ class ProductOfferServiceTest {
         productOfferRepository.save(offer().product(laptop).price(2_990_000L).status(OfferStatus.ON_SALE).build());
         productOfferRepository.save(offer().product(laptop).price(2_850_000L).status(OfferStatus.ON_SALE).build());
         productOfferRepository.save(offer().product(laptop).price(2_500_000L).status(OfferStatus.SOLD_OUT).build());
+        productOfferRepository.save(offer().product(laptop).price(2_000_000L).status(OfferStatus.HIDDEN).build());
+        productOfferRepository.save(offer().product(laptop).price(1_900_000L).status(OfferStatus.DISCONTINUED).build());
 
         // when & then
-        assertThat(productOfferService.findOnSaleOffers(laptop.getId()))
+        assertThat(productOfferService.findDisplayedOffers(laptop.getId()))
             .extracting(ProductOffer::getPrice)
-            .containsExactly(2_850_000L, 2_990_000L);
+            .containsExactly(2_500_000L, 2_850_000L, 2_990_000L);
     }
 
     @Test
@@ -128,12 +130,13 @@ class ProductOfferServiceTest {
     }
 
     @Test
-    void 다른_판매처가_더_저렴하면_그_가격을_최저가로_유지하고_품절_가격은_제외한다() {
+    void 다른_판매처나_품절_판매처가_더_저렴하면_그_가격을_최저가로_유지하고_숨김_가격은_제외한다() {
         // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).build());
         productOfferRepository.save(coupangOffer(laptop).name("다른 판매처").price(900_000L).build());
         productOfferRepository.save(coupangOffer(laptop).status(OfferStatus.SOLD_OUT).price(500_000L).build());
+        productOfferRepository.save(coupangOffer(laptop).status(OfferStatus.HIDDEN).price(400_000L).build());
         initializeMinPrice(laptop);
 
         // when
@@ -141,7 +144,7 @@ class ProductOfferServiceTest {
         flushAndClear();
 
         // then
-        assertThat(productMinPriceRepository.findById(laptop.getId()).orElseThrow().getMinPrice()).isEqualTo(900_000L);
+        assertThat(productMinPriceRepository.findById(laptop.getId()).orElseThrow().getMinPrice()).isEqualTo(500_000L);
     }
 
     @Test
@@ -332,7 +335,7 @@ class ProductOfferServiceTest {
         assertThat(hidden.getStatus()).isEqualTo(OfferStatus.HIDDEN);
         assertUnchanged(hidden);
         assertThat(productMinPriceRepository.findById(laptop.getId())).isEmpty();
-        assertThat(productOfferService.findOnSaleOffers(laptop.getId())).isEmpty();
+        assertThat(productOfferService.findDisplayedOffers(laptop.getId())).isEmpty();
         assertThat(productOfferService.findCoupangPriceRefreshTargets()).containsExactly(target(laptop, hidden));
         assertThat(productOfferService.hideCoupangOffer(target(laptop, hidden), CHECKED_ON))
             .isEqualTo(PriceRefreshResult.ALREADY_HIDDEN);

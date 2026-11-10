@@ -304,24 +304,24 @@ class LaptopE2ETest extends E2ETest {
             .body("minPrice", nullValue());
     }
 
-    // UC-07: 판매 중인 구매처가 없는 제품도 목록에 넣고 가격은 비워둔다
+    // UC-07: 판매처가 없는 제품도 목록에 넣고 가격은 비워둔다. 품절이면 마지막 확인 가격을 최저가로 보여준다
     @Test
-    void 살_수_없는_노트북도_목록에_나오고_최저가는_비어_있다() {
+    void 판매처가_없는_노트북도_목록에_나오고_품절_노트북은_마지막_확인_가격을_보여준다() {
         // given
         onSaleLaptop(laptop().name("판매중"));
 
         laptopOf(laptop().name("오퍼없음"));
 
-        productOfferRepository.save(offer()
-            .product(laptopOf(laptop().name("품절")))
-            .status(OfferStatus.SOLD_OUT).build());
+        Laptop soldOut = laptopOf(laptop().name("품절"));
+        productOfferRepository.save(offer().product(soldOut).price(1_500_000L).status(OfferStatus.SOLD_OUT).build());
+        minPriceRefresher.refresh(soldOut.getId());
 
         // when & then
         given()
             .when().get(PATH)
             .then().statusCode(200)
-            .body("content.name", contains("판매중", "오퍼없음", "품절"))
-            .body("content.minPrice", contains(1_000_000, null, null));
+            .body("content.name", contains("판매중", "품절", "오퍼없음"))
+            .body("content.minPrice", contains(1_000_000, 1_500_000, null));
     }
 
     @Test
@@ -396,7 +396,7 @@ class LaptopE2ETest extends E2ETest {
 
     // UC-11: 가격을 확인하고 외부 구매처로 이동할 수 있다
     @Test
-    void 상세를_조회하면_판매_중인_판매처를_싼_순으로_받는다() {
+    void 상세를_조회하면_판매_중이거나_품절인_판매처를_상태와_함께_싼_순으로_받는다() {
         // given
         Laptop laptop = laptopRepository.save(laptop().category(category)
             .gpu(gpuRepository.save(gpu().name("Intel Arc 140V").build()))
@@ -428,9 +428,10 @@ class LaptopE2ETest extends E2ETest {
             .body("name", is("gram Pro 16"))
             .body("specs.code", contains("OS", "CPU", "GPU", "MEMORY", "STORAGE", "CPU_CORE", "SCREEN_SIZE", "WEIGHT"))
             .body("specs[2].displayValue", is("Intel Arc 140V"))
-            .body("offers.price", contains(2_850_000, 2_990_000))
+            .body("offers.price", contains(2_500_000, 2_850_000, 2_990_000))
+            .body("offers.status", contains("SOLD_OUT", "ON_SALE", "ON_SALE"))
             .body("offers[0].purchaseUrl", is("https://example.com/" + laptop.getCode()))
-            .body("offers.checkedAt", contains("2026-08-19", null));
+            .body("offers.checkedAt", contains(null, "2026-08-19", null));
     }
 
     // UC-08: CPU 필터 선택지는 서버의 등급을 쓴다. 등급을 바꿔도 화면을 고치지 않는다

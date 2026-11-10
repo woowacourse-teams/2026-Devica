@@ -84,7 +84,7 @@ public class ProductController {
     @GetMapping("/api/products/{id}")
     public ResponseEntity<ProductDetailResponse> findProductById(@PathVariable Long id) {
         Product product = productService.findProductById(id);
-        List<ProductOffer> offers = productOfferService.findOnSaleOffers(product.getId());
+        List<ProductOffer> offers = productOfferService.findDisplayedOffers(product.getId());
         String imageUrl = productImageUrlResolver.resolve(product.getImageKey());
 
         ProductDetailResponse productDetailResponse = ProductDetailResponse.of(product, offers, imageUrl);
