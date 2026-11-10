@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef } from 'react';
 import { ChoiceGroup } from './ChoiceGroup';
-import type { Answers, Question, Screen } from './questions';
+import { type Answers, isScreenAnswered, type Question, type Screen } from './questions';
 import './QuestionView.css';
 
 const HINT = '선택한 항목을 한 번 더 누르면 해제됩니다.';
@@ -65,11 +65,10 @@ export function QuestionView({
     return null;
   }
 
-  const isAnswered = ({ question }: { question: Question }) => (answers[question.code] ?? []).length > 0;
   const last = index === screens.length - 1;
   // 질문 화면은 선택지에 "모르겠다"류 답이 있어 건너뛰기를 두지 않는다. 모든 질문에 답해야 넘어간다 (#181).
   // 현재 사양에는 그런 선택지가 없어 비워 두고 넘어갈 수 있게 한다. 미응답은 서버가 기본값으로 처리한다.
-  const answered = screen.currentSpec ? screen.questions.some(isAnswered) : screen.questions.every(isAnswered);
+  const answered = isScreenAnswered(screen, answers);
   const skippable = screen.currentSpec && !answered;
   const nextLabel = skippable ? '건너뛰기' : last ? '결과 보기' : '다음';
 
@@ -106,7 +105,7 @@ export function QuestionView({
         {screen.description !== null && <p className="question-description">{screen.description}</p>}
         {outdated && (
           <p className="notice" role="status">
-            설문이 바뀌어 고르신 답 중 없어진 선택지를 지웠습니다. 이 질문에 다시 답해 주세요.
+            설문이 바뀌었어요. 이 화면에서 답변을 다시 확인해 주세요.
           </p>
         )}
 
