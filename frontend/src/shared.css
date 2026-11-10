@@ -241,28 +241,6 @@
     }
 }
 
-/* 제품 카드와 제품 상세가 함께 쓰는 사양 칸. */
-.product-spec-item {
-    min-width: 0;
-    border: 1px solid var(--outline-variant);
-    padding: var(--density-high);
-    overflow-wrap: anywhere;
-}
-
-.product-spec-item dt {
-    color: var(--on-surface-variant);
-    font-family: var(--font-label);
-    font-size: var(--label-sm-font-size);
-    letter-spacing: var(--label-sm-letter-spacing);
-    /* PROCESSOR·STORAGE 는 한 낱말이다. 좁은 칸에서 "STORAG / E" 로 끊기면 라벨로 안 읽힌다. */
-    white-space: nowrap;
-}
-
-.product-spec-item dd {
-    margin: var(--unit) 0 0;
-    font-size: var(--body-md-font-size);
-}
-
 /* 진행 버튼은 좁은 화면에서 하단에 고정한다. 부모(섹션) 안에서만 붙어 있어 푸터를 가리지 않는다.
    넓은 화면에서는 고정하지 않고 화면마다 제자리에 둔다. */
 .sticky-actions {

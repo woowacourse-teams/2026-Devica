@@ -1,311 +1,667 @@
-/* product-list-view 전용. 카드 테두리는 shared.css 의 bordered-panel 이 맡는다. */
+/* product-list-view 전용. 맞춤 목록과 전체 목록이 함께 쓴다. */
 
-/* 제품 카드는 2컬럼으로 나누지 않고 한 줄씩 쌓는다. 넓어지면 카드 안이 가로로 펼쳐진다. */
+.product-list-description {
+    display: none;
+}
+
+.product-list-os .choice-group--segmented {
+    width: 100%;
+}
+
+/* 검색·필터·정렬 바. 한 줄로 두고 스크롤해도 위에 붙어 있다. 아래로 지나가는 카드가 비치지 않게 바탕을 칠한다. OS 토글은 바 위에 따로 둔다. */
+.product-list-bar {
+    position: sticky;
+    z-index: 5;
+    top: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 var(--space-8);
+    margin: calc(-1 * var(--space-12)) 0;
+    padding: var(--space-12) 0;
+    background: var(--bg);
+}
+
+.product-list-bar__actions {
+    display: flex;
+    gap: var(--space-8);
+}
+
+.product-list-control {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    box-sizing: border-box;
+    min-height: var(--control-md);
+    border: 1.5px solid var(--control);
+    border-radius: var(--radius-16);
+    padding: 0 var(--space-16);
+    color: var(--text);
+    background: var(--field);
+    font: inherit;
+    font-size: 16px;
+    transition:
+        border-color 150ms ease-out,
+        background-color 150ms ease-out;
+}
+
+.product-search {
+    flex: 1 1 0;
+    min-width: 0;
+    gap: var(--space-12);
+}
+
+.product-search svg {
+    flex: none;
+    color: var(--text-muted);
+}
+
+.product-search:has(input:focus-visible) {
+    outline: 2px solid var(--lime);
+    outline-offset: 2px;
+}
+
+.product-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    padding: 0;
+    color: var(--text);
+    background: transparent;
+    font: inherit;
+}
+
+.product-search input::placeholder {
+    color: var(--text-muted);
+}
+
+.product-filter-toggle {
+    flex: none;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.product-filter-toggle:hover,
+.menu-button__trigger:hover {
+    border-color: var(--accent);
+}
+
+.product-filter-toggle[aria-expanded="true"],
+.menu-button__trigger[aria-expanded="true"] {
+    border-color: var(--accent);
+    background: var(--tint);
+}
+
+.product-filter-toggle__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-width: 22px;
+    height: 22px;
+    border-radius: var(--radius-pill);
+    padding: 0 6px;
+    color: var(--on-primary);
+    background: var(--primary);
+    font-size: 12px;
+}
+
+.product-list-control__label,
+.product-filter__label {
+    color: var(--text-muted);
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+/* 정렬·OS 메뉴. 고른 항목에 체크를 두고, 열릴 때 버튼 쪽에서 살짝 커지며 나타난다. */
+.menu-button {
+    position: relative;
+    flex: none;
+}
+
+.menu-button__trigger {
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.menu-button__chevron {
+    flex: none;
+    color: var(--text-muted);
+    transition: rotate 200ms ease-out;
+}
+
+.menu-button__trigger[aria-expanded="true"] .menu-button__chevron {
+    rotate: 180deg;
+}
+
+.menu-button__menu {
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + var(--space-8));
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    min-width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-16);
+    padding: var(--space-4);
+    background: var(--surface-1);
+    box-shadow: 0 16px 40px rgb(0 0 0 / 0.5);
+    opacity: 0;
+    scale: 0.96;
+    translate: 0 -4px;
+    transform-origin: top right;
+    visibility: hidden;
+    transition:
+        opacity 160ms ease-out,
+        scale 160ms ease-out,
+        translate 160ms ease-out,
+        visibility 0s linear 160ms;
+}
+
+.menu-button__menu[data-open="true"] {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+    visibility: visible;
+    transition:
+        opacity 160ms ease-out,
+        scale 160ms ease-out,
+        translate 160ms ease-out;
+}
+
+.menu-button__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-16);
+    min-height: var(--control-sm);
+    border: 0;
+    border-radius: var(--radius-12);
+    padding: 0 var(--space-12);
+    color: var(--text);
+    background: transparent;
+    font: inherit;
+    font-size: 16px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.menu-button__item:hover,
+.menu-button__item:focus-visible {
+    background: var(--surface-2);
+}
+
+.menu-button__item[aria-checked="true"] {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* 데스크톱의 펼침 패널. 바 아래에서 높이가 늘어나며 열린다. */
+.product-filter-panel {
+    display: grid;
+    flex-basis: 100%;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+        grid-template-rows 240ms ease-out,
+        opacity 200ms ease-out;
+}
+
+.product-filter-panel[data-open="true"] {
+    grid-template-rows: 1fr;
+    opacity: 1;
+}
+
+.product-filter-panel__clip {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.product-filter-panel__box {
+    max-height: min(60vh, 520px);
+    overflow-y: auto;
+    margin-top: var(--space-12);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-24);
+    padding: var(--space-8) var(--space-24);
+    background: var(--surface-1);
+}
+
+/* 모바일의 하단 시트. 아래에서 밀려 올라오고, 닫을 때 다시 내려간다. */
+.product-filter-sheet {
+    position: fixed;
+    inset: auto 0 0;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    height: calc(100dvh - 96px);
+    max-height: none;
+    margin: 0;
+    border: 0;
+    border-top: 1px solid var(--divider);
+    border-radius: var(--radius-24) var(--radius-24) 0 0;
+    padding: 0;
+    color: var(--text);
+    background: var(--surface-1);
+    translate: 0 100%;
+    transition:
+        translate 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+        overlay 280ms allow-discrete,
+        display 280ms allow-discrete;
+}
+
+.product-filter-sheet[open] {
+    display: flex;
+    flex-direction: column;
+    translate: 0 0;
+}
+
+@starting-style {
+    .product-filter-sheet[open] {
+        translate: 0 100%;
+    }
+}
+
+.product-filter-sheet::backdrop {
+    background: transparent;
+    transition:
+        background-color 280ms ease-out,
+        overlay 280ms allow-discrete,
+        display 280ms allow-discrete;
+}
+
+.product-filter-sheet[open]::backdrop {
+    background: var(--scrim);
+}
+
+@starting-style {
+    .product-filter-sheet[open]::backdrop {
+        background: transparent;
+    }
+}
+
+html:has(.product-filter-sheet[open]) {
+    overflow: hidden;
+}
+
+.product-filter-sheet__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--divider);
+    padding: var(--space-12) var(--space-8) var(--space-12) var(--space-20);
+}
+
+.product-filter-sheet__head h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.product-filter-sheet__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border: 0;
+    color: var(--text);
+    background: transparent;
+    cursor: pointer;
+}
+
+.product-filter-sheet__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 var(--space-20);
+}
+
+.product-filter-sheet__actions {
+    display: flex;
+    gap: var(--space-8);
+    border-top: 1px solid var(--divider);
+    padding: var(--space-12) var(--space-20) calc(var(--space-16) + env(safe-area-inset-bottom));
+}
+
+.product-filter-sheet__actions .button:first-child {
+    flex: none;
+}
+
+.product-filter-note {
+    margin: var(--space-16) 0 0;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.product-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+    border-bottom: 1px solid var(--divider);
+    padding: var(--space-16) 0;
+}
+
+.product-filter-group .product-filter__label {
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.product-filter-group__empty {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* 적용한 필터 칩. 모바일은 한 줄로 두고 옆으로 넘긴다. */
+.product-condition-chips {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    margin: 0 calc(-1 * var(--space-20));
+    padding: 0 var(--space-20);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.product-condition-chips ul {
+    display: flex;
+    gap: var(--space-8);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.product-condition-chips__label {
+    flex: none;
+    margin-right: var(--space-4);
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.product-condition-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-8);
+    min-height: var(--control-sm);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-pill);
+    padding: 0 14px 0 var(--space-16);
+    color: var(--text);
+    background: var(--tint);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+/* 제품 카드. 모바일은 사진을 왼쪽에 둔 가로형, 데스크톱은 세로형 격자다. */
 .product-list {
     display: flex;
     flex-direction: column;
-    gap: var(--unit);
-    margin: var(--gutter) 0;
+    gap: var(--space-12);
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
 .product-card {
     display: flex;
-    flex-direction: column;
-    min-width: 0;
-    overflow: hidden;
+    gap: var(--space-16);
+    height: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-16);
+    padding: 14px;
+    color: var(--text);
+    background: var(--surface-1);
+    text-decoration: none;
+    transition: border-color 150ms ease-out;
 }
 
-/* 카드 이미지는 정사각형 원본을 가로형 틀에 담는다. 틀이 높이를 정하고 사진은 그 안에 맞춘다. */
+.product-card:hover {
+    border-color: var(--accent);
+}
+
+.product-card--skeleton {
+    height: 120px;
+}
+
 .product-card__image-frame {
     position: relative;
-    aspect-ratio: 16 / 10;
-    border-bottom: 1px solid var(--on-surface);
-    background: var(--surface-container-low);
+    flex: none;
+    width: 88px;
+    height: 88px;
+    overflow: hidden;
+    border-radius: var(--radius-12);
+    background: var(--surface-2);
 }
 
 .product-card__body {
     display: flex;
     flex: 1;
     flex-direction: column;
-    justify-content: space-between;
-    gap: var(--density-med);
+    gap: var(--space-4);
     min-width: 0;
-    padding: var(--gutter);
-}
-
-.product-card__heading-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: var(--gutter);
 }
 
 .product-card__maker {
-    display: block;
-    margin-bottom: var(--unit);
-    color: var(--on-surface-variant);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
 }
 
-.product-card h3 {
+.product-card__name {
     margin: 0;
-    font-size: var(--headline-sm-font-size);
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.product-card__specs {
+    color: var(--text-muted);
+    font-size: 14px;
 }
 
 .product-card__price {
-    display: block;
-    margin: var(--density-med) 0;
-    font-size: var(--headline-sm-font-size);
+    margin: var(--space-4) 0 0;
 }
 
-.product-card__heading-row .product-card__price {
-    flex: 0 1 auto;
-    margin: 0;
-    margin-inline-start: auto;
-    min-width: 0;
-    max-width: 100%;
-    text-align: right;
-}
-
-.product-card__action {
-    display: flex;
-    align-items: stretch;
-    border-top: 1px solid var(--on-surface);
-    padding: var(--gutter);
-}
-
-.product-card__detail {
-    align-self: stretch;
-    padding-right: var(--density-high);
-    padding-left: var(--density-high);
-    white-space: nowrap;
-}
-
-/* 좁은 화면에서 사양 3행을 세로로 쌓으면 카드가 한 화면을 넘긴다. 긴 CPU 이름만 전폭을 준다. */
-.product-card__specs {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--density-high);
-    margin: 0;
-}
-
-.product-card__specs .product-spec-item:nth-child(-n + 2) {
-    grid-column: 1 / -1;
-}
-
-.product-list-heading {
-    display: flex;
-    flex-direction: column;
-    gap: var(--gutter);
-    padding-bottom: var(--gutter);
-    border-bottom: 1px solid var(--on-surface);
-}
-
-.product-list-controls {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--density-high);
-}
-
-/* 좁은 화면에서는 세 버튼이 들쭉날쭉 줄바꿈된다. 검색 조건·정렬을 한 줄에 두고, 가격은 아래 줄을 다 쓴다. */
-@media (max-width: 767px) {
-    .product-list-controls {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
-    }
-
-    .product-list-price {
-        grid-row: 2;
-        grid-column: 1 / -1;
-    }
-}
-
-.product-list-control {
-    border-radius: var(--radius-control);
-    display: flex;
-    align-items: center;
-    gap: var(--density-high);
-    min-height: 40px;
-    border: 1px solid var(--on-surface);
-    padding: var(--density-high) var(--density-med);
-    color: var(--on-surface);
-    background: var(--surface-container-lowest);
-    font: inherit;
-    font-size: var(--body-sm-font-size);
-}
-
-.product-filter-toggle {
-    cursor: pointer;
-}
-
-.product-filter-toggle[aria-expanded="true"] {
-    color: var(--on-primary);
-    background: var(--primary);
-}
-
-.product-list-control__label,
-.product-filter__label {
-    color: var(--on-surface-variant);
-    font-family: var(--font-label);
-    font-size: var(--label-sm-font-size);
-    letter-spacing: var(--label-sm-letter-spacing);
-}
-
-.product-list-control__label {
-    white-space: nowrap;
-}
-
-.product-list-os {
-    margin-top: var(--gutter);
-}
-
-.product-condition-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--unit);
-    margin: var(--gutter) 0 0;
-    padding: 0;
-    list-style: none;
-}
-
-.product-condition-chip {
-    border-radius: var(--radius-control);
-    display: inline-flex;
-    align-items: center;
-    gap: var(--unit);
-    min-height: 32px;
-    border: 1px solid var(--outline-variant);
-    padding: 0 var(--density-high);
-    color: var(--on-surface);
-    background: var(--surface-container);
-    font: inherit;
-    font-size: var(--body-sm-font-size);
-    cursor: pointer;
-}
-
-.product-condition-chip span {
-    color: var(--on-surface-variant);
-}
-
-.product-filter-panel {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--density-high);
-    margin-top: var(--gutter);
-}
-
-/* display 를 지정한 요소는 hidden 속성만으로 접히지 않는다. */
-.product-filter-panel[hidden] {
+.product-card__price span {
     display: none;
 }
 
-.product-filter {
-    border-radius: var(--radius-control);
-    display: flex;
-    flex-direction: column;
-    gap: var(--unit);
-    min-width: 0;
-    border: 1px solid var(--on-surface);
-    padding: var(--density-high) var(--density-med);
-    background: var(--surface-container-lowest);
+.product-card__price strong {
+    color: var(--lime);
+    font-size: 18px;
 }
 
-.product-filter:has(select:disabled) {
-    border-color: var(--outline-variant);
-    background: var(--surface-container);
-}
-
-.product-list-control select,
-.product-filter select,
-.product-filter input {
-    width: 100%;
-    min-width: 0;
-    border: 0;
-    padding: 0;
-    color: var(--on-surface);
-    background: transparent;
-    font: inherit;
-    font-size: var(--body-md-font-size);
-    cursor: pointer;
-}
-
-.product-list-control select {
-    font-size: var(--body-sm-font-size);
-}
-
-.product-filter select:disabled {
-    color: var(--outline);
-    cursor: not-allowed;
-}
-
+/* 목록 상태. */
 .product-list-status {
     margin: 0;
-    color: var(--on-surface-variant);
+    color: var(--text-muted);
+    font-size: 14px;
+    text-align: center;
+}
+
+.product-list-status:empty {
+    display: none;
+}
+
+.product-list-status--more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-12);
+    min-height: var(--control-md);
+}
+
+.product-list-status--more::before {
+    content: "";
+    width: 16px;
+    height: 16px;
+    box-sizing: border-box;
+    border: 2px solid var(--divider);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: product-list-spin 800ms linear infinite;
+}
+
+@keyframes product-list-spin {
+    to {
+        rotate: 360deg;
+    }
+}
+
+.product-list-failure {
+    margin: 0;
+    font-size: 16px;
+}
+
+.product-list-retry {
+    align-self: flex-start;
+    min-height: var(--control-sm);
+    padding: 0 18px;
 }
 
 .empty-result {
-    border-radius: var(--radius-box);
-    display: grid;
-    justify-items: start;
-    gap: var(--density-med);
-    border: 1px solid var(--on-surface);
-    padding: var(--gutter);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-16);
+    padding: var(--space-32) var(--space-16);
+    text-align: center;
 }
 
-.empty-result p {
+.empty-result h2 {
     margin: 0;
+    font-size: 24px;
+    font-weight: 700;
 }
 
 .empty-result__condition {
-    color: var(--on-surface-variant);
-    font-size: var(--body-sm-font-size);
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .product-card,
+    .product-list-control,
+    .menu-button__chevron,
+    .menu-button__menu,
+    .menu-button__menu[data-open="true"],
+    .product-filter-panel,
+    .product-filter-sheet,
+    .product-filter-sheet::backdrop {
+        transition: none;
+    }
+
+    .product-list-status--more::before {
+        animation-duration: 2.4s;
+    }
 }
 
 @media (min-width: 768px) {
-    .product-card {
-        flex-direction: row;
-        /* 고정 높이로 두면 CPU 이름이 긴 제품에서 사양이 잘린다. 하한만 잡는다. */
-        min-height: 192px;
+    .product-list-description {
+        display: block;
     }
 
-    /* 카드가 눕는 구간에서는 높이를 카드가 정하므로 비율을 풀고 폭만 고정한다. */
-    .product-card__image-frame {
-        flex: 0 0 auto;
-        aspect-ratio: auto;
-        width: 256px;
-        border-right: 1px solid var(--on-surface);
+    .product-list-os .choice-group--segmented {
+        width: fit-content;
+    }
+
+    .product-list-bar {
+        column-gap: var(--space-12);
+    }
+
+    .product-filter-group {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr);
+        align-items: center;
+        gap: var(--space-16);
+    }
+
+    .product-filter-group:last-child {
         border-bottom: 0;
     }
 
-    /* 용량 칸은 "32GB"·"1TB" 라 제 폭만 쓰고, 남는 자리는 이름이 긴 CPU 가 가져간다. */
+    .product-filter-note {
+        margin-top: var(--space-12);
+    }
+
+    .product-condition-chips {
+        flex-wrap: wrap;
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+    }
+
+    .product-condition-chips ul {
+        flex-wrap: wrap;
+    }
+
+    .product-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: var(--space-16);
+    }
+
+    .product-card {
+        flex-direction: column;
+        gap: 0;
+        overflow: hidden;
+        border-radius: var(--radius-24);
+        padding: 0;
+    }
+
+    .product-card--skeleton {
+        height: 360px;
+    }
+
+    .product-card__image-frame {
+        width: auto;
+        height: 180px;
+        border-radius: 0;
+    }
+
+    .product-card__body {
+        gap: var(--space-12);
+        padding: var(--space-20);
+    }
+
+    .product-card__maker,
     .product-card__specs {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) auto auto;
+        font-size: 14px;
     }
 
-    .product-card__specs .product-spec-item:nth-child(-n + 2) {
-        grid-column: auto;
+    .product-card__name {
+        font-size: 18px;
+        font-weight: 700;
     }
 
-    .product-card__action {
-        flex: 0 0 auto;
-        align-items: center;
-        width: 128px;
-        border-top: 0;
-        border-left: 1px solid var(--on-surface);
-    }
-
-    .product-list-heading {
-        flex-direction: row;
-        align-items: flex-end;
+    .product-card__price {
+        display: flex;
+        align-items: baseline;
         justify-content: space-between;
+        margin-top: auto;
+        border-top: 1px solid var(--divider);
+        padding-top: var(--space-12);
     }
 
-    .product-filter-panel {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+    .product-card__price span {
+        display: inline;
+        color: var(--text-muted);
+        font-size: 14px;
     }
 
-    /* 검색어는 값이 길어 두 칸을 쓴다. 뒤따르는 select 들은 한 칸씩 차례로 채운다. */
-    .product-filter--wide {
-        grid-column: span 2;
+    .product-card__price strong {
+        font-size: 20px;
     }
 }
