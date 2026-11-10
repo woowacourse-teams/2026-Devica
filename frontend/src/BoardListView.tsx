@@ -4,7 +4,7 @@ import { track } from './analytics';
 import { BoardByline } from './BoardShared';
 import { BOARD_POSTS_CACHE, type BoardPostSummary, type BoardScope, fetchBoardPosts } from './board';
 import { keepLatestStartingWith, usePaged } from './fetched';
-import { boardUrl, currentNavState, PATHS, query } from './routes';
+import { boardUrl, currentNavState, type NavState, PATHS, query } from './routes';
 import type { Served } from './selection';
 import { useBoardRequest } from './useBoardRequest';
 import { useCompact } from './useCompact';
@@ -38,7 +38,7 @@ export function BoardListView({ scope, page }: { scope: ListScope; page: number 
       <Link
         className="button button--primary board-write-button"
         href={writingUrl}
-        state={{ from: 'board' }}
+        state={{ from: 'board' } satisfies NavState}
         onClick={() => rememberScroll()}
       >
         <svg
@@ -62,7 +62,7 @@ export function BoardListView({ scope, page }: { scope: ListScope; page: number 
       {compact && page === 0 ? (
         <ScrollingPosts key={`${category.code}:${purpose.code}`} scope={scope} toolbar={toolbar} />
       ) : (
-        <PagedPosts scope={scope} page={page} toolbar={toolbar} />
+        <PagedPosts key={page} scope={scope} page={page} toolbar={toolbar} />
       )}
     </section>
   );
@@ -100,7 +100,12 @@ function PagedPosts({ scope, page, toolbar }: { scope: ListScope; page: number; 
       {state.status === 'success' && !empty && (
         <nav className="board-pagination" aria-label="게시글 페이지">
           {page > 0 ? (
-            <Link className="button" href={boardUrl(category.code, purpose.code, page - 1)} aria-label="이전 페이지">
+            <Link
+              className="button"
+              href={boardUrl(category.code, purpose.code, page - 1)}
+              aria-label="이전 페이지"
+              onClick={() => rememberScroll()}
+            >
               ← 이전
             </Link>
           ) : (
@@ -112,7 +117,12 @@ function PagedPosts({ scope, page, toolbar }: { scope: ListScope; page: number; 
             {page + 1} 페이지
           </span>
           {state.data.hasNext ? (
-            <Link className="button" href={boardUrl(category.code, purpose.code, page + 1)} aria-label="다음 페이지">
+            <Link
+              className="button"
+              href={boardUrl(category.code, purpose.code, page + 1)}
+              aria-label="다음 페이지"
+              onClick={() => rememberScroll()}
+            >
               다음 →
             </Link>
           ) : (
@@ -137,7 +147,7 @@ function ScrollingPosts({ scope, toolbar }: { scope: ListScope; toolbar: ReactNo
     fetchBoardPosts(category.code, purpose.code, page, UNABORTED),
   );
   const { data, hasNext, loading, failed, more } = posts;
-  useScrollRestoredAfterLoad(data !== null);
+  useScrollRestoredAfterLoad(data !== null, hasNext && !failed ? more : undefined);
 
   const [sentinel, setSentinel] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -187,18 +197,24 @@ function ScrollingPosts({ scope, toolbar }: { scope: ListScope; toolbar: ReactNo
   );
 }
 
-function useScrollRestoredAfterLoad(loaded: boolean) {
+function useScrollRestoredAfterLoad(loaded: boolean, more?: () => void) {
   const restored = useRef(false);
   useEffect(() => {
     if (!loaded || restored.current) {
       return;
     }
-    restored.current = true;
     const { scrollY } = currentNavState();
-    if (scrollY !== undefined) {
-      window.scrollTo(0, scrollY);
+    if (scrollY === undefined) {
+      restored.current = true;
+      return;
     }
-  }, [loaded]);
+    window.scrollTo(0, scrollY);
+    if (more !== undefined && document.documentElement.scrollHeight - window.innerHeight < scrollY) {
+      more();
+      return;
+    }
+    restored.current = true;
+  });
 }
 
 function LoadingPosts() {
@@ -265,7 +281,7 @@ function PostList({ posts, visit }: { posts: BoardPostSummary[]; visit?: number 
           <Link
             className="board-list__link"
             href={`/board/posts/${post.id}`}
-            state={{ from: 'board' }}
+            state={{ from: 'board' } satisfies NavState}
             onClick={() => rememberScroll(visit)}
           >
             <div className="board-list__text">
