@@ -135,3 +135,24 @@ test('HTTP 링크도 제공하고 확인 날짜를 브라우저 시간대로 변
   expect(date?.textContent).toBe('2026-01-01');
   expect(date?.getAttribute('datetime')).toBe('2026-01-01');
 });
+
+test.each([
+  ['없는 제품이면 404 화면을 보여 준다', 'LAPTOP_NOT_FOUND', '없는 페이지'],
+  [
+    '다른 404 는 다시 시도 안내를 보여 준다',
+    'NOT_FOUND',
+    '제품 정보를 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.',
+  ],
+])('%s', async (_, code, shown) => {
+  // given
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: false, status: 404, json: async () => ({ code, message: '' }) })),
+  );
+
+  // when
+  render(<ProductDetailView productId={1} notFound={<p>없는 페이지</p>} backLabel="목록으로" onBack={vi.fn()} />);
+
+  // then
+  expect(await screen.findByText(shown)).toBeTruthy();
+});

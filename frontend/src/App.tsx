@@ -639,8 +639,10 @@ function withSpecCondition(params: URLSearchParams, specs: Spec[]): URLSearchPar
 function MatchedListPage({ params, search }: PageProps & { search: string }) {
   const recommendation = useRecommendation(params);
   const tiers = useFetched('cpu-tiers', fetchCpuTiers);
-  const edits = editsOf(params);
-  const specs = (recommendation.data?.specs ?? []).map((spec) => editedSpec(spec, edits, tiers.data));
+  const specs = useMemo(() => {
+    const edits = editsOf(new URLSearchParams(search));
+    return (recommendation.data?.specs ?? []).map((spec) => editedSpec(spec, edits, tiers.data));
+  }, [recommendation.data, search, tiers.data]);
   // 제품 추천 결과 화면에서 오면 검색 조건이 채워져 있다. 맞춤 목록의 OS 는 탭이라 늘 있으니, OS 가 없으면
   // 채우지 않고 바로 들어온 주소(예전 공유 링크 등)다. 한 번 채운 뒤 그린다. 제품 추천 결과가 없으면 채울 것이 없다.
   const filled = params.has('os') || recommendation.data?.specs.length === 0;

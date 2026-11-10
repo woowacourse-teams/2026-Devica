@@ -255,7 +255,7 @@ export function sortOf(params: URLSearchParams): SortType | null {
 
 function positive(value: string | null): number | null {
   const number = Number(value);
-  return value !== null && Number.isInteger(number) && number > 0 ? number : null;
+  return value !== null && Number.isSafeInteger(number) && number > 0 ? number : null;
 }
 
 // 모르는 OS 는 버린다. CPU·GPU 등급은 서버에서 받아야 알 수 있어 목록이 받은 뒤 가린다(validTier).
