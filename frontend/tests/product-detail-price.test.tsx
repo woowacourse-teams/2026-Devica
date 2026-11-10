@@ -34,7 +34,7 @@ async function show(offers: Offer[]) {
     'fetch',
     vi.fn(async () => ({ ok: true, json: async () => product })),
   );
-  render(<ProductDetailView productId={1} backLabel="목록으로" onBack={vi.fn()} />);
+  render(<ProductDetailView productId={1} notFound={null} backLabel="목록으로" onBack={vi.fn()} />);
   await screen.findByRole('heading', { name: product.name });
 }
 

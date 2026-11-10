@@ -98,7 +98,7 @@ BEGIN
 
     -- GPU 등급마다 대표 GPU를 하나씩 고른다. 등급 점수 기준은 GpuTier.java의 minScore와 같아야 한다.
     -- Mac은 칩과 GPU가 한 몸이라 CPU 등급으로 GPU가 정해지고(slot 0: M 칩, 1: M Pro 칩 이상),
-    -- Windows는 CPU와 상관없이 slot 0: 내장, 1: RTX xx50 급, 2: RTX xx60 급을 고르게 나눈다.
+    -- Windows는 CPU와 상관없이 slot 0: 내장, 1: RTX xx50급, 2: RTX xx60급을 고르게 나눈다.
     CREATE TEMPORARY TABLE perf_seed_gpus (
         os VARCHAR(16) NOT NULL,
         slot INT NOT NULL,

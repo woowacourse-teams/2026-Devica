@@ -168,10 +168,15 @@ export async function fetchBrands(categoryCode: string, os: string | null): Prom
   return response.json();
 }
 
+export class ProductNotFoundError extends Error {}
+
 export async function fetchProduct(id: number): Promise<ProductDetail> {
   const response = await fetch(`${BASE_URL}/api/products/${id}`, {
     headers: { Accept: 'application/json' },
   });
+  if (response.status === 404) {
+    throw new ProductNotFoundError();
+  }
   if (!response.ok) {
     throw new Error(`제품 정보를 불러오지 못했습니다 (${response.status})`);
   }

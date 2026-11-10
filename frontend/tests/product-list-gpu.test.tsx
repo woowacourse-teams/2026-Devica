@@ -7,7 +7,7 @@ const GPU_TIERS: GpuTier[] = [
   { code: 'BASIC', name: 'M 칩', os: 'MAC', lowest: true },
   { code: 'PRO', name: 'M Pro 칩', os: 'MAC', lowest: false },
   { code: 'INTEGRATED', name: '내장 GPU', os: 'WINDOWS', lowest: true },
-  { code: 'XX50', name: 'RTX xx50 급', os: 'WINDOWS', lowest: false },
+  { code: 'XX50', name: 'RTX xx50급', os: 'WINDOWS', lowest: false },
 ];
 
 const fetchMock = vi.fn(async (url: string) => ({
@@ -48,7 +48,7 @@ const productRequests = () => fetchMock.mock.calls.map(([url]) => url).filter((u
 
 test('Windows 에서만 가장 낮은 등급을 뺀 GPU 필터를 보여 준다', async () => {
   show({ os: 'WINDOWS' });
-  const gpu = await screen.findByRole('button', { name: 'RTX xx50 급 GPU 이상' });
+  const gpu = await screen.findByRole('button', { name: 'RTX xx50급 GPU 이상' });
   expect(gpu.parentElement?.querySelectorAll('button')).toHaveLength(2);
   cleanup();
 
@@ -75,7 +75,7 @@ test('Mac GPU 조건은 필터 없이도 조건 칩으로 보이고, 가장 낮�
 test('OS 를 바꾸면 그 OS 의 등급이 아닌 GPU 조건을 지운다', async () => {
   const onChangeState = vi.fn();
   show({ os: 'WINDOWS', gpuTier: 'XX50' }, onChangeState);
-  await screen.findByRole('button', { name: 'RTX xx50 급 GPU 이상 필터 지우기' });
+  await screen.findByRole('button', { name: 'RTX xx50급 GPU 이상 필터 지우기' });
   const previous: ProductListState = {
     sort: 'PRICE_ASC',
     condition: { ...EMPTY_CONDITION, os: 'WINDOWS', gpuTier: 'XX50' },

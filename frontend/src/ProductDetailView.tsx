@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import apple from './assets/sellers/apple.png';
 import coupang from './assets/sellers/coupang.png';
 import daangn from './assets/sellers/daangn.png';
 import univstore from './assets/sellers/univstore.png';
 import { ProductImage } from './ProductImage';
-import { fetchProduct, formatPrice, type Offer, type ProductDetail } from './products';
+import { fetchProduct, formatPrice, type Offer, type ProductDetail, ProductNotFoundError } from './products';
 import './ProductDetailView.css';
 
 // 원본 상세는 GPU 를 뺀 넷만 보여준다. 서버는 코어 수·화면 크기·무게까지 주지만 원본에 없는 항목이다.
@@ -25,22 +25,30 @@ const SELLER_LOGOS: Record<string, string> = {
 
 type Props = {
   productId: number;
+  notFound: ReactNode;
   // 목록에서 들어왔으면 그 목록으로, 앱 밖에서 바로 들어왔으면 전체 목록으로 돌아간다.
   backLabel: string;
   onBack: () => void;
 };
 
-export function ProductDetailView({ productId, backLabel, onBack }: Props) {
+export function ProductDetailView({ productId, notFound, backLabel, onBack }: Props) {
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [failed, setFailed] = useState(false);
+  const [missing, setMissing] = useState(false);
 
   useEffect(() => {
     let stale = false;
     setProduct(null);
     setFailed(false);
+    setMissing(false);
     fetchProduct(productId)
       .then((received) => !stale && setProduct(received))
-      .catch(() => !stale && setFailed(true));
+      .catch((error) => {
+        if (!stale) {
+          setFailed(true);
+          setMissing(error instanceof ProductNotFoundError);
+        }
+      });
     // 다른 제품으로 넘어가면 이전 응답은 버린다. 늦게 오면 지금 보는 제품을 덮는다.
     return () => {
       stale = true;
@@ -52,6 +60,10 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
       {backLabel}
     </button>
   );
+
+  if (missing) {
+    return notFound;
+  }
 
   // 원본은 제품을 이미 손에 들고 있어 이 상태가 없었다. 기다리는 중과 실패를 나누고 빠져나갈 길도 남긴다.
   if (product === null) {
