@@ -29,8 +29,9 @@ import {
   validTier,
 } from './products';
 import { osValueOf, type Spec } from './recommendation';
-import { currentNavState, DESKTOP_MEDIA, navigateInside } from './routes';
+import { currentNavState, navigateInside } from './routes';
 import { SearchLoadingView } from './SearchLoadingView';
+import { useCompact } from './useCompact';
 import './ProductListView.css';
 
 // 글자마다 조회하지 않도록 입력이 멈추길 기다린다.
@@ -50,8 +51,6 @@ const SORT_LABELS: { value: SortType; label: string }[] = [
   { value: 'PRICE_ASC', label: '가격 낮은 순' },
   { value: 'PRICE_DESC', label: '가격 높은 순' },
 ];
-
-const SORT_SHORT_LABELS: Record<SortType, string> = { PRICE_ASC: '낮은 순', PRICE_DESC: '높은 순' };
 
 const CARD_SPECS = ['CPU', 'MEMORY', 'STORAGE'];
 
@@ -407,7 +406,7 @@ export function ProductListView({
             type="search"
             value={typed}
             aria-label="제품 검색"
-            placeholder={compact ? '검색' : '브랜드 · 제품명'}
+            placeholder="브랜드 · 제품명"
             onChange={(event) => setTyped(event.target.value)}
           />
         </label>
@@ -422,7 +421,7 @@ export function ProductListView({
             onClick={() => setFilterOpen(!filterOpen)}
           >
             <FilterIcon />
-            필터
+            {!compact && '필터'}
             {filterCount}
           </button>
           <MenuButton
@@ -433,7 +432,7 @@ export function ProductListView({
             onChange={changeSort}
             display={
               compact ? (
-                <b>{SORT_SHORT_LABELS[sort]}</b>
+                <SortIcon />
               ) : (
                 <>
                   <span className="product-list-control__label">정렬</span>
@@ -540,20 +539,6 @@ export function ProductListView({
       )}
     </section>
   );
-}
-
-function useCompact(): boolean {
-  const [compact, setCompact] = useState(() => window.matchMedia?.(DESKTOP_MEDIA).matches === false);
-  useEffect(() => {
-    const query = window.matchMedia?.(DESKTOP_MEDIA);
-    if (query === undefined) {
-      return;
-    }
-    const sync = () => setCompact(!query.matches);
-    query.addEventListener('change', sync);
-    return () => query.removeEventListener('change', sync);
-  }, []);
-  return compact;
 }
 
 type MenuOption = { value: string; label: string };
@@ -878,6 +863,24 @@ function SearchIcon() {
     >
       <circle cx="11" cy="11" r="7" />
       <path d="M20 20l-3.5-3.5" />
+    </svg>
+  );
+}
+
+function SortIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4" />
     </svg>
   );
 }

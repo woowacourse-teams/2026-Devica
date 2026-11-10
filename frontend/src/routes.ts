@@ -110,6 +110,7 @@ export type NavState = {
   searching?: boolean;
   filterOpen?: boolean;
   scrollY?: number;
+  boardVisit?: number;
 };
 
 export function currentNavState(): NavState {

@@ -6,6 +6,8 @@ import { BoardRequestError, type BoardScope, createBoardPost } from './board';
 import { boardUrl, replace } from './routes';
 import type { Served } from './selection';
 
+const BLANK_ERROR = '제목과 본문은 공백만 입력할 수 없습니다.';
+
 export function BoardWriteView({ scope }: { scope: BoardScope & { purpose: Served } }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -22,7 +24,7 @@ export function BoardWriteView({ scope }: { scope: BoardScope & { purpose: Serve
       return;
     }
     if (title.trim() === '' || content.trim() === '') {
-      setError('제목과 본문은 공백만 입력할 수 없습니다.');
+      setError(BLANK_ERROR);
       return;
     }
     const controller = new AbortController();
@@ -58,19 +60,31 @@ export function BoardWriteView({ scope }: { scope: BoardScope & { purpose: Serve
     }
   };
 
+  const blank = error === BLANK_ERROR;
+
   return (
-    <section className="view-panel board-view" aria-labelledby="board-write-title">
+    <section className="view-panel flow-view board-view" aria-labelledby="board-write-title">
       <Link className="text-button view-back-button" href={listUrl}>
         ← 목록으로
       </Link>
-      <h1 className="board-title" id="board-write-title">
-        질문 작성
-      </h1>
-      <p className="section-description">로그인 없이 익명으로 작성하며, 등록한 글은 바로 공개됩니다.</p>
-      <BoardScopeInfo scope={scope} />
+      <div className="flow-head">
+        <h1 id="board-write-title">질문 작성</h1>
+        <p className="flow-head__description">로그인 없이 익명으로 작성하며, 등록한 글은 바로 공개됩니다.</p>
+      </div>
       <form className="board-form" onSubmit={submit} aria-busy={submitting}>
         <div className="board-field">
-          <label htmlFor="board-post-title">제목</label>
+          <span className="board-field__label">게시판</span>
+          <BoardScopeInfo scope={scope} />
+        </div>
+        <div className="board-field">
+          <div className="board-field__head">
+            <label htmlFor="board-post-title">
+              제목 <span className="board-field__required">(필수)</span>
+            </label>
+            <span className="board-count" id="board-title-count">
+              {title.length} / 255자
+            </span>
+          </div>
           <input
             id="board-post-title"
             name="title"
@@ -79,43 +93,47 @@ export function BoardWriteView({ scope }: { scope: BoardScope & { purpose: Serve
             maxLength={255}
             value={title}
             disabled={submitting}
+            aria-invalid={blank && title.trim() === ''}
             aria-describedby="board-title-count"
             placeholder="궁금한 점을 한 문장으로 적어 주세요."
             onChange={(event) => setTitle(event.target.value)}
           />
-          <span className="board-count" id="board-title-count">
-            {title.length} / 255자
-          </span>
         </div>
         <div className="board-field">
-          <label htmlFor="board-post-content">본문</label>
+          <div className="board-field__head">
+            <label htmlFor="board-post-content">
+              본문 <span className="board-field__required">(필수)</span>
+            </label>
+            <span className="board-count" id="board-content-count">
+              {content.length.toLocaleString('ko-KR')} / 10,000자
+            </span>
+          </div>
           <textarea
             id="board-post-content"
             name="content"
             required
             maxLength={10000}
-            rows={12}
+            rows={10}
             value={content}
             disabled={submitting}
+            aria-invalid={blank && content.trim() === ''}
             aria-describedby="board-content-count"
             placeholder="사용 환경과 궁금한 내용을 자세히 적어 주세요."
             onChange={(event) => setContent(event.target.value)}
           />
-          <span className="board-count" id="board-content-count">
-            {content.length.toLocaleString('ko-KR')} / 10,000자
-          </span>
         </div>
         {error !== null && (
-          <p className="board-error" role="alert">
+          <p className={blank ? 'board-error' : 'board-alert'} role="alert">
             {error}
           </p>
         )}
-        <div className="board-form__actions">
-          <Link className="text-button" href={listUrl}>
+        <div className="board-form__actions sticky-actions">
+          <Link className="button board-form__back" href={listUrl}>
             목록으로
           </Link>
           <button className="button button--primary" type="submit" disabled={submitting}>
             {submitting ? '등록 중…' : '질문 등록'}
+            {!submitting && <span aria-hidden="true">→</span>}
           </button>
         </div>
       </form>

@@ -79,10 +79,10 @@
 
 .eyebrow {
     margin: 0;
-    font-size: var(--label-md-font-size);
-    font-weight: var(--label-md-font-weight);
-    line-height: var(--label-md-line-height);
-    letter-spacing: var(--label-md-letter-spacing);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.05em;
 }
 
 .section-description {

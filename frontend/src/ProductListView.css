@@ -551,6 +551,27 @@ html:has(.product-filter-sheet[open]) {
     line-height: 1.6;
 }
 
+/* 좁은 화면에서 필터·정렬은 아이콘만 둔 정사각 버튼이라 검색창이 남은 너비를 다 쓴다. 이름은 aria-label 로 남긴다. */
+@media (max-width: 767px) {
+    .product-filter-toggle,
+    .menu-button__trigger {
+        position: relative;
+        justify-content: center;
+        width: var(--control-md);
+        padding: 0;
+    }
+
+    .menu-button__trigger .menu-button__chevron {
+        display: none;
+    }
+
+    .product-filter-toggle__count {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .product-card,
     .product-list-control,
