@@ -65,16 +65,35 @@ CREATE TEMPORARY TABLE coupang_offer_correction_targets
     product_code VARCHAR(64) NOT NULL
 ) ENGINE = InnoDB;
 
+-- 판매처 수정 여부와 관계없이 최저가를 다시 계산할 보정 대상 제품을 보관한다.
+CREATE TEMPORARY TABLE offer_min_price_correction_products
+(
+    product_id BIGINT NOT NULL PRIMARY KEY
+) ENGINE = InnoDB;
+
+-- 바꿀 판매상품 ID가 같은 제품의 다른 쿠팡 행에 이미 있는 제품의 모델 코드를 넣는다.
+-- 같은 코드를 두 번 넣어 "Duplicate entry '<모델 코드>'" 오류로 데이터 변경 전에 적용을 중단한다.
+CREATE TEMPORARY TABLE coupang_offer_duplicate_item_products
+(
+    product_code VARCHAR(64) NOT NULL PRIMARY KEY
+) ENGINE = InnoDB;
+
 START TRANSACTION;
+
+INSERT INTO offer_min_price_correction_products (product_id)
+SELECT p.id
+FROM product p
+LEFT JOIN coupang_offer_corrections c ON c.product_code = p.code
+WHERE c.product_code IS NOT NULL
+   OR p.code IN ('MDE14KH/A', 'Z1KN0001E', 'Z1MM001CH', 'MGEC4KH/A', 'NT960UJH-X72A', '83LU000UKR');
 
 -- 가격 갱신 서비스와 같은 방식으로 제품별 모든 판매처를 잠근다.
 SELECT o.id
 FROM product_offer o
 JOIN product p ON p.id = o.product_id
-LEFT JOIN coupang_offer_corrections c ON c.product_code = p.code
-WHERE c.product_code IS NOT NULL
-   OR p.code IN ('MDE14KH/A', 'Z1KN0001E', 'Z1MM001CH', 'MGEC4KH/A', 'NT960UJH-X72A', '83LU000UKR',
-                 'NT760VJT-A72A')
+LEFT JOIN offer_min_price_correction_products c ON c.product_id = p.id
+WHERE c.product_id IS NOT NULL
+   OR p.code = 'NT760VJT-A72A'
 ORDER BY o.product_id, o.id
 FOR UPDATE;
 
@@ -92,6 +111,21 @@ WHERE o.name = '쿠팡'
       (o.external_item_id = c.previous_external_id AND o.purchase_url = c.previous_purchase_url)
       OR (o.external_item_id = c.external_item_id AND o.purchase_url = c.purchase_url)
   );
+
+-- 옛 판매상품 행을 새 ID로 바꾸면 이미 등록된 새 판매상품 행과 같은 상품이 두 가격으로 남는다.
+-- V1.28.1 유니크 인덱스도 UPDATE를 막지만, 오류에 모델 코드가 나오도록 먼저 검사한다.
+INSERT INTO coupang_offer_duplicate_item_products (product_code)
+SELECT conflict.product_code
+FROM (
+    SELECT DISTINCT t.product_code
+    FROM coupang_offer_correction_targets t
+    JOIN coupang_offer_corrections c ON c.product_code = t.product_code
+    JOIN product_offer other ON other.product_id = t.product_id
+        AND other.name = '쿠팡'
+        AND other.external_item_id = c.external_item_id
+        AND other.id <> t.offer_id
+) conflict
+CROSS JOIN (SELECT 1 AS attempt UNION ALL SELECT 2) twice;
 
 UPDATE product_offer o
 JOIN coupang_offer_correction_targets t ON t.offer_id = o.id
@@ -200,22 +234,14 @@ LEFT JOIN product_offer existing ON existing.product_id = p.id AND existing.name
 WHERE p.code = 'NT960UJH-X72A'
   AND existing.id IS NULL;
 
--- 당근은 품절 UPDATE 이후 대상에 넣고, 이미 등록된 경우도 현재 값으로 최저가를 다시 계산한다.
-INSERT INTO coupang_offer_correction_targets (offer_id, product_id, product_code)
-SELECT o.id, p.id, p.code
-FROM product_offer o
-JOIN product p ON p.id = o.product_id
-WHERE p.code = 'NT960UJH-X72A'
-  AND o.name = '당근';
-
--- 보정 대상 제품은 다른 판매처까지 포함해 최저가를 다시 계산한다.
+-- 이미 수동 반영한 제품도 현재 판매 중인 모든 판매처를 기준으로 최저가를 다시 계산한다.
 DELETE m FROM product_min_price m
-JOIN (SELECT DISTINCT product_id FROM coupang_offer_correction_targets) t ON t.product_id = m.product_id;
+JOIN offer_min_price_correction_products p ON p.product_id = m.product_id;
 
 INSERT INTO product_min_price (product_id, min_price)
 SELECT o.product_id, MIN(o.price)
 FROM product_offer o
-JOIN (SELECT DISTINCT product_id FROM coupang_offer_correction_targets) t ON t.product_id = o.product_id
+JOIN offer_min_price_correction_products p ON p.product_id = o.product_id
 WHERE o.status = 'ON_SALE'
 GROUP BY o.product_id;
 
@@ -238,5 +264,7 @@ WHERE code = 'NT760VJT-A72A';
 
 COMMIT;
 
+DROP TEMPORARY TABLE coupang_offer_duplicate_item_products;
+DROP TEMPORARY TABLE offer_min_price_correction_products;
 DROP TEMPORARY TABLE coupang_offer_correction_targets;
 DROP TEMPORARY TABLE coupang_offer_corrections;
