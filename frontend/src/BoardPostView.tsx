@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
+import { type MouseEvent, useEffect } from 'react';
 import { Link } from 'wouter';
 import { track } from './analytics';
 import { BoardComments } from './BoardComments';
 import { BoardByline, BoardLoading, BoardMessage, BoardScopeInfo } from './BoardShared';
 import { fetchBoardPost } from './board';
-import { boardUrl } from './routes';
+import { boardUrl, currentNavState } from './routes';
 import { useBoardRequest } from './useBoardRequest';
 
 export function BoardPostPage({ id }: { id: string }) {
@@ -42,9 +42,15 @@ function BoardPostView({ id }: { id: number }) {
   }
   const post = state.data;
   const listUrl = boardUrl(post.categoryCode, post.purposeCode);
+  const backToList = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (currentNavState().from === 'board') {
+      event.preventDefault();
+      window.history.back();
+    }
+  };
   return (
     <section className="view-panel flow-view board-view" aria-labelledby="board-post-title">
-      <Link className="text-button view-back-button" href={listUrl}>
+      <Link className="text-button view-back-button" href={listUrl} onClick={backToList}>
         ← 목록으로
       </Link>
       <BoardScopeInfo
@@ -61,7 +67,7 @@ function BoardPostView({ id }: { id: number }) {
         <div className="board-post__content">{post.content}</div>
       </article>
       <BoardComments key={post.id} postId={post.id} />
-      <Link className="button board-return" href={listUrl}>
+      <Link className="button board-return" href={listUrl} onClick={backToList}>
         목록으로
       </Link>
     </section>
