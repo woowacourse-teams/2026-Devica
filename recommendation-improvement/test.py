@@ -3,6 +3,7 @@
 # run.sh 는 임시 git 저장소와 가짜 claude 로 준비·잠금만 본다.
 #
 #   python3 test.py
+import copy
 import datetime
 import importlib.util
 import json
@@ -210,6 +211,21 @@ class CommonTest(unittest.TestCase):
     def test_이슈_본문_칸(self):
         f = fields('### 결과 화면 주소\n\nhttps://a\nhttps://b\n\n### 더 알려 주실 내용\n\n_No response_\n\n### 바꾼 답\n\nSLOWDOWN: NEVER → OFTEN\n')
         self.assertEqual(f, {'결과 화면 주소': 'https://a\nhttps://b', '더 알려 주실 내용': '', '바꾼 답': 'SLOWDOWN: NEVER → OFTEN'})
+
+    def test_자유_서술_안의_소제목은_칸을_나누지_않는다(self):
+        # #408 처럼 더 알려 주실 내용 안에 사용자가 소제목을 달고 수정안을 적은 본문
+        f = fields('### 어떤 점이 맞지 않았나요?\n\n선택지가 부족해요\n\n### 더 알려 주실 내용\n\n도구가 더 있어요\n\n'
+                   '### ⚙️ 수정안  추천\n\n- 선택지 4개로\n- 복수 선택\n')
+        self.assertEqual(f['더 알려 주실 내용'], '도구가 더 있어요\n\n### ⚙️ 수정안  추천\n\n- 선택지 4개로\n- 복수 선택')
+        self.assertEqual(set(f), {'어떤 점이 맞지 않았나요?', '더 알려 주실 내용'})
+
+    def test_칸_제목_목록은_의견_양식의_칸을_모두_담는다(self):
+        forms = os.path.join(HERE, '..', '.github', 'ISSUE_TEMPLATE')
+        for name in ('product-recommendation-rule-feedback.yml', 'product-recommendation-survey-feedback.yml'):
+            with open(os.path.join(forms, name), encoding='utf-8') as f:
+                labels = [l.split('label:', 1)[1].strip() for l in f if l.strip().startswith('label:')]
+            self.assertTrue(labels)
+            self.assertLessEqual(set(labels), set(common.FIELD_TITLES), name)
 
     def test_산출물_댓글은_표시와_블록을_읽고_실제_스키마로_검증한다(self):
         good = '<!-- product-recommendation:result -->\n```yaml\noutcome: NOT_OPENED\nreason: 기대와 다름\n```\n'
@@ -855,6 +871,42 @@ class SurveyPlanTest(unittest.TestCase):
         input_and_title = sins('CHANGE_INPUT', 'TOOLS', TOOLS, question(TOOLS, input='SINGLE', exclusive=None, title='x'),
                                retire=[{'question': 'TOOLS', 'dropInvalid': True}])
         self.assertIn('from 과 to 의 차이가 CHANGE_INPUT 와 맞지 않는다', self.plan(input_and_title)['errors'])
+
+    def test_합치기는_합쳐지는_선택지의_문구만_고칠_수_있다(self):
+        renamed = lambda code: [{**x, 'content': '자주·한두 번'} if x['code'] == code else x for x in opt('OFTEN', 'NEVER')]
+        merge = lambda code: {**merge_once(), 'to': question(SHORT, options=renamed(code))}
+        self.assertTrue(self.plan(merge('OFTEN'))['ok'])
+        self.assertIn('from 과 to 의 차이가 MERGE_OPTION 와 맞지 않는다', self.plan(merge('NEVER'))['errors'])
+        described = {**merge_once(), 'to': question(SHORT, options=[{**x, 'description': '자주·한두 번'} if x['code'] == 'OFTEN' else x
+                                                                    for x in opt('OFTEN', 'NEVER')])}
+        p = self.plan(described)
+        self.assertTrue(p['ok'])
+        self.assertEqual(p['merged_into'], {'code': 'OFTEN', 'before': {'content': 'often', 'description': None},
+                                            'after': {'content': 'often', 'description': '자주·한두 번'}})
+        self.assertIsNone(self.plan(merge_once())['merged_into'])
+        self.assertIn('often — 설명: 자주·한두 번', p['screen']['after']['options'])  # 설명만 바뀌어도 화면 전후에 보인다
+        reordered = {**merge_once(), 'to': question(SHORT, options=list(reversed(renamed('OFTEN'))))}
+        self.assertIn('from 과 to 의 차이가 MERGE_OPTION 와 맞지 않는다', self.plan(reordered)['errors'])
+        delete_renamed = {**delete_once(), 'to': question(SHORT, options=renamed('OFTEN'))}
+        self.assertIn('from 과 to 의 차이가 DELETE_OPTION 와 맞지 않는다', self.plan(delete_renamed)['errors'])
+        for bad in ({'code': 'OFTEN', 'description': '자주'}, {'code': 'OFTEN', 'content': None}, {'code': 'OFTEN', 'content': 3},
+                    {'code': 'OFTEN', 'content': ' '}, {'code': 'OFTEN', 'content': 'often', 'description': 3}):
+            p = self.plan({**merge_once(), 'to': question(SHORT, options=[bad] + opt('NEVER'))})
+            self.assertEqual(p['errors'], ['to 의 선택지 문구·설명이 비었거나 글자가 아니다: OFTEN'])
+
+    def test_현재_사양_질문을_합칠_때는_버튼_문구에_뜻을_담는다(self):
+        mem = {'code': 'CURRENT_MEMORY', 'title': '메모리', 'options': opt('GB_48', 'GB_64')}
+        d = copy.deepcopy(SDEF)
+        d['survey']['steps'][0]['questions'].append(mem)
+        line = [{'question': 'CURRENT_MEMORY', 'option': 'GB_64', 'to': 'GB_48', 'was': 'gb_64'}]
+        merge = lambda **x: sins('MERGE_OPTION', 'CURRENT_MEMORY', mem, question(mem, options=[{**opt('GB_48')[0], **x}]), 'GB_64', retire=line)
+        plan = lambda ins: survey.plan(d, [], [], ins, DAY)
+        error = '현재 사양 화면은 선택지 설명을 보여 주지 않는다. 합친 뜻은 문구(content)에 담는다'
+        self.assertIn(error, plan(merge(description='48GB 이상'))['errors'])
+        self.assertIn(error, plan(merge(content='48GB 이상', description='설명'))['errors'])
+        p = plan(merge(content='48GB 이상'))
+        self.assertTrue(p['ok'], p['errors'])
+        self.assertEqual(p['screen']['after']['options'], ['48GB 이상'])
 
     def test_배타_선택지를_지우면_비우고_대체하면_새_코드로(self):
         to = question(TOOLS, options=opt('A', 'B'))

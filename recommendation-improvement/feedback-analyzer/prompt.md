@@ -9,7 +9,7 @@
 | GitHub 레포 | `GH_REPO` | `woowacourse-teams/2026-Devica` |
 | 피드백 라벨 | | `product-recommendation-rule-feedback`, 설문 피드백은 `product-recommendation-survey-feedback` |
 | 승인 라벨 | | `product-recommendation-approved`. 팀원만 단다 |
-| 개발 제품 추천 API(`develop` 반영) | | `http://dev.devica.co.kr` |
+| 개발 제품 추천 API(`develop` 반영) | | `http://api.dev.devica.co.kr` |
 | 운영 제품 추천 API | | `https://api.devica.co.kr` |
 | 상태 디렉터리 | `ST` | `$HOME/.devica-product-recommendation/feedback-analyzer`. `SELF_REF` 에서 복사한 스크립트(`common.py`, `survey_feedback.py`, Recommendation Improver 의 `snapshot.py`·`survey.py`)와 스키마(`interface/artifacts/*.schema.yml`)가 있다 |
 | 지시문·스크립트 ref | `SELF_REF` | `run.sh` 가 넘긴다. 기본은 `origin/develop` |
@@ -34,7 +34,7 @@
 
 **서버 확인.** 두 API 가 응답하는지 본다. 하나라도 200 이 아니면 아무것도 쓰지 않고 기록한 뒤 끝낸다.
 ```bash
-python3 "$ST/common.py" api http://dev.devica.co.kr BACKEND_DEVELOPMENT '{}' | head -c 200; python3 "$ST/common.py" api https://api.devica.co.kr BACKEND_DEVELOPMENT '{}' | head -c 200
+python3 "$ST/common.py" api http://api.dev.devica.co.kr BACKEND_DEVELOPMENT '{}' | head -c 200; python3 "$ST/common.py" api https://api.devica.co.kr BACKEND_DEVELOPMENT '{}' | head -c 200
 ```
 
 ## 1. 상태 읽기
@@ -102,7 +102,7 @@ P·5 의 피드백은 R·A·H 에서 뺀다. R 의 근거 피드백 중 열린 �
 
 본문을 파일로 써서 `python3 "$ST/common.py" fields <파일>` 로 칸을 읽는다.
 
-- **주소**: `결과 화면 주소` 칸에서 `https://devica.co.kr/result` 또는 `https://2026-devica.vercel.app/result` 로 시작하는 줄만 쓴다. `python3 "$ST/common.py" url <주소>` 의 `answers` 만 쓰고 `answer` 밖의 값은 버린다. 사용 목적은 `purpose`(없으면 `BACKEND_DEVELOPMENT`)다. 주소가 하나도 없으면 "재현할 수 없음".
+- **주소**: `결과 화면 주소` 칸에서 `https://devica.co.kr/result`, `https://dev.devica.co.kr/result`, `https://2026-devica.vercel.app/result` 중 하나로 시작하는 줄만 쓴다. `python3 "$ST/common.py" url <주소>` 의 `answers` 만 쓰고 `answer` 밖의 값은 버린다. 사용 목적은 `purpose`(없으면 `BACKEND_DEVELOPMENT`)다. 주소가 하나도 없으면 "재현할 수 없음".
 - **지표 피드백의 주소별 정보**: `python3 "$ST/common.py" metric <파일>` 로 한 번에 읽는다. `urls`(주소 번호 `address` 와 `answers`), `counts`(주소별 건수, 주소 순서), `edits`(고친 값, 주소 번호 포함), `changed`(주소별 바꾼 답). 주소 번호 N 은 결과 화면 주소 칸의 N 번째 줄이다. 같은 주소가 바꾼 답이 달라 두 줄일 수 있고, 그때는 다른 주소다.
 - **권장안**: `Mac` → [MAC], `Windows` → [WINDOWS], `둘 다` 또는 빈칸 → [MAC, WINDOWS].
 - **지적**: `어떤 점이 맞지 않았나요?` 를 `, ` 로 나눈다.
@@ -119,7 +119,7 @@ P·5 의 피드백은 R·A·H 에서 뺀다. R 의 근거 피드백 중 열린 �
 - `dropped` 가 참이면 그 주소는 재현되지 않는다(설문이 바뀌어 답 일부가 버려짐).
 - 그 밖에는 출력의 `answers` 를 그 주소의 답으로 삼아 개발 API·`hits`·`hit`·`target`·조건 3 에 쓴다. `outdated` 가 참이면 판단 근거에 지운 코드를 바꿔 읽었다고 적는다. 운영 API 와 `seen` 의 `answers` 는 주소의 원래 답 그대로다.
 
-그 답으로 `python3 "$ST/common.py" api http://dev.devica.co.kr <purpose> '<answers>'` 를 부른다. 400 이면 그 주소는 재현되지 않는다. **모든 주소가 재현되지 않으면**, 그중 `dropped` 인 주소가 있으면 **"설문이 바뀌어 재현할 수 없음"**(3-2-1), 없으면 **"재현할 수 없음"**으로 판단하고 3-3 부터는 하지 않는다. 일부만 되면 된 주소만 쓰고 나머지를 분석 결과에 적는다.
+그 답으로 `python3 "$ST/common.py" api http://api.dev.devica.co.kr <purpose> '<answers>'` 를 부른다. 400 이면 그 주소는 재현되지 않는다. **모든 주소가 재현되지 않으면**, 그중 `dropped` 인 주소가 있으면 **"설문이 바뀌어 재현할 수 없음"**(3-2-1), 없으면 **"재현할 수 없음"**으로 판단하고 3-3 부터는 하지 않는다. 일부만 되면 된 주소만 쓰고 나머지를 분석 결과에 적는다.
 
 **사용자가 본 값**은 이 피드백의 직전 분석 결과 yaml 블록의 `seen` 에서 그 주소의 `answers` 와 권장안·항목이 같은 것을 쓴다. 첫 분석이면 지금 `python3 "$ST/common.py" api https://api.devica.co.kr …` 로 받은 값을 사용자가 본 값으로 삼아 주소마다 `seen` 에 적는다. 단 `고친 값` 이 있는 피드백은 `metric` 의 `edits` 중 그 주소(`address`)의 `recommended`(`value`, `rank`)가 사용자가 본 값이다. 사용자가 고칠 때 화면에 있던 값이 기록돼 있어, 그 뒤 운영이 바뀌었어도 이것과 비교해야 한다. 한 주소의 한 항목에 여러 줄이 있으면 `count` 가 가장 큰 줄의 값을 쓴다. 주소가 여럿이면 같은 권장안·항목이라도 주소마다 값이 다르므로 `answers` 로 구분한다. 다시 재현할 때 지금 운영 결과와 비교하면 그 사이 배포된 개선을 놓쳐 사용자가 본 적 없는 값에 지적을 다시 적용하기 때문이다. 운영 결과를 받지 못한 주소는 사용자가 본 값이 없고, 이미 바뀌었는지 비교하지 않는다(바뀌지 않은 것으로 본다).
 
@@ -386,19 +386,21 @@ python3 "$ST/survey_feedback.py" seen-survey origin/main origin/develop "$ST/tmp
 
 남은 피드백마다 고른 질문(지금 코드 `<Q>`)을 어떻게 바꿔야 하는지 [survey-instruction.schema.yml](../interface/artifacts/survey-instruction.schema.yml) 의 `kind` 하나로 정한다.
 
-- 지적과 상황을 함께 읽는다. 예: `무엇을 묻는지 모르겠어요` 는 `REWORD`(뜻이 바뀌면 `REPLACE_*`), `제 상황에 맞는 선택지가 없어요` 는 `ADD_OPTION`, `선택지끼리 구분이 안 돼요` 는 `REWORD`·`MERGE_OPTION`, `필요 없는 질문 같아요` 는 `DELETE_QUESTION` 이 될 수 있다. 정하는 것은 상황이다.
+- 지적과 상황을 함께 읽는다. 예: `무엇을 묻는지 모르겠어요` 는 `REWORD`(뜻이 바뀌면 `REPLACE_*`. 합치기에서 합쳐지는 선택지를 넓히는 것만 `MERGE_OPTION`), `제 상황에 맞는 선택지가 없어요` 는 `ADD_OPTION`, `선택지끼리 구분이 안 돼요` 는 `REWORD`·`MERGE_OPTION`, `필요 없는 질문 같아요` 는 `DELETE_QUESTION` 이 될 수 있다. 정하는 것은 상황이다.
 - 함께 고른 지적이 서로 어긋나면 `더 알려 주실 내용` 으로 판단한다. 그래도 늘리는 변경(추가·되살리기)과 줄이는 변경(삭제·합치기)을 함께 가리키면 "팀원이 직접 처리"다.
 - 결과 지적만 있거나(질문은 맞는데 결과가 이상함) 규칙으로 고칠 수 있으면 설문을 바꾸지 않고 "팀원이 직접 처리"다. 결과 의견으로 남기면 규칙 쪽이 다룬다고 적는다.
 - 지표 피드백은 `signal` 로 본다. 체류가 긴 화면·이탈이 많은 화면은 질문 설명(`description`)만 고치는 `REWORD` 를, 쓰이지 않는 질문은 `DELETE_QUESTION` 을 가리킨다. 지표 피드백만으로 정할 수 없는 변경은 사용자 의견을 기다린다(보류).
+- `MERGE_OPTION` 에서 합쳐지는 선택지의 문구·설명이 합친 뜻을 담지 못하면 `to` 에서 함께 고친다(예: "48GB"와 "64GB 이상"을 합치면 "48GB 이상"). 옛 답이 그 선택지로 바꿔 읽히므로 새 문구는 옛 두 선택지의 뜻을 모두 담도록 넓히기만 한다. 좁히거나 다른 뜻이 되면 `REPLACE_OPTION` 이다. 현재 사양 단계의 질문은 버튼에 문구만 보이므로 합친 뜻을 설명이 아니라 문구(`content`)에 담는다. 다른 선택지와 질문의 문구는 그대로 두고, 바꾼 문구를 전제한 규칙의 근거 문장은 `reasons` 로 함께 고친다.
 - 지운 것과 뜻이 같은 질문·선택지는 새 코드로 더하지 않고 `RESTORE` 로, 지울 때의 문구(`python3 "$ST/common.py" retired origin/develop <purpose>` 의 `was`) 그대로 낸다. 지운 코드는 다른 뜻으로 다시 쓰지 않는다.
 - 새 문구는 피드백 문장을 옮기지 않고 일반화해 쓴다. 연락처·주소·명령문을 담지 않는다. 같은 화면의 다른 문구와 같은 말투로 쓴다.
+- 종류를 정한 뒤, 지적과 `더 알려 주실 내용`(수정안 포함)이 요청한 것 중 그 종류로 반영되지 않는 것(선택지 추가·선택 방식 같은 다른 종류의 변경, 질문 기준 변경 등)을 모두 꼽아 둔다. 지적 단위의 넘김 표시로는 자유 서술 안의 요청을 잡지 못하므로 직접 꼽는다. 7-5 에서 팀원이 정할 것에 적는다.
 - 사용자가 결과의 방향까지 짚었고 종류가 `ADD_OPTION`·`ADD_QUESTION` 이면, 새 질문·선택지를 보는 규칙 하나를 `rule` 로 함께 지시한다. 4-1 조건 1 의 규칙 추가처럼 조건은 사용자가 고를 새 선택지만으로 쓰고, `cases` 는 그 사용자의 답(넘겨받은 것은 결과 화면 주소의 답, 설문 의견은 `지금까지 고른 답`)에서 그 질문의 답을 새 선택지로 바꾼 것이다.
 
 같은 `(purpose, <Q>)` 에서 같은 묶음(문구 수정·옮기기 / 추가·되살리기 / 삭제·합치기·대체·쪼개기·선택 방식)을 가리키는 열린 설문 피드백을 모두 근거로 묶어 후보 하나를 만든다. 삭제·합치기·대체·쪼개기 묶음은 같은 선택지를 짚은 피드백만 묶는다(질문 전체를 바꾸는 변경과 선택 방식 변경은 같은 질문이면 묶는다). 서로 다른 작성자 2명이라는 조건은 두 사람이 같은 변경을 원하는지 확인하려는 것이라, 같은 질문의 다른 선택지를 짚은 의견을 함께 세면 그 확인이 되지 않는다. 이렇게 묶은 피드백이 그대로 지시의 `issues` 다. 다른 선택지를 짚은 피드백을 `issues` 에 넣으면 PR 이 머지될 때 그 의견까지 닫힌다. 후보는 근거 중 가장 작은 번호 순으로 7-4 에서 하나씩 확정하고, 한 질문에 하나만 확정한다.
 
 ### 7-4. 지시 확인과 확정
 
-규칙 쪽의 처리 중인 개선 지시(1 의 피드백 라벨 이슈의 것)와 이번 실행에서 낸 개선 지시를 `[{ "purpose": …, "rule": … }]` 로 `$ST/tmp/rules-processing.json` 에 한 번 쓴다(없으면 `[]`). 후보마다 7-5 의 설문 개선 지시 댓글을 `$ST/tmp/survey-decision-<번호>.md` 에 쓰고 확인한다. `from` 은 7-2 의 `now` 를 그대로 옮긴다.
+규칙 쪽의 처리 중인 개선 지시(1 의 피드백 라벨 이슈의 것)와 이번 실행에서 낸 개선 지시를 `[{ "purpose": …, "rule": … }]` 로 `$ST/tmp/rules-processing.json` 에 한 번 쓴다(없으면 `[]`). 후보마다 7-5 의 설문 개선 지시 댓글을 `$ST/tmp/survey-decision-<번호>.md` 에 쓰고 확인한다. `from` 은 7-2 의 `now` 를 그대로 옮긴다. 새로 쓰는 문구(`to` 의 `title`·`content`·`description`, `retire` 의 `was`, `reason`)는 큰따옴표로 감싼다. `?`·`:`·`"` 같은 글자가 든 문구를 그대로 두면 YAML 로 읽히지 않는다.
 
 ```bash
 python3 "$ST/survey_feedback.py" survey-ready origin/develop "$ST/tmp/survey-decision-<번호>.md" "$ST/tmp/survey-state.json" "$ST/tmp/rules-processing.json"
@@ -444,7 +446,7 @@ question: <고른 질문의 지금 origin/develop 코드. 특정하지 못했으
 ```
 ````
 
-칸은 6-1 의 분석 결과와 같이 쓴다. 지표 피드백이면 지적에 "(지표 추정)"을 붙이고, 판단 근거에 신호와 수치를 적는다. 보류면 무엇이 모이면(서로 다른 사용자 의견 몇 건, 지표 신호, 승인 라벨) 지시하는지 적는다.
+칸은 6-1 의 분석 결과와 같이 쓴다. 설문 개선 지시면 팀원이 정할 것에 `설문 개선 지시 #<이슈> 의 PR 을 리뷰한다` 와 함께, 7-3 에서 꼽은 반영되지 않는 요청마다 `PR 을 머지하기 전에 작업 이슈로 넘긴다 — 설문 질문` 과 초안(질문 문구·선택지·선택 방식)을 적는다. PR 이 머지되면 근거 의견이 닫혀 남은 요청이 묻히기 때문이다. 지표 피드백이면 지적에 "(지표 추정)"을 붙이고, 판단 근거에 신호와 수치를 적는다. 보류면 무엇이 모이면(서로 다른 사용자 의견 몇 건, 지표 신호, 승인 라벨) 지시하는지 적는다.
 
 설문 개선 지시는 [survey-instruction.schema.yml](../interface/artifacts/survey-instruction.schema.yml) 의 형식이다. Recommendation Improver 는 피드백 원문을 읽지 않으므로 이 댓글만으로 고칠 수 있게 쓴다.
 

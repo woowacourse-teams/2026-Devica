@@ -104,6 +104,7 @@ export function backLabelOf(screen: Screen): string {
  * - searching: 권장 사양에서 "제품 검색"으로 막 넘어왔다. 사양 대조 화면을 한 번만 띄운다.
  * - filterOpen: 목록의 검색 조건 패널을 펼쳐 두었다. 상세를 다녀와도 그대로 둔다.
  * - scrollY: 이 화면을 떠날 때의 스크롤 위치. 뒤로 가기로 돌아오면 되살린다.
+ * - reviewQuestion: 저장한 답을 복원하다 다시 답해야 하는 질문으로 돌아왔다.
  */
 export type NavState = {
   from?: Screen;
@@ -111,6 +112,7 @@ export type NavState = {
   filterOpen?: boolean;
   scrollY?: number;
   boardVisit?: number;
+  reviewQuestion?: boolean;
 };
 
 export function currentNavState(): NavState {

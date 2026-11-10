@@ -242,7 +242,7 @@ recommendation-improvement/
 3. **레포 clone**: 이 레포의 clone 하나를 작업 폴더로 정한다. 평소 쓰는 clone 이어도 된다.
 4. **Feedback Analyzer**: 아래 두 줄이 모두 `200` 을 출력하는지 본다.
    ```bash
-   curl -s -o /dev/null -w '%{http_code}\n' http://dev.devica.co.kr/api/usage-purposes/BACKEND_DEVELOPMENT/recommendation
+   curl -s -o /dev/null -w '%{http_code}\n' http://api.dev.devica.co.kr/api/usage-purposes/BACKEND_DEVELOPMENT/recommendation
    curl -s -o /dev/null -w '%{http_code}\n' https://api.devica.co.kr/api/usage-purposes/BACKEND_DEVELOPMENT/recommendation
    ```
 5. **Recommendation Improver**: JDK 와 Docker Desktop 을 설치하고([백엔드 개발 환경 가이드](../docs/백엔드_개발_환경_가이드.md)), 작업이 실행되는 동안 Docker Desktop 을 켜 둔다.
