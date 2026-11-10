@@ -18,6 +18,7 @@ import {
   type SortType,
   type SpecEdits,
   specCondition,
+  validTier,
 } from './products';
 import { QuestionView } from './QuestionView';
 import {
@@ -535,10 +536,8 @@ function ResultPage({ params }: PageProps) {
         track('recommended_spec_edited', { category, purpose, ...properties });
       }
     }
-    // 고친 값은 이 화면의 것이다. 맞춤 목록에는 검색 조건으로 바꿔 넘기고 edit 는 넘기지 않는다.
-    // 그래야 맞춤 목록이 검색 조건 하나만 보고, 같은 사양이 주소 두 곳에 있다가 어긋나지 않는다.
+    // 고친 값은 검색 조건으로 바꿔 넘기고 edit 도 함께 넘긴다. 맞춤 목록이 OS 탭을 바꿀 때 그 OS 의 고친 사양으로 다시 채운다.
     const next = new URLSearchParams(withOs(os));
-    next.delete('edit');
     const edited = specs.map((spec) => editedSpec(spec, edits, tiers.data));
     go(`${PATHS.matched}?${withSpecCondition(next, edited)}`, { searching: true });
   };
@@ -640,15 +639,42 @@ function withSpecCondition(params: URLSearchParams, specs: Spec[]): URLSearchPar
 
 function MatchedListPage({ params, search }: PageProps & { search: string }) {
   const recommendation = useRecommendation(params);
-  const specs = recommendation.data?.specs ?? [];
+  const tiers = useFetched('cpu-tiers', fetchCpuTiers);
+  const edits = useMemo(() => editsOf(new URLSearchParams(search)), [search]);
+  const specs = useMemo(
+    () => (recommendation.data?.specs ?? []).map((spec) => editedSpec(spec, edits, tiers.data)),
+    [recommendation.data, edits, tiers.data],
+  );
   // 제품 추천 결과 화면에서 오면 검색 조건이 채워져 있다. 맞춤 목록의 OS 는 탭이라 늘 있으니, OS 가 없으면
   // 채우지 않고 바로 들어온 주소(예전 공유 링크 등)다. 한 번 채운 뒤 그린다. 제품 추천 결과가 없으면 채울 것이 없다.
   const filled = params.has('os') || recommendation.data?.specs.length === 0;
   useEffect(() => {
     if (!filled && recommendation.data !== null) {
-      replace(`${PATHS.matched}?${withSpecCondition(new URLSearchParams(search), recommendation.data.specs)}`);
+      replace(`${PATHS.matched}?${withSpecCondition(new URLSearchParams(search), specs)}`);
     }
-  }, [filled, search, recommendation.data]);
+  }, [filled, search, recommendation.data, specs]);
+  useEffect(() => {
+    const current = new URLSearchParams(search);
+    const os = current.get('os');
+    const cpuTier = current.get('cpuTier');
+    const spec = specs.find((each) => osValueOf(each) === os);
+    if (tiers.data === null || spec === undefined || cpuTier === null || validTier(tiers.data, os, cpuTier) !== null) {
+      return;
+    }
+    const recommended = specCondition(spec);
+    if (recommended.cpuTier === cpuTier) {
+      return;
+    }
+    for (const key of ['cpuTier', 'gpuTier'] as const) {
+      const value = recommended[key];
+      if (value === null) {
+        current.delete(key);
+      } else {
+        current.set(key, value);
+      }
+    }
+    replace(`${PATHS.matched}?${current}`);
+  }, [tiers.data, search, specs]);
   const { state, onChangeState, navState } = useListState(search, matchedOsOf(params, specs));
   const { category, purpose } = flowOf(params);
 
@@ -692,6 +718,7 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
       categoryCode={category}
       mode="MATCHED"
       specs={specs}
+      bothOs={resultOsOf(params, specs) === 'BOTH'}
       backLabel={backLabelOf(navState.from ?? 'result')}
       state={state}
       onChangeState={onChangeState}
@@ -749,6 +776,7 @@ function DetailPage({ id }: { id: number | null }) {
   return (
     <ProductDetailView
       productId={id}
+      notFound={<NotFound />}
       backLabel={backLabelOf(navState?.from ?? 'products')}
       onBack={() => goBack(PATHS.products)}
     />

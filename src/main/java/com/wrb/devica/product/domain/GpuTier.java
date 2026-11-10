@@ -13,8 +13,8 @@ public enum GpuTier {
     MAX(Os.MAC, "M Max 칩", 12000),
 
     INTEGRATED(Os.WINDOWS, "내장 GPU", 0),
-    XX50(Os.WINDOWS, "RTX xx50 급", 6000),
-    XX60(Os.WINDOWS, "RTX xx60 급", 9500);
+    XX50(Os.WINDOWS, "RTX xx50급", 6000),
+    XX60(Os.WINDOWS, "RTX xx60급", 9500);
 
     private final Os os;
     private final String displayName;

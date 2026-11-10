@@ -450,7 +450,7 @@ class LaptopE2ETest extends E2ETest {
             .when().get("/api/gpu-tiers")
             .then().statusCode(200)
             .body("code", contains("INTEGRATED", "XX50", "XX60", "BASIC", "PRO", "MAX"))
-            .body("[1].name", is("RTX xx50 급"))
+            .body("[1].name", is("RTX xx50급"))
             .body("[3].os", is("MAC"))
             .body("lowest", contains(true, false, false, true, false, false));
     }
