@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { ChoiceGroup } from './ChoiceGroup';
 import { useFetched, usePaged } from './fetched';
 import { ProductImage } from './ProductImage';
@@ -29,7 +29,7 @@ import {
   validTier,
 } from './products';
 import { osValueOf, type Spec } from './recommendation';
-import { currentNavState } from './routes';
+import { currentNavState, DESKTOP_MEDIA, navigateInside } from './routes';
 import { SearchLoadingView } from './SearchLoadingView';
 import './ProductListView.css';
 
@@ -51,15 +51,15 @@ const SORT_LABELS: { value: SortType; label: string }[] = [
   { value: 'PRICE_DESC', label: '가격 높은 순' },
 ];
 
-// OS 는 브랜드 줄에 붙인다.
-const CARD_SPECS: { code: string; label: string }[] = [
-  { code: 'CPU', label: 'PROCESSOR' },
-  { code: 'GPU', label: 'GPU' },
-  { code: 'MEMORY', label: 'MEMORY' },
-  { code: 'STORAGE', label: 'STORAGE' },
-];
+const SORT_SHORT_LABELS: Record<SortType, string> = { PRICE_ASC: '낮은 순', PRICE_DESC: '높은 순' };
 
-const OS_GROUP_LABELS: Record<string, string> = { MAC: '맥', WINDOWS: '윈도우' };
+const CARD_SPECS = ['CPU', 'GPU', 'MEMORY', 'STORAGE'];
+
+const OS_GROUP_LABELS: Record<string, string> = { MAC: 'Mac', WINDOWS: 'Windows' };
+
+const BOTH_OS = 'BOTH';
+
+const SKELETON_KEYS = ['first', 'second', 'third'];
 
 export type ListMode = 'MATCHED' | 'ALL';
 
@@ -68,7 +68,7 @@ const HEADINGS: Record<ListMode, { eyebrow: string; title: string; description: 
   MATCHED: {
     eyebrow: '조건에 맞는 제품',
     title: '추천 노트북',
-    description: '제품 추천 결과를 검색 조건으로 채워 두었어요. 조건을 바꿔 더 찾아볼 수 있어요.',
+    description: '제품 추천 결과를 필터로 채워 두었어요. 필터를 바꿔 더 찾아볼 수 있어요.',
   },
   ALL: {
     eyebrow: '제품 목록',
@@ -253,14 +253,19 @@ export function ProductListView({
   }, [sentinel, hasNext, loading, products.failed, more]);
 
   const heading = HEADINGS[mode];
-  // 맞춤 목록의 OS 는 탭이라 검색 조건으로 치지 않는다. 조건을 지워도 보던 탭은 그대로다.
-  const filters = matchedMode ? { ...condition, os: null } : condition;
+  // OS 는 탭이라 필터로 치지 않는다. 필터를 지워도 보던 탭은 그대로다.
+  const filters = { ...condition, os: null };
   const hasCondition = Object.values(filters).some((value) => value !== null);
-  const chips = conditionLabels(filters, tiers, gpuFilterTiers).filter(({ field }) => field !== 'maxPrice');
+  const chips = conditionLabels(filters, tiers, gpuFilterTiers);
+  // 바는 어디서나 위에 붙는다. 필터는 모바일에서 하단 시트, 데스크톱에서 바 아래 펼침 패널이다.
+  const compact = useCompact();
 
   const change = (field: keyof SearchCondition, value: SearchCondition[keyof SearchCondition]) => {
     onChangeState((previous) => ({ ...previous, condition: { ...previous.condition, [field]: value } }));
   };
+  const setFilterOpen = (filterOpen: boolean) => onChangeState((previous) => ({ ...previous, filterOpen }));
+  const resetFilters = () =>
+    onChangeState((previous) => ({ ...previous, condition: { ...EMPTY_CONDITION, os: previous.condition.os } }));
 
   // 등급과 브랜드는 OS 마다 다르다. OS 를 바꾸면 그 OS 에 없는 조건은 함께 지운다.
   // 맞춤 목록의 OS 탭은 그 OS 의 권장안을 보는 것이라, 사양 조건을 그 권장안으로 다시 채운다.
@@ -282,213 +287,251 @@ export function ProductListView({
     return <SearchLoadingView lines={[searchingLine(condition, tiers, spec, OS_GROUP_LABELS)]} />;
   }
 
+  // 전체 목록은 두 OS 를 함께 볼 수 있다. 맞춤 목록은 OS 마다 권장안이 달라 하나씩만 본다.
+  const osChoices = matchedMode
+    ? specs.map((each) => ({ value: osValueOf(each), label: OS_GROUP_LABELS[osValueOf(each)] ?? osValueOf(each) }))
+    : [...OSES.map((os) => ({ value: os, label: OS_GROUP_LABELS[os] ?? os })), { value: BOTH_OS, label: '둘 다' }];
+
+  const fields = (
+    <>
+      {condition.os === 'MAC' && <p className="product-filter-note">Mac 탭에서는 GPU 필터가 보이지 않아요.</p>}
+      <CpuFilter
+        // 고른 OS 의 등급만 연다. 고르지 않았으면 등급표를 모두 연다.
+        groups={(condition.os === null ? OSES : [condition.os]).map((os) => ({
+          os,
+          tiers: (tiers ?? []).filter((tier) => tier.os === os),
+        }))}
+        value={condition.cpuTier ?? ''}
+        unavailable={unavailableLabel(cpuTiers)}
+        onChange={(raw) => change('cpuTier', raw === '' ? null : raw)}
+      />
+      {cpuTiers.failed && !waitingForTiers && (
+        <button className="button" type="button" onClick={cpuTiers.retry}>
+          CPU 등급 다시 시도
+        </button>
+      )}
+      {condition.os === 'WINDOWS' && (
+        <Filter
+          label="GPU"
+          value={condition.gpuTier ?? ''}
+          choices={(gpuFilterTiers ?? [])
+            .filter((tier) => tier.os === condition.os)
+            .map((tier) => ({ value: tier.code, label: gpuFilterLabel(tier) }))}
+          unavailable={unavailableLabel(gpuTiers)}
+          onChange={(raw) => change('gpuTier', raw === '' ? null : raw)}
+        />
+      )}
+      {condition.os === 'WINDOWS' && gpuTiers.failed && !waitingForGpuTiers && (
+        <button className="button" type="button" onClick={gpuTiers.retry}>
+          GPU 등급 다시 시도
+        </button>
+      )}
+      <Filter
+        label="브랜드"
+        value={condition.brand ?? ''}
+        choices={(brands.data ?? []).map((brand) => ({ value: brand, label: brand }))}
+        unavailable={unavailableLabel(brands)}
+        onChange={(raw) => change('brand', raw === '' ? null : raw)}
+      />
+      <Filter
+        label="MEMORY"
+        value={condition.memoryGb === null ? '' : String(condition.memoryGb)}
+        choices={MEMORY_STEPS.map((memory) => ({ value: String(memory), label: `${memory}GB 이상` }))}
+        onChange={(raw) => change('memoryGb', raw === '' ? null : Number(raw))}
+      />
+      <Filter
+        label="STORAGE"
+        value={condition.storageGb === null ? '' : String(condition.storageGb)}
+        choices={STORAGE_STEPS.map((storage) => ({
+          value: String(storage),
+          label: `${formatStorage(storage)} 이상`,
+        }))}
+        onChange={(raw) => change('storageGb', raw === '' ? null : Number(raw))}
+      />
+      <Filter
+        label="가격"
+        value={condition.maxPrice === null ? '' : String(condition.maxPrice)}
+        choices={PRICE_STEPS.map((price) => ({ value: String(price), label: `${formatPrice(price)} 이하` }))}
+        onChange={(raw) => change('maxPrice', raw === '' ? null : Number(raw))}
+      />
+    </>
+  );
+
+  const osValue = condition.os ?? BOTH_OS;
+  const selectOs = (os: string) => changeOs(os === BOTH_OS ? null : os);
+  const changeSort = (next: string) => onChangeState((previous) => ({ ...previous, sort: next as SortType }));
+  const sortLabel = SORT_LABELS.find(({ value }) => value === sort)?.label;
+  const filterLabel = chips.length > 0 ? `필터, ${chips.length}개 적용됨` : '필터';
+  const filterCount = chips.length > 0 && (
+    <span className="product-filter-toggle__count" aria-hidden="true">
+      {chips.length}
+    </span>
+  );
+  const loadingMore = waiting && items !== null;
+  const reachedEnd = items !== null && items.length > 0 && !hasNext && !waiting && !products.failed;
+
   return (
-    <section className="view-panel product-list-view" id="product-list-view" aria-labelledby="product-list-title">
+    <section
+      className="view-panel flow-view product-list-view"
+      id="product-list-view"
+      aria-labelledby="product-list-title"
+    >
       <button className="text-button view-back-button" id="product-list-back-button" type="button" onClick={onBack}>
         {backLabel}
       </button>
-      <div className="product-list-heading">
-        <div>
-          <p className="eyebrow" id="product-list-eyebrow">
-            {heading.eyebrow}
-          </p>
-          <h2 id="product-list-title">{heading.title}</h2>
-          <p className="section-description" id="product-list-description">
-            {heading.description}
-          </p>
-        </div>
-        <div className="product-list-controls">
+      <div className="flow-head">
+        <p className="flow-head__eyebrow" id="product-list-eyebrow">
+          {heading.eyebrow}
+        </p>
+        <h1 id="product-list-title">{heading.title}</h1>
+        <p className="flow-head__description product-list-description" id="product-list-description">
+          {heading.description}
+        </p>
+      </div>
+
+      <div className="product-list-os" id="product-list-os">
+        <ChoiceGroup
+          segmented
+          label="OS"
+          choices={osChoices}
+          value={osValue}
+          // 탭은 비울 수 없다. 고른 것을 다시 눌러도 그대로 둔다.
+          onChange={(os) => os !== null && selectOs(os)}
+        />
+      </div>
+      <div className="product-list-bar" id="product-list-bar">
+        <label className="product-list-control product-search" htmlFor="product-filter-keyword">
+          <SearchIcon />
+          <input
+            id="product-filter-keyword"
+            type="search"
+            value={typed}
+            aria-label="제품 검색"
+            placeholder={compact ? '검색' : '브랜드 · 제품명'}
+            onChange={(event) => setTyped(event.target.value)}
+          />
+        </label>
+        <div className="product-list-bar__actions">
           <button
             className="product-list-control product-filter-toggle"
             id="product-filter-toggle"
             type="button"
             aria-expanded={filterOpen}
             aria-controls="product-filter-panel"
-            onClick={() => onChangeState((previous) => ({ ...previous, filterOpen: !previous.filterOpen }))}
+            aria-label={filterLabel}
+            onClick={() => setFilterOpen(!filterOpen)}
           >
-            검색 조건
+            <FilterIcon />
+            필터
+            {filterCount}
           </button>
-          {/* 가격은 가장 먼저 찾는 조건이라 패널에 숨기지 않는다. */}
-          <label className="product-list-control product-list-price" htmlFor="product-filter-price">
-            <span className="product-list-control__label">가격</span>
-            <select
-              id="product-filter-price"
-              value={condition.maxPrice === null ? '' : String(condition.maxPrice)}
-              onChange={(event) => change('maxPrice', event.target.value === '' ? null : Number(event.target.value))}
-            >
-              <option value="">전체</option>
-              {PRICE_STEPS.map((price) => (
-                <option value={String(price)} key={price}>
-                  {formatPrice(price)} 이하
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="product-list-control product-list-sort" htmlFor="product-sort">
-            <span className="product-list-control__label">정렬</span>
-            <select
-              id="product-sort"
-              value={sort}
-              onChange={(event) => onChangeState((previous) => ({ ...previous, sort: event.target.value as SortType }))}
-            >
-              {SORT_LABELS.map(({ value, label }) => (
-                <option value={value} key={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
-
-      {/* 패널을 접어도 무엇으로 걸렀는지 보이게 한다. 가격은 위에서 바로 보이니 뺀다. */}
-      {chips.length > 0 && (
-        <ul className="product-condition-chips" id="product-condition-chips" aria-label="적용한 검색 조건">
-          {chips.map(({ field, label }) => (
-            <li key={field}>
-              <button
-                className="product-condition-chip"
-                type="button"
-                aria-label={`${label} 조건 지우기`}
-                onClick={() => (field === 'os' ? changeOs(null) : change(field, null))}
-              >
-                {label}
-                <span aria-hidden="true">×</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {matchedMode && (
-        <div className="product-list-os" id="product-list-os">
-          <ChoiceGroup
-            segmented
-            label="OS"
-            choices={specs.map((each) => ({
-              value: osValueOf(each),
-              label: OS_GROUP_LABELS[osValueOf(each)] ?? osValueOf(each),
-            }))}
-            value={condition.os}
-            // 탭은 비울 수 없다. 고른 것을 다시 눌러도 그대로 둔다.
-            onChange={(os) => os !== null && changeOs(os)}
+          <MenuButton
+            id="product-sort"
+            label="정렬"
+            options={SORT_LABELS}
+            value={sort}
+            onChange={changeSort}
+            display={
+              compact ? (
+                <b>{SORT_SHORT_LABELS[sort]}</b>
+              ) : (
+                <>
+                  <span className="product-list-control__label">정렬</span>
+                  <b>{sortLabel}</b>
+                </>
+              )
+            }
           />
         </div>
-      )}
-
+      </div>
       {/* 접어도 DOM 에 남긴다. 사라지면 aria-controls 가 없는 id 를 가리킨다. */}
-      <div className="product-filter-panel" id="product-filter-panel" hidden={!filterOpen}>
-        <label className="product-filter product-filter--wide" htmlFor="product-filter-keyword">
-          <span className="product-filter__label">검색어</span>
-          <input
-            id="product-filter-keyword"
-            type="search"
-            value={typed}
-            placeholder="브랜드 · 제품명"
-            onChange={(event) => setTyped(event.target.value)}
-          />
-        </label>
-        {!matchedMode && (
-          <Filter
-            field="os"
-            label="OS"
-            value={condition.os ?? ''}
-            choices={OSES.map((os) => ({ value: os, label: OS_GROUP_LABELS[os] ?? os }))}
-            onChange={(raw) => changeOs(raw === '' ? null : raw)}
-          />
-        )}
-        <CpuFilter
-          // 고른 OS 의 등급만 연다. 고르지 않았으면 등급표를 모두 연다.
-          groups={(condition.os === null ? OSES : [condition.os]).map((os) => ({
-            os,
-            tiers: (tiers ?? []).filter((tier) => tier.os === os),
-          }))}
-          value={condition.cpuTier ?? ''}
-          unavailable={unavailableLabel(cpuTiers)}
-          onChange={(raw) => change('cpuTier', raw === '' ? null : raw)}
-        />
-        {cpuTiers.failed && !waitingForTiers && (
-          <button className="button button--secondary" type="button" onClick={cpuTiers.retry}>
-            CPU 등급 다시 시도
-          </button>
-        )}
-        {condition.os === 'WINDOWS' && (
-          <Filter
-            field="gpu"
-            label="GPU"
-            value={condition.gpuTier ?? ''}
-            choices={(gpuFilterTiers ?? [])
-              .filter((tier) => tier.os === condition.os)
-              .map((tier) => ({ value: tier.code, label: gpuFilterLabel(tier) }))}
-            unavailable={unavailableLabel(gpuTiers)}
-            onChange={(raw) => change('gpuTier', raw === '' ? null : raw)}
-          />
-        )}
-        {condition.os === 'WINDOWS' && gpuTiers.failed && !waitingForGpuTiers && (
-          <button className="button button--secondary" type="button" onClick={gpuTiers.retry}>
-            GPU 등급 다시 시도
-          </button>
-        )}
-        <Filter
-          field="brand"
-          label="브랜드"
-          value={condition.brand ?? ''}
-          choices={(brands.data ?? []).map((brand) => ({ value: brand, label: brand }))}
-          unavailable={unavailableLabel(brands)}
-          onChange={(raw) => change('brand', raw === '' ? null : raw)}
-        />
-        <Filter
-          field="memory"
-          label="RAM"
-          value={condition.memoryGb === null ? '' : String(condition.memoryGb)}
-          choices={MEMORY_STEPS.map((memory) => ({ value: String(memory), label: `${memory}GB 이상` }))}
-          onChange={(raw) => change('memoryGb', raw === '' ? null : Number(raw))}
-        />
-        <Filter
-          field="storage"
-          label="저장장치"
-          value={condition.storageGb === null ? '' : String(condition.storageGb)}
-          choices={STORAGE_STEPS.map((storage) => ({
-            value: String(storage),
-            label: `${formatStorage(storage)} 이상`,
-          }))}
-          onChange={(raw) => change('storageGb', raw === '' ? null : Number(raw))}
-        />
-      </div>
+      {!compact && (
+        <div className="product-filter-panel" id="product-filter-panel" data-open={filterOpen} inert={!filterOpen}>
+          <div className="product-filter-panel__clip">
+            <div className="product-filter-panel__box">{fields}</div>
+          </div>
+        </div>
+      )}
+
+      {compact && (
+        <FilterSheet
+          open={filterOpen}
+          canReset={hasCondition}
+          onClose={() => setFilterOpen(false)}
+          onReset={resetFilters}
+        >
+          {fields}
+        </FilterSheet>
+      )}
+
+      {/* 패널을 접어도 무엇으로 걸렀는지 보이게 한다. */}
+      {chips.length > 0 && (
+        <div className="product-condition-chips" id="product-condition-chips">
+          <span className="product-condition-chips__label" id="product-condition-chips-label">
+            적용한 필터
+          </span>
+          <ul aria-labelledby="product-condition-chips-label">
+            {chips.map(({ field, label }) => (
+              <li key={field}>
+                <button
+                  className="product-condition-chip"
+                  type="button"
+                  aria-label={`${label} 필터 지우기`}
+                  onClick={() => change(field, null)}
+                >
+                  {label}
+                  <CloseIcon size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* 제품이 이어 붙을 때마다 카드를 모두 읽지 않게 목록은 알리지 않는다. 받는 중인지는 아래 상태 문구만 알린다. */}
-      <div className="product-list" id="product-list" aria-busy={waiting}>
+      <div className="product-list-results" id="product-list" aria-busy={waiting}>
         {failed ? (
-          <p className="notice" role="alert">
+          <p className="product-list-failure" role="alert">
             제품 목록을 불러오지 못했습니다. 잠시 뒤에 다시 시도해 주세요.
           </p>
-        ) : items === null ? null : items.length === 0 ? (
+        ) : items === null ? (
+          <ul className="product-list" aria-hidden="true">
+            {SKELETON_KEYS.map((key) => (
+              <li className="product-card product-card--skeleton" key={key} />
+            ))}
+          </ul>
+        ) : items.length === 0 ? (
           <EmptyResult
             condition={filters}
             tiers={tiers}
             gpuTiers={gpuFilterTiers}
             hasCondition={hasCondition}
             showsAll={mode === 'ALL'}
-            onReset={() =>
-              onChangeState((previous) => ({
-                ...previous,
-                condition: { ...EMPTY_CONDITION, os: matchedMode ? previous.condition.os : null },
-              }))
-            }
+            onReset={resetFilters}
             onShowAll={onShowAll}
           />
         ) : (
-          items.map((product) => <ProductCard product={product} onDetail={onDetail} key={product.id} />)
+          <ul className="product-list">
+            {items.map((product) => (
+              <li key={product.id}>
+                <ProductCard product={product} onDetail={onDetail} />
+              </li>
+            ))}
+          </ul>
         )}
       </div>
       <div ref={setSentinel} />
-      <p className="product-list-status" role="status">
+      <p
+        className={loadingMore ? 'product-list-status product-list-status--more' : 'product-list-status'}
+        role="status"
+      >
         {waiting ? (items === null ? '제품을 불러오는 중입니다…' : '제품을 더 불러오는 중입니다…') : ''}
         {products.failed && items !== null ? '제품을 더 불러오지 못했습니다.' : ''}
+        {reachedEnd ? `모든 제품을 봤어요 · ${items.length}개` : ''}
       </p>
       {(products.failed || tiersFailed || gpuTiersFailed || brandsFailed) && (
         <button
-          className="button button--secondary"
+          className="button product-list-retry"
           type="button"
           onClick={tiersFailed ? cpuTiers.retry : gpuTiersFailed ? gpuTiers.retry : brandsFailed ? brands.retry : more}
         >
@@ -499,35 +542,188 @@ export function ProductListView({
   );
 }
 
-function ProductCard({ product, onDetail }: { product: Product; onDetail: (productId: number) => void }) {
+function useCompact(): boolean {
+  const [compact, setCompact] = useState(() => window.matchMedia?.(DESKTOP_MEDIA).matches === false);
+  useEffect(() => {
+    const query = window.matchMedia?.(DESKTOP_MEDIA);
+    if (query === undefined) {
+      return;
+    }
+    const sync = () => setCompact(!query.matches);
+    query.addEventListener('change', sync);
+    return () => query.removeEventListener('change', sync);
+  }, []);
+  return compact;
+}
+
+type MenuOption = { value: string; label: string };
+
+type MenuButtonProps = {
+  id: string;
+  label: string;
+  options: MenuOption[];
+  value: string;
+  display: ReactNode;
+  onChange: (value: string) => void;
+};
+
+function MenuButton({ id, label, options, value, display, onChange }: MenuButtonProps) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const selected = options.find((option) => option.value === value);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    rootRef.current?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus();
+    const closeOutside = (event: PointerEvent) => {
+      if (!(event.target instanceof Node) || !rootRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', closeOutside);
+    return () => document.removeEventListener('pointerdown', closeOutside);
+  }, [open]);
+
+  const close = () => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  const moveFocus = (event: KeyboardEvent<HTMLDivElement>) => {
+    const items = [...(rootRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]') ?? [])];
+    const index = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      items[(index + step + items.length) % items.length]?.focus();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      close();
+    } else if (event.key === 'Tab') {
+      setOpen(false);
+    }
+  };
+
   return (
-    <article className="bordered-panel product-card">
+    <div className="menu-button" ref={rootRef}>
+      <button
+        className="product-list-control menu-button__trigger"
+        id={id}
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`${label}, ${selected?.label ?? ''}`}
+        onClick={() => setOpen(!open)}
+      >
+        {display}
+        <ChevronIcon />
+      </button>
+      <div
+        className="menu-button__menu"
+        role="menu"
+        aria-label={label}
+        data-open={open}
+        inert={!open}
+        onKeyDown={moveFocus}
+      >
+        {options.map((option) => (
+          <button
+            className="menu-button__item"
+            type="button"
+            role="menuitemradio"
+            aria-checked={option.value === value}
+            key={option.value}
+            onClick={() => {
+              close();
+              if (option.value !== value) {
+                onChange(option.value);
+              }
+            }}
+          >
+            {option.label}
+            {option.value === value && <CheckIcon />}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProductCard({ product, onDetail }: { product: Product; onDetail: (productId: number) => void }) {
+  const specs = CARD_SPECS.map((code) => specValue(product, code))
+    .filter((value) => value !== '')
+    .join(' · ');
+  return (
+    <a
+      className="product-card"
+      href={`/products/${product.id}`}
+      onClick={(event) => navigateInside(event, () => onDetail(product.id))}
+    >
       <ProductImage imageUrl={product.imageUrl} name={product.name} className="product-card__image-frame" />
       <div className="product-card__body">
-        <div className="product-card__heading-row">
-          <div>
-            <span className="eyebrow product-card__maker">
-              {product.brand} · {specValue(product, 'OS')}
-            </span>
-            <h3>{product.name}</h3>
-          </div>
-          <strong className="product-card__price">{formatPrice(product.minPrice)}</strong>
-        </div>
-        <dl className="product-card__specs">
-          {CARD_SPECS.map(({ code, label }) => (
-            <div className="product-spec-item" key={code}>
-              <dt>{label}</dt>
-              <dd>{specValue(product, code)}</dd>
-            </div>
-          ))}
-        </dl>
+        <span className="product-card__maker">
+          {product.brand} · {specValue(product, 'OS')}
+        </span>
+        <h3 className="product-card__name">{product.name}</h3>
+        <span className="product-card__specs">{specs}</span>
+        <p className="product-card__price">
+          <span>최저가</span>
+          <strong>{formatPrice(product.minPrice)}</strong>
+        </p>
       </div>
-      <div className="product-card__action">
-        <button className="button button--wide product-card__detail" type="button" onClick={() => onDetail(product.id)}>
-          상세 보기
+    </a>
+  );
+}
+
+type FilterSheetProps = {
+  open: boolean;
+  canReset: boolean;
+  onClose: () => void;
+  onReset: () => void;
+  children: ReactNode;
+};
+
+function FilterSheet({ open, canReset, onClose, onReset, children }: FilterSheetProps) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (dialog === null) {
+      return;
+    }
+    if (open && !dialog.open) {
+      dialog.showModal();
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
+  return (
+    <dialog
+      className="product-filter-sheet"
+      id="product-filter-panel"
+      ref={ref}
+      aria-labelledby="product-filter-sheet-title"
+      onClose={() => open && onClose()}
+    >
+      <div className="product-filter-sheet__head">
+        <h2 id="product-filter-sheet-title">필터</h2>
+        <button className="product-filter-sheet__close" type="button" aria-label="필터 닫기" onClick={onClose}>
+          <CloseIcon size={24} />
         </button>
       </div>
-    </article>
+      <div className="product-filter-sheet__body">{children}</div>
+      <div className="product-filter-sheet__actions">
+        <button className="button" type="button" disabled={!canReset} onClick={onReset}>
+          모두 지우기
+        </button>
+        <button className="button button--primary button--wide" type="button" onClick={onClose}>
+          제품 보기
+        </button>
+      </div>
+    </dialog>
   );
 }
 
@@ -545,20 +741,25 @@ function EmptyResult({ condition, tiers, gpuTiers, hasCondition, showsAll, onRes
   if (hasCondition) {
     return (
       <div className="empty-result">
-        <p>조건에 맞는 제품이 없습니다.</p>
-        <p className="empty-result__condition">적용한 검색 조건 — {describeCondition(condition, tiers, gpuTiers)}</p>
-        <button className="button button--secondary" type="button" onClick={onReset}>
-          검색 조건 지우기
+        <h2>조건에 맞는 제품이 없습니다.</h2>
+        <p className="empty-result__condition">
+          적용한 필터 — {describeCondition(condition, tiers, gpuTiers)}
+          <br />
+          칩의 ×로 필터를 하나씩 빼 보거나 모두 지워 보세요.
+        </p>
+        <button className="button" type="button" onClick={onReset}>
+          필터 모두 지우기
         </button>
       </div>
     );
   }
-  // 조건 없이 0건이면 사양이 높은 것이다. 목록을 넓혀 볼 길을 준다.
+  // 필터 없이 0건이면 사양이 높은 것이다. 목록을 넓혀 볼 길을 준다.
   return (
     <div className="empty-result">
-      <p>조건에 맞는 제품이 없습니다. 검색 조건을 직접 조정해 다시 확인해 주세요.</p>
+      <h2>조건에 맞는 제품이 없습니다.</h2>
+      <p className="empty-result__condition">필터를 직접 조정해 다시 확인해 주세요.</p>
       {!showsAll && (
-        <button className="button button--secondary" type="button" onClick={onShowAll}>
+        <button className="button" type="button" onClick={onShowAll}>
           전체 제품 보기
         </button>
       )}
@@ -577,7 +778,6 @@ function unavailableLabel({ data, failed }: { data: unknown; failed: boolean }):
 }
 
 type FilterProps = {
-  field: string;
   label: string;
   value: string;
   choices: Choice[];
@@ -585,27 +785,22 @@ type FilterProps = {
   onChange: (raw: string) => void;
 };
 
-function Filter({ field, label, value, choices, unavailable = null, onChange }: FilterProps) {
-  // 선택지가 하나여도 적용한 조건을 보여 주고 해제할 수 있어야 한다.
-  const usable = choices.length > 0;
+// 선택지가 하나여도 적용한 조건을 보여 주고 해제할 수 있어야 한다.
+function Filter({ label, value, choices, unavailable = null, onChange }: FilterProps) {
   return (
-    <label className="product-filter" htmlFor={`product-filter-${field}`}>
+    <div className="product-filter-group">
       <span className="product-filter__label">{label}</span>
-      <select
-        id={`product-filter-${field}`}
-        value={value}
-        disabled={!usable}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        <option value="">{usable ? '전체' : (unavailable ?? '선택지 없음')}</option>
-        {usable &&
-          choices.map(({ value: raw, label: text }) => (
-            <option value={raw} key={raw}>
-              {text}
-            </option>
-          ))}
-      </select>
-    </label>
+      {choices.length > 0 ? (
+        <ChoiceGroup
+          label={label}
+          choices={[{ value: '', label: '전체' }, ...choices]}
+          value={value}
+          onChange={(raw) => onChange(raw ?? '')}
+        />
+      ) : (
+        <p className="product-filter-group__empty">{unavailable ?? '선택지 없음'}</p>
+      )}
+    </div>
   );
 }
 
@@ -617,29 +812,20 @@ type CpuFilterProps = {
 };
 
 function CpuFilter({ groups, value, unavailable, onChange }: CpuFilterProps) {
-  const usable = groups.reduce((total, group) => total + group.tiers.length, 0) > 1;
+  const choices = groups.flatMap(({ os, tiers }) =>
+    tiers.map((tier) => ({
+      value: tier.code,
+      label: groups.length > 1 ? `${OS_GROUP_LABELS[os] ?? os} ${cpuFilterLabel(tier)}` : cpuFilterLabel(tier),
+    })),
+  );
   return (
-    <label className="product-filter" htmlFor="product-filter-cpu">
-      <span className="product-filter__label">CPU</span>
-      <select
-        id="product-filter-cpu"
-        value={value}
-        disabled={!usable}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        <option value="">{usable ? '전체' : (unavailable ?? '선택지 없음')}</option>
-        {usable &&
-          groups.map(({ os, tiers }) => (
-            <optgroup label={OS_GROUP_LABELS[os] ?? os} key={os}>
-              {tiers.map((tier) => (
-                <option value={tier.code} key={tier.code}>
-                  {cpuFilterLabel(tier)}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-      </select>
-    </label>
+    <Filter
+      label="CPU"
+      value={value}
+      choices={choices.length > 1 ? choices : []}
+      unavailable={unavailable}
+      onChange={onChange}
+    />
   );
 }
 
@@ -658,8 +844,8 @@ function conditionLabels(
     { field: 'cpuTier', label: tier !== undefined ? cpuFilterLabel(tier) : null },
     { field: 'gpuTier', label: gpu !== undefined ? gpuFilterLabel(gpu) : null },
     { field: 'colorGamut', label: colorGamut !== null ? COLOR_GAMUT_FILTER_LABELS[colorGamut] : null },
-    { field: 'memoryGb', label: memoryGb !== null ? `RAM ${memoryGb}GB 이상` : null },
-    { field: 'storageGb', label: storageGb !== null ? `저장장치 ${formatStorage(storageGb)} 이상` : null },
+    { field: 'memoryGb', label: memoryGb !== null ? `MEMORY ${memoryGb}GB 이상` : null },
+    { field: 'storageGb', label: storageGb !== null ? `STORAGE ${formatStorage(storageGb)} 이상` : null },
   ];
   return labels.flatMap(({ field, label }) => (label === null ? [] : [{ field, label }]));
 }
@@ -676,4 +862,93 @@ function specItem(product: Product, code: string): ProductSpecItem | undefined {
 
 function specValue(product: Product, code: string): string {
   return specItem(product, code)?.displayValue ?? '';
+}
+
+function SearchIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-3.5-3.5" />
+    </svg>
+  );
+}
+
+function FilterIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
+      <path d="M4 6h16M7 12h10M10 18h4" />
+    </svg>
+  );
+}
+
+function CloseIcon({ size }: { size: number }) {
+  return (
+    <svg
+      aria-hidden="true"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+    >
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg
+      className="menu-button__chevron"
+      aria-hidden="true"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 12l5 5L20 7" />
+    </svg>
+  );
 }

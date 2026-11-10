@@ -48,8 +48,8 @@ const productRequests = () => fetchMock.mock.calls.map(([url]) => url).filter((u
 
 test('Windows 에서만 가장 낮은 등급을 뺀 GPU 필터를 보여 준다', async () => {
   show({ os: 'WINDOWS' });
-  const gpu = await screen.findByRole('option', { name: 'RTX xx50 급 GPU 이상' });
-  expect(gpu.parentElement?.querySelectorAll('option')).toHaveLength(2);
+  const gpu = await screen.findByRole('button', { name: 'RTX xx50 급 GPU 이상' });
+  expect(gpu.parentElement?.querySelectorAll('button')).toHaveLength(2);
   cleanup();
 
   show({ os: 'MAC' });
@@ -59,14 +59,14 @@ test('Windows 에서만 가장 낮은 등급을 뺀 GPU 필터를 보여 준다'
 
 test('Mac GPU 조건은 필터 없이도 조건 칩으로 보이고, 가장 낮은 등급과 다른 OS 의 등급은 걸지 않는다', async () => {
   show({ os: 'MAC', gpuTier: 'PRO' });
-  expect(await screen.findByRole('button', { name: 'M Pro 칩 GPU 이상 조건 지우기' })).toBeTruthy();
+  expect(await screen.findByRole('button', { name: 'M Pro 칩 GPU 이상 필터 지우기' })).toBeTruthy();
   expect(productRequests().some((url) => url.includes('gpuTier=PRO'))).toBe(true);
   cleanup();
   fetchMock.mockClear();
 
   for (const gpuTier of ['INTEGRATED', 'PRO', 'toString']) {
     show({ os: 'WINDOWS', gpuTier });
-    expect(await screen.findByText('적용한 검색 조건 — 윈도우')).toBeTruthy();
+    expect(await screen.findByText('필터를 직접 조정해 다시 확인해 주세요.')).toBeTruthy();
     cleanup();
   }
   expect(productRequests().some((url) => url.includes('gpuTier'))).toBe(false);
@@ -75,15 +75,15 @@ test('Mac GPU 조건은 필터 없이도 조건 칩으로 보이고, 가장 낮�
 test('OS 를 바꾸면 그 OS 의 등급이 아닌 GPU 조건을 지운다', async () => {
   const onChangeState = vi.fn();
   show({ os: 'WINDOWS', gpuTier: 'XX50' }, onChangeState);
-  await screen.findByRole('button', { name: 'RTX xx50 급 GPU 이상 조건 지우기' });
+  await screen.findByRole('button', { name: 'RTX xx50 급 GPU 이상 필터 지우기' });
   const previous: ProductListState = {
     sort: 'PRICE_ASC',
     condition: { ...EMPTY_CONDITION, os: 'WINDOWS', gpuTier: 'XX50' },
     filterOpen: true,
   };
 
-  fireEvent.change(screen.getByLabelText('OS'), { target: { value: 'MAC' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Mac' }));
   expect(onChangeState.mock.lastCall?.[0](previous).condition.gpuTier).toBeNull();
-  fireEvent.change(screen.getByLabelText('OS'), { target: { value: '' } });
+  fireEvent.click(screen.getByRole('button', { name: '둘 다' }));
   expect(onChangeState.mock.lastCall?.[0](previous).condition.gpuTier).toBeNull();
 });

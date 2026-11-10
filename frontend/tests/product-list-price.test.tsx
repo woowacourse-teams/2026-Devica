@@ -44,13 +44,13 @@ async function show(price: number | null) {
   await screen.findByRole('heading', { name: product.name });
 }
 
-test('목록에 대표 가격과 상세 보기 버튼을 표시한다', async () => {
+test('목록에 대표 가격과 상세 링크를 표시한다', async () => {
   // when
   await show(900_000);
 
   // then
   expect(screen.getByText('900,000원')).toBeTruthy();
-  expect(screen.getByRole('button', { name: '상세 보기' })).toBeTruthy();
+  expect(screen.getByRole('link', { name: /테스트 노트북/ }).getAttribute('href')).toBe('/products/1');
   expect(screen.queryByText('판매처 정보 없음')).toBeNull();
 });
 

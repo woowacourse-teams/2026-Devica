@@ -56,9 +56,9 @@ test('판매처 가격을 비교하고 동률은 ID 순으로 확인일·링크�
   expect(within(rows[1]).getByText('학생복지스토어')).toBeTruthy();
   expect(within(rows[2]).getByText('쿠팡')).toBeTruthy();
   expect(document.querySelector('.product-detail__source')?.textContent).toBe('Apple 공홈');
-  expect(document.querySelector('.product-detail__price')?.textContent).toBe('900,000원');
+  expect(document.querySelector('.product-detail__price strong')?.textContent).toBe('900,000원');
   const link = within(rows[0]).getByRole('link', { name: 'Apple 공홈 판매처 보기 (새 창)' });
-  expect(link.textContent).toBe('판매처 보기');
+  expect(link.textContent).toContain('판매처 보기');
   expect(link.getAttribute('href')).toBe('https://example.test/apple');
   expect(link.getAttribute('rel')).toContain('noopener');
   expect(within(rows[1]).getByRole('link', { name: '학생복지스토어 판매처 보기 (새 창)' })).toBeTruthy();
@@ -79,7 +79,7 @@ test('당근은 미개봉 참고가와 검색 이동을 안내하고 통합 최�
   const row = within(screen.getAllByRole('listitem')[0]);
   expect(row.getByText('미개봉 매물 참고가 · 검색 결과로 이동')).toBeTruthy();
   expect(row.getByRole('link', { name: '당근 판매처 보기 (새 창)' }).getAttribute('href')).toBe(searchUrl);
-  expect(document.querySelector('.product-detail__price')?.textContent).toBe('800,000원');
+  expect(document.querySelector('.product-detail__price strong')?.textContent).toBe('800,000원');
   expect(document.querySelector('.product-detail__source')?.textContent).toBe('당근');
   expect(screen.getAllByText('미개봉 매물 참고가 · 검색 결과로 이동')).toHaveLength(1);
 });

@@ -1,4 +1,8 @@
 import { useEffect, useState } from 'react';
+import apple from './assets/sellers/apple.png';
+import coupang from './assets/sellers/coupang.png';
+import daangn from './assets/sellers/daangn.png';
+import univstore from './assets/sellers/univstore.png';
 import { ProductImage } from './ProductImage';
 import { fetchProduct, formatPrice, type Offer, type ProductDetail } from './products';
 import './ProductDetailView.css';
@@ -11,6 +15,13 @@ const DETAIL_SPECS: { code: string; label: string }[] = [
   { code: 'STORAGE', label: 'STORAGE' },
   { code: 'OS', label: 'OS' },
 ];
+
+const SELLER_LOGOS: Record<string, string> = {
+  쿠팡: coupang,
+  당근: daangn,
+  학생복지스토어: univstore,
+  'Apple 공홈': apple,
+};
 
 type Props = {
   productId: number;
@@ -37,7 +48,7 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
   }, [productId]);
 
   const back = (
-    <button className="text-button product-detail__back" type="button" onClick={onBack}>
+    <button className="text-button view-back-button" type="button" onClick={onBack}>
       {backLabel}
     </button>
   );
@@ -45,7 +56,7 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
   // 원본은 제품을 이미 손에 들고 있어 이 상태가 없었다. 기다리는 중과 실패를 나누고 빠져나갈 길도 남긴다.
   if (product === null) {
     return (
-      <section className="view-panel product-detail-view" id="product-detail-view">
+      <section className="view-panel flow-view product-detail-view" id="product-detail-view">
         {back}
         {failed ? (
           <p className="notice" role="alert">
@@ -69,7 +80,11 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
   const lowest: Offer | undefined = offers[0];
 
   return (
-    <section className="view-panel product-detail-view" id="product-detail-view" aria-labelledby="product-detail-title">
+    <section
+      className="view-panel flow-view product-detail-view"
+      id="product-detail-view"
+      aria-labelledby="product-detail-title"
+    >
       {back}
       <article className="product-detail">
         <ProductImage
@@ -80,18 +95,22 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
         />
 
         <section className="product-detail__summary">
-          <p className="eyebrow">
+          <p className="product-detail__maker">
             {product.brand} · {product.code}
           </p>
-          <h2 id="product-detail-title">{product.name}</h2>
-          {/* 설명이 없는 제품이 있다. 빈 문단을 두면 왼쪽 세로선만 남는다. */}
+          <h1 id="product-detail-title">{product.name}</h1>
           {description !== '' && <p className="product-detail__description">{description}</p>}
-          <strong className="product-detail__price">{formatPrice(lowest?.price ?? null)}</strong>
-          {lowest !== undefined && <p className="product-detail__source">{lowest.name}</p>}
+          <div className="product-detail__price">
+            <div className="product-detail__price-label">
+              <span>최저가</span>
+              {lowest !== undefined && <b className="product-detail__source">{lowest.name}</b>}
+            </div>
+            <strong>{formatPrice(lowest?.price ?? null)}</strong>
+          </div>
         </section>
 
         <section className="product-detail__offers">
-          <h3>판매처</h3>
+          <h2>판매처</h2>
           {offers.length === 0 ? (
             <p className="product-detail__no-offer">판매 중인 곳이 없습니다.</p>
           ) : (
@@ -99,7 +118,7 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
               {offers.map((offer) => (
                 <OfferRow
                   offer={offer}
-                  lowest={offer === lowest}
+                  lowest={offer.price === lowest?.price}
                   key={offer.id ?? `${offer.name}:${offer.purchaseUrl}:${offer.price}`}
                 />
               ))}
@@ -108,10 +127,10 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
         </section>
 
         <section className="product-detail__specification">
-          <h3>상세 사양</h3>
+          <h2>상세 사양</h2>
           <dl className="product-detail__specs">
             {DETAIL_SPECS.map(({ code, label }) => (
-              <div className="product-spec-item" key={code}>
+              <div className="product-detail__spec" key={code}>
                 <dt>{label}</dt>
                 <dd>{product.specs.find((item) => item.code === code)?.displayValue ?? ''}</dd>
               </div>
@@ -125,10 +144,15 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
 
 function OfferRow({ offer, lowest }: { offer: Offer; lowest: boolean }) {
   const url = webUrl(offer.purchaseUrl);
+  const logo = SELLER_LOGOS[offer.name];
   const date = offer.checkedAt && /^\d{4}-\d{2}-\d{2}$/.test(offer.checkedAt) ? offer.checkedAt : null;
   return (
-    <li className="product-offer">
-      <strong className="product-offer__name">{offer.name}</strong>
+    <li className={lowest ? 'product-offer product-offer--lowest' : 'product-offer'}>
+      <div className="product-offer__name">
+        {logo && <img className="product-offer__logo" src={logo} alt="" width={24} height={24} />}
+        <strong>{offer.name}</strong>
+        {lowest && <span className="product-offer__badge">최저가</span>}
+      </div>
       <div className="product-offer__details">
         <p className="product-offer__context">
           {date ? (
@@ -144,13 +168,14 @@ function OfferRow({ offer, lowest }: { offer: Offer; lowest: boolean }) {
       <strong className="product-offer__price">{formatPrice(offer.price)}</strong>
       {url ? (
         <a
-          className={`button ${lowest ? 'button--primary' : ''} product-offer__buy`}
+          className={lowest ? 'button button--primary product-offer__buy' : 'button product-offer__buy'}
           href={url}
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`${offer.name} 판매처 보기 (새 창)`}
         >
-          판매처 보기
+          <span className="product-offer__buy-prefix">판매처 </span>보기
+          <span aria-hidden="true">↗</span>
         </a>
       ) : (
         <span className="product-offer__buy">링크 확인 필요</span>
