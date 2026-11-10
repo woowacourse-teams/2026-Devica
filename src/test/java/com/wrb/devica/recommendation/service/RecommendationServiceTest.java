@@ -42,6 +42,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 @SpringBootTest
 class RecommendationServiceTest {
@@ -57,7 +58,7 @@ class RecommendationServiceTest {
 
     @ParameterizedTest
     @EnumSource(UsagePurposeCode.class)
-    void 모든_사용_목적은_항목마다_근거를_갖춘_권장_사양을_반환한다(UsagePurposeCode purpose) {
+    void 모든_사용_목적은_항목마다_기본_근거를_갖춘_권장_사양을_반환한다(UsagePurposeCode purpose) {
         // given & when
         List<RecommendedSpec> recommendedSpecs = recommendationService.recommend(purpose.name(), Map.of()).specs();
 
@@ -66,8 +67,7 @@ class RecommendationServiceTest {
             List<SpecValue> values = recommended.spec().values();
             assertThat(values).isNotEmpty();
             assertThat(values).allSatisfy(value ->
-                assertThat(recommended.itemReasons().get(value.code()))
-                    .isNotEmpty().allSatisfy(reason -> assertThat(reason).isNotBlank()));
+                assertThat(recommended.itemBasis().get(value.code())).isNotBlank());
         });
     }
 
@@ -210,8 +210,10 @@ class RecommendationServiceTest {
     }
 
     private JsonNode recommend(UsagePurposeCode purpose, Map<String, List<String>> answers) {
-        return MAPPER.valueToTree(RecommendationResponse.from(
+        JsonNode response = MAPPER.valueToTree(RecommendationResponse.from(
             recommendationService.recommend(purpose.name(), answers)));
+        response.get("specs").forEach(spec -> spec.get("items").forEach(item -> ((ObjectNode) item).remove("basis")));
+        return response;
     }
 
     private List<SnapshotCase> readSnapshot(UsagePurposeCode purpose) {

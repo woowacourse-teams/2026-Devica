@@ -87,6 +87,8 @@ type Props = {
   mode: ListMode;
   // 맞춤 목록의 맥·윈도우 권장안이다. 전체 목록에서는 비어 있다.
   specs: Spec[];
+  // 질문에 답하지 않고 기본 권장 사양으로 연 맞춤 목록이다.
+  baseline?: boolean;
   backLabel: string;
   // 상세를 다녀와도 정렬과 검색 조건이 풀리지 않게 부모가 들고 있는다.
   // 맞춤 목록에서는 condition.os 가 보고 있는 OS 탭이다. 부모가 늘 채워 준다.
@@ -105,6 +107,7 @@ export function ProductListView({
   categoryCode,
   mode,
   specs,
+  baseline = false,
   backLabel,
   state,
   onChangeState,
@@ -251,7 +254,9 @@ export function ProductListView({
     return () => observer.disconnect();
   }, [sentinel, hasNext, loading, products.failed, more]);
 
-  const heading = HEADINGS[mode];
+  const heading = baseline
+    ? { ...HEADINGS[mode], description: '기본 권장 사양을 필터로 채워 두었어요. 필터를 바꿔 더 찾아볼 수 있어요.' }
+    : HEADINGS[mode];
   // OS 는 탭이라 필터로 치지 않는다. 필터를 지워도 보던 탭은 그대로다.
   const filters = { ...condition, os: null };
   const hasCondition = Object.values(filters).some((value) => value !== null);
@@ -283,7 +288,12 @@ export function ProductListView({
   };
 
   if (matching) {
-    return <SearchLoadingView lines={[searchingLine(condition, tiers, spec, OS_GROUP_LABELS)]} />;
+    return (
+      <SearchLoadingView
+        eyebrow={baseline ? '기본 권장 사양으로 찾는 중' : '추천 결과로 찾는 중'}
+        lines={[searchingLine(condition, tiers, spec, OS_GROUP_LABELS)]}
+      />
+    );
   }
 
   // 전체 목록은 두 OS 를 함께 볼 수 있다. 맞춤 목록은 OS 마다 권장안이 달라 하나씩만 본다.
@@ -902,7 +912,7 @@ function FilterIcon() {
   );
 }
 
-function CloseIcon({ size }: { size: number }) {
+export function CloseIcon({ size }: { size: number }) {
   return (
     <svg
       aria-hidden="true"

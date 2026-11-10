@@ -345,3 +345,169 @@
         grid-column: 1 / -1;
     }
 }
+
+.rationale-trigger {
+    display: inline;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    background: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.rationale-trigger__icon {
+    margin-left: 6px;
+    vertical-align: -0.1em;
+    opacity: 0.7;
+}
+
+.spec-tile:has(.rationale-trigger) {
+    position: relative;
+    transition: background-color 150ms ease-out;
+}
+
+.spec-tile .rationale-trigger::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+}
+
+.spec-tile:has(.rationale-trigger):hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.spec-tile .rationale-trigger:focus-visible {
+    outline: none;
+}
+
+.spec-tile:has(.rationale-trigger:focus-visible) {
+    outline: 2px solid var(--lime);
+    outline-offset: 2px;
+}
+
+.rationale-dialog {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    max-height: min(85dvh, 640px);
+    margin: auto 0 0;
+    border: 0;
+    border-top: 1px solid var(--divider);
+    border-radius: var(--radius-24) var(--radius-24) 0 0;
+    padding: 0;
+    color: var(--text);
+    background: var(--surface-1);
+}
+
+.rationale-dialog[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.rationale-dialog::backdrop {
+    background: var(--scrim);
+}
+
+html:has(.rationale-dialog[open]) {
+    overflow: hidden;
+}
+
+.rationale-dialog__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-12);
+    border-bottom: 1px solid var(--divider);
+    padding: var(--space-16) var(--space-8) var(--space-16) var(--space-20);
+}
+
+.rationale-dialog__eyebrow {
+    margin: 0 0 var(--space-4);
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.rationale-dialog__head h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.rationale-dialog__close {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border: 0;
+    color: var(--text);
+    background: transparent;
+    cursor: pointer;
+}
+
+.rationale-dialog__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-20);
+    overflow-y: auto;
+    padding: var(--space-20) var(--space-20) calc(var(--space-24) + env(safe-area-inset-bottom));
+}
+
+.rationale-dialog__body section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.rationale-dialog__body h3 {
+    margin: 0;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.rationale-dialog__body p,
+.rationale-dialog__body ul {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.7;
+    word-break: keep-all;
+}
+
+.rationale-dialog__body ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding-left: var(--space-20);
+}
+
+@media (min-width: 768px) {
+    .rationale-dialog {
+        width: min(560px, calc(100% - 48px));
+        max-height: min(80dvh, 640px);
+        margin: auto;
+        border: 1px solid var(--divider);
+        border-radius: var(--radius-24);
+    }
+
+    .rationale-dialog__head {
+        padding: var(--space-20) var(--space-12) var(--space-16) var(--space-28);
+    }
+
+    .rationale-dialog__body {
+        padding: var(--space-20) var(--space-28) var(--space-28);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spec-tile:has(.rationale-trigger) {
+        transition: none;
+    }
+}

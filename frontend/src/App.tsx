@@ -279,10 +279,10 @@ function IntroPage({ params, search }: PageProps & { search: string }) {
       canStart={screens.length > 0}
       questionsFailed={survey.failed}
       questionsLoading={survey.data === null && !survey.failed}
-      // 답을 비워 보내면 조정 전 기본 권장 사양이 온다. 원본도 답을 무시하고 기본으로 되돌린다.
+      // 답을 비워 보내면 조정 전 기본 권장 사양이 온다. 답하지 않았으니 제품 추천 결과를 거치지 않고 맞춤 목록을 바로 연다.
       onBaseline={() => {
         saveAnswers(purpose, {});
-        go(`${PATHS.result}${search}`);
+        go(`${PATHS.matched}${search}`, { searching: true });
       }}
     />
   );
@@ -385,6 +385,7 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
       purpose={purpose}
       surveyVersion={data.version}
       screens={screens}
+      stepCount={data.steps.length}
       index={number - 1}
       answers={current}
       outdated={outdated === number - 1 || (navState?.reviewQuestion === true && revisit === number - 1)}
@@ -692,6 +693,7 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
       categoryCode={category}
       mode="MATCHED"
       specs={specs}
+      baseline={Object.keys(answersOf(params)).length === 0}
       backLabel={backLabelOf(navState.from ?? 'result')}
       state={state}
       onChangeState={onChangeState}

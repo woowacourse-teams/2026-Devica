@@ -5,7 +5,6 @@ import com.wrb.devica.product.domain.CpuTier;
 import com.wrb.devica.product.domain.GpuTier;
 import com.wrb.devica.product.domain.LaptopSpec;
 import com.wrb.devica.product.domain.Os;
-import com.wrb.devica.product.domain.StorageSize;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -171,7 +170,7 @@ public class LaptopRecommender {
     private RecommendedSpec recommendFor(LaptopInterpretation interpretation, Os os, Requirements requirements,
                                          Map<String, String> conditions) {
         Map<String, List<String>> reasons = new HashMap<>();
-        reasons.put(OS_ITEM, new ArrayList<>(List.of(os.getDisplayName() + " 권장안입니다.")));
+        reasons.put(OS_ITEM, new ArrayList<>());
         for (LaptopRequirement requirement : LaptopRequirement.values()) {
             reasons.put(requirement.name(), new ArrayList<>(requirements.reasonsOf(requirement.name())));
         }
@@ -186,9 +185,11 @@ public class LaptopRecommender {
         GpuTier gpuTier = calculateGpu(interpretation, os, requirements.valueOf(GPU_ITEM));
 
         LaptopSpec spec = buyableSpec(os, cpuTier, memoryGb, storageGb, colorGamut, gpuTier, reasons);
-        addResultReasons(spec, current, reasons);
+        if (current != null && spec.cpuTier().isHigherThan(current)) {
+            reasons.get(CPU_ITEM).add("지금 쓰는 " + current.getDisplayName() + "에서 불편을 겪어 그보다 위를 권합니다.");
+        }
         boolean preferred = os.name().equals(conditions.get(LaptopCondition.PREFERRED_OS.name()));
-        return new RecommendedSpec(spec, reasons, requirements.notes(), preferred);
+        return new RecommendedSpec(spec, reasons, requirements.basis(), requirements.notes(), preferred);
     }
 
     private CpuTier currentCpuTier(Os os, Map<String, String> conditions) {
@@ -228,7 +229,7 @@ public class LaptopRecommender {
             return;
         }
 
-        reasons.add("예산을 고려해 Mac 권장 CPU 는 " + limit.getDisplayName() + "으로 제한했습니다.");
+        reasons.add("예산을 고려해 Mac 권장 CPU는 " + limit.getDisplayName() + "으로 제한했습니다.");
 
         if (limit == current) {
             reasons.add("지금과 같은 " + limit.getDisplayName() + "이라도 최신 세대를 고르면 성능이 오릅니다.");
@@ -260,14 +261,14 @@ public class LaptopRecommender {
         if (memoryGb > largestMemoryOf(tier)) {
             tier = tier.stepUp();
             reasons.get(CPU_ITEM)
-                .add(memoryGb + "GB 를 쓰려면 " + tier.getDisplayName() + " 이상이어야 합니다.");
+                .add(memoryGb + "GB를 쓰려면 " + tier.getDisplayName() + " 이상이어야 합니다.");
         }
 
         int adjusted = smallestMemoryAtLeast(tier, memoryGb);
 
         if (adjusted != memoryGb) {
             reasons.get(MEMORY_ITEM)
-                .add(tier.getDisplayName() + "에서는 " + memoryGb + "GB 를 고를 수 없어 바로 위 용량인 " + adjusted + "GB 를 권합니다.");
+                .add(tier.getDisplayName() + "에서는 " + memoryGb + "GB를 고를 수 없어 바로 위 용량인 " + adjusted + "GB를 권합니다.");
         }
 
         return new LaptopSpec(os, tier, adjusted, storageGb, colorGamut, matchGpuToCpu(gpuTier, tier, reasons));
@@ -285,7 +286,7 @@ public class LaptopRecommender {
         }
 
         reasons.get(CPU_ITEM)
-            .add("GPU 로 " + chip.getDisplayName() + "이 필요해 CPU 도 " + chip.getDisplayName() + "을 권합니다.");
+            .add("GPU로 " + chip.getDisplayName() + "이 필요해 CPU도 " + chip.getDisplayName() + "을 권합니다.");
         return chip;
     }
 
@@ -300,7 +301,7 @@ public class LaptopRecommender {
             return gpuTier;
         }
 
-        reasons.get(GPU_ITEM).add("CPU 와 같은 칩이라 GPU 도 " + chip.getDisplayName() + "입니다.");
+        reasons.get(GPU_ITEM).add("CPU와 같은 칩이라 GPU도 " + chip.getDisplayName() + "입니다.");
         return chip;
     }
 
@@ -321,25 +322,5 @@ public class LaptopRecommender {
             .filter(option -> option >= memoryGb)
             .findFirst()
             .orElseGet(() -> largestMemoryOf(tier));
-    }
-
-    private void addResultReasons(LaptopSpec spec, CpuTier current, Map<String, List<String>> reasons) {
-        List<String> cpuReasons = reasons.get(CPU_ITEM);
-
-        if (current != null && spec.cpuTier().isHigherThan(current)) {
-            cpuReasons.add("지금 쓰는 " + current.getDisplayName() + " 에서 불편을 겪어 그보다 위를 권합니다.");
-        }
-
-        cpuReasons.add("권장 CPU 는 " + spec.cpuTier().getDisplayName() + " 입니다.");
-        reasons.get(MEMORY_ITEM).add("권장 메모리는 " + spec.memoryGb() + "GB 입니다.");
-        reasons.get(STORAGE_ITEM).add("권장 저장 공간은 " + StorageSize.display(spec.storageGb()) + " 입니다.");
-
-        if (spec.colorGamut() != null) {
-            reasons.get(COLOR_GAMUT_ITEM).add("권장 화면은 " + spec.colorGamut().getDisplayName() + " 입니다.");
-        }
-
-        if (spec.gpuTier() != null) {
-            reasons.get(GPU_ITEM).add("권장 GPU 는 " + spec.gpuTier().getDisplayName() + " 입니다.");
-        }
     }
 }

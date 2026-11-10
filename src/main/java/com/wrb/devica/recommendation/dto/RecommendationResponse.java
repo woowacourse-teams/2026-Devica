@@ -26,6 +26,7 @@ public record RecommendationResponse(
                 recommended.spec().values().stream()
                     .map(value -> ItemResponse.of(
                         value,
+                        recommended.itemBasis().get(value.code()),
                         recommended.itemReasons().getOrDefault(value.code(), List.of())))
                     .toList(),
                 recommended.preferred(),
@@ -38,11 +39,13 @@ public record RecommendationResponse(
         String displayName,
         String value,
         String displayValue,
+        String basis,
         List<String> reasons) {
 
-        private static ItemResponse of(SpecValue specValue, List<String> reasons) {
+        private static ItemResponse of(SpecValue specValue, String basis, List<String> reasons) {
             SpecItemResponse item = SpecItemResponse.from(specValue);
-            return new ItemResponse(item.code(), item.displayName(), item.value(), item.displayValue(), reasons);
+            return new ItemResponse(item.code(), item.displayName(), item.value(), item.displayValue(), basis,
+                reasons);
         }
     }
 }

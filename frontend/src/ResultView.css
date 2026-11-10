@@ -240,14 +240,31 @@
     margin: 0;
 }
 
-.result-card__bottom h3 {
-    font-size: 16px;
-    font-weight: 600;
-}
-
 .result-card__notes {
     display: grid;
     gap: var(--space-8);
+}
+
+.result-card__sold-out {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-8);
+    padding: var(--space-16);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-16);
+}
+
+.result-card__sold-out p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.result-card__sold-out .text-button {
+    padding: 0;
+    color: var(--link);
+    font-weight: 600;
 }
 
 .result-card__note,
@@ -256,58 +273,6 @@
     color: var(--text-muted);
     font-size: 14px;
     line-height: 1.6;
-}
-
-.result-reasons {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-8);
-    padding: 0;
-    list-style: none;
-}
-
-.result-reasons__item {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-8);
-    padding: var(--space-16);
-    border-radius: var(--radius-16);
-    background: var(--surface-2);
-}
-
-/* 어느 항목의 근거인지는 카드 위에 한 번만 붙인다. */
-.result-reasons__tag {
-    border-radius: var(--radius-8);
-    padding: 2px var(--space-8);
-    color: var(--accent);
-    background: var(--tint);
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.result-reasons__lead,
-.result-reasons__more {
-    margin: 0;
-    font-size: 15px;
-    line-height: 1.6;
-}
-
-.result-reasons__more {
-    padding-left: var(--space-12);
-    border-left: 2px solid var(--divider);
-    color: var(--text-muted);
-}
-
-.result-reasons__toggle {
-    border: 0;
-    padding: 0;
-    color: var(--link);
-    background: none;
-    font: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
 }
 
 .result-feedback {
@@ -583,19 +548,27 @@
         gap: var(--space-16);
         padding: var(--space-28) var(--space-32);
     }
+}
 
-    .result-card__bottom h3 {
-        font-size: 18px;
+@media (max-width: 767px) and (max-height: 600px) {
+    .sticky-actions.result-price {
+        gap: var(--space-4);
+        padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom));
     }
 
-    /* 넓은 화면은 항목 카드를 두 열로 놓고 같은 줄의 높이를 맞춘다. 하나라도 펼치면 한 열로 바꿔 옆 카드가 짧게 남거나 빈칸이 생기지 않게 한다. */
-    .result-reasons {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: var(--space-12);
+    .result-price__list {
+        gap: 0;
     }
 
-    .result-reasons:has(.result-reasons__toggle[aria-expanded="true"]) {
-        grid-template-columns: minmax(0, 1fr);
+    .result-price__list li {
+        font-size: 13px;
+    }
+
+    .result-price__list strong {
+        font-size: 16px;
+    }
+
+    .result-price .button {
+        min-height: var(--control-sm);
     }
 }

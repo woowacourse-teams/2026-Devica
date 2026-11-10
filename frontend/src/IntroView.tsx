@@ -61,7 +61,10 @@ export function IntroView({
       <div className="flow-head">
         <p className="flow-head__eyebrow">{categoryName ? `${categoryName} · ${purposeName}` : purposeName}</p>
         <h1 id="intro-title">기본 권장 사양</h1>
-        <p className="flow-head__description">질문에 답하기 전, 가볍게 쓰는 경우를 기준으로 잡은 사양입니다.</p>
+        <p className="flow-head__description">
+          질문에 답하기 전, 가볍게 쓰는 경우를 기준으로 잡은 사양입니다. 항목을 누르면 그렇게 권하는 이유를 볼 수
+          있어요.
+        </p>
       </div>
 
       <section className="baseline-list" id="initial-spec-list" aria-label="OS별 기본 권장 사양">
@@ -79,8 +82,7 @@ export function IntroView({
 
       <div className="intro-next">
         <p className="intro-next__text">
-          지금 쓰는 노트북과 작업 방식, 겪어 본 불편을 알려주시면 내 작업에 맞게 사양을 조정해 드려요. 모든 질문은
-          건너뛸 수 있어요.
+          지금 쓰는 노트북과 작업 방식, 겪어 본 불편을 알려주시면 내 작업에 맞게 사양을 조정해 드려요.
         </p>
         <div className="sticky-actions intro-next__actions">
           <button

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { OsIcon } from './BaselineCard';
+import { OsIcon, SPEC_ROWS } from './BaselineCard';
 import { ChoiceGroup } from './ChoiceGroup';
 import { type Fetched, useFetched } from './fetched';
 import {
@@ -14,17 +14,9 @@ import {
 } from './products';
 import { osValueOf, type Spec, type SpecItem } from './recommendation';
 import { boardUrl, go, navigateInside } from './routes';
+import { SpecRationale } from './SpecRationale';
 import { PURPOSE_DISPLAY } from './selection';
 import './ResultView.css';
-
-// OS 는 카드 제목으로 쓰고 나머지를 이 순서로 보여준다. GPU·화면은 정의서가 요구할 때만 서버가 준다.
-const ROWS: { code: string; label: string }[] = [
-  { code: 'REQUIRED_CPU', label: 'PROCESSOR' },
-  { code: 'MEMORY', label: 'MEMORY' },
-  { code: 'STORAGE', label: 'STORAGE' },
-  { code: 'REQUIRED_GPU', label: 'GPU' },
-  { code: 'COLOR_GAMUT', label: 'DISPLAY' },
-];
 
 const OS_LABEL: Record<string, string> = { MAC: 'Mac', WINDOWS: 'Windows' };
 
@@ -139,6 +131,13 @@ export function ResultView({
                 key={osValueOf(spec)}
                 spec={spec}
                 edited={edited[index]}
+                soldOut={minPrices.data !== null && minPrices.data[index] === null}
+                otherOs={
+                  os === 'BOTH'
+                    ? null
+                    : (choices.find((choice) => choice.value !== os && choice.value !== 'BOTH') ?? null)
+                }
+                onChangeOs={onChangeOs}
                 tiers={tiers}
                 tiersFailed={tiersFailed}
                 onRetryTiers={onRetryTiers}
@@ -303,33 +302,12 @@ function RollingPrice({ value }: { value: number }) {
   );
 }
 
-// 항목마다 첫 근거만 보여 주고, 나머지는 눌러야 펼친다. 근거가 한꺼번에 늘어서면 읽히지 않는다.
-function ReasonItem({ label, reasons }: { label: string; reasons: string[] }) {
-  const [open, setOpen] = useState(false);
-  const [lead, ...rest] = reasons;
-
-  return (
-    <li className="result-reasons__item">
-      <span className="result-reasons__tag">{label}</span>
-      <p className="result-reasons__lead">{lead}</p>
-      {open &&
-        rest.map((reason) => (
-          <p className="result-reasons__more" key={reason}>
-            {reason}
-          </p>
-        ))}
-      {rest.length > 0 && (
-        <button className="result-reasons__toggle" type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
-          {open ? '접기' : `근거 ${rest.length}개 더 보기`}
-        </button>
-      )}
-    </li>
-  );
-}
-
 type SpecCardProps = {
   spec: Spec;
   edited: Spec;
+  soldOut: boolean;
+  otherOs: { value: string; label: string } | null;
+  onChangeOs: (os: ResultOs) => void;
   tiers: CpuTier[] | null;
   tiersFailed: boolean;
   onRetryTiers: () => void;
@@ -337,30 +315,42 @@ type SpecCardProps = {
   onReset: () => void;
 };
 
-function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, onEdit, onReset }: SpecCardProps) {
+function SpecCard({
+  spec,
+  edited,
+  soldOut,
+  otherOs,
+  onChangeOs,
+  tiers,
+  tiersFailed,
+  onRetryTiers,
+  onEdit,
+  onReset,
+}: SpecCardProps) {
   const [editing, setEditing] = useState(false);
   const os = osValueOf(spec);
-  const titleId = `spec-card-title-${os}`;
+  const osLabel = OS_LABEL[os] ?? os;
   const itemOf = (target: Spec, code: string): SpecItem | undefined => target.items.find((item) => item.code === code);
-  const rows = ROWS.flatMap(({ code, label }) => {
+  const rows = SPEC_ROWS.flatMap(({ code, label }) => {
     const recommended = itemOf(spec, code);
     const item = itemOf(edited, code);
     return recommended === undefined || item === undefined ? [] : [{ code, label, recommended, item }];
   });
   const osItem = itemOf(spec, 'OS');
-  const reasonItems = [
-    ...(osItem === undefined ? [] : [{ label: 'OS', recommended: osItem }]),
-    ...rows.map(({ label, recommended }) => ({ label, recommended })),
-  ];
-  const reasons = reasonItems.filter(({ recommended }) => recommended.reasons.length > 0);
 
   return (
-    <article className="result-card" id={`spec-card-${os}`} aria-labelledby={titleId}>
+    <article className="result-card" id={`spec-card-${os}`} aria-label={`${osLabel} 제품 추천 결과`}>
       <div className="spec-panel result-card__top">
         <div className="result-card__head">
-          <h2 className="os-title" id={titleId}>
+          <h2 className="os-title">
             <OsIcon spec={spec} />
-            {OS_LABEL[os] ?? os} 제품 추천 결과
+            {osItem === undefined || editing ? (
+              `${osLabel} 제품 추천 결과`
+            ) : (
+              <SpecRationale item={osItem} osLabel={osLabel}>
+                {osLabel} 제품 추천 결과
+              </SpecRationale>
+            )}
           </h2>
           <span className="result-card__actions">
             {editProperties(spec, edited) !== null && (
@@ -405,8 +395,12 @@ function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, onEdit, onRe
                       // 고른 칩을 다시 눌러도 그대로 둔다. 되돌리기는 추천 칩이나 카드의 되돌리기로 한다.
                       onChange={(value) => value !== null && onEdit(code, value)}
                     />
-                  ) : (
+                  ) : editing || item !== recommended ? (
                     item.displayValue
+                  ) : (
+                    <SpecRationale item={recommended} osLabel={osLabel}>
+                      {item.displayValue}
+                    </SpecRationale>
                   )}
                   {/* CPU 선택지와 고친 등급의 이름은 등급을 받아야 알 수 있다. 고치려 하거나 고친 값이 있을 때만 알린다. */}
                   {code === 'REQUIRED_CPU' && tiers === null && (editing || item !== recommended) && (
@@ -426,7 +420,24 @@ function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, onEdit, onRe
         </dl>
       </div>
       <div className="result-card__bottom">
-        {editing && <p className="result-card__hint">값을 바꾸면 최저가를 바로 다시 계산해요.</p>}
+        {soldOut && (
+          <div className="result-card__sold-out" role="note">
+            <p>
+              이 사양을 모두 갖춘 {osLabel} 노트북은 지금 판매 중인 제품이 없어요. 작업에 필요한 사양을 기준으로
+              추천했기 때문이에요. '직접 수정'으로 일부 항목을 한 단계 낮추거나 다른 OS 결과를 확인해 보세요.
+            </p>
+            {otherOs !== null && (
+              <button className="text-button" type="button" onClick={() => onChangeOs(otherOs.value as ResultOs)}>
+                {otherOs.label} 결과 보기
+              </button>
+            )}
+          </div>
+        )}
+        {editing ? (
+          <p className="result-card__hint">값을 바꾸면 최저가를 바로 다시 계산해요.</p>
+        ) : (
+          <p className="result-card__hint">항목을 누르면 그렇게 추천한 이유를 볼 수 있어요.</p>
+        )}
         {spec.notes.length > 0 && (
           <section className="result-card__notes" aria-label="안내">
             {spec.notes.map((note) => (
@@ -435,16 +446,6 @@ function SpecCard({ spec, edited, tiers, tiersFailed, onRetryTiers, onEdit, onRe
               </p>
             ))}
           </section>
-        )}
-        {!editing && reasons.length > 0 && (
-          <>
-            <h3>이렇게 추천한 이유</h3>
-            <ul className="result-reasons">
-              {reasons.map(({ label, recommended }) => (
-                <ReasonItem key={recommended.code} label={label} reasons={recommended.reasons} />
-              ))}
-            </ul>
-          </>
         )}
       </div>
     </article>

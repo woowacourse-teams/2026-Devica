@@ -35,6 +35,7 @@ const item = (code: string, value: string, displayValue: string) => ({
   displayName: code,
   value,
   displayValue,
+  basis: null,
   reasons: [`${code} 근거`],
 });
 
@@ -124,7 +125,7 @@ test('GPU·화면 권장은 목록 조건이 되고, 모든 제품이 갖춘 가
     notes: [],
     items: [
       item('OS', 'WINDOWS', 'Windows'),
-      item('REQUIRED_GPU', 'XX50', 'RTX xx50 급'),
+      item('REQUIRED_GPU', 'XX50', 'RTX xx50급'),
       item('COLOR_GAMUT', 'WIDE', '넓은 색 영역'),
     ],
   };

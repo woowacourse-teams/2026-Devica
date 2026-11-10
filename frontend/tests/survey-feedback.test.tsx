@@ -24,6 +24,7 @@ const question = (code: string, title: string, options: string[]): Question => (
 test('설문 의견 남기기는 지금 화면의 질문과 답을 채운 설문 의견 양식을 새 탭으로 연다', () => {
   const screens: Screen[] = [
     {
+      step: 0,
       title: '어떤 IDE 를 쓰나요?',
       description: null,
       currentSpec: false,
@@ -36,6 +37,7 @@ test('설문 의견 남기기는 지금 화면의 질문과 답을 채운 설문
       purpose="BACKEND_DEVELOPMENT"
       surveyVersion="3f9a1c2e7b40"
       screens={screens}
+      stepCount={1}
       index={0}
       answers={{ PREFERRED_OS: ['MACOS'], IDE: ['JETBRAINS', 'LIGHT_EDITOR'] }}
       outdated={false}
@@ -64,6 +66,7 @@ test('설문 의견 남기기는 지금 화면의 질문과 답을 채운 설문
 test('한 화면에 질문이 여럿이면 그 화면의 질문과 답만 고른 답으로 채운다', () => {
   const screens: Screen[] = [
     {
+      step: 0,
       title: '지금 쓰는 노트북',
       description: null,
       currentSpec: true,
@@ -79,6 +82,7 @@ test('한 화면에 질문이 여럿이면 그 화면의 질문과 답만 고른
       purpose="BACKEND_DEVELOPMENT"
       surveyVersion={null}
       screens={screens}
+      stepCount={1}
       index={0}
       answers={{ PREFERRED_OS: ['MACOS'], CURRENT_CPU: ['MID'] }}
       outdated={false}

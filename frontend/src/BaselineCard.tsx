@@ -1,11 +1,14 @@
 import { osValueOf, type Spec } from './recommendation';
+import { SpecRationale } from './SpecRationale';
 
-// 원본은 PROCESSOR · MEMORY · STORAGE 만 보여주고 OS 는 카드 제목으로 쓴다.
+// OS 는 카드 제목으로 쓰고 나머지를 이 순서로 보여준다. GPU·화면은 정의서가 요구할 때만 서버가 준다.
 // 권장 사양의 CPU 는 제품이 탑재한 CPU 와 코드가 다르다. 등급을 요구하는 쪽이 REQUIRED_CPU 다.
-const ROWS = [
+export const SPEC_ROWS: { code: string; label: string }[] = [
   { code: 'REQUIRED_CPU', label: 'PROCESSOR' },
   { code: 'MEMORY', label: 'MEMORY' },
   { code: 'STORAGE', label: 'STORAGE' },
+  { code: 'REQUIRED_GPU', label: 'GPU' },
+  { code: 'COLOR_GAMUT', label: 'DISPLAY' },
 ];
 
 const OS_ICON_PATHS: Record<string, string> = {
@@ -34,15 +37,22 @@ type Props = {
 export function BaselineCard({ spec }: Props) {
   const itemOf = (code: string) => spec.items.find((item) => item.code === code);
   const os = itemOf('OS');
+  const osLabel = os?.displayValue ?? '';
 
   return (
     <article className="spec-panel baseline-card">
       <h2 className="os-title">
         <OsIcon spec={spec} />
-        {os?.displayValue ?? ''}
+        {os === undefined ? (
+          osLabel
+        ) : (
+          <SpecRationale item={os} osLabel={osLabel}>
+            {osLabel}
+          </SpecRationale>
+        )}
       </h2>
       <dl className="spec-tiles">
-        {ROWS.map(({ code, label }) => {
+        {SPEC_ROWS.map(({ code, label }) => {
           const item = itemOf(code);
           if (item === undefined) {
             return null;
@@ -50,7 +60,11 @@ export function BaselineCard({ spec }: Props) {
           return (
             <div className="spec-tile" key={code}>
               <dt>{label}</dt>
-              <dd>{item.displayValue}</dd>
+              <dd>
+                <SpecRationale item={item} osLabel={osLabel}>
+                  {item.displayValue}
+                </SpecRationale>
+              </dd>
             </div>
           );
         })}

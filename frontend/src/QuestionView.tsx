@@ -50,6 +50,7 @@ type Props = {
   purpose: string;
   surveyVersion: string | null;
   screens: Screen[];
+  stepCount: number;
   index: number;
   answers: Answers;
   outdated: boolean;
@@ -62,6 +63,7 @@ export function QuestionView({
   purpose,
   surveyVersion,
   screens,
+  stepCount,
   index,
   answers,
   outdated,
@@ -90,6 +92,19 @@ export function QuestionView({
   const answered = isScreenAnswered(screen, answers);
   const skippable = screen.currentSpec && !answered;
   const nextLabel = skippable ? '건너뛰기' : last ? '결과 보기' : '다음';
+  const pending =
+    answered || screen.currentSpec
+      ? undefined
+      : screen.questions.find(({ question }) => (answers[question.code]?.length ?? 0) === 0);
+  const progress = last ? 100 : ((screen.step + 1) / stepCount) * 100;
+  const showPending = () => {
+    if (pending === undefined) {
+      return;
+    }
+    const group = document.getElementById(`question-${pending.question.code}`);
+    group?.scrollIntoView({ block: 'center' });
+    group?.querySelector('button')?.focus({ preventScroll: true });
+  };
 
   // 단일 선택 질문 하나뿐인 화면은 고르는 순간 답이 정해지므로 바로 넘어간다 (#177).
   // 답하기 전에는 선택지를 고르는 것이 유일한 진행 수단이라 다음 버튼을 두지 않는다 (#181). 되돌아와 이미 답이 있으면 다음 버튼으로 그대로 넘어간다.
@@ -107,11 +122,10 @@ export function QuestionView({
     <section className="view-panel flow-view question-view" id="question-view" aria-live="polite">
       <div className="question-progress">
         <p className="progress-meta">
-          <span id="progress-label">추천 결과 만드는 중</span>
           <span id="progress-count">{index + 1}번째 질문</span>
         </p>
         <div className="progress-track" aria-hidden="true">
-          <span id="progress-value" style={{ width: `${((index + 1) / screens.length) * 100}%` }} />
+          <span id="progress-value" style={{ width: `${progress}%` }} />
         </div>
         <p className="progress-note">답에 따라 질문이 늘거나 줄 수 있어요.</p>
       </div>
@@ -162,13 +176,18 @@ export function QuestionView({
         <button className="button" id="previous-button" type="button" onClick={() => slide('back', onPrevious)}>
           ← 이전
         </button>
+        {pending !== undefined && screen.questions.length > 1 && (
+          <p className="question-pending" role="status">
+            '{pending.label}'에 답하면 다음으로 넘어갈 수 있어요.
+          </p>
+        )}
         {(single === null || answered) && (
           <button
             className={`button ${skippable ? 'button--skip' : 'button--primary'}`}
             id="next-button"
             type="button"
-            disabled={!answered && !skippable}
-            onClick={() => slide('forward', onNext)}
+            aria-disabled={pending !== undefined}
+            onClick={() => (pending === undefined ? slide('forward', onNext) : showPending())}
           >
             {nextLabel}
             {!skippable && <span aria-hidden="true">→</span>}
@@ -255,7 +274,7 @@ function QuestionGroup({ question, label, chosen, onAnswer, onPick }: GroupProps
   };
 
   return (
-    <fieldset className="question-group">
+    <fieldset className="question-group" id={`question-${question.code}`}>
       <legend className="question-group__legend">
         {label !== null && <span>{label}</span>}
         <span className="question-mode">

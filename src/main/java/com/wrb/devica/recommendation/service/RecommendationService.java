@@ -32,7 +32,8 @@ public class RecommendationService {
         Map<String, String> conditions = Judgement.map(purpose.mappings(), response);
 
         List<RecommendedSpec> specs = laptopRecommender.recommend(purpose.interpretation(),
-            os -> Judgement.judge(purpose.rules(), purpose.notes(), response, os), conditions);
+            os -> Judgement.judge(purpose.rules(), purpose.notes(), response, os).withBasis(purpose.basisOf(os)),
+            conditions);
 
         return new Recommendation(specs, response.outdated());
     }

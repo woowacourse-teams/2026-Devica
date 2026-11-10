@@ -6,7 +6,9 @@ export type SpecItem = {
   displayName: string;
   value: string;
   displayValue: string;
-  // 한 항목에 조정 조건이 여럿 걸리면 근거도 여럿이다.
+  // 기본 권장 사양을 정한 근거다. 답과 관계없이 항목마다 하나다.
+  basis: string | null;
+  // 답으로 걸린 근거다. 한 항목에 조정 조건이 여럿 걸리면 근거도 여럿이다.
   reasons: string[];
 };
 
