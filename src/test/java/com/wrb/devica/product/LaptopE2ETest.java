@@ -27,6 +27,7 @@ import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.domain.Product;
 import com.wrb.devica.product.domain.ProductOffer;
+import com.wrb.devica.product.domain.Seller;
 import com.wrb.devica.product.dto.PriceRefreshTarget;
 import com.wrb.devica.product.infra.coupang.CoupangPriceRefreshJob;
 import com.wrb.devica.product.infra.coupang.CoupangProductSearchClient;
@@ -44,6 +45,7 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
@@ -328,7 +330,7 @@ class LaptopE2ETest extends E2ETest {
     void 상위_검색_후보에_없어도_기존_가격과_확인일과_목록_상세_노출을_유지한다() {
         // given
         Laptop laptop = laptopOf(laptop().name("검색에서빠진상품"));
-        ProductOffer offer = productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).name("쿠팡")
+        ProductOffer offer = productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).seller(Seller.COUPANG).name("쿠팡")
             .externalItemId("56").price(1_000_000L).checkedAt(LocalDate.of(2026, 10, 25))
             .purchaseUrl("https://www.coupang.com/vp/products/999?vendorItemId=56")
             .status(OfferStatus.ON_SALE).build());
@@ -361,7 +363,7 @@ class LaptopE2ETest extends E2ETest {
         // given
         Laptop laptop = laptopOf(laptop().name("재확인대상"));
 
-        ProductOffer offer = productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).name("쿠팡")
+        ProductOffer offer = productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).seller(Seller.COUPANG).name("쿠팡")
             .externalItemId("56").price(1_000_000L).checkedAt(LocalDate.of(2026, 10, 25))
             .purchaseUrl("https://www.coupang.com/vp/products/999?vendorItemId=56")
             .status(OfferStatus.ON_SALE).build());
@@ -486,13 +488,13 @@ class LaptopE2ETest extends E2ETest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"학생복지스토어", "Apple 공홈"})
-    void 새_판매처의_가격이_목록_상세_예산_정렬에_일관되게_반영된다(String seller) {
+    @CsvSource({"STUDENT_STORE, 학생복지스토어", "APPLE_STORE, Apple 공홈"})
+    void 새_판매처의_가격이_목록_상세_예산_정렬에_일관되게_반영된다(Seller seller, String sellerName) {
         Laptop subject = laptopOf(laptop().name("새판매처가격"));
-        productOfferRepository.save(offer().product(subject).name("쿠팡").price(500_000L)
+        productOfferRepository.save(offer().product(subject).seller(Seller.COUPANG).name("쿠팡").price(500_000L)
             .status(OfferStatus.HIDDEN).build());
-        ProductOffer winner = saveSellerOffer(subject, seller);
-        ProductOffer tied = saveSellerOffer(subject, seller);
+        ProductOffer winner = saveSellerOffer(subject, seller, sellerName);
+        ProductOffer tied = saveSellerOffer(subject, seller, sellerName);
         minPriceRefresher.refresh(subject.getId());
         onSaleLaptop(laptop().name("일반가격"), 1_200_000L);
 
@@ -508,14 +510,15 @@ class LaptopE2ETest extends E2ETest {
 
         given().when().get("/api/products/" + subject.getId()).then().statusCode(200)
             .body("offers.id", contains(winner.getId().intValue(), tied.getId().intValue()))
-            .body("offers[0].name", is(seller))
+            .body("offers[0].name", is(sellerName))
             .body("offers[0].price", is(900_000))
             .body("offers[0].purchaseUrl", is("https://example.test/product"))
             .body("offers[0].checkedAt", is("2026-10-30"));
     }
 
-    private ProductOffer saveSellerOffer(Laptop laptop, String seller) {
-        return productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).name(seller)
+    private ProductOffer saveSellerOffer(Laptop laptop, Seller seller, String sellerName) {
+        return productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).seller(seller)
+            .name(sellerName)
             .price(900_000L).purchaseUrl("https://example.test/product").status(OfferStatus.ON_SALE)
             .checkedAt(LocalDate.of(2026, 10, 30)).build());
     }

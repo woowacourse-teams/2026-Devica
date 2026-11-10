@@ -8,6 +8,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -16,6 +18,9 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
+// 같은 제품에 같은 판매처의 같은 판매상품을 두 번 등록하지 않는다. 판매상품 ID가 없는 행(NULL)은 제약에서 제외된다.
+@Table(uniqueConstraints = @UniqueConstraint(name = "uk_product_offer_seller_item",
+    columnNames = {"product_id", "seller", "external_item_id"}))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ProductOffer extends BaseTimeEntity {
 
@@ -26,6 +31,11 @@ public class ProductOffer extends BaseTimeEntity {
     @Column(name = "product_id", nullable = false)
     private Long productId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
+    private Seller seller;
+
+    // 화면에 보이는 판매처 이름. 판매처를 구분할 때는 seller 를 쓴다.
     @Column(nullable = false, length = 64)
     private String name;
 
@@ -48,10 +58,11 @@ public class ProductOffer extends BaseTimeEntity {
     private LocalDate checkedAt;
 
     @Builder
-    private ProductOffer(Long productId, String name, long price, String externalItemId,
+    private ProductOffer(Long productId, Seller seller, String name, long price, String externalItemId,
                          String purchaseUrl, OfferStatus status, LocalDate checkedAt) {
         validatePrice(price);
         this.productId = productId;
+        this.seller = seller;
         this.name = name;
         this.price = price;
         this.externalItemId = externalItemId;
