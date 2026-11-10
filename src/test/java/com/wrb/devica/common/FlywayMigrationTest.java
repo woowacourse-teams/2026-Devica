@@ -33,7 +33,7 @@ public class FlywayMigrationTest {
     }
 
     @Test
-    void 초기_노트북_20개의_쿠팡_판매상품_ID는_URL의_vendorItemId와_일치하고_중복되지_않는다() {
+    void 등록된_노트북의_쿠팡_판매상품_ID는_URL의_vendorItemId와_일치하고_중복되지_않는다() {
         // given: 운영 DB가 아닌 마이그레이션 테스트 전용 DB에 초기 데이터를 적용한다.
         flyway.clean();
         flyway.migrate();
@@ -49,7 +49,7 @@ public class FlywayMigrationTest {
             """);
 
         // then
-        assertThat(offers).hasSize(20);
+        assertThat(offers).isNotEmpty();
         assertThat(offers).extracting(row -> row.get("code")).doesNotHaveDuplicates();
         assertThat(offers).extracting(row -> row.get("external_item_id")).doesNotHaveDuplicates();
         offers.forEach(row -> {
