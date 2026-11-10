@@ -309,7 +309,13 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
     );
   }
 
-  const screens = resolveScreens(survey.data, answers);
+  const current = pruneHiddenAnswers(survey.data, answers);
+  const screens = resolveScreens(survey.data, current);
+  const outdated = screens.findIndex((screen) =>
+    screen.questions.some(({ question }) =>
+      (answers[question.code] ?? []).some((code) => !(current[question.code] ?? []).includes(code)),
+    ),
+  );
   // 답이 바뀌어 문항이 줄었거나 없는 번호로 들어왔으면 남은 마지막 문항으로 보낸다.
   // 옮긴 칸의 바로 앞 칸은 이전 문항이 아닐 수 있다. from 을 지워 "이전"이 기록을 되돌리지 않고 이전 문항으로 가게 한다.
   if (number > screens.length && screens.length > 0) {
@@ -322,14 +328,26 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
     );
   }
 
+  if (outdated >= 0 && number - 1 > outdated) {
+    return (
+      <Redirect to={`/questions/${outdated + 1}${suffix}`} replace state={{ ...currentNavState(), from: undefined }} />
+    );
+  }
+
   const answer = (code: string, values: string[]) => {
     // 답이 바뀌면 딸린 질문이 사라질 수 있다. 사라진 질문의 답은 함께 지운다.
-    const next = pruneHiddenAnswers(survey.data ?? { steps: [], version: null }, { ...answers, [code]: values });
+    const next = pruneHiddenAnswers(survey.data ?? { steps: [], version: null }, { ...current, [code]: values });
     setAnswers(next);
     saveAnswers(purpose, next);
   };
 
+  const settle = () => {
+    setAnswers(current);
+    saveAnswers(purpose, current);
+  };
+
   const goPrevious = () => {
+    settle();
     if (number === 1) {
       goBack(`${PATHS.intro}${suffix}`, 'intro');
       return;
@@ -338,12 +356,13 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
   };
 
   const goNext = () => {
+    settle();
     if (number < screens.length) {
       go(`/questions/${number + 1}${suffix}`);
       return;
     }
     track('onboarding_completed', flow);
-    go(`${PATHS.result}${query([...flowEntries(flow), ...answerEntries(answers)])}`);
+    go(`${PATHS.result}${query([...flowEntries(flow), ...answerEntries(current)])}`);
   };
 
   return (
@@ -352,7 +371,8 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
       surveyVersion={survey.data.version}
       screens={screens}
       index={number - 1}
-      answers={answers}
+      answers={current}
+      outdated={outdated === number - 1}
       onAnswer={answer}
       onPrevious={goPrevious}
       onNext={goNext}
