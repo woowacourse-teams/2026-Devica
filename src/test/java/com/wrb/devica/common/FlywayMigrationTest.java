@@ -101,7 +101,7 @@ public class FlywayMigrationTest {
     @Test
     void 품절_판매처를_포함해_모든_제품의_최저가를_다시_계산한다() {
         try {
-            // given: V1.31 이전 기준으로 판매 중 판매처만 최저가에 들어가 있다.
+            // given: V1.32 이전 기준으로 판매 중 판매처만 최저가에 들어가 있다.
             migrateTo("1.29");
             long mixed = saveProduct("MIN-PRICE-MIXED");
             saveOffer(mixed, 3_700_000L, "ON_SALE");
