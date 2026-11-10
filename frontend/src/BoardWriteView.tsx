@@ -4,7 +4,7 @@ import { track } from './analytics';
 import { BoardScopeInfo } from './BoardShared';
 import { BOARD_POSTS_CACHE, BoardRequestError, type BoardScope, createBoardPost } from './board';
 import { forgetStartingWith } from './fetched';
-import { boardUrl, replace } from './routes';
+import { boardUrl, goBack, navigateInside, replace } from './routes';
 import type { Served } from './selection';
 
 const BLANK_ERROR = '제목과 본문은 공백만 입력할 수 없습니다.';
@@ -44,7 +44,7 @@ export function BoardWriteView({ scope }: { scope: BoardScope & { purpose: Serve
       forgetStartingWith(BOARD_POSTS_CACHE);
       if (!controller.signal.aborted) {
         // 뒤로 가기로 돌아왔을 때 이미 등록한 글을 다시 제출하지 않도록 작성 화면을 상세로 대체한다.
-        replace(`/board/posts/${post.id}`);
+        replace(`/board/posts/${post.id}`, { from: 'boardWrite' });
       }
     } catch (caught: unknown) {
       if (!controller.signal.aborted) {
@@ -66,7 +66,11 @@ export function BoardWriteView({ scope }: { scope: BoardScope & { purpose: Serve
 
   return (
     <section className="view-panel flow-view board-view" aria-labelledby="board-write-title">
-      <Link className="text-button view-back-button" href={listUrl}>
+      <Link
+        className="text-button view-back-button"
+        href={listUrl}
+        onClick={(event) => navigateInside(event, () => goBack(listUrl, 'board'))}
+      >
         ← 목록으로
       </Link>
       <div className="flow-head">
@@ -130,7 +134,11 @@ export function BoardWriteView({ scope }: { scope: BoardScope & { purpose: Serve
           </p>
         )}
         <div className="board-form__actions sticky-actions">
-          <Link className="button board-form__back" href={listUrl}>
+          <Link
+            className="button board-form__back"
+            href={listUrl}
+            onClick={(event) => navigateInside(event, () => goBack(listUrl, 'board'))}
+          >
             목록으로
           </Link>
           <button className="button button--primary" type="submit" disabled={submitting}>

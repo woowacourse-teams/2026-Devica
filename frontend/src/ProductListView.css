@@ -8,6 +8,12 @@
     width: 100%;
 }
 
+.product-list-os__note {
+    margin: var(--space-8) 0 0;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
 /* 검색·필터·정렬 바. 한 줄로 두고 스크롤해도 위에 붙어 있다. 아래로 지나가는 카드가 비치지 않게 바탕을 칠한다. OS 토글은 바 위에 따로 둔다. */
 .product-list-bar {
     position: sticky;
@@ -75,6 +81,10 @@
 
 .product-search input::placeholder {
     color: var(--text-muted);
+}
+
+.product-search input:placeholder-shown::-webkit-search-cancel-button {
+    display: none;
 }
 
 .product-filter-toggle {
@@ -561,6 +571,11 @@ html:has(.product-filter-sheet[open]) {
         justify-content: center;
         width: var(--control-md);
         padding: 0;
+    }
+
+    .product-search {
+        gap: var(--space-8);
+        padding: 0 var(--space-12);
     }
 
     .menu-button__trigger .menu-button__chevron {

@@ -379,7 +379,7 @@ rules:
     when: { question: DESIGN_FIELD, anyOf: [ MOTION_VIDEO ] }
     reason: 영상은 DCI-P3 같은 넓은 색 영역으로 만들어, 화면이 그 색을 표현해야 색 보정을 정확히 할 수 있습니다.
 
-  # Blender 는 VRAM 8GB, Premiere Pro·After Effects 는 GPU 메모리 8GB 를 권장한다. 복잡한 3D 장면과 4K 영상은 VRAM 8GB 인 RTX xx60 급까지 올린다
+  # Blender 는 VRAM 8GB, Premiere Pro·After Effects 는 GPU 메모리 8GB 를 권장한다. 복잡한 3D 장면과 4K 영상은 VRAM 8GB 인 RTX xx60급까지 올린다
   - criterion: REQUIRED_GPU
     weight: 1
     when: { question: DESIGN_FIELD, anyOf: [ THREE_D ] }
@@ -510,7 +510,7 @@ interpretation:
   # 화면 디자인만 하면 표준 색 영역, 인쇄·브랜딩이나 영상을 하면 넓은 색 영역을 권한다
   colorGamut: [ { upTo: 0, value: STANDARD }, { value: WIDE } ]
   # 화면 디자인·그래픽은 내장 GPU 로 충분하다(Photoshop 권장 GPU 메모리 4GB 는 4K 이상 모니터 기준).
-  # 영상이나 단순한 3D 작업은 보급 외장 GPU 인 RTX xx50 급, 복잡한 3D 장면과 4K 영상은 VRAM 8GB 인 RTX xx60 급을 권한다.
+  # 영상이나 단순한 3D 작업은 보급 외장 GPU 인 RTX xx50급, 복잡한 3D 장면과 4K 영상은 VRAM 8GB 인 RTX xx60급을 권한다.
   # Mac 은 CPU 와 같이 예산을 고려해 M Pro 칩까지만 권한다
   gpu:
     MAC: [ { upTo: 0, value: BASIC }, { value: PRO } ]

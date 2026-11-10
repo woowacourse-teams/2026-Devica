@@ -4,7 +4,7 @@ import { track } from './analytics';
 import { BoardComments } from './BoardComments';
 import { BoardByline, BoardLoading, BoardMessage, BoardScopeInfo } from './BoardShared';
 import { fetchBoardPost } from './board';
-import { boardUrl } from './routes';
+import { boardUrl, goBack, navigateInside } from './routes';
 import { useBoardRequest } from './useBoardRequest';
 
 export function BoardPostPage({ id }: { id: string }) {
@@ -44,7 +44,11 @@ function BoardPostView({ id }: { id: number }) {
   const listUrl = boardUrl(post.categoryCode, post.purposeCode);
   return (
     <section className="view-panel flow-view board-view" aria-labelledby="board-post-title">
-      <Link className="text-button view-back-button" href={listUrl}>
+      <Link
+        className="text-button view-back-button"
+        href={listUrl}
+        onClick={(event) => navigateInside(event, () => goBack(listUrl, 'board'))}
+      >
         ← 목록으로
       </Link>
       <BoardScopeInfo
@@ -61,7 +65,11 @@ function BoardPostView({ id }: { id: number }) {
         <div className="board-post__content">{post.content}</div>
       </article>
       <BoardComments key={post.id} postId={post.id} />
-      <Link className="button board-return" href={listUrl}>
+      <Link
+        className="button board-return"
+        href={listUrl}
+        onClick={(event) => navigateInside(event, () => goBack(listUrl, 'board'))}
+      >
         목록으로
       </Link>
     </section>

@@ -89,6 +89,7 @@ type Props = {
   specs: Spec[];
   // 질문에 답하지 않고 기본 권장 사양으로 연 맞춤 목록이다.
   baseline?: boolean;
+  bothOs?: boolean;
   backLabel: string;
   // 상세를 다녀와도 정렬과 검색 조건이 풀리지 않게 부모가 들고 있는다.
   // 맞춤 목록에서는 condition.os 가 보고 있는 OS 탭이다. 부모가 늘 채워 준다.
@@ -108,6 +109,7 @@ export function ProductListView({
   mode,
   specs,
   baseline = false,
+  bothOs = false,
   backLabel,
   state,
   onChangeState,
@@ -407,6 +409,7 @@ export function ProductListView({
           // 탭은 비울 수 없다. 고른 것을 다시 눌러도 그대로 둔다.
           onChange={(os) => os !== null && selectOs(os)}
         />
+        {bothOs && <p className="product-list-os__note">탭을 바꾸면 Mac과 Windows 제품을 각각 볼 수 있어요.</p>}
       </div>
       <div className="product-list-bar" id="product-list-bar">
         <label className="product-list-control product-search" htmlFor="product-filter-keyword">
