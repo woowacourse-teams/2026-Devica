@@ -48,7 +48,7 @@ Y2J = ('f=lambda{|o| case o when Hash then o.map{|k,v|[k.to_s,f.(v)]}.to_h when 
        'puts JSON.generate(f.(YAML.safe_load($stdin.read, permitted_classes: [Date, Time], aliases: true)))')
 CPU_RANK = {'BASIC': 0, 'PRO': 1, 'MAX': 2, 'U': 0, 'P_HS': 1, 'H': 2, 'HX': 3}
 ITEMS = ('REQUIRED_CPU', 'MEMORY', 'STORAGE')
-RESULT_PREFIXES = ('https://devica.co.kr/result', 'https://2026-devica.vercel.app/result')
+RESULT_PREFIXES = ('https://devica.co.kr/result', 'https://dev.devica.co.kr/result', 'https://2026-devica.vercel.app/result')
 MARKER_PREFIX = '<!-- product-recommendation:'
 API_TRIES = 5  # 끊김(#259) 때 api 가 보내는 최대 횟수
 # 댓글 표시 → 그 블록이 따라야 하는 스키마 (interface/binding.md)

@@ -9,7 +9,7 @@
 | GitHub 레포 | `GH_REPO` | `woowacourse-teams/2026-Devica` |
 | 피드백 라벨 | | `product-recommendation-rule-feedback`, 설문 피드백은 `product-recommendation-survey-feedback` |
 | 승인 라벨 | | `product-recommendation-approved`. 팀원만 단다 |
-| 개발 제품 추천 API(`develop` 반영) | | `http://dev.devica.co.kr` |
+| 개발 제품 추천 API(`develop` 반영) | | `http://api.dev.devica.co.kr` |
 | 운영 제품 추천 API | | `https://api.devica.co.kr` |
 | 상태 디렉터리 | `ST` | `$HOME/.devica-product-recommendation/feedback-analyzer`. `SELF_REF` 에서 복사한 스크립트(`common.py`, `survey_feedback.py`, Recommendation Improver 의 `snapshot.py`·`survey.py`)와 스키마(`interface/artifacts/*.schema.yml`)가 있다 |
 | 지시문·스크립트 ref | `SELF_REF` | `run.sh` 가 넘긴다. 기본은 `origin/develop` |
@@ -34,7 +34,7 @@
 
 **서버 확인.** 두 API 가 응답하는지 본다. 하나라도 200 이 아니면 아무것도 쓰지 않고 기록한 뒤 끝낸다.
 ```bash
-python3 "$ST/common.py" api http://dev.devica.co.kr BACKEND_DEVELOPMENT '{}' | head -c 200; python3 "$ST/common.py" api https://api.devica.co.kr BACKEND_DEVELOPMENT '{}' | head -c 200
+python3 "$ST/common.py" api http://api.dev.devica.co.kr BACKEND_DEVELOPMENT '{}' | head -c 200; python3 "$ST/common.py" api https://api.devica.co.kr BACKEND_DEVELOPMENT '{}' | head -c 200
 ```
 
 ## 1. 상태 읽기
@@ -102,7 +102,7 @@ P·5 의 피드백은 R·A·H 에서 뺀다. R 의 근거 피드백 중 열린 �
 
 본문을 파일로 써서 `python3 "$ST/common.py" fields <파일>` 로 칸을 읽는다.
 
-- **주소**: `결과 화면 주소` 칸에서 `https://devica.co.kr/result` 또는 `https://2026-devica.vercel.app/result` 로 시작하는 줄만 쓴다. `python3 "$ST/common.py" url <주소>` 의 `answers` 만 쓰고 `answer` 밖의 값은 버린다. 사용 목적은 `purpose`(없으면 `BACKEND_DEVELOPMENT`)다. 주소가 하나도 없으면 "재현할 수 없음".
+- **주소**: `결과 화면 주소` 칸에서 `https://devica.co.kr/result`, `https://dev.devica.co.kr/result`, `https://2026-devica.vercel.app/result` 중 하나로 시작하는 줄만 쓴다. `python3 "$ST/common.py" url <주소>` 의 `answers` 만 쓰고 `answer` 밖의 값은 버린다. 사용 목적은 `purpose`(없으면 `BACKEND_DEVELOPMENT`)다. 주소가 하나도 없으면 "재현할 수 없음".
 - **지표 피드백의 주소별 정보**: `python3 "$ST/common.py" metric <파일>` 로 한 번에 읽는다. `urls`(주소 번호 `address` 와 `answers`), `counts`(주소별 건수, 주소 순서), `edits`(고친 값, 주소 번호 포함), `changed`(주소별 바꾼 답). 주소 번호 N 은 결과 화면 주소 칸의 N 번째 줄이다. 같은 주소가 바꾼 답이 달라 두 줄일 수 있고, 그때는 다른 주소다.
 - **권장안**: `Mac` → [MAC], `Windows` → [WINDOWS], `둘 다` 또는 빈칸 → [MAC, WINDOWS].
 - **지적**: `어떤 점이 맞지 않았나요?` 를 `, ` 로 나눈다.
@@ -119,7 +119,7 @@ P·5 의 피드백은 R·A·H 에서 뺀다. R 의 근거 피드백 중 열린 �
 - `dropped` 가 참이면 그 주소는 재현되지 않는다(설문이 바뀌어 답 일부가 버려짐).
 - 그 밖에는 출력의 `answers` 를 그 주소의 답으로 삼아 개발 API·`hits`·`hit`·`target`·조건 3 에 쓴다. `outdated` 가 참이면 판단 근거에 지운 코드를 바꿔 읽었다고 적는다. 운영 API 와 `seen` 의 `answers` 는 주소의 원래 답 그대로다.
 
-그 답으로 `python3 "$ST/common.py" api http://dev.devica.co.kr <purpose> '<answers>'` 를 부른다. 400 이면 그 주소는 재현되지 않는다. **모든 주소가 재현되지 않으면**, 그중 `dropped` 인 주소가 있으면 **"설문이 바뀌어 재현할 수 없음"**(3-2-1), 없으면 **"재현할 수 없음"**으로 판단하고 3-3 부터는 하지 않는다. 일부만 되면 된 주소만 쓰고 나머지를 분석 결과에 적는다.
+그 답으로 `python3 "$ST/common.py" api http://api.dev.devica.co.kr <purpose> '<answers>'` 를 부른다. 400 이면 그 주소는 재현되지 않는다. **모든 주소가 재현되지 않으면**, 그중 `dropped` 인 주소가 있으면 **"설문이 바뀌어 재현할 수 없음"**(3-2-1), 없으면 **"재현할 수 없음"**으로 판단하고 3-3 부터는 하지 않는다. 일부만 되면 된 주소만 쓰고 나머지를 분석 결과에 적는다.
 
 **사용자가 본 값**은 이 피드백의 직전 분석 결과 yaml 블록의 `seen` 에서 그 주소의 `answers` 와 권장안·항목이 같은 것을 쓴다. 첫 분석이면 지금 `python3 "$ST/common.py" api https://api.devica.co.kr …` 로 받은 값을 사용자가 본 값으로 삼아 주소마다 `seen` 에 적는다. 단 `고친 값` 이 있는 피드백은 `metric` 의 `edits` 중 그 주소(`address`)의 `recommended`(`value`, `rank`)가 사용자가 본 값이다. 사용자가 고칠 때 화면에 있던 값이 기록돼 있어, 그 뒤 운영이 바뀌었어도 이것과 비교해야 한다. 한 주소의 한 항목에 여러 줄이 있으면 `count` 가 가장 큰 줄의 값을 쓴다. 주소가 여럿이면 같은 권장안·항목이라도 주소마다 값이 다르므로 `answers` 로 구분한다. 다시 재현할 때 지금 운영 결과와 비교하면 그 사이 배포된 개선을 놓쳐 사용자가 본 적 없는 값에 지적을 다시 적용하기 때문이다. 운영 결과를 받지 못한 주소는 사용자가 본 값이 없고, 이미 바뀌었는지 비교하지 않는다(바뀌지 않은 것으로 본다).
 
