@@ -123,7 +123,7 @@ survey:
 
     - questions:
         - code: STORAGE_SHORTAGE
-          title: 용량이 부족해서 뭔가를 지우거나 옮긴 적이 있나요?
+          title: 저장 공간이 부족해서 파일을 지우거나 옮긴 적이 있나요?
           description: SDK·시뮬레이터를 지운 경우도 포함해요.
           options:
             - { code: OFTEN, content: 자주 있다 }
