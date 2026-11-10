@@ -3,7 +3,7 @@ import { Link } from 'wouter';
 import { track } from './analytics';
 import { BoardByline } from './BoardShared';
 import { BOARD_POSTS_CACHE, type BoardPostSummary, type BoardScope, fetchBoardPosts } from './board';
-import { usePaged } from './fetched';
+import { keepLatestStartingWith, usePaged } from './fetched';
 import { boardUrl, currentNavState, PATHS, query } from './routes';
 import type { Served } from './selection';
 import { useBoardRequest } from './useBoardRequest';
@@ -13,6 +13,7 @@ type ListScope = BoardScope & { purpose: Served };
 
 const PREFETCH_MARGIN = '0px 0px 600px 0px';
 const UNABORTED = new AbortController().signal;
+const KEPT_VISITS = 10;
 
 export function BoardListView({ scope, page }: { scope: ListScope; page: number }) {
   const { category, purpose } = scope;
@@ -123,6 +124,7 @@ function ScrollingPosts({ scope, toolbar }: { scope: ListScope; toolbar: ReactNo
   const [visit] = useState(() => currentNavState().boardVisit ?? Date.now());
   useEffect(() => {
     window.history.replaceState({ ...currentNavState(), boardVisit: visit }, '');
+    keepLatestStartingWith(BOARD_POSTS_CACHE, KEPT_VISITS);
   }, [visit]);
   const posts = usePaged<BoardPostSummary>(`${BOARD_POSTS_CACHE}${category.code}:${purpose.code}:${visit}`, (page) =>
     fetchBoardPosts(category.code, purpose.code, page, UNABORTED),

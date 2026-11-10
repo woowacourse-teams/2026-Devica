@@ -1,7 +1,13 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { BoardByline } from './BoardShared';
-import { BOARD_POSTS_CACHE, BoardRequestError, createBoardComment, fetchBoardComments } from './board';
-import { forgetStartingWith } from './fetched';
+import {
+  BOARD_POSTS_CACHE,
+  type BoardPostSummary,
+  BoardRequestError,
+  createBoardComment,
+  fetchBoardComments,
+} from './board';
+import { updatePagedStartingWith } from './fetched';
 import { useBoardRequest } from './useBoardRequest';
 
 const COMMENT_MAX_LENGTH = 1000;
@@ -70,7 +76,9 @@ function BoardCommentForm({ postId, onCreated }: { postId: number; onCreated: ()
     setState({ status: 'submitting' });
     try {
       await createBoardComment(postId, content, controller.signal);
-      forgetStartingWith(BOARD_POSTS_CACHE);
+      updatePagedStartingWith<BoardPostSummary>(BOARD_POSTS_CACHE, (post) =>
+        post.id === postId ? { ...post, commentCount: post.commentCount + 1 } : post,
+      );
       if (!controller.signal.aborted) {
         setContent('');
         setState({ status: 'success' });

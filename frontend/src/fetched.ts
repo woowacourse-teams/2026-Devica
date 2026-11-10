@@ -22,6 +22,27 @@ export function forgetStartingWith(prefix: string) {
   }
 }
 
+export function updatePagedStartingWith<T extends { id: number }>(prefix: string, update: (item: T) => T) {
+  for (const [key, value] of received) {
+    if (key.startsWith(prefix)) {
+      const pages = value as Pages<T>;
+      received.set(key, { ...pages, items: pages.items.map(update) });
+    }
+  }
+}
+
+export function keepLatestStartingWith(prefix: string, count: number) {
+  const keys = [...received.keys()].filter((key) => key.startsWith(prefix));
+  for (const key of keys.slice(0, Math.max(0, keys.length - count))) {
+    received.delete(key);
+    for (const flight of loading) {
+      if (flight.startsWith(`${key}#`)) {
+        discarded.add(flight);
+      }
+    }
+  }
+}
+
 type Attempt<T> = {
   key: string;
   data: T | null;

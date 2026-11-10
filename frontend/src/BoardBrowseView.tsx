@@ -179,11 +179,11 @@ function BoardNavigation({
                 href={href(item.code)}
                 aria-current={item.code === selected ? 'page' : undefined}
               >
-                {tabName(kind, item.name)}
+                {item.shortName ?? item.name}
               </Link>
             ) : (
               <button className="board-browse__tab" type="button" disabled>
-                {tabName(kind, item.name)}
+                {item.shortName ?? item.name}
                 <span className="board-browse__badge">준비 중</span>
               </button>
             )}
@@ -192,10 +192,6 @@ function BoardNavigation({
       </ul>
     </nav>
   );
-}
-
-function tabName(kind: 'category' | 'purpose', name: string) {
-  return kind === 'purpose' ? name.replace(/ 개발$/, '') : name;
 }
 
 function BrowseError({ message, onRetry }: { message: string; onRetry: () => void }) {
