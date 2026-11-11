@@ -104,6 +104,7 @@
 
 .result-card__head {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     gap: var(--space-12);
@@ -137,6 +138,7 @@
     font: inherit;
     font-size: 16px;
     font-weight: 600;
+    white-space: nowrap;
     cursor: pointer;
 }
 
