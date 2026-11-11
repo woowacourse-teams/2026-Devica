@@ -712,7 +712,8 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
   for (const [key] of listEntries(null, conditionOf(params))) {
     resultParams.delete(key);
   }
-  const baseline = Object.keys(answersOf(params)).length === 0 && navState.from !== 'result' && !params.has('edit');
+  const baseline =
+    Object.keys(answersOf(params)).length === 0 && navState.from !== 'result' && Object.keys(edits).length === 0;
 
   return (
     <ProductListView

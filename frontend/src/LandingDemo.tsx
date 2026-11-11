@@ -20,7 +20,7 @@ import type { LandingGuideContent } from './landingGuides';
 
 const FIRST_STEP_CUT = 0.5;
 
-export const RECOMMEND_WEIGHTS = [FIRST_STEP_CUT, 1, 1, 2.5, 1];
+export const RECOMMEND_WEIGHTS = [FIRST_STEP_CUT, 1, 1, 1.5, 1];
 const BOARD_WEIGHTS = [1.5, 1.5, 1];
 
 const sum = (values: readonly number[]) => values.reduce((total, value) => total + value, 0);

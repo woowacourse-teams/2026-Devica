@@ -9,7 +9,7 @@ export const LANDING_GUIDES = [
       { title: '제품 선택', description: '찾고 있는 제품을 골라요. 지금은 노트북으로 시작할 수 있어요.' },
       { title: '사용 목적 선택', description: '백엔드·프론트엔드 개발 등 직군별로 고를 수 있어요.' },
       { title: '내 환경 알려주기', description: '사용 언어 · 개발 도구 · 작업 환경에 답해요.' },
-      { title: '제품 추천 결과 확인', description: 'CPU · RAM · SSD와 추천 근거를 함께 읽어요.' },
+      { title: '제품 추천 결과 확인', description: 'CPU · RAM · SSD를 확인하고, 설명 보기로 권장 이유를 읽어요.' },
       { title: '제품 확인', description: '추천 결과에 맞는 제품을 살펴보고, 궁금하면 게시판에서 나눠요.' },
     ],
   },
