@@ -41,16 +41,13 @@ export function BaselineCard({ spec }: Props) {
 
   return (
     <article className="spec-panel baseline-card">
-      <h2 className="os-title">
-        <OsIcon spec={spec} />
-        {os === undefined ? (
-          osLabel
-        ) : (
-          <SpecRationale item={os} osLabel={osLabel}>
-            {osLabel}
-          </SpecRationale>
-        )}
-      </h2>
+      <div className="rationale-heading">
+        <h2 className="os-title">
+          <OsIcon spec={spec} />
+          {osLabel}
+        </h2>
+        {os !== undefined && <SpecRationale item={os} osLabel={osLabel} />}
+      </div>
       <dl className="spec-tiles">
         {SPEC_ROWS.map(({ code, label }) => {
           const item = itemOf(code);
@@ -61,9 +58,8 @@ export function BaselineCard({ spec }: Props) {
             <div className="spec-tile" key={code}>
               <dt>{label}</dt>
               <dd>
-                <SpecRationale item={item} osLabel={osLabel}>
-                  {item.displayValue}
-                </SpecRationale>
+                {item.displayValue}
+                <SpecRationale item={item} osLabel={osLabel} />
               </dd>
             </div>
           );

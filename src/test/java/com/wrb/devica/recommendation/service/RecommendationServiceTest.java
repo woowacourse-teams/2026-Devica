@@ -67,7 +67,7 @@ class RecommendationServiceTest {
             List<SpecValue> values = recommended.spec().values();
             assertThat(values).isNotEmpty();
             assertThat(values).allSatisfy(value ->
-                assertThat(recommended.itemBasis().get(value.code())).isNotBlank());
+                assertThat(recommended.itemBasis().get(value.code())).isNotNull());
         });
     }
 

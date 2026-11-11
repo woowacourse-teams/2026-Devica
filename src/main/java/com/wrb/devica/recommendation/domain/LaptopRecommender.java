@@ -186,7 +186,7 @@ public class LaptopRecommender {
 
         LaptopSpec spec = buyableSpec(os, cpuTier, memoryGb, storageGb, colorGamut, gpuTier, reasons);
         if (current != null && spec.cpuTier().isHigherThan(current)) {
-            reasons.get(CPU_ITEM).add("지금 쓰는 " + current.getDisplayName() + "에서 불편을 겪어 그보다 위를 권합니다.");
+            reasons.get(CPU_ITEM).add("지금 쓰는 " + current.getDisplayName() + "에서 불편을 겪어 그보다 위를 권해요.");
         }
         boolean preferred = os.name().equals(conditions.get(LaptopCondition.PREFERRED_OS.name()));
         return new RecommendedSpec(spec, reasons, requirements.basis(), requirements.notes(), preferred);
@@ -225,14 +225,14 @@ public class LaptopRecommender {
     private void addMacCpuLimitReasons(CpuTier limit, CpuTier current, List<String> reasons) {
         if (current != null && current.isHigherThan(limit)) {
             reasons.add("지금 쓰는 " + current.getDisplayName() + "보다 낮지만, 이 작업에는 "
-                + limit.getDisplayName() + "이면 충분해 예산을 고려해 제한했습니다.");
+                + limit.getDisplayName() + "이면 충분해 예산을 고려해 제한했어요.");
             return;
         }
 
-        reasons.add("예산을 고려해 Mac 권장 CPU는 " + limit.getDisplayName() + "으로 제한했습니다.");
+        reasons.add("예산을 고려해 Mac 권장 CPU는 " + limit.getDisplayName() + "으로 제한했어요.");
 
         if (limit == current) {
-            reasons.add("지금과 같은 " + limit.getDisplayName() + "이라도 최신 세대를 고르면 성능이 오릅니다.");
+            reasons.add("지금과 같은 " + limit.getDisplayName() + "이라도 최신 세대를 고르면 성능이 올라요.");
         }
     }
 
@@ -261,14 +261,14 @@ public class LaptopRecommender {
         if (memoryGb > largestMemoryOf(tier)) {
             tier = tier.stepUp();
             reasons.get(CPU_ITEM)
-                .add(memoryGb + "GB를 쓰려면 " + tier.getDisplayName() + " 이상이어야 합니다.");
+                .add(memoryGb + "GB를 쓰려면 " + tier.getDisplayName() + " 이상이어야 해요.");
         }
 
         int adjusted = smallestMemoryAtLeast(tier, memoryGb);
 
         if (adjusted != memoryGb) {
             reasons.get(MEMORY_ITEM)
-                .add(tier.getDisplayName() + "에서는 " + memoryGb + "GB를 고를 수 없어 바로 위 용량인 " + adjusted + "GB를 권합니다.");
+                .add(tier.getDisplayName() + "에서는 " + memoryGb + "GB를 고를 수 없어 바로 위 용량인 " + adjusted + "GB를 권해요.");
         }
 
         return new LaptopSpec(os, tier, adjusted, storageGb, colorGamut, matchGpuToCpu(gpuTier, tier, reasons));
@@ -286,7 +286,7 @@ public class LaptopRecommender {
         }
 
         reasons.get(CPU_ITEM)
-            .add("GPU로 " + chip.getDisplayName() + "이 필요해 CPU도 " + chip.getDisplayName() + "을 권합니다.");
+            .add("GPU로 " + chip.getDisplayName() + "이 필요해 CPU도 " + chip.getDisplayName() + "을 권해요.");
         return chip;
     }
 
@@ -301,7 +301,7 @@ public class LaptopRecommender {
             return gpuTier;
         }
 
-        reasons.get(GPU_ITEM).add("CPU와 같은 칩이라 GPU도 " + chip.getDisplayName() + "입니다.");
+        reasons.get(GPU_ITEM).add("CPU와 같은 칩이라 GPU도 " + chip.getDisplayName() + "이에요.");
         return chip;
     }
 

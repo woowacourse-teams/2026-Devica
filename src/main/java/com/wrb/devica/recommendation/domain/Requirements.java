@@ -4,13 +4,13 @@ import java.util.List;
 import java.util.Map;
 
 public record Requirements(Map<String, Integer> values, Map<String, List<String>> reasons, List<String> notes,
-                           Map<String, String> basis) {
+                           Map<String, Basis> basis) {
 
     public Requirements(Map<String, Integer> values, Map<String, List<String>> reasons, List<String> notes) {
         this(values, reasons, notes, Map.of());
     }
 
-    public Requirements withBasis(Map<String, String> basis) {
+    public Requirements withBasis(Map<String, Basis> basis) {
         return new Requirements(values, reasons, notes, basis);
     }
 

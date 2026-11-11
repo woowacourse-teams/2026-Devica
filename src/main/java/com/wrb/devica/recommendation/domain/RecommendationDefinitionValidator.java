@@ -30,6 +30,10 @@ record RecommendationDefinitionValidator(Set<String> requirements, Map<String, S
             validateCondition(note.when(), questions, "안내 '" + note.message() + "'", errors);
         }
 
+        for (Basis basis : definition.basis()) {
+            validateBasis(basis, errors);
+        }
+
         List<RetiredCode> retired = definition.survey().retired().codes();
         Set<String> retiredKeys = new HashSet<>();
 
@@ -120,6 +124,22 @@ record RecommendationDefinitionValidator(Set<String> requirements, Map<String, S
 
         if (!values.contains(mapping.value())) {
             errors.add(where + ": 항목이 가질 수 없는 값입니다");
+        }
+    }
+
+    private void validateBasis(Basis basis, List<String> errors) {
+        String where = "근거 " + basis.item() + (basis.os() == null ? "" : "(" + basis.os() + ")");
+
+        if (basis.summary() == null || basis.summary().isBlank()) {
+            errors.add(where + ": 결론 문장이 없습니다");
+        }
+
+        if (basis.points() == null || basis.points().isEmpty() || basis.points().size() > 3) {
+            errors.add(where + ": 요점은 1~3개여야 합니다");
+        }
+
+        if (basis.upgrade().size() > 2) {
+            errors.add(where + ": 더 필요한 경우는 2개까지 적습니다");
         }
     }
 

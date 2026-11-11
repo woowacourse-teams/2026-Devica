@@ -346,15 +346,43 @@
     }
 }
 
+.rationale-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--space-8);
+    min-width: 0;
+}
+
 .rationale-trigger {
-    display: inline;
-    border: 0;
-    padding: 0;
-    color: inherit;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    min-height: 28px;
+    border: 1px solid var(--on-primary-muted);
+    border-radius: var(--radius-pill);
+    padding: 0 var(--space-12);
+    color: var(--on-primary);
     background: none;
     font: inherit;
-    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
     cursor: pointer;
+    transition: border-color 150ms ease-out;
+}
+
+.rationale-trigger:hover,
+.rationale-trigger:focus-visible {
+    border-color: var(--on-primary);
+}
+
+.rationale-heading .rationale-trigger::before {
+    content: "";
+    position: absolute;
+    inset: -8px -4px;
 }
 
 .rationale-trigger__hint {
@@ -366,10 +394,11 @@
     white-space: nowrap;
 }
 
-.rationale-trigger__icon {
-    margin-left: 6px;
-    vertical-align: -0.1em;
-    opacity: 0.7;
+.spec-tile .rationale-trigger {
+    position: static;
+    display: flex;
+    width: fit-content;
+    margin-top: var(--space-8);
 }
 
 .spec-tile:has(.rationale-trigger) {
@@ -381,7 +410,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    border-radius: inherit;
+    border-radius: var(--radius-16);
 }
 
 .spec-tile:has(.rationale-trigger):hover {
@@ -475,7 +504,8 @@ html:has(.rationale-dialog[open]) {
     gap: var(--space-8);
 }
 
-.rationale-dialog__body h3 {
+.rationale-dialog__body h3,
+.rationale-dialog__body h4 {
     margin: 0;
     color: var(--accent);
     font-size: 14px;
@@ -488,6 +518,20 @@ html:has(.rationale-dialog[open]) {
     font-size: 16px;
     line-height: 1.7;
     word-break: keep-all;
+}
+
+.rationale-dialog__body .rationale-dialog__summary {
+    font-weight: 700;
+}
+
+.rationale-dialog__body .rationale-dialog__subheading {
+    margin-top: var(--space-8);
+}
+
+.rationale-dialog__body .rationale-dialog__tip {
+    margin-top: var(--space-4);
+    color: var(--text-muted);
+    font-size: 15px;
 }
 
 .rationale-dialog__body ul {
@@ -516,6 +560,7 @@ html:has(.rationale-dialog[open]) {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .rationale-trigger,
     .spec-tile:has(.rationale-trigger) {
         transition: none;
     }

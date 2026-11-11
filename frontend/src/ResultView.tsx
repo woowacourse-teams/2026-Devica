@@ -342,16 +342,13 @@ function SpecCard({
     <article className="result-card" id={`spec-card-${os}`} aria-label={`${osLabel} 제품 추천 결과`}>
       <div className="spec-panel result-card__top">
         <div className="result-card__head">
-          <h2 className="os-title">
-            <OsIcon spec={spec} />
-            {osItem === undefined || editing ? (
-              `${osLabel} 제품 추천 결과`
-            ) : (
-              <SpecRationale item={osItem} osLabel={osLabel}>
-                {osLabel} 제품 추천 결과
-              </SpecRationale>
-            )}
-          </h2>
+          <div className="rationale-heading">
+            <h2 className="os-title">
+              <OsIcon spec={spec} />
+              {osLabel} 제품 추천 결과
+            </h2>
+            {osItem !== undefined && !editing && <SpecRationale item={osItem} osLabel={osLabel} />}
+          </div>
           <span className="result-card__actions">
             {editProperties(spec, edited) !== null && (
               <button className="result-card__button result-card__button--plain" type="button" onClick={onReset}>
@@ -395,12 +392,11 @@ function SpecCard({
                       // 고른 칩을 다시 눌러도 그대로 둔다. 되돌리기는 추천 칩이나 카드의 되돌리기로 한다.
                       onChange={(value) => value !== null && onEdit(code, value)}
                     />
-                  ) : editing || item !== recommended ? (
-                    item.displayValue
                   ) : (
-                    <SpecRationale item={recommended} osLabel={osLabel}>
+                    <>
                       {item.displayValue}
-                    </SpecRationale>
+                      {!editing && item === recommended && <SpecRationale item={recommended} osLabel={osLabel} />}
+                    </>
                   )}
                   {/* CPU 선택지와 고친 등급의 이름은 등급을 받아야 알 수 있다. 고치려 하거나 고친 값이 있을 때만 알린다. */}
                   {code === 'REQUIRED_CPU' && tiers === null && (editing || item !== recommended) && (

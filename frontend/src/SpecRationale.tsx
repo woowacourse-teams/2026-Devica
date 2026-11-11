@@ -1,4 +1,4 @@
-import { type ReactNode, useId, useRef } from 'react';
+import { useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { CloseIcon } from './ProductListView';
 import type { SpecItem } from './recommendation';
@@ -6,17 +6,19 @@ import type { SpecItem } from './recommendation';
 type Props = {
   item: SpecItem;
   osLabel: string;
-  children: ReactNode;
 };
 
-export function SpecRationale({ item, osLabel, children }: Props) {
+export function SpecRationale({ item, osLabel }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const close = () => ref.current?.close();
   const answered = item.reasons.length > 0;
 
-  if (item.basis === null && !answered) {
-    return children;
+  const { basis } = item;
+  const Subheading = answered ? 'h4' : 'h3';
+
+  if (basis === null && !answered) {
+    return null;
   }
 
   return (
@@ -27,9 +29,10 @@ export function SpecRationale({ item, osLabel, children }: Props) {
         aria-haspopup="dialog"
         onClick={() => ref.current?.showModal()}
       >
-        {children}
-        <span className="rationale-trigger__hint">, 권장 이유 보기</span>
-        <InfoIcon />
+        <span className="rationale-trigger__hint">
+          {item.displayName} {item.displayValue}{' '}
+        </span>
+        설명 보기
       </button>
       {createPortal(
         // biome-ignore lint/a11y/useKeyWithClickEvents: 키보드로는 Esc 로 닫는다. 이 클릭은 창 바깥의 배경을 누른 경우만 받는다.
@@ -61,10 +64,26 @@ export function SpecRationale({ item, osLabel, children }: Props) {
                 </ul>
               </section>
             )}
-            {item.basis !== null && (
+            {basis !== null && (
               <section>
                 {answered && <h3>기본 권장 사양의 근거</h3>}
-                <p>{item.basis}</p>
+                <p className="rationale-dialog__summary">{basis.summary}</p>
+                <ul>
+                  {basis.points.map((point) => (
+                    <li key={point}>{point}</li>
+                  ))}
+                </ul>
+                {basis.upgrade.length > 0 && (
+                  <>
+                    <Subheading className="rationale-dialog__subheading">이럴 땐 더 필요해요</Subheading>
+                    <ul>
+                      {basis.upgrade.map((each) => (
+                        <li key={each}>{each}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                {basis.tip !== null && <p className="rationale-dialog__tip">{basis.tip}</p>}
               </section>
             )}
           </div>
@@ -72,24 +91,5 @@ export function SpecRationale({ item, osLabel, children }: Props) {
         document.body,
       )}
     </>
-  );
-}
-
-function InfoIcon() {
-  return (
-    <svg
-      className="rationale-trigger__icon"
-      aria-hidden="true"
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 11v5M12 8h.01" />
-    </svg>
   );
 }

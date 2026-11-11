@@ -3,11 +3,11 @@
 # 기본 권장 사양의 근거는 아래 basis 에 적는다.
 #
 # 점수로 고른 사양을 바꾸는 보정
-#   - "지금 쓰는 <CPU>에서 불편을 겪어 그보다 위를 권합니다."      CURRENT_CPU_TIER 매핑이 있으면 CPU 를 한 단계 위로
-#   - "예산을 고려해 Mac 권장 CPU는 <CPU>으로 제한했습니다."        Mac CPU 를 interpretation.macCpuLimit 까지로 제한
-#   - "지금과 같은 <CPU>이라도 최신 세대를 고르면 성능이 오릅니다."  제한한 CPU 가 지금 쓰는 CPU 와 같은 등급일 때
-#   - "<N>GB를 쓰려면 <CPU> 이상이어야 합니다."                     Mac 은 CPU 마다 고를 수 있는 메모리가 달라 CPU 를 올림
-#   - "<CPU>에서는 <N>GB를 고를 수 없어 바로 위 용량인 <M>GB를 권합니다."  Mac 메모리를 고를 수 있는 용량으로 올림
+#   - "지금 쓰는 <CPU>에서 불편을 겪어 그보다 위를 권해요."      CURRENT_CPU_TIER 매핑이 있으면 CPU 를 한 단계 위로
+#   - "예산을 고려해 Mac 권장 CPU는 <CPU>으로 제한했어요."        Mac CPU 를 interpretation.macCpuLimit 까지로 제한
+#   - "지금과 같은 <CPU>이라도 최신 세대를 고르면 성능이 올라요."  제한한 CPU 가 지금 쓰는 CPU 와 같은 등급일 때
+#   - "<N>GB를 쓰려면 <CPU> 이상이어야 해요."                     Mac 은 CPU 마다 고를 수 있는 메모리가 달라 CPU 를 올림
+#   - "<CPU>에서는 <N>GB를 고를 수 없어 바로 위 용량인 <M>GB를 권해요."  Mac 메모리를 고를 수 있는 용량으로 올림
 #
 # 규칙을 고친 뒤에는 RecommendationServiceTest 의 설명대로 스냅숏을 다시 만들어 결과 변화를 diff 로 확인한다.
 
@@ -166,72 +166,72 @@ rules:
   - criterion: MEMORY
     weight: 2
     when: { question: PROJECT_SCALE, anyOf: [ LARGE ] }
-    reason: 의존성이 많은 큰 프로젝트는 개발 서버와 빌드가 메모리를 많이 씁니다.
+    reason: 의존성이 많은 큰 프로젝트는 개발 서버와 빌드가 메모리를 많이 써요.
   - criterion: MEMORY
     weight: -1
     when: { question: PROJECT_SCALE, anyOf: [ SMALL ] }
-    reason: 작은 프로젝트는 개발 서버가 차지하는 메모리가 적습니다.
+    reason: 작은 프로젝트는 개발 서버가 차지하는 메모리가 적어요.
   - criterion: MEMORY
     weight: 1
     when: { question: IDE, anyOf: [ JETBRAINS ] }
-    reason: JetBrains IDE는 인덱싱과 코드 분석에 메모리를 많이 씁니다.
+    reason: JetBrains IDE는 인덱싱과 코드 분석에 메모리를 많이 써요.
   - criterion: MEMORY
     weight: 2
     when: { question: IDE, anyOf: [ MULTIPLE ] }
-    reason: 여러 에디터를 함께 띄우면 그만큼 더 듭니다.
+    reason: 여러 에디터를 함께 띄우면 그만큼 더 들어요.
   - criterion: MEMORY
     weight: 1
     when: { question: AI_CODING_TOOL, anyOf: [ AI_EDITOR ] }
-    reason: AI 전용 에디터는 모델 연동으로 메모리를 더 씁니다.
+    reason: AI 전용 에디터는 모델 연동으로 메모리를 더 써요.
   - criterion: MEMORY
     weight: 1
     when: { question: OPEN_TOGETHER, anyOf: [ MANY_TABS ] }
-    reason: 브라우저 탭과 개발자 도구는 탭마다 메모리를 따로 차지합니다.
+    reason: 브라우저 탭과 개발자 도구는 탭마다 메모리를 따로 차지해요.
   - criterion: MEMORY
     weight: 1
     when: { question: OPEN_TOGETHER, anyOf: [ MULTI_BROWSER ] }
-    reason: 여러 브라우저를 함께 띄우면 그만큼 메모리를 더 씁니다.
+    reason: 여러 브라우저를 함께 띄우면 그만큼 메모리를 더 써요.
   - criterion: MEMORY
     weight: 1
     when: { question: OPEN_TOGETHER, anyOf: [ DESIGN_TOOL ] }
-    reason: 디자인 도구를 함께 켜 두면 메모리를 더 씁니다.
+    reason: 디자인 도구를 함께 켜 두면 메모리를 더 써요.
   - criterion: MEMORY
     weight: 1
     when: { question: RUN_TOGETHER, anyOf: [ DEV_TOOLS ] }
-    reason: Storybook이나 테스트 감시 모드는 개발 서버와 별도로 메모리를 씁니다.
+    reason: Storybook이나 테스트 감시 모드는 개발 서버와 별도로 메모리를 써요.
   - criterion: MEMORY
     weight: 2
     when: { question: RUN_TOGETHER, anyOf: [ LOCAL_BACKEND ] }
-    reason: 백엔드와 DB를 함께 띄우면 그만큼 메모리를 차지합니다.
+    reason: 백엔드와 DB를 함께 띄우면 그만큼 메모리를 차지해요.
   - criterion: MEMORY
     weight: 1
     when: { question: RUN_TOGETHER, anyOf: [ E2E_TEST ] }
-    reason: E2E 테스트는 테스트용 브라우저를 따로 띄워 메모리를 더 씁니다.
+    reason: E2E 테스트는 테스트용 브라우저를 따로 띄워 메모리를 더 써요.
   - criterion: MEMORY
     weight: 2
     when: { question: MULTI_APP_SLOWDOWN, anyOf: [ OFTEN ] }
-    reason: 여러 프로그램을 함께 사용할 때 겪은 불편을 고려해 메모리에 여유를 두었습니다.
+    reason: 여러 프로그램을 함께 사용할 때 겪은 불편을 고려해 메모리에 여유를 두었어요.
   - criterion: MEMORY
     weight: 1
     when: { question: MULTI_APP_SLOWDOWN, anyOf: [ SOMETIMES ] }
-    reason: 가끔 느려진 경험을 반영했습니다.
+    reason: 가끔 느려진 경험을 반영했어요.
   - criterion: MEMORY
     weight: 1
     when: { question: USAGE_PERIOD, anyOf: [ FIVE_PLUS_YEARS ] }
-    reason: 오래 쓸 계획이라 여유를 두었습니다.
+    reason: 오래 쓸 계획이라 여유를 두었어요.
   - criterion: MEMORY
     weight: -1
     when: { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }
-    reason: 짧게 쓸 계획이라 과한 용량을 피했습니다.
+    reason: 짧게 쓸 계획이라 과한 용량을 피했어요.
 
   - criterion: STORAGE
     weight: 1
     when: { question: PROJECT_SCALE, anyOf: [ LARGE ] }
-    reason: 큰 프로젝트는 의존성과 빌드 캐시가 자리를 많이 차지합니다.
+    reason: 큰 프로젝트는 의존성과 빌드 캐시가 자리를 많이 차지해요.
   - criterion: STORAGE
     weight: 1
     when: { question: RUN_TOGETHER, anyOf: [ LOCAL_BACKEND ] }
-    reason: 백엔드와 DB의 이미지·데이터가 자리를 차지합니다.
+    reason: 백엔드와 DB의 이미지·데이터가 자리를 차지해요.
   # 지금 쓰는 SSD 가 작다는 걸 아는 경우의 용량 부족은 디스크 크기 탓이라 크게 올리지 않고, 지금보다 큰 용량만 권한다.
   # 기본값이 256GB 라 이 경우 감점(짧은 사용 기간 등)이 걸리면 다시 256GB 가 나오므로 감점을 적용하지 않는다.
   # 미입력은 작다는 근거가 없으므로 사용자의 자기 보고를 그대로 인정한다
@@ -241,21 +241,21 @@ rules:
       all:
         - { not: { question: CURRENT_STORAGE, anyOf: [ GB_256_OR_LESS, TB_1_OR_MORE ] } }
         - { question: STORAGE_SHORTAGE, anyOf: [ OFTEN ] }
-    reason: 용량이 자주 부족했던 경험을 반영했습니다.
+    reason: 용량이 자주 부족했던 경험을 반영했어요.
   - criterion: STORAGE
     weight: 1
     when:
       all:
         - { not: { question: CURRENT_STORAGE, anyOf: [ GB_256_OR_LESS, TB_1_OR_MORE ] } }
         - { question: STORAGE_SHORTAGE, anyOf: [ ONCE_OR_TWICE ] }
-    reason: 용량이 부족했던 경험을 반영했습니다.
+    reason: 용량이 부족했던 경험을 반영했어요.
   - criterion: STORAGE
     weight: 1
     when: &smallDiskShortage
       all:
         - { question: CURRENT_STORAGE, anyOf: [ GB_256_OR_LESS ] }
         - { question: STORAGE_SHORTAGE, anyOf: [ OFTEN, ONCE_OR_TWICE ] }
-    reason: 지금 256GB 이하에서 용량이 부족했던 경험을 반영했습니다.
+    reason: 지금 256GB 이하에서 용량이 부족했던 경험을 반영했어요.
   # 1TB 로도 부족했다면 1TB 를 넘는 용량이 필요하다는 근거라 더 크게 반영한다
   - criterion: STORAGE
     weight: 4
@@ -263,62 +263,62 @@ rules:
       all:
         - { question: CURRENT_STORAGE, anyOf: [ TB_1_OR_MORE ] }
         - { question: STORAGE_SHORTAGE, anyOf: [ OFTEN ] }
-    reason: 지금 1TB를 쓰는데도 용량이 자주 부족했던 경험을 반영했습니다.
+    reason: 지금 1TB를 쓰는데도 용량이 자주 부족했던 경험을 반영했어요.
   - criterion: STORAGE
     weight: 2
     when:
       all:
         - { question: CURRENT_STORAGE, anyOf: [ TB_1_OR_MORE ] }
         - { question: STORAGE_SHORTAGE, anyOf: [ ONCE_OR_TWICE ] }
-    reason: 지금 1TB를 쓰는데도 용량이 부족했던 경험을 반영했습니다.
+    reason: 지금 1TB를 쓰는데도 용량이 부족했던 경험을 반영했어요.
   - criterion: STORAGE
     weight: 1
     when: { question: USAGE_PERIOD, anyOf: [ FIVE_PLUS_YEARS ] }
-    reason: 오래 쓸 계획이라 여유를 두었습니다.
+    reason: 오래 쓸 계획이라 여유를 두었어요.
   - criterion: STORAGE
     weight: -1
     when:
       all:
         - { question: CURRENT_STORAGE, anyOf: [ TB_1_OR_MORE ] }
         - { question: STORAGE_SHORTAGE, anyOf: [ NEVER ] }
-    reason: 지금 1TB를 쓰면서 용량이 부족한 적이 없었습니다.
+    reason: 지금 1TB를 쓰면서 용량이 부족한 적이 없었어요.
   - criterion: STORAGE
     weight: -1
     when: { all: [ { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }, { not: *smallDiskShortage } ] }
-    reason: 짧게 쓸 계획이라 과한 용량을 피했습니다.
+    reason: 짧게 쓸 계획이라 과한 용량을 피했어요.
 
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: PROJECT_SCALE, anyOf: [ LARGE ] }
-    reason: 큰 프로젝트는 번들링과 타입 검사에 CPU를 많이 씁니다.
+    reason: 큰 프로젝트는 번들링과 타입 검사에 CPU를 많이 써요.
   - criterion: REQUIRED_CPU
     weight: 2
     when: { question: BUILD_WAIT, anyOf: [ OFTEN ] }
-    reason: 개발 서버와 빌드가 느려 답답했던 경험을 반영했습니다.
+    reason: 개발 서버와 빌드가 느려 답답했던 경험을 반영했어요.
   - criterion: REQUIRED_CPU
     weight: 2
     when: { question: OVERHEATING, anyOf: [ OFTEN ] }
-    reason: 작업 중 노트북이 자주 뜨거워지는 것은 오래 이어지는 부하가 크다는 신호라 반영했습니다.
+    reason: 작업 중 노트북이 자주 뜨거워지는 것은 오래 이어지는 부하가 크다는 신호라 반영했어요.
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: RUN_TOGETHER, anyOf: [ E2E_TEST ] }
-    reason: E2E 테스트를 실행하는 데 필요한 CPU 자원을 고려했습니다.
+    reason: E2E 테스트를 실행하는 데 필요한 CPU 자원을 고려했어요.
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: RUN_TOGETHER, anyOf: [ LOCAL_BACKEND ] }
-    reason: 백엔드와 DB를 함께 돌리면 코어가 더 필요합니다.
+    reason: 백엔드와 DB를 함께 돌리면 코어가 더 필요해요.
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: IDE, anyOf: [ MULTIPLE ] }
-    reason: 여러 에디터를 함께 쓰면 백그라운드 작업이 겹칩니다.
+    reason: 여러 에디터를 함께 쓰면 백그라운드 작업이 겹쳐요.
   - criterion: REQUIRED_CPU
     weight: 1
     when: { question: USAGE_PERIOD, anyOf: [ FIVE_PLUS_YEARS ] }
-    reason: 오래 쓸 계획이라 여유를 두었습니다.
+    reason: 오래 쓸 계획이라 여유를 두었어요.
   - criterion: REQUIRED_CPU
     weight: -1
     when: { question: USAGE_PERIOD, anyOf: [ TWO_YEARS ] }
-    reason: 짧게 쓸 계획이라 과한 사양을 피했습니다.
+    reason: 짧게 쓸 계획이라 과한 사양을 피했어요.
 
 mappings:
   - { criterion: PREFERRED_OS, value: MAC, when: { question: PREFERRED_OS, anyOf: [ MACOS ] } }
@@ -357,35 +357,54 @@ mappings:
 basis:
   - item: OS
     os: MAC
-    text: >-
-      프론트엔드 개발 도구는 Node.js 기반이라 Mac과 Windows 어디서나 돌아가서, 어느 OS로도 개발할 수 있습니다. Mac에서는 Safari로 화면을 직접 확인할 수 있어 Apple
-      기기 사용자를 위한 확인이 수월합니다. 터미널 환경이 서버와 같은 Unix 계열이라 설치 문서의 명령을 그대로 쓰기 쉽습니다. 이미 익숙한 OS가 있다면 그쪽을 고르셔도 됩니다.
+    summary: 어느 OS로도 개발할 수 있어요.
+    points:
+      - 개발 도구가 Node.js 기반이라 Mac과 Windows 어디서나 돌아가요
+      - Mac에서는 Safari로 화면을 직접 확인할 수 있어 Apple 기기 사용자를 위한 확인이 수월해요
+      - 터미널이 서버와 같은 Unix 계열이라 설치 문서의 명령을 그대로 쓰기 쉬워요
+    tip: 이미 익숙한 OS가 있다면 그쪽을 골라도 돼요.
   - item: OS
     os: WINDOWS
-    text: >-
-      프론트엔드 개발 도구는 Node.js 기반이라 Windows에서도 문제없이 돌아갑니다. Windows 사용자에게 보이는 브라우저 화면과 글꼴을 직접 확인할 수 있다는 장점이 있습니다. 다만
-      Safari로 확인해야 하는 화면은 Mac이나 실제 기기가 따로 필요합니다. 이미 Windows에 익숙하다면 굳이 Mac으로 바꿀 필요는 없습니다.
+    summary: Windows에서도 문제없이 개발할 수 있어요.
+    points:
+      - 개발 도구가 Node.js 기반이라 Windows에서도 문제없이 돌아가요
+      - Windows 사용자에게 보이는 브라우저 화면과 글꼴을 직접 확인할 수 있어요
+      - 다만 Safari로 확인해야 하는 화면은 Mac이나 실제 기기가 따로 필요해요
+    tip: 이미 Windows에 익숙하다면 굳이 Mac으로 바꿀 필요는 없어요.
   - item: REQUIRED_CPU
     os: MAC
-    text: >-
-      프론트엔드 개발은 개발 서버 하나와 브라우저를 함께 돌리는 것이 기본이라, 기본 M 칩으로도 개발 서버 시작과 수정 반영이 충분히 빠릅니다. 번들링과 타입 검사처럼 코어를 많이 쓰는 작업은
-      프로젝트가 커질수록 늘어납니다. 그래서 기본 칩을 권하고, 여러 앱·패키지를 함께 빌드하거나 빌드 대기가 답답했다면 질문 답에 따라 Pro 칩으로 올립니다. 기본 권장 메모리 16GB는 모든 세대의
-      기본 칩에서 고를 수 있습니다.
+    summary: 기본 M 칩이면 충분해요.
+    points:
+      - 개발 서버 하나와 브라우저를 함께 돌리는 것이 기본이에요
+      - 기본 M 칩으로도 개발 서버 시작과 수정 반영이 충분히 빨라요
+      - 번들링·타입 검사처럼 코어를 많이 쓰는 작업은 프로젝트가 커질수록 늘어나요
+    upgrade:
+      - 여러 앱·패키지를 함께 빌드하거나 빌드 대기가 답답했다면 → Pro 칩
+    tip: 기본 권장 메모리 16GB는 모든 세대의 기본 칩에서 고를 수 있어요.
   - item: REQUIRED_CPU
     os: WINDOWS
-    text: >-
-      프론트엔드 개발은 개발 서버 하나와 브라우저를 함께 돌리는 것이 기본이라, 고효율 Core Ultra 7·Ryzen 7급이면 충분합니다. 번들링과 타입 검사처럼 코어를 많이 쓰는 작업은 프로젝트가
-      커질수록 늘어납니다. 여러 앱·패키지를 함께 빌드하거나 빌드 대기가 답답했다면 질문 답에 따라 고성능 H 계열로 올립니다.
+    summary: 고효율 Core Ultra 7·Ryzen 7급이면 충분해요.
+    points:
+      - 개발 서버 하나와 브라우저를 함께 돌리는 것이 기본이에요
+      - 번들링·타입 검사처럼 코어를 많이 쓰는 작업은 프로젝트가 커질수록 늘어나요
+    upgrade:
+      - 여러 앱·패키지를 함께 빌드하거나 빌드 대기가 답답했다면 → 고성능 H 계열
   - item: MEMORY
-    text: >-
-      운영체제와 브라우저, 에디터, 개발 서버를 가볍게 잡으면 7~12GB라 16GB 안에 들어갑니다. 백엔드 개발처럼 Docker와 데이터베이스를 기본으로 띄우지 않아 그보다 높게 둘 이유가 없습니다.
-      그래서 노트북 메모리 단계 중 가장 낮은 16GB를 기본으로 권합니다. 브라우저 탭과 개발자 도구를 많이 띄우거나 Storybook·E2E 테스트, 로컬 백엔드를 함께 돌린다면 질문 답에 따라
-      24GB 이상으로 올립니다.
+    summary: 가벼운 개발 구성이 7~12GB라 16GB면 충분해요.
+    points:
+      - 운영체제·브라우저·에디터·개발 서버를 가볍게 잡으면 7~12GB
+      - 백엔드 개발처럼 Docker와 DB를 기본으로 띄우지 않아 더 높게 둘 이유가 없어요
+    upgrade:
+      - 브라우저 탭과 개발자 도구를 많이 띄운다면 → 24GB 이상
+      - Storybook·E2E 테스트나 로컬 백엔드를 함께 돌린다면 → 24GB 이상
   - item: STORAGE
-    text: >-
-      운영체제와 Node.js, 패키지 캐시, 프로젝트의 node_modules를 더하면 60~90GB 정도입니다. SSD는 속도와 수명을 위해 20% 정도 비워 두는 편이 좋은데, 그만큼을 빼도
-      256GB에 여유가 남습니다. 백엔드 개발은 Docker가 20~40GB를 더 써서 512GB를 권하지만, 프론트엔드는 그렇지 않아 256GB를 기본으로 권합니다. 큰 프로젝트나 로컬 백엔드·DB를
-      함께 다루거나 용량 부족을 겪었다면 질문 답에 따라 512GB 이상으로 올립니다.
+    summary: Docker를 기본으로 쓰지 않아 256GB로도 여유가 있어요.
+    points:
+      - 운영체제·Node.js·패키지 캐시·node_modules를 더해 60~90GB
+      - SSD를 속도와 수명을 위해 20% 정도 비워 두어도 256GB에 여유가 남아요
+      - 백엔드 개발은 Docker가 20~40GB를 더 써서 512GB를 권해요
+    upgrade:
+      - 큰 프로젝트나 로컬 백엔드·DB를 함께 다루거나 용량 부족을 겪었다면 → 512GB 이상
 
 # 프론트엔드 개발은 개발 서버 하나와 브라우저가 기본이라 백엔드보다 CPU 구간을 넓게 잡는다.
 # 보통의 답(기능이 많은 서비스 하나, 탭 여러 개, Storybook, 가끔 느려짐)은 메모리 3점·CPU 0점·저장 공간 0점으로 24GB·기본 칩·256GB 가 나온다

@@ -50,11 +50,11 @@ public record RecommendationDefinition(Survey survey, List<Rule> rules, List<Con
             interpretation);
     }
 
-    public Map<String, String> basisOf(Os os) {
-        Map<String, String> texts = new HashMap<>();
-        basis.stream().filter(each -> each.os() == null).forEach(each -> texts.put(each.item(), each.text()));
-        basis.stream().filter(each -> each.os() == os).forEach(each -> texts.put(each.item(), each.text()));
-        return texts;
+    public Map<String, Basis> basisOf(Os os) {
+        Map<String, Basis> items = new HashMap<>();
+        basis.stream().filter(each -> each.os() == null).forEach(each -> items.put(each.item(), each));
+        basis.stream().filter(each -> each.os() == os).forEach(each -> items.put(each.item(), each));
+        return items;
     }
 
     private static String versionOf(byte[] bytes) {

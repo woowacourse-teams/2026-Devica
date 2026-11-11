@@ -70,6 +70,6 @@ class RecommendationE2ETest extends E2ETest {
             .body("specs[1].items.find { it.code == 'OS' }.value", is("WINDOWS"))
             .body("specs[1].items.code", hasItems("REQUIRED_CPU", "MEMORY", "STORAGE"))
             .body("specs[1].items.find { it.code == 'MEMORY' }.displayValue", not(blankOrNullString()))
-            .body("specs[1].items.find { it.code == 'MEMORY' }.basis", not(blankOrNullString()));
+            .body("specs[1].items.find { it.code == 'MEMORY' }.basis.summary", not(blankOrNullString()));
     }
 }
