@@ -20,7 +20,7 @@ function checkProducts(response, query) {
   ));
 }
 
-// query는 page, size, sort와 필요한 필터(os, cpuTier, memoryGb, storageGb)
+// query는 page, size, sort와 필요한 필터(os, cpuTier, colorGamut, gpuTier, memoryGb, storageGb)
 export function getProducts(query, tags) {
   const response = http.get(productsUrl(query), params({ name: NAME, ...tags }));
 

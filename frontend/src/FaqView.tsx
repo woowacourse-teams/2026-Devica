@@ -36,18 +36,18 @@ export function FaqView({ categoryCode, purposeCode, backLabel, onBack }: Props)
   }, [categoryCode, purposeCode]);
 
   return (
-    <section className="view-panel faq-view" aria-labelledby="faq-title">
+    <section className="view-panel flow-view faq-view" aria-labelledby="faq-title">
       <button className="text-button view-back-button" type="button" onClick={onBack}>
         {backLabel}
       </button>
-      <h1 className="faq-view__title" id="faq-title">
-        자주 묻는 질문
-      </h1>
-      <p className="section-description">
-        {purposeCode === null
-          ? '서비스 이용에 관해 자주 묻는 질문입니다.'
-          : '고른 사용 목적에 관해 자주 묻는 질문입니다.'}
-      </p>
+      <div className="flow-head">
+        <h1 id="faq-title">자주 묻는 질문</h1>
+        <p className="flow-head__description faq-view__description">
+          {purposeCode === null
+            ? '서비스 이용에 관해 자주 묻는 질문입니다.'
+            : '고른 사용 목적에 관해 자주 묻는 질문입니다.'}
+        </p>
+      </div>
 
       {faqs === null && !failed && <p className="section-description">질문을 불러오는 중입니다…</p>}
       {failed && (
@@ -95,9 +95,7 @@ function FaqItem({ faq }: { faq: FaqSummary }) {
     <details className="faq-item" onToggle={load}>
       <summary className="faq-item__question">
         <span>{faq.question}</span>
-        <span className="faq-item__marker" aria-hidden="true">
-          ▾
-        </span>
+        <span className="faq-item__marker" aria-hidden="true" />
       </summary>
       <div className="faq-item__answer">
         {answer === null && !failed && <p className="section-description">답변을 불러오는 중입니다…</p>}

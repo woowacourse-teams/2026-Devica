@@ -1,34 +1,54 @@
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
+import apple from './assets/sellers/apple.png';
+import coupang from './assets/sellers/coupang.png';
+import daangn from './assets/sellers/daangn.png';
+import univstore from './assets/sellers/univstore.png';
 import { ProductImage } from './ProductImage';
-import { fetchProduct, formatPrice, type Offer, type ProductDetail } from './products';
+import { fetchProduct, formatPrice, type Offer, type ProductDetail, ProductNotFoundError } from './products';
 import './ProductDetailView.css';
 
-// 원본 상세는 이 넷만 보여준다. 서버는 코어 수·화면 크기·무게까지 주지만 원본에 없는 항목이다.
+// 원본 상세는 GPU 를 뺀 넷만 보여준다. 서버는 코어 수·화면 크기·무게까지 주지만 원본에 없는 항목이다.
 const DETAIL_SPECS: { code: string; label: string }[] = [
   { code: 'CPU', label: 'PROCESSOR' },
+  { code: 'GPU', label: 'GPU' },
   { code: 'MEMORY', label: 'MEMORY' },
   { code: 'STORAGE', label: 'STORAGE' },
   { code: 'OS', label: 'OS' },
 ];
 
+const SELLER_LOGOS: Record<string, string> = {
+  쿠팡: coupang,
+  당근: daangn,
+  학생복지스토어: univstore,
+  'Apple 공홈': apple,
+};
+
 type Props = {
   productId: number;
+  notFound: ReactNode;
   // 목록에서 들어왔으면 그 목록으로, 앱 밖에서 바로 들어왔으면 전체 목록으로 돌아간다.
   backLabel: string;
   onBack: () => void;
 };
 
-export function ProductDetailView({ productId, backLabel, onBack }: Props) {
+export function ProductDetailView({ productId, notFound, backLabel, onBack }: Props) {
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [failed, setFailed] = useState(false);
+  const [missing, setMissing] = useState(false);
 
   useEffect(() => {
     let stale = false;
     setProduct(null);
     setFailed(false);
+    setMissing(false);
     fetchProduct(productId)
       .then((received) => !stale && setProduct(received))
-      .catch(() => !stale && setFailed(true));
+      .catch((error) => {
+        if (!stale) {
+          setFailed(true);
+          setMissing(error instanceof ProductNotFoundError);
+        }
+      });
     // 다른 제품으로 넘어가면 이전 응답은 버린다. 늦게 오면 지금 보는 제품을 덮는다.
     return () => {
       stale = true;
@@ -36,15 +56,19 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
   }, [productId]);
 
   const back = (
-    <button className="text-button product-detail__back" type="button" onClick={onBack}>
+    <button className="text-button view-back-button" type="button" onClick={onBack}>
       {backLabel}
     </button>
   );
 
+  if (missing) {
+    return notFound;
+  }
+
   // 원본은 제품을 이미 손에 들고 있어 이 상태가 없었다. 기다리는 중과 실패를 나누고 빠져나갈 길도 남긴다.
   if (product === null) {
     return (
-      <section className="view-panel product-detail-view" id="product-detail-view">
+      <section className="view-panel flow-view product-detail-view" id="product-detail-view">
         {back}
         {failed ? (
           <p className="notice" role="alert">
@@ -61,11 +85,18 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
 
   const description = product.description ?? '';
   // 싼 곳이 위로 오게 둔다. 판매처를 한눈에 견주는 것이 이 목록의 목적이다.
-  const offers = [...product.offers].sort((one, other) => one.price - other.price);
+  const offers = [...product.offers].sort(
+    (one, other) =>
+      one.price - other.price || (one.id ?? Number.MAX_SAFE_INTEGER) - (other.id ?? Number.MAX_SAFE_INTEGER),
+  );
   const lowest: Offer | undefined = offers[0];
 
   return (
-    <section className="view-panel product-detail-view" id="product-detail-view" aria-labelledby="product-detail-title">
+    <section
+      className="view-panel flow-view product-detail-view"
+      id="product-detail-view"
+      aria-labelledby="product-detail-title"
+    >
       {back}
       <article className="product-detail">
         <ProductImage
@@ -76,47 +107,42 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
         />
 
         <section className="product-detail__summary">
-          <p className="eyebrow">
+          <p className="product-detail__maker">
             {product.brand} · {product.code}
           </p>
-          <h2 id="product-detail-title">{product.name}</h2>
-          {/* 설명이 없는 제품이 있다. 빈 문단을 두면 왼쪽 세로선만 남는다. */}
+          <h1 id="product-detail-title">{product.name}</h1>
           {description !== '' && <p className="product-detail__description">{description}</p>}
-          <strong className="product-detail__price">{formatPrice(lowest?.price ?? null)}</strong>
-          {/* 원본은 여기에 확인일도 적었다. offers 에 그 값이 아직 없다. */}
-          {lowest !== undefined && <p className="product-detail__source">{lowest.name} 일반 판매가</p>}
+          <div className="product-detail__price">
+            <div className="product-detail__price-label">
+              <span>최저가</span>
+              {lowest !== undefined && <b className="product-detail__source">{lowest.name}</b>}
+            </div>
+            <strong>{formatPrice(lowest?.price ?? null)}</strong>
+          </div>
         </section>
 
         <section className="product-detail__offers">
-          <h3>판매처</h3>
+          <h2>판매처</h2>
           {offers.length === 0 ? (
             <p className="product-detail__no-offer">판매 중인 곳이 없습니다.</p>
           ) : (
             <ul className="product-offers">
               {offers.map((offer) => (
-                <li className="product-offer" key={offer.purchaseUrl}>
-                  <span className="product-offer__name">{offer.name}</span>
-                  <strong className="product-offer__price">{formatPrice(offer.price)}</strong>
-                  <a
-                    // 판매처가 여러 곳이면 강조색 버튼이 몰리므로 최저가 한 곳만 강조한다.
-                    className={`button ${offer === lowest ? 'button--primary' : 'button--neutral'} product-offer__buy`}
-                    href={offer.purchaseUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    구매하기
-                  </a>
-                </li>
+                <OfferRow
+                  offer={offer}
+                  lowest={offer.price === lowest?.price}
+                  key={offer.id ?? `${offer.name}:${offer.purchaseUrl}:${offer.price}`}
+                />
               ))}
             </ul>
           )}
         </section>
 
         <section className="product-detail__specification">
-          <h3>상세 사양</h3>
+          <h2>상세 사양</h2>
           <dl className="product-detail__specs">
             {DETAIL_SPECS.map(({ code, label }) => (
-              <div className="product-spec-item" key={code}>
+              <div className="product-detail__spec" key={code}>
                 <dt>{label}</dt>
                 <dd>{product.specs.find((item) => item.code === code)?.displayValue ?? ''}</dd>
               </div>
@@ -126,4 +152,55 @@ export function ProductDetailView({ productId, backLabel, onBack }: Props) {
       </article>
     </section>
   );
+}
+
+function OfferRow({ offer, lowest }: { offer: Offer; lowest: boolean }) {
+  const url = webUrl(offer.purchaseUrl);
+  const logo = SELLER_LOGOS[offer.name];
+  const date = offer.checkedAt && /^\d{4}-\d{2}-\d{2}$/.test(offer.checkedAt) ? offer.checkedAt : null;
+  return (
+    <li className={lowest ? 'product-offer product-offer--lowest' : 'product-offer'}>
+      <div className="product-offer__name">
+        {logo && <img className="product-offer__logo" src={logo} alt="" width={24} height={24} />}
+        <strong>{offer.name}</strong>
+        {lowest && <span className="product-offer__badge">최저가</span>}
+      </div>
+      <div className="product-offer__details">
+        <p className="product-offer__context">
+          {date ? (
+            <>
+              확인일 <time dateTime={date}>{date}</time>
+            </>
+          ) : (
+            '확인일 미기록'
+          )}
+        </p>
+        {offer.name === '당근' && <p className="product-offer__context">미개봉 매물 참고가 · 검색 결과로 이동</p>}
+      </div>
+      <strong className="product-offer__price">{formatPrice(offer.price)}</strong>
+      {url ? (
+        <a
+          className={lowest ? 'button button--primary product-offer__buy' : 'button product-offer__buy'}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`${offer.name} 판매처 보기 (새 창)`}
+        >
+          <span className="product-offer__buy-prefix">판매처 </span>보기
+          <span aria-hidden="true">↗</span>
+        </a>
+      ) : (
+        <span className="product-offer__buy">링크 확인 필요</span>
+      )}
+    </li>
+  );
+}
+
+function webUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+  } catch {
+    return null;
+  }
 }

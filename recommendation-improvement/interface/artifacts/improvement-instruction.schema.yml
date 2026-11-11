@@ -17,6 +17,12 @@ properties:
     minItems: 1
     items: { type: integer }
 
+  # 근거 중 PR 이 머지돼도 닫지 않을 이슈. 설문 쪽으로 넘길 질문이 남은 피드백(분석 결과의 survey_pending 이 있음)과
+  # 설문 쪽으로 넘긴 이슈(넘김이 있음)다. 넘긴 이슈는 설문 PR 이 닫는다
+  related:
+    type: array
+    items: { type: integer }
+
   # 근거의 종류
   #   USER             사용자 피드백만 있다
   #   METRIC_ESTIMATE  지표 피드백이 하나라도 있다. 개선 PR 에 지표 추정 표시가 붙는다
@@ -27,8 +33,10 @@ properties:
   purpose:
     type: string
 
-  # 고칠 규칙. 정의서 rules 에서 하나로 특정되도록 criterion 과 when 을 지금 정의서의 것 그대로 적는다.
-  # rules 밖(survey, mappings, 코드)은 대상이 아니다.
+  # 고칠 규칙. 정의서 rules 에서 하나로 특정되도록 criterion, when, os 를 지금 정의서의 것 그대로 적는다.
+  # change 가 add 면 새로 만들 규칙이다. 같은 규칙이 정의서에 없어야 한다.
+  # 같은 규칙인지는 common.py key 로 본다(조건 안의 순서는 무시하고, os 가 다르면 다른 규칙).
+  # rules 밖(survey, mappings, interpretation, 코드)은 대상이 아니다.
   rule:
     type: object
     additionalProperties: false
@@ -36,12 +44,15 @@ properties:
     properties:
       criterion: { type: string }               # 정의서 rules 의 criterion. 예: MEMORY
       when: { $ref: '#/$defs/condition' }
+      os: { enum: [ MAC, WINDOWS ] }            # 그 OS 권장안에만 걸리는 규칙. 없으면 두 권장안에 모두 걸린다
 
-  # 바꿀 내용. weight, when, delete 중 많아야 하나와 reason 을 적는다. reason 만 적어도 된다.
+  # 바꿀 내용. weight, when, delete, add 중 많아야 하나와 reason 을 적는다. reason 만 적어도 된다.
   #   weight: { from: 2, to: 1 }           점수를 올리거나 내린다
   #   weight: { from: 2, direction: DOWN } 점수를 UP 또는 DOWN 방향으로, 재현 사례의 결과가 바뀌는 만큼만 옮긴다
   #   when: { from: …, to: … }             조건을 바꾼다. 값은 정의서 rules 의 when 과 같은 모양이다
   #   delete: true                         규칙을 지운다
+  #   add: { direction: UP }               rule 을 새로 만든다. 점수는 UP 또는 DOWN 방향으로, 재현 사례의 결과가 바뀌는 만큼만 준다.
+  #                                        reason 은 to 만 적는다(새 근거 문장)
   #   reason: { from: …, to: … }           근거 문장을 바꾼다. 결과 값은 바뀌지 않는다.
   #                                        weight·when 변경으로 문장이 틀려질 때 함께 적는다
   # from 은 지금 정의서의 값이다. Recommendation Improver 는 이 값이 지금과 다르면 고치지 않는다.
@@ -70,24 +81,41 @@ properties:
           to: { $ref: '#/$defs/condition' }
       delete:
         const: true
+      add:
+        type: object
+        additionalProperties: false
+        required: [ direction ]
+        properties:
+          direction: { enum: [ UP, DOWN ] }
       reason:
         type: object
         additionalProperties: false
-        required: [ from, to ]
+        required: [ to ]
         properties:
           from: { type: string }
           to: { type: string }
-    # weight, when, delete 는 서로 함께 올 수 없다
+    # weight, when, delete, add 는 서로 함께 올 수 없다
     allOf:
       - not: { required: [ weight, when ] }
       - not: { required: [ weight, delete ] }
       - not: { required: [ when, delete ] }
+      - not: { required: [ add, weight ] }
+      - not: { required: [ add, when ] }
+      - not: { required: [ add, delete ] }
+    # add 는 새 근거 문장(reason.to)이 있어야 하고 reason.from 이 없다. 그 밖의 reason 은 from 이 있어야 한다
+    anyOf:
+      - required: [ add, reason ]
+        properties:
+          reason: { not: { required: [ from ] } }
+      - not: { required: [ add ] }
+        properties:
+          reason: { required: [ from ] }
 
   # 재현 사례. 근거 피드백마다 하나씩 적는다.
   #   answers   사용자의 답. 스냅숏 테스트의 answers 와 같은 모양이다
   #   expected  고친 뒤 바뀔 것으로 기대하는 것. 정확한 값은 적지 않고 방향만 적는다.
   #             지적한 권장안마다 하나. reason 만 바꾸는 지시면 적지 않는다.
-  #             weight·when·delete 가 있는 지시면 모든 사례에 하나 이상 적는다(맨 아래 anyOf)
+  #             weight·when·delete·add 가 있는 지시면 모든 사례에 하나 이상 적는다(맨 아래 anyOf)
   cases:
     type: array
     minItems: 1
@@ -113,19 +141,22 @@ properties:
               plan: { enum: [ MAC, WINDOWS ] }
               item: { enum: [ REQUIRED_CPU, MEMORY, STORAGE ] }
               direction: { enum: [ UP, DOWN ] }
+              # 사용자가 지금 쓰는 사양의 rank(common.py values 와 같은 잣대). 지금 사양 답으로 규칙을 더할 때만 적는다.
+              # UP 이면 고친 뒤 값이 이보다 높아야 하고, DOWN 이면 이보다 높지 않아야 한다
+              current: { type: integer }
 
   # 지시를 낸 이유. 어느 조건에 해당하는지와 그 근거를 적는다. 조건은 ../components/feedback-analyzer.md 에 있다.
   # basis 가 METRIC_ESTIMATE 면 지표 추정임을 밝힌다.
   reason:
     type: string
 
-# 결과 값을 바꾸는 지시(weight·when·delete)는 모든 재현 사례에 expected 가 있어야 한다.
+# 결과 값을 바꾸는 지시(weight·when·delete·add)는 모든 재현 사례에 expected 가 있어야 한다.
 # 없으면 수정 전후 결과가 그대로여도 개선을 확인한 것으로 처리된다
 anyOf:
   - properties:
       change:
         not:
-          anyOf: [ { required: [ weight ] }, { required: [ when ] }, { required: [ delete ] } ]
+          anyOf: [ { required: [ weight ] }, { required: [ when ] }, { required: [ delete ] }, { required: [ add ] } ]
   - properties:
       cases:
         items: { required: [ expected ] }
@@ -175,3 +206,29 @@ examples:
         expected:
           - { plan: MAC, item: MEMORY, direction: DOWN }
     reason: 조건 2. 같은 규칙을 메모리가 과하다는 방향으로 가리키는 피드백이 2건이다.
+  - issues: [ 345 ]
+    basis: USER
+    purpose: BACKEND_DEVELOPMENT
+    rule:
+      criterion: MEMORY
+      when:
+        all:
+          - { question: CURRENT_MEMORY, anyOf: [ GB_32 ] }
+          - { question: SLOWDOWN, anyOf: [ OFTEN ] }
+    change:
+      add: { direction: UP }
+      reason: { to: 지금 32GB 에서도 여러 프로그램을 함께 쓸 때 자주 멈춘 점을 반영했습니다. }
+    cases:
+      - issue: 345
+        answers:
+          CURRENT_MEMORY: [ GB_32 ]
+          PROGRAMMING_LANGUAGE: [ JAVA_FAMILY ]
+          IDE: [ JETBRAINS ]
+          AI_CODING_TOOL: [ AI_EDITOR ]
+          DEV_ENVIRONMENT_SETUP: [ DOCKER_MANY ]
+          SLOWDOWN: [ OFTEN ]
+          USAGE_PERIOD: [ TWO_YEARS ]
+        expected:
+          - { plan: MAC, item: MEMORY, direction: UP, current: 32 }
+          - { plan: WINDOWS, item: MEMORY, direction: UP, current: 32 }
+    reason: 조건 1. 사용자가 기댄 지금 메모리(32GB)를 보는 메모리 규칙이 없어, 그 답으로 규칙을 추가한다.

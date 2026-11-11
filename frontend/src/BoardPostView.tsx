@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { Link } from 'wouter';
 import { track } from './analytics';
 import { BoardComments } from './BoardComments';
-import { BoardLoading, BoardMessage, BoardScopeInfo } from './BoardShared';
-import { boardDate, fetchBoardPost } from './board';
-import { boardUrl } from './routes';
+import { BoardByline, BoardLoading, BoardMessage, BoardScopeInfo } from './BoardShared';
+import { fetchBoardPost } from './board';
+import { boardUrl, goBack, navigateInside } from './routes';
 import { useBoardRequest } from './useBoardRequest';
 
 export function BoardPostPage({ id }: { id: string }) {
@@ -43,8 +43,12 @@ function BoardPostView({ id }: { id: number }) {
   const post = state.data;
   const listUrl = boardUrl(post.categoryCode, post.purposeCode);
   return (
-    <section className="view-panel board-view" aria-labelledby="board-post-title">
-      <Link className="text-button view-back-button" href={listUrl}>
+    <section className="view-panel flow-view board-view" aria-labelledby="board-post-title">
+      <Link
+        className="text-button view-back-button"
+        href={listUrl}
+        onClick={(event) => navigateInside(event, () => goBack(listUrl, 'board'))}
+      >
         ← 목록으로
       </Link>
       <BoardScopeInfo
@@ -54,16 +58,18 @@ function BoardPostView({ id }: { id: number }) {
         }}
       />
       <article className="board-post">
-        <h1 className="board-title" id="board-post-title">
+        <h1 className="board-post__title" id="board-post-title">
           {post.title}
         </h1>
-        <p className="board-meta">
-          익명 · <time dateTime={post.createdAt}>{boardDate(post.createdAt)}</time>
-        </p>
+        <BoardByline createdAt={post.createdAt} />
         <div className="board-post__content">{post.content}</div>
       </article>
       <BoardComments key={post.id} postId={post.id} />
-      <Link className="button board-button board-return" href={listUrl}>
+      <Link
+        className="button board-return"
+        href={listUrl}
+        onClick={(event) => navigateInside(event, () => goBack(listUrl, 'board'))}
+      >
         목록으로
       </Link>
     </section>

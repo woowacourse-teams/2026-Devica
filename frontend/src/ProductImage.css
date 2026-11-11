@@ -8,15 +8,18 @@
 
 .product-image__photo {
     box-sizing: border-box;
-    padding: var(--density-med);
+    padding: var(--space-12);
     object-fit: contain;
 }
 
 .product-image__fallback {
     display: grid;
     place-items: center;
-    padding: var(--gutter);
     box-sizing: border-box;
-    color: var(--on-surface-variant);
-    text-align: center;
+    color: var(--illustration);
+}
+
+.product-image__fallback svg {
+    width: min(72px, 45%);
+    height: auto;
 }

@@ -7,10 +7,10 @@ import com.wrb.devica.recommendation.domain.Step;
 import com.wrb.devica.recommendation.domain.Survey;
 import java.util.List;
 
-public record SurveyStepsResponse(List<StepResponse> steps) {
+public record SurveyStepsResponse(List<StepResponse> steps, String version) {
 
     public static SurveyStepsResponse from(Survey survey) {
-        return new SurveyStepsResponse(survey.steps().stream().map(StepResponse::from).toList());
+        return new SurveyStepsResponse(survey.steps().stream().map(StepResponse::from).toList(), survey.version());
     }
 
     public record StepResponse(String title, String layout, List<QuestionResponse> questions) {

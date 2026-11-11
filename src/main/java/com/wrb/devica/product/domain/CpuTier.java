@@ -17,7 +17,9 @@ import lombok.Getter;
  * 지금 쓰는 CPU 를 고르는 질문 선택지는 반대로 구체 모델을 예시로 든다 — 그쪽은 사용자가
  * 자기 칩을 알아보는 용도이고 콘텐츠 파일이라 코드를 고치지 않고 갱신된다.
  * <p>
- * 점수대는 잠정값이다 — 시드된 Apple M4(21000), Intel Core Ultra 7 255H(24000) 두 행에만 맞춰 두었다.
+ * 점수는 cpu.score 와 같은 PassMark CPU Mark(멀티스레드)다. Mac 점수대는 M5 세대에 맞춰 두었다 —
+ * M5 10코어(26763), M5 Pro 15코어(48861), M5 Pro 18코어(57153), M5 Max 18코어(57705, 미등록).
+ * M5 Pro 18코어와 M5 Max 의 차이가 1% 남짓이라 두 칩의 점수가 갱신되면 MAX 의 경계를 다시 확인해야 한다.
  * 표시명은 낡지 않지만 minScore 는 세대마다 다시 맞춰야 한다. 다음 세대 기본 칩이 PRO 의 점수를 넘으면
  * M Pro 조건에 기본 칩이 섞인다.
  */
@@ -26,7 +28,7 @@ public enum CpuTier {
 
     BASIC(Os.MAC, "M 칩", 20000),
     PRO(Os.MAC, "M Pro 칩", 30000),
-    MAX(Os.MAC, "M Max 칩", 45000),
+    MAX(Os.MAC, "M Max 칩", 57500),
 
     U(Os.WINDOWS, "저전력 Core Ultra 5 / Ryzen 5", 15000),
     P_HS(Os.WINDOWS, "고효율 Core Ultra 7 / Ryzen 7", 20000),

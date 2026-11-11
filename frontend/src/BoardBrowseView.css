@@ -1,44 +1,41 @@
-.board-browse {
-    max-width: 1120px;
-}
+/* 게시판 목록. 좁은 화면은 제품과 사용 목적을 가로로 넘기는 칩 두 줄로, 넓은 화면은 왼쪽 제품 카드와 사용 목적 막대로 고른다. */
 
 .board-browse__layout {
-    border-radius: var(--radius-box);
-    display: grid;
-    grid-template-columns: 184px minmax(0, 1fr);
-    min-height: 440px;
-    border: 1px solid var(--outline-variant);
-    background: var(--surface-container-lowest);
-}
-
-.board-browse__sidebar {
-    min-width: 0;
-    border-right: 1px solid var(--outline-variant);
-    padding: 24px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-24);
 }
 
 .board-browse__content {
     display: flex;
     min-width: 0;
+    flex: 1;
     flex-direction: column;
-    gap: 24px;
-    padding: 24px;
+    gap: var(--space-24);
+}
+
+.board-browse__head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-12);
 }
 
 .board-browse__category-title {
+    display: none;
     margin: 0;
-    font-size: var(--headline-md-font-size);
+    font-size: 28px;
+    font-weight: 700;
     overflow-wrap: anywhere;
 }
 
 .board-browse__label {
-    margin: 0 0 var(--density-med);
-    font-size: var(--body-md-font-size);
+    margin: 0;
+    padding: var(--space-8) var(--space-16);
+    color: var(--text-muted);
+    font-size: 12px;
     font-weight: 600;
-}
-
-.board-browse__nav--category > .board-browse__label {
-    padding-left: var(--density-med);
 }
 
 .board-browse__tabs {
@@ -48,95 +45,176 @@
     list-style: none;
 }
 
-.board-browse__nav--category .board-browse__tabs {
-    flex-direction: column;
-    gap: var(--unit);
-}
-
 .board-browse__tab {
     display: flex;
-    min-height: 48px;
     align-items: center;
-    gap: var(--density-high);
+    gap: var(--space-8);
     border: 0;
-    padding: var(--density-med);
-    color: var(--on-surface-variant);
+    color: var(--text);
     background: transparent;
     font: inherit;
-    font-size: var(--body-md-font-size);
-    text-align: left;
     text-decoration: none;
+    white-space: nowrap;
     cursor: pointer;
 }
 
-.board-browse__nav--category .board-browse__tab {
-    width: 100%;
-    justify-content: space-between;
-    border-left: 3px solid transparent;
-}
-
-.board-browse__tab[aria-current="page"] {
-    color: var(--on-surface);
-    font-weight: 600;
-}
-
-.board-browse__nav--category .board-browse__tab[aria-current="page"] {
-    border-left-color: var(--primary);
-    background: var(--surface-container-low);
-}
-
-.board-browse__tab:hover:not(:disabled) {
-    background: var(--surface-container-low);
-}
-
-.board-browse__tab:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: -2px;
-}
-
 .board-browse__tab:disabled {
-    color: var(--outline);
+    color: var(--control);
     cursor: default;
 }
 
 .board-browse__badge {
     flex-shrink: 0;
-    font-size: var(--body-sm-font-size);
-    font-weight: 400;
+    border-radius: var(--radius-pill);
+    padding: var(--space-4) 10px;
+    color: var(--text-muted);
+    background: var(--surface-2);
+    font-size: 12px;
+    font-weight: 600;
 }
 
-.board-browse__nav--purpose .board-browse__tabs {
+.board-browse__nav .board-browse__label {
+    display: none;
+}
+
+/* 두 칩 줄 모두 화면 가장자리까지 넘겨 보이게 한다. */
+.board-browse__nav .board-browse__tabs {
+    gap: var(--space-8);
     overflow-x: auto;
-    border-bottom: 1px solid var(--outline-variant);
+    margin: 0 calc(var(--page-gutter) * -1);
+    padding: 0 var(--page-gutter);
+    mask-image: linear-gradient(90deg, #000 85%, transparent);
+    scrollbar-width: none;
+}
+
+.board-browse__nav li {
+    flex: none;
+}
+
+.board-browse__nav--category .board-browse__tab {
+    min-height: var(--control-sm);
+    border: 1.5px solid var(--divider);
+    border-radius: var(--radius-pill);
+    padding: 0 14px;
+    font-size: 14px;
+}
+
+.board-browse__nav--category .board-browse__tab[aria-current="page"] {
+    border-color: var(--accent);
+    background: var(--tint);
+    font-weight: 600;
+}
+
+.board-browse__nav--category .board-browse__tab:hover:not(:disabled):not([aria-current="page"]) {
+    background: var(--surface-2);
+}
+
+.board-browse__nav--purpose {
+    width: 100%;
+}
+
+/* 사용 목적은 한 막대 안에서 고른다. 채움이 그 안에서 미끄러진다. */
+.board-browse__nav--purpose .board-browse__tabs {
+    position: relative;
+    gap: 0;
+    margin: 0;
+    border-radius: var(--radius-pill);
+    padding: var(--space-4);
+    background: var(--surface-2);
+    mask-image: none;
+}
+
+.board-browse__nav--purpose li {
+    flex: 1 0 auto;
+}
+
+/* 선택한 사용 목적 뒤의 채움. 위치와 크기는 BoardNavigation 이 선택한 탭에 맞춰 넣는다. */
+.board-browse__nav--purpose .board-browse__tabs::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--indicator-w, 0);
+    height: var(--indicator-h, 0);
+    border-radius: var(--radius-pill);
+    background: var(--primary);
+    transform: translate(var(--indicator-x, 0), var(--indicator-y, 0));
+}
+
+/* 처음 자리를 잡을 때는 움직이지 않고, 그 뒤 탭을 바꿀 때만 미끄러진다. */
+.board-browse__nav--purpose .board-browse__tabs[data-sliding]::before {
+    transition:
+        transform 0.25s ease,
+        width 0.25s ease;
 }
 
 .board-browse__nav--purpose .board-browse__tab {
-    height: 100%;
-    flex-wrap: wrap;
+    position: relative;
+    width: 100%;
+    min-height: var(--control-sm);
     justify-content: center;
-    border-bottom: 3px solid transparent;
-    white-space: nowrap;
+    border-radius: var(--radius-pill);
+    padding: 0 var(--space-12);
+    font-size: 14px;
+    transition: color 0.25s ease;
 }
 
 .board-browse__nav--purpose .board-browse__tab[aria-current="page"] {
-    border-bottom-color: var(--primary);
+    color: var(--on-primary);
+    background: transparent;
+    font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .board-browse__nav--purpose .board-browse__tabs[data-sliding]::before,
+    .board-browse__nav--purpose .board-browse__tab {
+        transition: none;
+    }
 }
 
 .board-browse__posts {
     display: flex;
     min-width: 0;
     flex-direction: column;
-    gap: var(--gutter);
+    gap: var(--space-24);
+}
+
+.board-toolbar {
+    display: contents;
 }
 
 .board-browse__scope {
-    margin: 0 0 var(--unit);
-    font-weight: 600;
+    display: none;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-12);
+    margin: 0;
     overflow-wrap: anywhere;
 }
 
-.board-browse__posts .board-toolbar > .board-button {
-    flex-shrink: 0;
+/* 좁은 화면에서는 오른쪽 아래에 떠 있는 둥근 글쓰기 버튼이다. 이름은 숨긴 글자로 남긴다. */
+.button.board-write-button {
+    position: fixed;
+    right: var(--space-20);
+    bottom: calc(var(--space-24) + env(safe-area-inset-bottom));
+    z-index: 3;
+    width: var(--control-md);
+    padding: 0;
+    border-radius: 50%;
+}
+
+.board-write-button svg {
+    width: 24px;
+    height: 24px;
+}
+
+.board-write-button__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 .board-browse__empty {
@@ -145,77 +223,150 @@
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    gap: var(--gutter);
+    gap: var(--space-16);
 }
 
 .board-browse__empty h2,
 .board-browse__empty h3 {
     margin: 0;
-    font-size: var(--headline-sm-font-size);
+    font-size: 18px;
 }
 
 .board-browse__error {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--gutter);
+    gap: var(--space-16);
+}
+
+.board-browse__error .board-error {
+    font-size: 16px;
 }
 
 @media (max-width: 767px) {
+    /* 떠 있는 글쓰기 버튼에 마지막 글과 페이지 이동이 가려지지 않게 한다. */
+    .board-browse {
+        padding-bottom: var(--space-64);
+    }
+}
+
+@media (min-width: 768px) {
     .board-browse__layout {
-        grid-template-columns: minmax(0, 1fr);
+        flex-direction: row;
+        align-items: flex-start;
     }
 
     .board-browse__sidebar {
-        border-right: 0;
-        border-bottom: 1px solid var(--outline-variant);
-        padding: var(--gutter);
+        flex: 0 0 220px;
+        border: 1px solid var(--divider);
+        border-radius: var(--radius-24);
+        padding: var(--space-12);
+        background: var(--surface-1);
     }
 
-    .board-browse__content {
-        gap: var(--density-med);
-        padding: var(--density-med) var(--gutter);
+    .board-browse__nav--category {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-8);
     }
 
-    /* 탭 묶음은 aria-label 이 이미 이름을 주고, 카테고리 제목은 선택된 탭과 겹친다. */
-    .board-browse__label,
-    .board-browse__category-title {
-        display: none;
-    }
-
-    .board-browse__sidebar {
-        padding: var(--density-high) var(--gutter) 0;
-    }
-
-    .board-browse__tab {
-        min-height: 40px;
-    }
-
-    .board-browse__nav--category > .board-browse__label {
-        padding-left: 0;
+    .board-browse__nav--category .board-browse__label {
+        display: block;
     }
 
     .board-browse__nav--category .board-browse__tabs {
-        flex-direction: row;
-        overflow-x: auto;
-    }
-
-    .board-browse__nav--category .board-browse__tabs li {
-        flex-shrink: 0;
+        flex-direction: column;
+        overflow: visible;
+        margin: 0;
+        padding: 0;
+        mask-image: none;
     }
 
     .board-browse__nav--category .board-browse__tab {
-        flex-direction: column;
-        justify-content: center;
-        gap: var(--unit);
-        height: 100%;
-        min-width: 88px;
-        border-left: 0;
-        border-bottom: 3px solid transparent;
-        white-space: nowrap;
+        width: 100%;
+        min-height: var(--control-md);
+        justify-content: space-between;
+        border: 2px solid transparent;
+        border-radius: var(--radius-12);
+        font-size: 16px;
     }
 
-    .board-browse__nav--category .board-browse__tab[aria-current="page"] {
-        border-bottom-color: var(--primary);
+    .board-browse__content {
+        gap: var(--space-20);
+    }
+
+    .board-browse__category-title {
+        display: block;
+    }
+
+    .board-browse__nav--purpose {
+        width: auto;
+    }
+
+    .board-browse__nav--purpose .board-browse__tabs {
+        flex-wrap: wrap;
+        overflow: visible;
+    }
+
+    .board-browse__nav--purpose .board-browse__tab {
+        padding: 0 var(--space-20);
+        font-size: 16px;
+    }
+
+    .board-browse__posts {
+        gap: var(--space-20);
+    }
+
+    .board-browse__card {
+        overflow: hidden;
+        border: 1px solid var(--divider);
+        border-radius: var(--radius-24);
+        background: var(--bg);
+    }
+
+    .board-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: var(--space-12);
+        border-bottom: 1px solid var(--divider);
+        padding: var(--space-12) var(--space-24);
+    }
+
+    .board-browse__card .board-list {
+        border-top: 0;
+    }
+
+    .board-browse__scope {
+        display: flex;
+    }
+
+    .board-browse__scope b {
+        font-size: 16px;
+    }
+
+    .button.board-write-button {
+        position: static;
+        width: auto;
+        min-height: var(--control-sm);
+        padding: 0 18px;
+        border-radius: var(--radius-pill);
+    }
+
+    .board-write-button svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .board-write-button__label {
+        position: static;
+        width: auto;
+        height: auto;
+        overflow: visible;
+        clip-path: none;
+    }
+
+    .board-list li:last-child .board-list__link {
+        border-bottom: 0;
     }
 }

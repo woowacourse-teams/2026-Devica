@@ -1,12 +1,17 @@
 package com.wrb.devica.product;
 
 import static com.wrb.devica.fixture.CpuFixture.cpu;
+import static com.wrb.devica.fixture.GpuFixture.gpu;
 import static com.wrb.devica.fixture.LaptopFixture.laptop;
 import static com.wrb.devica.fixture.ProductOfferFixture.offer;
 import static com.wrb.devica.fixture.ProductOfferFixture.onSaleOffer;
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.wrb.devica.category.domain.ProductCategory;
 import com.wrb.devica.category.domain.ProductCategoryCode;
@@ -16,16 +21,30 @@ import com.wrb.devica.common.MinPriceRefresher;
 import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
 import com.wrb.devica.product.domain.Cpu;
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.Gpu;
 import com.wrb.devica.product.domain.Laptop;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.domain.Product;
+import com.wrb.devica.product.domain.ProductOffer;
+import com.wrb.devica.product.dto.PriceRefreshTarget;
+import com.wrb.devica.product.infra.coupang.CoupangPriceRefreshJob;
+import com.wrb.devica.product.infra.coupang.CoupangProductSearchClient;
 import com.wrb.devica.product.repository.CpuRepository;
+import com.wrb.devica.product.repository.GpuRepository;
 import com.wrb.devica.product.repository.LaptopRepository;
 import com.wrb.devica.product.repository.ProductOfferRepository;
+import com.wrb.devica.product.service.ProductOfferService;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 
@@ -41,6 +60,9 @@ class LaptopE2ETest extends E2ETest {
     private CpuRepository cpuRepository;
 
     @Autowired
+    private GpuRepository gpuRepository;
+
+    @Autowired
     private LaptopRepository laptopRepository;
 
     @Autowired
@@ -49,14 +71,20 @@ class LaptopE2ETest extends E2ETest {
     @Autowired
     private MinPriceRefresher minPriceRefresher;
 
+    @Autowired
+    private ProductOfferService productOfferService;
+
     private ProductCategory category;
 
     private Cpu cpu;
+
+    private Gpu gpu;
 
     @BeforeEach
     void setUpCategory() {
         category = productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP));
         cpu = saveCpu();
+        gpu = gpuRepository.save(gpu().build());
     }
 
     // UC-07: 전체 제품을 조회한다
@@ -64,6 +92,7 @@ class LaptopE2ETest extends E2ETest {
     void 노트북_목록을_조회하면_사양과_최저가를_함께_받는다() {
         // given
         Laptop saved = laptopRepository.save(laptop().category(category)
+            .gpu(gpuRepository.save(gpu().name("Intel Arc 140V").build()))
             .brand("LG")
             .name("gram Pro 16")
             .cpu(cpuRepository.save(cpu().name("Intel Core Ultra 7 255H").coreCount(16).score(20000).build()))
@@ -80,14 +109,15 @@ class LaptopE2ETest extends E2ETest {
             .then().statusCode(200)
             .body("content.size()", is(1))
             .body("content[0].name", is("gram Pro 16"))
-            .body("content[0].specs.code", contains("OS", "CPU", "MEMORY", "STORAGE"))
-            .body("content[0].specs.displayValue", contains("Windows", "Intel Core Ultra 7 255H", "32GB", "1TB"))
+            .body("content[0].specs.code", contains("OS", "CPU", "GPU", "MEMORY", "STORAGE"))
+            .body("content[0].specs.displayValue",
+                contains("Windows", "Intel Core Ultra 7 255H", "Intel Arc 140V", "32GB", "1TB"))
             .body("content[0].minPrice", is(2_850_000));
     }
 
     @Test
     void 목록과_상세에서_이미지_주소만_반환한다() {
-        Laptop saved = laptopRepository.save(laptop().category(category).cpu(cpu)
+        Laptop saved = laptopRepository.save(laptop().category(category).gpu(gpu).cpu(cpu)
             .imageKey("/devica/products/sample.webp").build());
 
         String imageUrl = "https://images.example.test/devica/products/sample.webp";
@@ -112,7 +142,7 @@ class LaptopE2ETest extends E2ETest {
 
         // 조건을 하나씩만 어긋나게 둔다
         onSaleLaptop(laptop().brand("LG").name("os 프로").os(Os.MAC), 2_500_000L);
-        addOnSaleOffer(laptopRepository.save(laptop().category(category).cpu(cpu).brand("LG").name("cpu 프로")
+        addOnSaleOffer(laptopRepository.save(laptop().category(category).gpu(gpu).cpu(cpu).brand("LG").name("cpu 프로")
             .cpu(cpuRepository.save(cpu().score(5000).build())).build()), 2_500_000L);
         onSaleLaptop(laptop().brand("LG").name("메모리 프로").memoryGb(8), 2_500_000L);
         onSaleLaptop(laptop().brand("LG").name("저장장치 프로").storageGb(256), 2_500_000L);
@@ -197,7 +227,7 @@ class LaptopE2ETest extends E2ETest {
             .body("hasNext", is(false));
     }
 
-    // UC-09: 추천순·가격 낮은 순·가격 높은 순으로 정렬한다. 검색 조건을 유지한 채 정렬된 목록을 표시한다.
+    // UC-09: 가격 낮은 순·가격 높은 순으로 정렬한다. 검색 조건을 유지한 채 정렬된 목록을 표시한다.
     @Test
     void 정렬_기준을_고르면_조건을_유지한_채_그_순서대로_받는다() {
         // given
@@ -207,13 +237,6 @@ class LaptopE2ETest extends E2ETest {
         onSaleLaptop(laptop().brand("Apple").name("브랜드 불일치"), 500_000L);
 
         // when & then
-        given()
-            .queryParam("brand", "LG")
-            .queryParam("sort", "RECOMMENDED")
-            .when().get(PATH)
-            .then().statusCode(200)
-            .body("content.name", contains("비쌈", "쌈", "중간"));
-
         given()
             .queryParam("brand", "LG")
             .queryParam("sort", "PRICE_ASC")
@@ -229,19 +252,56 @@ class LaptopE2ETest extends E2ETest {
             .body("content.name", contains("비쌈", "중간", "쌈"));
     }
 
-    // UC-09: 정렬 기준을 고르지 않으면 추천순으로 정렬한다
+    // UC-09: 정렬 기준을 고르지 않으면 가격 낮은 순으로 정렬한다
     @Test
-    void 정렬_기준을_고르지_않으면_추천순으로_받는다() {
+    void 정렬_기준을_고르지_않으면_가격_낮은_순으로_받는다() {
         // given
-        // 사양: 사양높음이 위. id 순이면 사양낮음이 앞선다
-        onSaleLaptop(laptop().name("사양낮음"), 1_000_000L);
-        onSaleLaptop(laptop().name("사양높음").memoryGb(32).storageGb(1024), saveCpu(40_000), 3_000_000L);
+        onSaleLaptop(laptop().name("비쌈"), 3_000_000L);
+        onSaleLaptop(laptop().name("쌈"), 1_000_000L);
 
         // when & then
         given()
             .when().get(PATH)
             .then().statusCode(200)
-            .body("content.name", contains("사양높음", "사양낮음"));
+            .body("content.name", contains("쌈", "비쌈"));
+    }
+
+    @Test
+    void 최저가를_조회하면_같은_조건의_가격_낮은_순_목록_첫_노트북_가격을_받는다() {
+        // given
+        onSaleLaptop(laptop().name("맥").os(Os.MAC), 900_000L);
+        onSaleLaptop(laptop().name("메모리_미달").memoryGb(8), 1_000_000L);
+        onSaleLaptop(laptop().name("상위_사양").memoryGb(32), 1_500_000L);
+        onSaleLaptop(laptop().name("맞음"), 2_000_000L);
+
+        // when & then
+        given()
+            .queryParam("os", "WINDOWS")
+            .queryParam("memoryGb", 16)
+            .when().get(PATH + "/min-price")
+            .then().statusCode(200)
+            .body("minPrice", is(1_500_000));
+
+        given()
+            .queryParam("os", "WINDOWS")
+            .queryParam("memoryGb", 16)
+            .queryParam("sort", "PRICE_ASC")
+            .when().get(PATH)
+            .then().statusCode(200)
+            .body("content[0].minPrice", is(1_500_000));
+    }
+
+    @Test
+    void 조건에_맞는_판매_중인_노트북이_없으면_최저가로_null을_받는다() {
+        // given
+        laptopOf(laptop().name("오퍼없음"));
+
+        // when & then
+        given()
+            .when().get(PATH + "/min-price")
+            .then().statusCode(200)
+            .body("containsKey('minPrice')", is(true))
+            .body("minPrice", nullValue());
     }
 
     // UC-07: 판매 중인 구매처가 없는 제품도 목록에 넣고 가격은 비워둔다
@@ -264,11 +324,82 @@ class LaptopE2ETest extends E2ETest {
             .body("content.minPrice", contains(1_000_000, null, null));
     }
 
+    @Test
+    void 상위_검색_후보에_없어도_기존_가격과_확인일과_목록_상세_노출을_유지한다() {
+        // given
+        Laptop laptop = laptopOf(laptop().name("검색에서빠진상품"));
+        ProductOffer offer = productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).name("쿠팡")
+            .externalItemId("56").price(1_000_000L).checkedAt(LocalDate.of(2026, 10, 25))
+            .purchaseUrl("https://www.coupang.com/vp/products/999?vendorItemId=56")
+            .status(OfferStatus.ON_SALE).build());
+        minPriceRefresher.refresh(laptop.getId());
+        CoupangProductSearchClient client = mock(CoupangProductSearchClient.class);
+        List<CoupangProductSearchClient.Product> candidates = IntStream.rangeClosed(57, 66)
+            .mapToObj(id -> new CoupangProductSearchClient.Product("999", "다른상품", 900_000L,
+                "https://www.coupang.com/vp/products/999?vendorItemId=" + id)).toList();
+        when(client.search(laptop.getCode())).thenReturn(candidates);
+        Clock clock = Clock.fixed(Instant.parse("2026-10-26T16:00:00Z"), ZoneId.of("Asia/Seoul"));
+        var job = new CoupangPriceRefreshJob(client, productOfferService, clock, "https://devica.example");
+
+        // when
+        var summary = job.refreshPrices();
+
+        // then
+        assertThat(summary).isEqualTo(new CoupangPriceRefreshJob.Summary(0, 0, 1, 0, 0, 0, 0));
+        ProductOffer unchanged = productOfferRepository.findById(offer.getId()).orElseThrow();
+        assertThat(unchanged.getStatus()).isEqualTo(OfferStatus.ON_SALE);
+        assertThat(unchanged.getPrice()).isEqualTo(1_000_000L);
+        assertThat(unchanged.getCheckedAt()).isEqualTo(LocalDate.of(2026, 10, 25));
+        given().when().get(PATH).then().statusCode(200).body("content.size()", is(1))
+            .body("content[0].minPrice", is(1_000_000));
+        given().when().get("/api/products/" + laptop.getId()).then().statusCode(200)
+            .body("offers[0].price", is(1_000_000)).body("offers[0].checkedAt", is("2026-10-25"));
+    }
+
+    @Test
+    void 숨김과_복구가_실제_목록과_상세_API에_반영된다() {
+        // given
+        Laptop laptop = laptopOf(laptop().name("재확인대상"));
+
+        ProductOffer offer = productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).name("쿠팡")
+            .externalItemId("56").price(1_000_000L).checkedAt(LocalDate.of(2026, 10, 25))
+            .purchaseUrl("https://www.coupang.com/vp/products/999?vendorItemId=56")
+            .status(OfferStatus.ON_SALE).build());
+
+        minPriceRefresher.refresh(laptop.getId());
+
+        PriceRefreshTarget target = new PriceRefreshTarget(offer.getId(), laptop.getId(), laptop.getCode(), "56",
+            offer.getPurchaseUrl(), offer.getPrice(), offer.getStatus());
+
+        given().when().get(PATH).then().statusCode(200).body("content.size()", is(1));
+
+        // when
+        productOfferService.hideCoupangOffer(target, LocalDate.of(2026, 10, 26));
+
+        // then
+        given().when().get(PATH).then().statusCode(200).body("content.size()", is(0));
+        given().when().get("/api/products/" + laptop.getId()).then().statusCode(200)
+            .body("name", is("재확인대상")).body("offers", is(List.of()));
+
+        // given
+        PriceRefreshTarget hidden = productOfferService.findCoupangPriceRefreshTargets().getFirst();
+
+        // when
+        productOfferService.refreshCoupangPrice(hidden, 900_000L, LocalDate.of(2026, 10, 27));
+
+        // then
+        given().when().get(PATH).then().statusCode(200)
+            .body("content[0].name", is("재확인대상")).body("content[0].minPrice", is(900_000));
+        given().when().get("/api/products/" + laptop.getId()).then().statusCode(200)
+            .body("offers[0].price", is(900_000)).body("offers[0].checkedAt", is("2026-10-27"));
+    }
+
     // UC-11: 가격을 확인하고 외부 구매처로 이동할 수 있다
     @Test
     void 상세를_조회하면_판매_중인_판매처를_싼_순으로_받는다() {
         // given
         Laptop laptop = laptopRepository.save(laptop().category(category)
+            .gpu(gpuRepository.save(gpu().name("Intel Arc 140V").build()))
             .brand("LG")
             .name("gram Pro 16")
             .cpu(cpuRepository.save(cpu().name("Intel Core Ultra 7 255H").coreCount(16).score(20000).build()))
@@ -285,13 +416,18 @@ class LaptopE2ETest extends E2ETest {
             .product(laptop)
             .price(2_500_000L).status(OfferStatus.SOLD_OUT)
             .build());
+        productOfferRepository.save(offer()
+            .product(laptop)
+            .price(2_000_000L).status(OfferStatus.HIDDEN)
+            .build());
 
         // when & then
         given()
             .when().get("/api/products/" + laptop.getId())
             .then().statusCode(200)
             .body("name", is("gram Pro 16"))
-            .body("specs.code", contains("OS", "CPU", "MEMORY", "STORAGE", "CPU_CORE", "SCREEN_SIZE", "WEIGHT"))
+            .body("specs.code", contains("OS", "CPU", "GPU", "MEMORY", "STORAGE", "CPU_CORE", "SCREEN_SIZE", "WEIGHT"))
+            .body("specs[2].displayValue", is("Intel Arc 140V"))
             .body("offers.price", contains(2_850_000, 2_990_000))
             .body("offers[0].purchaseUrl", is("https://example.com/" + laptop.getCode()))
             .body("offers.checkedAt", contains("2026-08-19", null));
@@ -306,6 +442,17 @@ class LaptopE2ETest extends E2ETest {
             .body("code", contains("U", "P_HS", "H", "HX", "BASIC", "PRO", "MAX"))
             .body("[0].name", is("저전력 Core Ultra 5 / Ryzen 5"))
             .body("[4].os", is("MAC"));
+    }
+
+    @Test
+    void GPU_등급을_조회하면_OS_별로_낮은_등급부터_받는다() {
+        given()
+            .when().get("/api/gpu-tiers")
+            .then().statusCode(200)
+            .body("code", contains("INTEGRATED", "XX50", "XX60", "BASIC", "PRO", "MAX"))
+            .body("[1].name", is("RTX xx50급"))
+            .body("[3].os", is("MAC"))
+            .body("lowest", contains(true, false, false, true, false, false));
     }
 
     // UC-08: 브랜드 필터 선택지는 보고 있는 OS 에 있는 브랜드만 준다
@@ -338,6 +485,41 @@ class LaptopE2ETest extends E2ETest {
             .body("offers.size()", is(0));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"학생복지스토어", "Apple 공홈"})
+    void 새_판매처의_가격이_목록_상세_예산_정렬에_일관되게_반영된다(String seller) {
+        Laptop subject = laptopOf(laptop().name("새판매처가격"));
+        productOfferRepository.save(offer().product(subject).name("쿠팡").price(500_000L)
+            .status(OfferStatus.HIDDEN).build());
+        ProductOffer winner = saveSellerOffer(subject, seller);
+        ProductOffer tied = saveSellerOffer(subject, seller);
+        minPriceRefresher.refresh(subject.getId());
+        onSaleLaptop(laptop().name("일반가격"), 1_200_000L);
+
+        given().queryParam("sort", "PRICE_ASC").when().get(PATH).then().statusCode(200)
+            .body("content.name", contains("새판매처가격", "일반가격"))
+            .body("content[0].minPrice", is(900_000));
+        given().queryParam("sort", "PRICE_DESC").when().get(PATH).then().statusCode(200)
+            .body("content.name", contains("일반가격", "새판매처가격"));
+        given().queryParam("maxPrice", 950_000).when().get(PATH).then().statusCode(200)
+            .body("content.name", contains("새판매처가격"));
+        given().queryParam("minPrice", 950_000).when().get(PATH).then().statusCode(200)
+            .body("content.name", contains("일반가격"));
+
+        given().when().get("/api/products/" + subject.getId()).then().statusCode(200)
+            .body("offers.id", contains(winner.getId().intValue(), tied.getId().intValue()))
+            .body("offers[0].name", is(seller))
+            .body("offers[0].price", is(900_000))
+            .body("offers[0].purchaseUrl", is("https://example.test/product"))
+            .body("offers[0].checkedAt", is("2026-10-30"));
+    }
+
+    private ProductOffer saveSellerOffer(Laptop laptop, String seller) {
+        return productOfferRepository.save(ProductOffer.builder().productId(laptop.getId()).name(seller)
+            .price(900_000L).purchaseUrl("https://example.test/product").status(OfferStatus.ON_SALE)
+            .checkedAt(LocalDate.of(2026, 10, 30)).build());
+    }
+
     private void addOnSaleOffer(Product product, long price) {
         productOfferRepository.save(onSaleOffer(product, price));
         minPriceRefresher.refresh(product.getId());
@@ -358,11 +540,11 @@ class LaptopE2ETest extends E2ETest {
     }
 
     private Laptop laptopOf(LaptopBuilder builder) {
-        return laptopRepository.save(builder.category(category).cpu(cpu).build());
+        return laptopRepository.save(builder.category(category).cpu(cpu).gpu(gpu).build());
     }
 
     private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, long price) {
-        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
+        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).gpu(gpu).build());
         productOfferRepository.save(onSaleOffer(laptop, price));
         minPriceRefresher.refresh(laptop.getId());
         return laptop;

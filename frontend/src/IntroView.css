@@ -1,40 +1,65 @@
-/* intro-view 전용. 공유 부품은 shared.css 에 있다. */
+/* intro-view 전용. 사양 카드는 shared.css 의 spec-panel 이 맡는다. */
 
 .baseline-list {
-    display: grid;
-    gap: var(--density-high);
-    margin: var(--density-high) 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-16);
 }
 
 .baseline-card {
-    padding: var(--density-med) var(--gutter);
+    flex: 1 1 420px;
+    min-width: 0;
+    border-radius: var(--radius-24);
 }
 
 .baseline-card h2 {
-    margin: var(--unit) 0 var(--density-high);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.3;
 }
 
-.baseline-card dl {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: var(--density-high) var(--gutter);
+/* 좁은 화면에서는 안내 글만 본문에 남고 버튼은 하단 고정 막대로 간다. 막대가 섹션 끝까지 붙어 있도록 이 묶음은 상자를 만들지 않는다. */
+.intro-next {
+    display: contents;
+}
+
+.intro-next__text {
     margin: 0;
-}
-
-.baseline-card dt {
-    color: var(--on-surface-variant);
-    font-size: var(--label-md-font-size);
-    letter-spacing: var(--label-md-letter-spacing);
-}
-
-.baseline-card dd {
-    margin: 0;
-    font-weight: 600;
-    text-align: right;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.6;
 }
 
 @media (min-width: 768px) {
     .baseline-list {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-20);
+    }
+
+    .baseline-card {
+        border-radius: var(--radius-32);
+    }
+
+    .baseline-card h2 {
+        font-size: 24px;
+    }
+
+    .intro-next {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-16);
+        padding: var(--space-28);
+        border: 1px solid var(--divider);
+        border-radius: var(--radius-24);
+        background: var(--surface-1);
+    }
+
+    .intro-next__text {
+        font-size: 16px;
+    }
+
+    .sticky-actions.intro-next__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-12);
     }
 }

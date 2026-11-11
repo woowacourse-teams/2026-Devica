@@ -4,5 +4,7 @@ public enum LaptopRequirement {
 
     REQUIRED_CPU,
     MEMORY,
-    STORAGE
+    STORAGE,
+    COLOR_GAMUT,
+    REQUIRED_GPU
 }

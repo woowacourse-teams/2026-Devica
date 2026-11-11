@@ -7,7 +7,7 @@ import { useAnalyticsView } from './useAnalyticsView';
 type Props = Omit<ComponentPropsWithoutRef<'a'>, 'href' | 'onClick' | 'onAuxClick'> & {
   href: string;
   destination: 'spec_finder' | 'board';
-  entryPoint: 'landing_hero' | 'landing_guide' | 'landing_closing' | 'header';
+  entryPoint: 'landing_hero' | 'landing_guide' | 'landing_tech' | 'landing_closing' | 'header';
   onNavigate?: () => void;
   measure?: boolean;
 };

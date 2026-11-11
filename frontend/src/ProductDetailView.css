@@ -1,154 +1,324 @@
-/* product-detail-view 전용. 사양 칸은 shared.css 의 product-spec-item 이 맡는다. */
+/* product-detail-view 전용. */
 
 .product-detail {
-    display: grid;
-    gap: var(--gutter);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-24);
 }
 
 .product-detail__status {
     margin: 0;
-    color: var(--on-surface-variant);
+    color: var(--text-muted);
 }
 
+/* 제품 사진은 정사각형이다. 칸도 정사각형으로 두고 여백 없이 채운다. */
 .product-detail__image-frame {
-    border-radius: var(--radius-box);
     position: relative;
-    display: grid;
-    aspect-ratio: 16 / 9;
-    max-height: 180px;
-    place-items: center;
-    border: 1px solid var(--on-surface);
-    background: var(--surface-container-low);
+    aspect-ratio: 1;
     overflow: hidden;
+    border-radius: var(--radius-24);
+    background: var(--surface-2);
 }
 
-.product-detail__summary h2 {
-    margin: var(--density-high) 0 var(--density-med);
-    font-size: var(--headline-lg-font-size);
-    line-height: var(--display-line-height);
+.product-detail__image-frame .product-image__photo {
+    padding: 0;
+    object-fit: cover;
+}
+
+.product-detail__summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+    min-width: 0;
+}
+
+.product-detail__summary > * {
+    margin: 0;
+}
+
+.product-detail__maker {
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.product-detail__summary h1 {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.3;
 }
 
 .product-detail__description {
-    border-left: 4px solid var(--on-surface);
-    padding-left: var(--gutter);
-    font-size: var(--body-lg-font-size);
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1.6;
 }
 
+/* 왼쪽에 이름표와 판매처, 오른쪽에 가격. 목록 카드의 최저가 줄과 같은 배치다. */
 .product-detail__price {
-    display: block;
-    margin-top: var(--density-med);
-    padding: var(--density-med) 0;
-    border-top: 1px solid var(--outline-variant);
-    border-bottom: 1px solid var(--outline-variant);
-    font-size: var(--headline-lg-font-size);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8) var(--space-16);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-16);
+    padding: var(--space-20);
+    background: var(--surface-1);
 }
 
-.product-detail__source,
-.product-detail__description {
-    color: var(--on-surface-variant);
+.product-detail__price-label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+    color: var(--text-muted);
+    font-size: 14px;
 }
 
 .product-detail__source {
-    margin: var(--density-high) 0 0;
-    font-size: var(--body-sm-font-size);
+    overflow-wrap: anywhere;
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
 }
 
-/* 판매처와 상세 사양은 요약 옆이 아니라 아래에 전폭으로 깔린다. */
+.product-detail__price strong {
+    margin-left: auto;
+    color: var(--lime);
+    font-size: 28px;
+    white-space: nowrap;
+}
+
 .product-detail__offers,
 .product-detail__specification {
-    grid-column: 1 / -1;
-}
-
-.product-detail__offers h3,
-.product-detail__specification h3 {
     display: flex;
-    align-items: center;
-    gap: var(--gutter);
-    margin-bottom: var(--gutter);
-    font-size: var(--headline-md-font-size);
+    flex-direction: column;
+    gap: var(--space-12);
 }
 
-.product-detail__offers h3::after,
-.product-detail__specification h3::after {
-    flex: 1;
-    height: 1px;
-    background: var(--outline-variant);
-    content: "";
-}
-
-.product-detail__specs {
-    display: grid;
-    gap: var(--density-high);
+.product-detail__offers h2,
+.product-detail__specification h2 {
     margin: 0;
+    font-size: 20px;
+    font-weight: 700;
 }
 
 .product-detail__no-offer {
     margin: 0;
-    color: var(--on-surface-variant);
+    color: var(--text-muted);
 }
 
-/* 판매처는 원본에 없던 목록이다. 값을 세로로 줄 세워 가격을 바로 견주게 한다. */
 .product-offers {
-    display: grid;
-    gap: var(--unit);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
+/* 좁은 화면에서는 이름 아래에 가격을 두고 버튼을 오른쪽에 붙인다. */
 .product-offer {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "name buy" "price buy" "details buy";
     align-items: center;
-    gap: var(--density-med) var(--gutter);
-    border: 1px solid var(--outline-variant);
-    padding: var(--gutter);
-    background: var(--surface-container-lowest);
+    gap: var(--space-4) var(--space-12);
+    border-radius: var(--radius-16);
+    padding: 14px var(--space-16);
+    background: var(--surface-2);
+}
+
+/* 최저가 판매처는 테두리와 이름표로 먼저 눈에 띄게 한다. 가격이 같으면 모두 강조한다. */
+.product-offer--lowest {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+    background: var(--tint);
 }
 
 .product-offer__name {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-8);
+    grid-area: name;
     min-width: 0;
     overflow-wrap: anywhere;
 }
 
+.product-offer__logo {
+    flex: none;
+    box-sizing: border-box;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-8);
+    padding: 3px;
+    background: #ffffff;
+    object-fit: contain;
+}
+
+.product-offer__badge {
+    border-radius: var(--radius-pill);
+    padding: 2px var(--space-8);
+    color: var(--on-lime);
+    background: var(--lime);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.product-offer__details {
+    grid-area: details;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.product-offer__context {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
 .product-offer__price {
-    font-size: var(--headline-sm-font-size);
-    text-align: right;
+    grid-area: price;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 400;
     white-space: nowrap;
 }
 
-/* 좁은 화면에서는 이름·가격이 한 줄을 다 쓰고 버튼이 그 아래를 채운다. 높이는 .button 이 정한다. */
 .product-offer__buy {
-    grid-column: 1 / -1;
+    grid-area: buy;
+    min-height: var(--control-sm);
+    padding: 0 18px;
+    color: var(--text-muted);
+    font-size: 14px;
     text-align: center;
-    text-decoration: none;
+}
+
+a.product-offer__buy {
+    color: var(--text);
+    font-size: 16px;
+    white-space: nowrap;
+}
+
+.product-offer__buy-prefix {
+    display: none;
+}
+
+.product-detail__specs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-8);
+    margin: 0;
+}
+
+.product-detail__spec {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-12);
+    padding: 14px;
+    background: var(--surface-1);
+    overflow-wrap: anywhere;
+}
+
+.product-detail__spec dt {
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    /* PROCESSOR·STORAGE 는 한 낱말이다. 좁은 칸에서 "STORAG / E" 로 끊기면 라벨로 안 읽힌다. */
+    white-space: nowrap;
+}
+
+.product-detail__spec dd {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
 }
 
 @media (min-width: 768px) {
     .product-detail {
+        display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        align-items: start;
+        gap: var(--space-32);
     }
 
     .product-detail__image-frame {
-        aspect-ratio: 4 / 3;
-        max-height: none;
+        border-radius: var(--radius-32);
     }
 
-    .product-detail__summary h2 {
-        font-size: calc(var(--display-font-size) * 0.8);
+    .product-detail__summary {
+        gap: var(--space-16);
     }
 
-    .product-detail__specs {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .product-detail__summary h1 {
+        font-size: 40px;
+        line-height: 1.25;
+    }
+
+    .product-detail__price {
+        margin-top: auto;
+        border-radius: var(--radius-24);
+        padding: var(--space-24);
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .product-detail__price strong {
+        margin-left: 0;
+        font-size: 40px;
+    }
+
+    .product-detail__offers,
+    .product-detail__specification {
+        grid-column: 1 / -1;
+        gap: var(--space-16);
+    }
+
+    .product-detail__offers h2,
+    .product-detail__specification h2 {
+        font-size: 24px;
+    }
+
+    .product-offers {
+        gap: var(--space-12);
     }
 
     .product-offer {
         grid-template-columns: minmax(0, 1fr) auto auto;
+        grid-template-areas: "name price buy" "details price buy";
+        gap: var(--space-4) var(--space-16);
+        padding: var(--space-16) var(--space-20);
     }
 
-    .product-offer__buy {
-        grid-column: auto;
-        min-width: 128px;
+    .product-offer__price {
+        color: var(--text);
+        font-size: 18px;
+        font-weight: 700;
     }
+
+    .product-offer__buy-prefix {
+        display: inline;
+    }
+
+    .product-detail__specs {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: var(--space-12);
+    }
+
+    .product-detail__spec {
+        gap: var(--space-8);
+        border-radius: var(--radius-16);
+        padding: 18px;
+    }
+}
+
+/* 데스크톱의 가격 색보다 뒤에 둬야 최저가 색이 이긴다. */
+.product-offer--lowest .product-offer__price {
+    color: var(--lime);
+    font-weight: 700;
 }

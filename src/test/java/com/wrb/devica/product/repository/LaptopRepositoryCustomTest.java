@@ -1,6 +1,7 @@
 package com.wrb.devica.product.repository;
 
 import static com.wrb.devica.fixture.CpuFixture.cpu;
+import static com.wrb.devica.fixture.GpuFixture.gpu;
 import static com.wrb.devica.fixture.LaptopFixture.laptop;
 import static com.wrb.devica.fixture.LaptopSearchConditionFixture.condition;
 import static com.wrb.devica.fixture.ProductOfferFixture.offer;
@@ -14,8 +15,11 @@ import com.wrb.devica.category.repository.ProductCategoryRepository;
 import com.wrb.devica.common.JpaSliceTest;
 import com.wrb.devica.common.MinPriceRefresher;
 import com.wrb.devica.fixture.LaptopFixture.LaptopBuilder;
+import com.wrb.devica.product.domain.ColorGamut;
 import com.wrb.devica.product.domain.Cpu;
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.Gpu;
+import com.wrb.devica.product.domain.GpuTier;
 import com.wrb.devica.product.domain.Laptop;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
@@ -48,6 +52,9 @@ class LaptopRepositoryCustomTest {
     private CpuRepository cpuRepository;
 
     @Autowired
+    private GpuRepository gpuRepository;
+
+    @Autowired
     private ProductOfferRepository productOfferRepository;
 
     @Autowired
@@ -59,6 +66,8 @@ class LaptopRepositoryCustomTest {
     private ProductCategory category;
 
     private Cpu cpu;
+
+    private Gpu gpu;
     @Autowired
     private LaptopRepository laptopRepository;
 
@@ -66,6 +75,7 @@ class LaptopRepositoryCustomTest {
     void setUpCategory() {
         category = productCategoryRepository.save(ProductCategory.from(ProductCategoryCode.LAPTOP));
         cpu = saveCpu();
+        gpu = saveGpu(GpuTier.XX50.getMinScore());
     }
 
     @Test
@@ -108,6 +118,50 @@ class LaptopRepositoryCustomTest {
 
         // then
         assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("중간", "높음");
+    }
+
+    @Test
+    void GPU_등급을_지정할_때_조회하면_그_등급의_최소_점수_이상만_반환한다() {
+        // given
+        int minScore = GpuTier.XX60.getMinScore();
+        onSaleLaptop(laptop().name("낮음"), cpu, saveGpu(minScore - 1), DEFAULT_PRICE);
+        onSaleLaptop(laptop().name("같음"), cpu, saveGpu(minScore), DEFAULT_PRICE);
+        onSaleLaptop(laptop().name("높음"), cpu, saveGpu(minScore + 1), DEFAULT_PRICE);
+
+        // when
+        Slice<ProductSummaryRow> found = findLaptops(condition().gpuTier(GpuTier.XX60).build());
+
+        // then
+        assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("같음", "높음");
+    }
+
+    @Test
+    void 가장_낮은_화면_색_영역과_GPU_등급은_조건으로_보지_않는다() {
+        // given
+        int lowestMinScore = GpuTier.INTEGRATED.getMinScore();
+        onSaleLaptop(laptop().name("넓음").colorGamut(ColorGamut.WIDE), cpu, saveGpu(lowestMinScore), DEFAULT_PRICE);
+        onSaleLaptop(laptop().name("모름"), cpu, saveGpu(lowestMinScore - 1), DEFAULT_PRICE);
+
+        // when
+        Slice<ProductSummaryRow> found = findLaptops(
+            condition().colorGamut(ColorGamut.STANDARD).gpuTier(GpuTier.INTEGRATED).build());
+
+        // then
+        assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("넓음", "모름");
+    }
+
+    @Test
+    void 화면_색_영역을_지정할_때_조회하면_그_색_영역_이상만_반환한다() {
+        // given
+        onSaleLaptop(laptop().name("표준").colorGamut(ColorGamut.STANDARD));
+        onSaleLaptop(laptop().name("넓음").colorGamut(ColorGamut.WIDE));
+        onSaleLaptop(laptop().name("모름"));
+
+        // when
+        Slice<ProductSummaryRow> found = findLaptops(condition().colorGamut(ColorGamut.WIDE).build());
+
+        // then
+        assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("넓음");
     }
 
     @ParameterizedTest
@@ -260,6 +314,33 @@ class LaptopRepositoryCustomTest {
         assertThat(found.hasNext()).isFalse();
     }
 
+    @ParameterizedTest
+    @EnumSource(SortType.class)
+    void 숨김_상품은_모든_정렬과_페이지에서_제외하되_다른_판매처가_있으면_노출한다(SortType sort) {
+        // given
+        Laptop hidden = laptopOf(laptop().name("숨김").brand("숨김브랜드"));
+        productOfferRepository.save(offer().product(hidden).status(OfferStatus.HIDDEN).build());
+        Laptop visible = onSaleLaptop(laptop().name("다른판매처").brand("노출브랜드"));
+        productOfferRepository.save(offer().product(visible).status(OfferStatus.HIDDEN).build());
+        Laptop unpriced = laptopOf(laptop().name("오퍼없음").brand("오퍼없는브랜드"));
+        entityManager.flush();
+        entityManager.clear();
+
+        // when
+        var first = laptopRepository.findSummariesWithMinPrice(condition().build(), sort, PageRequest.of(0, 1));
+        var second = laptopRepository.findSummariesWithMinPrice(condition().build(), sort, PageRequest.of(1, 1));
+
+        // then
+        assertThat(first.getContent()).extracting(ProductSummaryRow::name).containsExactly("다른판매처");
+        assertThat(first.hasNext()).isTrue();
+        assertThat(second.getContent()).extracting(ProductSummaryRow::name).containsExactly("오퍼없음");
+        assertThat(second.hasNext()).isFalse();
+        assertThat(laptopRepository.findWithCpuById(hidden.getId())).isPresent();
+        assertThat(laptopRepository.findWithCpuById(visible.getId())).isPresent();
+        assertThat(laptopRepository.findWithCpuById(unpriced.getId())).isPresent();
+        assertThat(laptopRepository.findBrands(null)).containsExactly("노출브랜드", "오퍼없는브랜드");
+    }
+
     @Test
     void 판매_중인_오퍼가_없어도_조회하고_최저가는_비워둔다() {
         // given
@@ -327,30 +408,13 @@ class LaptopRepositoryCustomTest {
     }
 
     @Test
-    void 추천순으로_조회하면_CPU_메모리_저장_공간_순으로_사양이_높은_노트북을_먼저_반환한다() {
-        // given
-        onSaleLaptop(laptop().name("저장_공간만_큼").memoryGb(16).storageGb(4096), saveCpu(21_000), DEFAULT_PRICE);
-        onSaleLaptop(laptop().name("메모리_큼").memoryGb(32).storageGb(512), saveCpu(21_000), DEFAULT_PRICE);
-        onSaleLaptop(laptop().name("CPU_큼").memoryGb(16).storageGb(512), saveCpu(24_000), 3_000_000L);
-        onSaleLaptop(laptop().name("메모리_같고_저장_공간_큼").memoryGb(32).storageGb(1024), saveCpu(21_000), DEFAULT_PRICE);
-
-        // when
-        Slice<ProductSummaryRow> found = findLaptops(SortType.RECOMMENDED);
-
-        // then
-        assertThat(found.getContent()).extracting(ProductSummaryRow::name)
-            .containsExactly("CPU_큼", "메모리_같고_저장_공간_큼", "메모리_큼", "저장_공간만_큼");
-    }
-
-    @ParameterizedTest
-    @EnumSource(value = SortType.class, names = {"RECOMMENDED", "PRICE_ASC"})
-    void 정렬_기준을_지정할_때_정렬_값이_같으면_id_오름차순으로_반환한다(SortType sort) {
+    void 가격_낮은_순으로_조회할_때_최저가가_같으면_id_오름차순으로_반환한다() {
         // given
         onSaleLaptop(laptop().name("먼저"), 1_000_000L);
         onSaleLaptop(laptop().name("나중"), 1_000_000L);
 
         // when
-        Slice<ProductSummaryRow> found = findLaptops(sort);
+        Slice<ProductSummaryRow> found = findLaptops(SortType.PRICE_ASC);
 
         // then
         assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("먼저", "나중");
@@ -409,6 +473,50 @@ class LaptopRepositoryCustomTest {
     }
 
     @Test
+    void 최저가를_조회하면_조건에_맞는_노트북_중_가장_낮은_최저가를_반환한다() {
+        // given
+        int minScore = CpuTier.P_HS.getMinScore();
+        onSaleLaptop(laptop().name("등급_미달"), saveCpu(minScore - 1), 500_000L);
+        onSaleLaptop(laptop().name("메모리_미달").memoryGb(8), saveCpu(minScore), 600_000L);
+        onSaleLaptop(laptop().name("상위_사양").memoryGb(32), saveCpu(minScore + 1), 1_200_000L);
+        onSaleLaptop(laptop().name("맞음"), saveCpu(minScore), 1_500_000L);
+        laptopOf(laptop().name("오퍼없음"));
+
+        // when
+        Long minPrice = findMinPrice(condition().cpuTier(CpuTier.P_HS).memoryGb(16).build());
+
+        // then
+        assertThat(minPrice).isEqualTo(1_200_000L);
+    }
+
+    @Test
+    void GPU_등급을_지정해_최저가를_조회하면_그_등급_이상_노트북의_최저가를_반환한다() {
+        // given
+        int minScore = GpuTier.XX60.getMinScore();
+        onSaleLaptop(laptop().name("등급_미달"), cpu, saveGpu(minScore - 1), 500_000L);
+        onSaleLaptop(laptop().name("맞음"), cpu, saveGpu(minScore), 1_500_000L);
+
+        // when
+        Long minPrice = findMinPrice(condition().gpuTier(GpuTier.XX60).build());
+
+        // then
+        assertThat(minPrice).isEqualTo(1_500_000L);
+    }
+
+    @Test
+    void 조건에_맞는_판매_중인_노트북이_없을_때_최저가를_조회하면_null을_반환한다() {
+        // given
+        onSaleLaptop(laptop().name("윈도우").os(Os.WINDOWS));
+        laptopOf(laptop().name("오퍼없는_맥").os(Os.MAC));
+
+        // when
+        Long minPrice = findMinPrice(condition().os(Os.MAC).build());
+
+        // then
+        assertThat(minPrice).isNull();
+    }
+
+    @Test
     void 브랜드를_조회하면_겹치지_않게_이름순으로_반환한다() {
         // given
         laptopOf(laptop().brand("Samsung"));
@@ -458,14 +566,18 @@ class LaptopRepositoryCustomTest {
     }
 
     private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, long price) {
-        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).build());
+        return onSaleLaptop(builder, cpu, gpu, price);
+    }
+
+    private Laptop onSaleLaptop(LaptopBuilder builder, Cpu cpu, Gpu gpu, long price) {
+        Laptop laptop = laptopRepository.save(builder.category(category).cpu(cpu).gpu(gpu).build());
         productOfferRepository.save(onSaleOffer(laptop, price));
         minPriceRefresher.refresh(laptop.getId());
         return laptop;
     }
 
     private Laptop laptopOf(LaptopBuilder builder) {
-        return laptopRepository.save(builder.category(category).cpu(cpu).build());
+        return laptopRepository.save(builder.category(category).cpu(cpu).gpu(gpu).build());
     }
 
     private Cpu saveCpu() {
@@ -474,6 +586,10 @@ class LaptopRepositoryCustomTest {
 
     private Cpu saveCpu(int score) {
         return cpuRepository.save(cpu().score(score).build());
+    }
+
+    private Gpu saveGpu(int score) {
+        return gpuRepository.save(gpu().score(score).build());
     }
 
     private Slice<ProductSummaryRow> findLaptops(LaptopSearchCondition condition) {
@@ -490,6 +606,12 @@ class LaptopRepositoryCustomTest {
 
     private Slice<ProductSummaryRow> findLaptops(LaptopSearchCondition condition, int page, int size) {
         return findLaptops(condition, null, page, size);
+    }
+
+    private Long findMinPrice(LaptopSearchCondition condition) {
+        entityManager.flush();
+        entityManager.clear();
+        return laptopRepository.findMinPrice(condition);
     }
 
     private Slice<ProductSummaryRow> findLaptops(LaptopSearchCondition condition, SortType sort,

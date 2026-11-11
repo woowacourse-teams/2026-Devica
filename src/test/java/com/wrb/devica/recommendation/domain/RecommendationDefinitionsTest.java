@@ -27,6 +27,13 @@ class RecommendationDefinitionsTest {
             rules:
               - { criterion: MEMORY, weight: 1, when: { question: OS, anyOf: [ MAC ] }, reason: 근거 }
             mappings: []
+            interpretation:
+              cpu:
+                MAC: [ { value: BASIC } ]
+                WINDOWS: [ { value: H } ]
+              memory: [ { value: 16 } ]
+              storage: [ { value: 512 } ]
+              macCpuLimit: PRO
             """);
 
         // when
@@ -56,6 +63,7 @@ class RecommendationDefinitionsTest {
             Map.of(UsagePurposeCode.BACKEND_DEVELOPMENT, definition), Set.of("MEMORY"), Map.of()))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("BACKEND_DEVELOPMENT: 규칙 '첫째': 없는 요구 항목입니다: GPU")
-            .hasMessageContaining("BACKEND_DEVELOPMENT: 규칙 '둘째': 가리킬 수 없는 질문입니다: CPU");
+            .hasMessageContaining("BACKEND_DEVELOPMENT: 규칙 '둘째': 가리킬 수 없는 질문입니다: CPU")
+            .hasMessageContaining("BACKEND_DEVELOPMENT: 점수 해석 규칙이 없습니다");
     }
 }

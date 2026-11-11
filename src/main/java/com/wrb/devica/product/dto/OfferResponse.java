@@ -7,14 +7,16 @@ public record OfferResponse(
     String name,
     long price,
     String purchaseUrl,
-    LocalDate checkedAt
+    LocalDate checkedAt,
+    Long id
 ) {
     public static OfferResponse from(ProductOffer offer) {
         return new OfferResponse(
             offer.getName(),
             offer.getPrice(),
             offer.getPurchaseUrl(),
-            offer.getCheckedAt()
+            offer.getCheckedAt(),
+            offer.getId()
         );
     }
 }

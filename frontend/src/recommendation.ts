@@ -6,21 +6,37 @@ export type SpecItem = {
   displayName: string;
   value: string;
   displayValue: string;
-  // 한 항목에 조정 조건이 여럿 걸리면 근거도 여럿이다.
+  // 기본 권장 사양을 정한 근거다. 답과 관계없이 항목마다 하나다.
+  basis: SpecBasis | null;
+  // 답으로 걸린 근거다. 한 항목에 조정 조건이 여럿 걸리면 근거도 여럿이다.
   reasons: string[];
+};
+
+export type SpecBasis = {
+  summary: string;
+  points: string[];
+  upgrade: string[];
+  tip: string | null;
 };
 
 // 서버는 선호 OS 와 관계없이 맥·윈도우 권장안을 늘 함께 준다. 선호한 쪽은 preferred 로 알린다.
 export type Spec = {
   items: SpecItem[];
   preferred: boolean;
+  notes: string[];
 };
 
 type RecommendationResponse = {
   specs: Spec[];
+  answersOutdated?: boolean;
 };
 
-// 질문이나 선택지가 바뀌어 주소에 담긴 답을 서버가 받지 않는다. 콘텐츠가 바뀌기 전의 결과 링크에서 생긴다.
+export type Recommendation = {
+  specs: Spec[];
+  answersOutdated: boolean;
+};
+
+// 질문이나 선택지가 바뀌어 주소에 담긴 답을 서버가 받지 않는다. 서버가 바꿔 읽을 방법을 모르는 코드가 든 주소에서 생긴다.
 export class OutdatedAnswersError extends Error {}
 
 const OUTDATED_ANSWER_CODES = ['QUESTION_NOT_FOUND', 'ANSWER_NOT_ALLOWED'];
@@ -34,7 +50,7 @@ async function errorOf(response: Response): Promise<Error> {
 }
 
 /** 답을 주지 않으면 조정 전 기본 권장 사양이 온다. 경로가 같아 화면마다 나누지 않는다. */
-export async function fetchRecommendation(purposeCode: string, query = ''): Promise<Spec[]> {
+export async function fetchRecommendation(purposeCode: string, query = ''): Promise<Recommendation> {
   const suffix = query === '' ? '' : `?${query}`;
   const response = await fetch(`${BASE_URL}/api/usage-purposes/${purposeCode}/recommendation${suffix}`, {
     headers: { Accept: 'application/json' },
@@ -44,7 +60,7 @@ export async function fetchRecommendation(purposeCode: string, query = ''): Prom
   }
 
   const body: RecommendationResponse = await response.json();
-  return body.specs;
+  return { specs: body.specs, answersOutdated: body.answersOutdated ?? false };
 }
 
 export function osValueOf(spec: Spec): string {

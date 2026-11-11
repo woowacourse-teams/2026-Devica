@@ -5,7 +5,9 @@ import static java.util.Objects.requireNonNullElse;
 import static java.util.Objects.requireNonNullElseGet;
 
 import com.wrb.devica.category.domain.ProductCategory;
+import com.wrb.devica.product.domain.ColorGamut;
 import com.wrb.devica.product.domain.Cpu;
+import com.wrb.devica.product.domain.Gpu;
 import com.wrb.devica.product.domain.Laptop;
 import com.wrb.devica.product.domain.Os;
 import java.math.BigDecimal;
@@ -24,9 +26,11 @@ public final class LaptopFixture {
     public static Laptop laptopBuilder(ProductCategory category, String brand, String name, String code,
                                        String imageKey,
                                        Os os, Cpu cpu, Integer memoryGb, Integer storageGb,
-                                       BigDecimal screenSizeInch, Integer weightG) {
+                                       BigDecimal screenSizeInch, Integer weightG,
+                                       ColorGamut colorGamut, Gpu gpu) {
         requireNonNull(category, "노트북은 카테고리가 있어야 한다. laptop().category(...) 로 지정한다");
         requireNonNull(cpu, "노트북은 cpu 가 있어야 한다. laptop().cpu(...) 로 지정한다");
+        requireNonNull(gpu, "노트북은 gpu 가 있어야 한다. laptop().gpu(...) 로 지정한다");
 
         return Laptop.builder()
             .category(category)
@@ -40,6 +44,8 @@ public final class LaptopFixture {
             .code(requireNonNullElseGet(code, ProductCodeFixture::next))
             .cpu(cpu)
             .screenSizeInch(requireNonNullElse(screenSizeInch, new BigDecimal("16.0")))
+            .colorGamut(requireNonNullElse(colorGamut, ColorGamut.STANDARD))
+            .gpu(gpu)
             .build();
     }
 

@@ -11,9 +11,9 @@ type: object
 required: [ event, timestamp, properties ]
 properties:
 
-  # 이벤트 이름. 결과 화면을 본 이벤트와, 제품 추천 결과를 고친 뒤 제품을 검색한 이벤트만 쓴다.
+  # 이벤트 이름. 결과 화면을 본 이벤트, 제품 추천 결과를 고친 뒤 제품을 검색한 이벤트, 화면 이동(설문 신호용)만 쓴다.
   event:
-    enum: [ recommendation_result_viewed, recommended_spec_edited ]
+    enum: [ recommendation_result_viewed, recommended_spec_edited, $pageview ]
 
   # 이벤트가 일어난 시각
   timestamp:
@@ -25,10 +25,11 @@ properties:
     required: [ $current_url, $session_id ]
     properties:
 
-      # 이벤트가 일어난 화면의 주소. 고른 선택지마다 answer=질문.선택지 가 하나씩 붙는다.
+      # 이벤트가 일어난 화면의 주소. 결과 화면은 고른 선택지마다 answer=질문.선택지 가 하나씩 붙는다.
+      # 질문 화면은 /questions/<화면 순번>?category=…&purpose=… 다. 순번은 화면 차례라, 어느 질문인지는 그때의 정의서로 화면 목록을 다시 만들어 찾는다.
       $current_url:
         type: string
-        pattern: '^https://(www\.)?devica\.co\.kr/result\?'
+        pattern: '^https://(www\.)?devica\.co\.kr/(result|questions/[0-9]+)\?'
 
       # PostHog 세션 ID. 세션 단위로 묶는 데만 쓰고 산출물에는 남기지 않는다.
       $session_id:

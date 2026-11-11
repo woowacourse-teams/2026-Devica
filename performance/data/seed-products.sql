@@ -17,6 +17,7 @@ BEGIN
     DECLARE v_category_id BIGINT;
     DECLARE v_mac_cpu_count INT;
     DECLARE v_windows_cpu_count INT;
+    DECLARE v_missing_gpu_tiers TEXT;
     DECLARE v_missing_tiers TEXT;
     DECLARE v_start INT DEFAULT 1;
     DECLARE v_batch_count INT;
@@ -26,6 +27,7 @@ BEGIN
         ROLLBACK;
         DROP TEMPORARY TABLE IF EXISTS perf_seed_numbers;
         DROP TEMPORARY TABLE IF EXISTS perf_seed_cpus;
+        DROP TEMPORARY TABLE IF EXISTS perf_seed_gpus;
         RESIGNAL;
     END;
 
@@ -79,7 +81,7 @@ BEGIN
     FROM (
         SELECT 'MAC' AS os, 'BASIC' AS tier, 20000 AS min_score
         UNION ALL SELECT 'MAC', 'PRO', 30000
-        UNION ALL SELECT 'MAC', 'MAX', 45000
+        UNION ALL SELECT 'MAC', 'MAX', 57500
         UNION ALL SELECT 'WINDOWS', 'U', 15000
         UNION ALL SELECT 'WINDOWS', 'P_HS', 20000
         UNION ALL SELECT 'WINDOWS', 'H', 24000
@@ -92,6 +94,38 @@ BEGIN
     IF v_missing_tiers IS NOT NULL THEN
         SET v_missing_tiers = LEFT(CONCAT('No CPU reaches CPU tiers: ', v_missing_tiers), 128);
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_missing_tiers;
+    END IF;
+
+    -- GPU 등급마다 대표 GPU를 하나씩 고른다. 등급 점수 기준은 GpuTier.java의 minScore와 같아야 한다.
+    -- Mac은 칩과 GPU가 한 몸이라 CPU 등급으로 GPU가 정해지고(slot 0: M 칩, 1: M Pro 칩 이상),
+    -- Windows는 CPU와 상관없이 slot 0: 내장, 1: RTX xx50급, 2: RTX xx60급을 고르게 나눈다.
+    CREATE TEMPORARY TABLE perf_seed_gpus (
+        os VARCHAR(16) NOT NULL,
+        slot INT NOT NULL,
+        gpu_id BIGINT,
+        PRIMARY KEY (os, slot)
+    ) ENGINE = InnoDB;
+    INSERT INTO perf_seed_gpus (os, slot, gpu_id)
+    SELECT slots.os, slots.slot,
+           (SELECT MIN(g.id) FROM gpu g
+            WHERE (g.manufacturer = 'Apple') = (slots.os = 'MAC')
+              AND g.score >= slots.min_score AND g.score < slots.max_score)
+    FROM (
+        SELECT 'MAC' AS os, 0 AS slot, 0 AS min_score, 8000 AS max_score
+        UNION ALL SELECT 'MAC', 1, 8000, 2147483647
+        UNION ALL SELECT 'WINDOWS', 0, 0, 6000
+        UNION ALL SELECT 'WINDOWS', 1, 6000, 9500
+        UNION ALL SELECT 'WINDOWS', 2, 9500, 2147483647
+    ) slots;
+
+    SELECT GROUP_CONCAT(CONCAT(os, ' slot ', slot) ORDER BY os, slot)
+    INTO v_missing_gpu_tiers
+    FROM perf_seed_gpus
+    WHERE gpu_id IS NULL;
+
+    IF v_missing_gpu_tiers IS NOT NULL THEN
+        SET v_missing_gpu_tiers = LEFT(CONCAT('No GPU for GPU tiers: ', v_missing_gpu_tiers), 128);
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_missing_gpu_tiers;
     END IF;
 
     -- 번호는 최대 1000개만 만들어 재사용해 재귀 깊이를 기본 제한 안에 둔다.
@@ -121,7 +155,9 @@ BEGIN
         -- 메모리(5개)와 스토리지(4개)는 제품 5개 묶음 순번 k = FLOOR(i / 5)마다 한 칸씩 돈다.
         -- 연속한 k 20개(lcm(5, 4))에서 OS·브랜드별로 메모리×스토리지 20조합이 한 번씩 나오므로,
         -- CPU를 k 20개(제품 100개) 단위로 바꾸면 CPU마다 같은 조합 분포를 받는다.
-        INSERT INTO laptop (id, cpu_id, os, memory_gb, storage_gb, weight_g, screen_size_inch)
+        -- Windows의 GPU 등급(3개)과 색 영역(2개)은 위 순번과 겹치지 않도록 제품 코드의 CRC32로 나눈다.
+        -- Mac은 모두 넓은 색 영역이다.
+        INSERT INTO laptop (id, cpu_id, os, memory_gb, storage_gb, weight_g, screen_size_inch, color_gamut, gpu_id)
         SELECT p.id,
                c.cpu_id,
                c.os,
@@ -129,13 +165,18 @@ BEGIN
                    8, 16, 24, 32, 64),
                ELT(MOD(v_start + s.n - 1, 4) + 1, 256, 512, 1024, 2048),
                ELT(MOD(v_start + s.n - 1, 4) + 1, 1150, 1350, 1550, 1750),
-               ELT(MOD(v_start + s.n - 1, 5) + 1, 13.6, 15.6, 14.0, 16.0, 15.6)
+               ELT(MOD(v_start + s.n - 1, 5) + 1, 13.6, 15.6, 14.0, 16.0, 15.6),
+               IF(c.os = 'MAC' OR MOD(FLOOR(CRC32(p.code) / 3), 2) = 1, 'WIDE', 'STANDARD'),
+               g.gpu_id
         FROM perf_seed_numbers s
         JOIN product p ON p.code = CONCAT(v_prefix, LPAD(v_start + s.n, 6, '0'))
         JOIN perf_seed_cpus c
           ON c.os = IF(MOD(v_start + s.n - 1, 5) = 0, 'MAC', 'WINDOWS')
          AND c.cpu_no = MOD(FLOOR((v_start + s.n - 1) / 100),
                             IF(MOD(v_start + s.n - 1, 5) = 0, v_mac_cpu_count, v_windows_cpu_count))
+        JOIN perf_seed_gpus g
+          ON g.os = c.os
+         AND g.slot = IF(c.os = 'MAC', c.score >= 30000, MOD(CRC32(p.code), 3))
         WHERE s.n < v_batch_count;
 
         INSERT INTO product_offer (product_id, name, price, purchase_url, status, created_at, updated_at)
@@ -165,6 +206,7 @@ BEGIN
 
     DROP TEMPORARY TABLE perf_seed_numbers;
     DROP TEMPORARY TABLE perf_seed_cpus;
+    DROP TEMPORARY TABLE perf_seed_gpus;
 
     SELECT COUNT(DISTINCT p.id) AS products, COUNT(DISTINCT l.id) AS laptops,
            COUNT(o.id) AS on_sale_offers, COUNT(DISTINCT m.product_id) AS min_prices

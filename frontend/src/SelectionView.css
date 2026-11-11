@@ -1,88 +1,186 @@
-/* 제품 선택과 사용 목적 선택이 함께 쓴다. */
+/* 제품 선택과 사용 목적 선택이 함께 쓰는 선택 카드(Ring 의 SelectCard). */
 
-.selection__title {
-    margin: 0;
-    font-size: var(--headline-lg-font-size);
-    font-weight: var(--headline-lg-font-weight);
-    line-height: var(--headline-lg-line-height);
-    letter-spacing: var(--headline-lg-letter-spacing);
-}
-
-/* 좁은 화면은 한 열, 넓은 화면은 두 열이다. 항목이 4개라 2×2 로 빈칸 없이 채워진다. */
-.selection__list {
+.select-list {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: var(--density-high);
+    gap: var(--space-12);
     margin: 0;
-    border-top: 1px solid var(--outline);
-    padding: var(--density-med) 0 0;
+    padding: 0;
     list-style: none;
 }
 
-/* 같은 줄의 카드는 설명 길이가 달라도 높이를 맞춘다. */
-.selection__card {
-    border-radius: var(--radius-box);
-    display: flex;
-    flex-direction: column;
-    gap: var(--unit);
+.select-list--category {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.select-card {
     width: 100%;
     height: 100%;
-    border: 1px solid var(--outline);
-    padding: var(--density-med) var(--gutter);
-    color: var(--on-surface);
-    background: var(--surface-container-lowest);
+    border: 1.5px solid var(--control);
+    border-radius: var(--radius-24);
+    color: var(--text);
+    background: var(--surface-1);
     font: inherit;
     text-align: left;
     cursor: pointer;
+    transition: border-color 150ms ease-out;
 }
 
-.selection__card:hover:not(:disabled) {
-    border-color: var(--primary);
-    box-shadow: inset 0 0 0 1px var(--primary);
+.select-card:hover:not(:disabled) {
+    border-color: var(--accent);
 }
 
-.selection__card:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-}
-
-.selection__card:disabled {
-    border-color: var(--outline-variant);
-    color: var(--outline);
-    background: var(--surface);
+.select-card:disabled {
+    border-width: 1px;
+    border-color: var(--divider);
+    color: var(--control);
     cursor: not-allowed;
 }
 
-.selection__name {
+.select-card__icon {
+    flex: none;
+    color: var(--accent);
+}
+
+.select-card__text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-width: 0;
+}
+
+.select-card__name {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.select-card__description {
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.select-card__arrow {
+    color: var(--accent);
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.select-card__badge {
+    border-radius: var(--radius-pill);
+    padding: var(--space-4) 10px;
+    color: var(--text-muted);
+    background: var(--surface-2);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* 제품 카드는 아이콘을 위에, 이름과 화살표를 아래 한 줄에 둔다. 좁은 화면에서는 준비 중 표시가 이름 아래로 내려간다. */
+.select-list--category .select-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: 1fr auto;
+    align-items: center;
+    gap: var(--space-8);
+    min-height: 152px;
+    padding: var(--space-20);
+}
+
+.select-list--category .select-card__icon {
+    grid-column: 1 / -1;
+    align-self: start;
+}
+
+.select-list--category .select-card__badge {
+    grid-column: 1 / -1;
+    justify-self: start;
+}
+
+/* 사용 목적 카드는 아이콘 칸·이름과 설명·화살표를 한 줄에 둔다. */
+.select-list--purpose .select-card {
     display: flex;
     align-items: center;
-    gap: var(--density-high);
-    font-size: var(--headline-md-font-size);
-    font-weight: var(--headline-md-font-weight);
-    line-height: var(--headline-md-line-height);
+    gap: var(--space-16);
+    min-height: 88px;
+    padding: var(--space-16) var(--space-20);
 }
 
-.selection__badge {
-    border-radius: var(--radius-detail);
-    padding: var(--unit) var(--density-high);
-    color: var(--on-surface-variant);
-    background: var(--surface-container-high);
-    font-size: var(--label-md-font-size);
-    font-weight: var(--label-md-font-weight);
+.select-list--purpose .select-card__text {
+    flex: 1;
 }
 
-.selection__description {
-    color: var(--on-surface-variant);
-    font-size: var(--body-md-font-size);
-    line-height: var(--body-md-line-height);
+.select-card__tile {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-12);
+    background: var(--surface-2);
 }
 
-.selection__card:disabled .selection__description {
-    color: var(--outline);
+.select-card__tile .select-card__icon {
+    width: 24px;
+    height: 24px;
+}
+
+.select-card:disabled .select-card__icon {
+    color: var(--control);
+    opacity: 0.6;
 }
 
 @media (min-width: 768px) {
-    .selection__list {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .select-list {
+        gap: var(--space-16);
+    }
+
+    .select-list--category {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .select-list--purpose {
+        grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+    }
+
+    .select-card__name {
+        font-size: 24px;
+    }
+
+    .select-card__description {
+        font-size: 16px;
+    }
+
+    .select-list--category .select-card {
+        min-height: 220px;
+        padding: var(--space-28);
+    }
+
+    .select-list--category .select-card__badge {
+        grid-column: auto;
+    }
+
+    .select-list--purpose .select-card {
+        gap: var(--space-20);
+        min-height: 120px;
+        padding: var(--space-20) var(--space-28);
+    }
+
+    .select-card__tile {
+        width: 64px;
+        height: 64px;
+        border-radius: var(--radius-16);
+    }
+
+    .select-card__tile .select-card__icon {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .select-card {
+        transition: none;
     }
 }

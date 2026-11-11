@@ -96,21 +96,21 @@ WHERE p.usage_purpose_id = @board_purpose_id;
 
 ```bash
 # 스모크: 기본 목록 요청 비율로 4초마다 1건, 1분
-k6 run -e BASE_URL=http://dev.devica.co.kr \
+k6 run -e BASE_URL=http://api.dev.devica.co.kr \
   performance/k6/board-list/smoke.js
 
 # 기본 목록 조회: 총 2 RPS, 워밍업 1분 → 측정 10분
-k6 run -e BASE_URL=http://dev.devica.co.kr \
+k6 run -e BASE_URL=http://api.dev.devica.co.kr \
   --summary-export=performance/results/board-list-browse-before-1.json \
   performance/k6/board-list/load.js
 
 # 추가 진단: 첫 페이지 고정
-k6 run -e BASE_URL=http://dev.devica.co.kr -e POST_PAGE=0 \
+k6 run -e BASE_URL=http://api.dev.devica.co.kr -e POST_PAGE=0 \
   --summary-export=performance/results/board-list-first-before-1.json \
   performance/k6/board-list/load.js
 
 # 추가 진단: 깊은 페이지 고정. 앞 테스트의 서버 작업이 정리된 뒤 실행
-k6 run -e BASE_URL=http://dev.devica.co.kr -e POST_PAGE=1000 \
+k6 run -e BASE_URL=http://api.dev.devica.co.kr -e POST_PAGE=1000 \
   --summary-export=performance/results/board-list-deep-before-1.json \
   performance/k6/board-list/load.js
 ```

@@ -5,14 +5,68 @@
 .view-panel {
     display: flex;
     flex-direction: column;
-    gap: var(--gutter);
+    gap: var(--space-16);
 }
 
 /* 원본의 .status-panel, .intro-steps, .baseline-card, .spec-card ... 나열을 대체한다. */
 .bordered-panel {
-    border-radius: var(--radius-box);
-    border: 1px solid var(--on-surface);
-    background: var(--surface-container-lowest);
+    border-radius: var(--radius-24);
+    border: 1px solid var(--divider);
+    background: var(--surface-1);
+}
+
+/* 없는 주소·주소 형식 오류·불러오기 실패처럼 화면 전체를 대신하는 오류. */
+.error-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-20);
+    min-height: 520px;
+    padding: var(--space-48);
+    border: 1px solid var(--divider);
+    border-radius: var(--radius-32);
+    background: radial-gradient(60% 60% at 50% 30%, var(--tint) 0%, transparent 70%), var(--surface-1);
+    text-align: center;
+    word-break: keep-all;
+}
+
+.error-panel__code {
+    margin: 0;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.error-panel h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.error-panel__message {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.error-panel__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-12);
+}
+
+@media (max-width: 767px) {
+    .error-panel {
+        gap: var(--space-16);
+        min-height: calc(100svh - var(--header-height-mobile) - 160px);
+        padding: var(--space-16) 0;
+        border: 0;
+        background: none;
+    }
 }
 
 .probe {
@@ -20,65 +74,75 @@
     width: 100%;
     max-width: 1120px;
     margin: 0 auto;
-    padding: var(--gutter) var(--margin-mobile) 48px;
+    padding: var(--space-16) var(--page-gutter) 48px;
 }
 
 .eyebrow {
     margin: 0;
-    font-size: var(--label-md-font-size);
-    font-weight: var(--label-md-font-weight);
-    line-height: var(--label-md-line-height);
-    letter-spacing: var(--label-md-letter-spacing);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.05em;
 }
 
 .section-description {
-    color: var(--on-surface-variant);
+    color: var(--text-muted);
 }
 
+/* Ring 의 Button. 기본은 보조(outline) 버튼이고, 화면에 하나뿐인 주 버튼만 .button--primary 다. */
 .button {
-    border-radius: var(--radius-control);
-    min-height: 52px;
-    border: 1px solid var(--primary);
-    padding: var(--density-med) var(--gutter);
-    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-8);
+    border-radius: var(--radius-pill);
+    min-height: var(--control-md);
+    border: 1.5px solid var(--control);
+    padding: 0 var(--space-24);
+    color: var(--text);
+    background: var(--field);
+    font-size: 16px;
     font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
     transition:
-        background-color 120ms ease-out,
-        border-color 120ms ease-out,
-        color 120ms ease-out;
+        background-color 150ms ease-out,
+        border-color 150ms ease-out,
+        color 150ms ease-out;
 }
 
-.button:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
+.button:hover:not(:disabled) {
+    border-color: var(--accent);
+}
+
+.button:active:not(:disabled) {
+    background: var(--tint);
 }
 
 .button--primary {
-    border-color: var(--accent);
-    color: var(--on-primary);
-    background: var(--accent);
-}
-
-.button--primary:hover:not(:disabled) {
-    color: var(--accent);
-    background: var(--on-primary);
-}
-
-/* 주요 버튼이지만 강조색을 쓰지 않는다. 한 화면에 강조색 버튼이 몰리지 않게 할 때 쓴다. */
-.button--neutral {
+    border: 0;
     color: var(--on-primary);
     background: var(--primary);
 }
 
-.button--neutral:hover:not(:disabled) {
-    color: var(--primary);
-    background: var(--on-primary);
+.button--primary:hover:not(:disabled) {
+    background: var(--primary-bright);
+}
+
+.button--primary:active:not(:disabled) {
+    background: var(--primary-deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .button {
+        transition: none;
+    }
 }
 
 .button:disabled {
-    border-color: var(--outline-variant);
-    color: var(--outline);
-    background: var(--surface-container);
+    border-color: transparent;
+    color: var(--control);
+    background: var(--surface-2);
     cursor: not-allowed;
 }
 
@@ -88,9 +152,9 @@
 
 /* 불러오기 실패 안내. 첫 화면과 질문 화면이 함께 쓴다. */
 .notice {
-    margin: var(--gutter) 0 0;
-    color: var(--on-surface);
-    font-size: var(--body-md-font-size);
+    margin: var(--space-16) 0 0;
+    color: var(--text);
+    font-size: 14px;
     font-weight: 600;
 }
 
@@ -98,8 +162,8 @@
 .text-button {
     width: fit-content;
     border: 0;
-    padding: var(--density-high) 0;
-    color: var(--on-surface);
+    padding: var(--space-8) 0;
+    color: var(--text);
     background: transparent;
     font: inherit;
     font-weight: 600;
@@ -114,53 +178,390 @@
 }
 
 .view-back-button {
-    margin-bottom: var(--gutter);
+    margin-bottom: var(--space-16);
+    padding: var(--space-12) 0;
+    color: var(--text-muted);
 }
 
-/* 제품 카드와 제품 상세가 함께 쓰는 사양 칸. */
-.product-spec-item {
-    min-width: 0;
-    border: 1px solid var(--outline-variant);
-    padding: var(--density-high);
-    overflow-wrap: anywhere;
+/* 제품 추천 흐름 화면의 틀. 뒤로 가기·제목·본문 사이를 같은 간격으로 띄운다. */
+.flow-view {
+    gap: var(--space-24);
 }
 
-.product-spec-item dt {
-    color: var(--on-surface-variant);
-    font-family: var(--font-label);
-    font-size: var(--label-sm-font-size);
-    letter-spacing: var(--label-sm-letter-spacing);
-    /* PROCESSOR·STORAGE 는 한 낱말이다. 좁은 칸에서 "STORAG / E" 로 끊기면 라벨로 안 읽힌다. */
-    white-space: nowrap;
+.flow-view > .view-back-button {
+    align-self: flex-start;
+    margin-bottom: 0;
+    font-size: 14px;
 }
 
-.product-spec-item dd {
-    margin: var(--unit) 0 0;
-    font-size: var(--body-md-font-size);
+.flow-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
 }
 
-/* 진행 버튼은 화면 하단에 고정한다. 부모(섹션) 안에서만 붙어 있어 푸터를 가리지 않는다. */
+.flow-head > * {
+    margin: 0;
+}
+
+.flow-head__eyebrow {
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.flow-head h1 {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.flow-head__description {
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+@media (min-width: 768px) {
+    .flow-view {
+        gap: var(--space-28);
+    }
+
+    .flow-view > .view-back-button {
+        font-size: 16px;
+    }
+
+    .flow-head {
+        gap: var(--space-12);
+    }
+
+    .flow-head h1 {
+        font-size: 40px;
+        line-height: 1.25;
+    }
+}
+
+/* 진행 버튼은 좁은 화면에서 하단에 고정한다. 부모(섹션) 안에서만 붙어 있어 푸터를 가리지 않는다.
+   넓은 화면에서는 고정하지 않고 화면마다 제자리에 둔다. */
 .sticky-actions {
     position: sticky;
     bottom: 0;
     z-index: 1;
     display: grid;
-    gap: var(--density-high);
-    margin-top: var(--gutter);
-    padding: var(--density-med) 0;
-    border-top: 1px solid var(--outline-variant);
-    background: var(--surface);
+    gap: var(--space-8);
+    padding: var(--space-12) 0 calc(var(--space-16) + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg, transparent 0%, var(--bg) 24%);
 }
 
-.sticky-actions .button {
-    min-height: 48px;
+@media (min-width: 768px) {
+    .sticky-actions {
+        position: static;
+        padding: 0;
+        background: none;
+    }
 }
 
 @media (min-width: 768px) {
     .probe {
         padding-top: 40px;
         padding-bottom: 64px;
-        padding-right: var(--margin-desktop);
-        padding-left: var(--margin-desktop);
+    }
+}
+
+/* 울트라마린 그라데이션 사양 카드. 기본 권장 사양과 제품 추천 결과가 함께 쓴다. */
+.spec-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-16);
+    padding: var(--space-20);
+    color: var(--on-primary);
+    background:
+        radial-gradient(70% 120% at 100% 0%, #5868ff 0%, rgba(40, 58, 255, 0) 60%),
+        linear-gradient(150deg, var(--primary-bright) 0%, var(--primary) 55%, var(--primary-deep) 100%);
+}
+
+/* 카드 제목 앞의 OS 표시. 파란 카드 위에서는 반투명 칸, 어두운 카드에서는 화면별로 색을 정한다. */
+.os-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.os-icon {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-12);
+    background: var(--on-primary-tile);
+}
+
+.spec-tiles {
+    display: grid;
+    gap: var(--space-8);
+    margin: 0;
+}
+
+.spec-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-8);
+    min-width: 0;
+    padding: 18px;
+    border-radius: var(--radius-16);
+    background: var(--on-primary-tile);
+}
+
+.spec-tile dt {
+    color: var(--on-primary-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.spec-tile dd {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+@media (min-width: 768px) {
+    .spec-panel {
+        gap: var(--space-20);
+        padding: var(--space-32);
+    }
+
+    /* 프로세서 이름은 길어 한 줄을 다 쓰고, 나머지는 두 칸씩 놓는다. */
+    .spec-tiles {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-12);
+    }
+
+    .spec-tiles > :first-child {
+        grid-column: 1 / -1;
+    }
+}
+
+.rationale-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--space-8);
+    min-width: 0;
+}
+
+.rationale-trigger {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    min-height: 28px;
+    border: 1px solid var(--on-primary-muted);
+    border-radius: var(--radius-pill);
+    padding: 0 var(--space-12);
+    color: var(--on-primary);
+    background: none;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: border-color 150ms ease-out;
+}
+
+.rationale-trigger:hover,
+.rationale-trigger:focus-visible {
+    border-color: var(--on-primary);
+}
+
+.rationale-heading .rationale-trigger::before {
+    content: "";
+    position: absolute;
+    inset: -8px -4px;
+}
+
+.rationale-trigger__hint {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.spec-tile .rationale-trigger {
+    position: static;
+    display: flex;
+    width: fit-content;
+    margin-top: var(--space-8);
+}
+
+.spec-tile:has(.rationale-trigger) {
+    position: relative;
+    transition: background-color 150ms ease-out;
+}
+
+.spec-tile .rationale-trigger::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-16);
+}
+
+.spec-tile:has(.rationale-trigger):hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.spec-tile .rationale-trigger:focus-visible {
+    outline: none;
+}
+
+.spec-tile:has(.rationale-trigger:focus-visible) {
+    outline: 2px solid var(--lime);
+    outline-offset: 2px;
+}
+
+.rationale-dialog {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    max-height: min(85dvh, 640px);
+    margin: auto 0 0;
+    border: 0;
+    border-top: 1px solid var(--divider);
+    border-radius: var(--radius-24) var(--radius-24) 0 0;
+    padding: 0;
+    color: var(--text);
+    background: var(--surface-1);
+}
+
+.rationale-dialog[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.rationale-dialog::backdrop {
+    background: var(--scrim);
+}
+
+html:has(.rationale-dialog[open]) {
+    overflow: hidden;
+}
+
+.rationale-dialog__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-12);
+    border-bottom: 1px solid var(--divider);
+    padding: var(--space-16) var(--space-8) var(--space-16) var(--space-20);
+}
+
+.rationale-dialog__eyebrow {
+    margin: 0 0 var(--space-4);
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.rationale-dialog__head h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.rationale-dialog__close {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border: 0;
+    color: var(--text);
+    background: transparent;
+    cursor: pointer;
+}
+
+.rationale-dialog__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-20);
+    overflow-y: auto;
+    padding: var(--space-20) var(--space-20) calc(var(--space-24) + env(safe-area-inset-bottom));
+}
+
+.rationale-dialog__body section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.rationale-dialog__body h3,
+.rationale-dialog__body h4 {
+    margin: 0;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.rationale-dialog__body p,
+.rationale-dialog__body ul {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.7;
+    word-break: keep-all;
+}
+
+.rationale-dialog__body .rationale-dialog__summary {
+    font-weight: 700;
+}
+
+.rationale-dialog__body .rationale-dialog__subheading {
+    margin-top: var(--space-8);
+}
+
+.rationale-dialog__body .rationale-dialog__tip {
+    margin-top: var(--space-4);
+    color: var(--text-muted);
+    font-size: 15px;
+}
+
+.rationale-dialog__body ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding-left: var(--space-20);
+}
+
+@media (min-width: 768px) {
+    .rationale-dialog {
+        width: min(560px, calc(100% - 48px));
+        max-height: min(80dvh, 640px);
+        margin: auto;
+        border: 1px solid var(--divider);
+        border-radius: var(--radius-24);
+    }
+
+    .rationale-dialog__head {
+        padding: var(--space-20) var(--space-12) var(--space-16) var(--space-28);
+    }
+
+    .rationale-dialog__body {
+        padding: var(--space-20) var(--space-28) var(--space-28);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rationale-trigger,
+    .spec-tile:has(.rationale-trigger) {
+        transition: none;
     }
 }

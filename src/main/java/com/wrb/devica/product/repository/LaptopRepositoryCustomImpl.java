@@ -1,16 +1,22 @@
 package com.wrb.devica.product.repository;
 
 import static com.wrb.devica.product.domain.QCpu.cpu;
+import static com.wrb.devica.product.domain.QGpu.gpu;
 import static com.wrb.devica.product.domain.QLaptop.laptop;
 import static com.wrb.devica.product.domain.QProductMinPrice.productMinPrice;
 
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.wrb.devica.product.domain.ColorGamut;
 import com.wrb.devica.product.domain.CpuTier;
+import com.wrb.devica.product.domain.GpuTier;
+import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
+import com.wrb.devica.product.domain.QProductOffer;
 import com.wrb.devica.product.dto.LaptopSearchCondition;
 import com.wrb.devica.product.dto.ProductSummaryRow;
 import com.wrb.devica.product.dto.QProductSummaryRow;
@@ -54,12 +60,17 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
         return selectSummary()
             .from(laptop)
             .join(laptop.cpu, cpu)
+            .join(laptop.gpu, gpu)
             .leftJoin(productMinPrice).on(productMinPrice.productId.eq(laptop.id))
             .where(conditions(condition))
             .orderBy(orders(sort))
             .offset(offset)
             .limit(limit)
             .fetch();
+    }
+
+    private boolean isPriceSort(SortType sort) {
+        return sort == SortType.PRICE_ASC || sort == SortType.PRICE_DESC;
     }
 
     private List<ProductSummaryRow> findSortedPageByPrice(LaptopSearchCondition condition,
@@ -87,6 +98,7 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             .from(productMinPrice)
             .join(laptop).on(laptop.id.eq(productMinPrice.productId))
             .join(laptop.cpu, cpu)
+            .join(laptop.gpu, gpu)
             .where(conditions(condition))
             .orderBy(orders(sort))
             .offset(offset)
@@ -94,17 +106,8 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             .fetch();
     }
 
-    private List<ProductSummaryRow> findUnpriced(LaptopSearchCondition condition, long offset, int limit) {
-        return selectSummary()
-            .from(laptop)
-            .join(laptop.cpu, cpu)
-            .leftJoin(productMinPrice).on(productMinPrice.productId.eq(laptop.id))
-            .where(conditions(condition))
-            .where(productMinPrice.productId.isNull())
-            .orderBy(laptop.id.asc())
-            .offset(offset)
-            .limit(limit)
-            .fetch();
+    private boolean hasPriceCondition(LaptopSearchCondition condition) {
+        return condition.minPrice() != null || condition.maxPrice() != null;
     }
 
     private long countPriced(LaptopSearchCondition condition) {
@@ -113,8 +116,23 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             .from(productMinPrice)
             .join(laptop).on(laptop.id.eq(productMinPrice.productId))
             .join(laptop.cpu, cpu)
+            .join(laptop.gpu, gpu)
             .where(conditions(condition))
             .fetchOne();
+    }
+
+    private List<ProductSummaryRow> findUnpriced(LaptopSearchCondition condition, long offset, int limit) {
+        return selectSummary()
+            .from(laptop)
+            .join(laptop.cpu, cpu)
+            .join(laptop.gpu, gpu)
+            .leftJoin(productMinPrice).on(productMinPrice.productId.eq(laptop.id))
+            .where(conditions(condition))
+            .where(productMinPrice.productId.isNull())
+            .orderBy(laptop.id.asc())
+            .offset(offset)
+            .limit(limit)
+            .fetch();
     }
 
     private JPAQuery<ProductSummaryRow> selectSummary() {
@@ -126,30 +144,10 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             productMinPrice.minPrice,
             laptop.os,
             cpu.name,
+            gpu.name,
             laptop.memoryGb,
             laptop.storageGb
         ));
-    }
-
-    private Predicate[] conditions(LaptopSearchCondition condition) {
-        return new Predicate[]{
-            osEq(condition.os()),
-            cpuTierAtLeast(condition.cpuTier()),
-            memoryGbGoe(condition.memoryGb()),
-            storageGbGoe(condition.storageGb()),
-            keywordContains(condition.keyword()),
-            brandEq(condition.brand()),
-            minPriceGoe(condition.minPrice()),
-            minPriceLoe(condition.maxPrice())
-        };
-    }
-
-    private boolean isPriceSort(SortType sort) {
-        return sort == SortType.PRICE_ASC || sort == SortType.PRICE_DESC;
-    }
-
-    private boolean hasPriceCondition(LaptopSearchCondition condition) {
-        return condition.minPrice() != null || condition.maxPrice() != null;
     }
 
     // 정렬 값이 같으면 id 순으로 둔다. 가격순은 인덱스를 읽는 방향을 따라야 정렬 없이 인덱스만으로 읽힌다
@@ -159,11 +157,21 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
         }
 
         return switch (sort) {
-            case RECOMMENDED -> new OrderSpecifier[]{
-                cpu.score.desc(), laptop.memoryGb.desc(), laptop.storageGb.desc(), laptop.id.asc()};
             case PRICE_ASC -> new OrderSpecifier[]{productMinPrice.minPrice.asc(), productMinPrice.productId.asc()};
             case PRICE_DESC -> new OrderSpecifier[]{productMinPrice.minPrice.desc(), productMinPrice.productId.desc()};
         };
+    }
+
+    @Override
+    public Long findMinPrice(LaptopSearchCondition condition) {
+        return queryFactory
+            .select(productMinPrice.minPrice.min())
+            .from(productMinPrice)
+            .join(laptop).on(laptop.id.eq(productMinPrice.productId))
+            .join(laptop.cpu, cpu)
+            .join(laptop.gpu, gpu)
+            .where(conditions(condition))
+            .fetchOne();
     }
 
     @Override
@@ -172,23 +180,75 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             .select(laptop.brand)
             .distinct()
             .from(laptop)
-            .where(osEq(os))
+            .where(osEq(os), visibleProduct())
             .orderBy(laptop.brand.asc())
             .fetch();
     }
 
-    private BooleanExpression minPriceGoe(Long minPrice) {
-        if (minPrice == null) {
-            return null;
-        }
-        return productMinPrice.minPrice.goe(minPrice);
+    private Predicate[] conditions(LaptopSearchCondition condition) {
+        return new Predicate[]{
+            visibleProduct(),
+            osEq(condition.os()),
+            cpuTierAtLeast(condition.cpuTier()),
+            colorGamutAtLeast(condition.colorGamut()),
+            gpuTierAtLeast(condition.gpuTier()),
+            memoryGbGoe(condition.memoryGb()),
+            storageGbGoe(condition.storageGb()),
+            keywordContains(condition.keyword()),
+            brandEq(condition.brand()),
+            minPriceGoe(condition.minPrice()),
+            minPriceLoe(condition.maxPrice())
+        };
     }
 
-    private BooleanExpression minPriceLoe(Long maxPrice) {
-        if (maxPrice == null) {
+    private BooleanExpression visibleProduct() {
+        QProductOffer offer = new QProductOffer("visibilityOffer");
+        return JPAExpressions.selectOne().from(offer)
+            .where(offer.productId.eq(laptop.id), offer.status.eq(OfferStatus.HIDDEN)).notExists()
+            .or(JPAExpressions.selectOne().from(offer)
+                .where(offer.productId.eq(laptop.id), offer.status.eq(OfferStatus.ON_SALE)).exists());
+    }
+
+    private BooleanExpression osEq(Os os) {
+        if (os == null) {
             return null;
         }
-        return productMinPrice.minPrice.loe(maxPrice);
+        return laptop.os.eq(os);
+    }
+
+    private BooleanExpression cpuTierAtLeast(CpuTier cpuTier) {
+        if (cpuTier == null) {
+            return null;
+        }
+        return cpu.score.goe(cpuTier.getMinScore());
+    }
+
+    private BooleanExpression colorGamutAtLeast(ColorGamut colorGamut) {
+        if (colorGamut == null || colorGamut == ColorGamut.STANDARD) {
+            return null;
+        }
+        return laptop.colorGamut.in(colorGamut.andAbove());
+    }
+
+    private BooleanExpression gpuTierAtLeast(GpuTier gpuTier) {
+        if (gpuTier == null || gpuTier.isLowest()) {
+            return null;
+        }
+        return gpu.score.goe(gpuTier.getMinScore());
+    }
+
+    private BooleanExpression memoryGbGoe(Integer memoryGb) {
+        if (memoryGb == null) {
+            return null;
+        }
+        return laptop.memoryGb.goe(memoryGb);
+    }
+
+    private BooleanExpression storageGbGoe(Integer storageGb) {
+        if (storageGb == null) {
+            return null;
+        }
+        return laptop.storageGb.goe(storageGb);
     }
 
     private BooleanExpression keywordContains(String keyword) {
@@ -206,32 +266,17 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
         return laptop.brand.eq(brand);
     }
 
-    private BooleanExpression osEq(Os os) {
-        if (os == null) {
+    private BooleanExpression minPriceGoe(Long minPrice) {
+        if (minPrice == null) {
             return null;
         }
-        return laptop.os.eq(os);
+        return productMinPrice.minPrice.goe(minPrice);
     }
 
-    // 등급은 우리가 정의한 분류라 실제 비교는 그 등급의 최소 점수로 한다
-    private BooleanExpression cpuTierAtLeast(CpuTier cpuTier) {
-        if (cpuTier == null) {
+    private BooleanExpression minPriceLoe(Long maxPrice) {
+        if (maxPrice == null) {
             return null;
         }
-        return cpu.score.goe(cpuTier.getMinScore());
-    }
-
-    private BooleanExpression memoryGbGoe(Integer memoryGb) {
-        if (memoryGb == null) {
-            return null;
-        }
-        return laptop.memoryGb.goe(memoryGb);
-    }
-
-    private BooleanExpression storageGbGoe(Integer storageGb) {
-        if (storageGb == null) {
-            return null;
-        }
-        return laptop.storageGb.goe(storageGb);
+        return productMinPrice.minPrice.loe(maxPrice);
     }
 }

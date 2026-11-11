@@ -4,7 +4,6 @@ import { useHistoryState, usePathname, useSearch } from 'wouter/use-browser-loca
 import { track } from './analytics';
 import { BoardPage } from './BoardPage';
 import { BoardPostPage } from './BoardPostView';
-import { CategoryCards } from './CategoryCards';
 import { FaqView } from './FaqView';
 import { forget, useFetched } from './fetched';
 import { IntroView } from './IntroView';
@@ -19,9 +18,17 @@ import {
   type SortType,
   type SpecEdits,
   specCondition,
+  validTier,
 } from './products';
 import { QuestionView } from './QuestionView';
-import { type Answers, fetchSurvey, pruneHiddenAnswers, resolveScreens, toSearchParams } from './questions';
+import {
+  type Answers,
+  fetchSurvey,
+  isScreenAnswered,
+  pruneHiddenAnswers,
+  resolveScreens,
+  toSearchParams,
+} from './questions';
 import { type ResultOs, ResultView } from './ResultView';
 import { fetchRecommendation, OutdatedAnswersError, osValueOf, preferredOsOf, type Spec } from './recommendation';
 import {
@@ -31,6 +38,7 @@ import {
   boardEntryUrl,
   conditionOf,
   currentNavState,
+  DESKTOP_MEDIA,
   editEntries,
   editsOf,
   flowEntries,
@@ -82,10 +90,16 @@ export function App() {
   const boardHref = boardEntryUrl(pathname, params);
   const inBoard = isBoardScreen(screen);
 
-  // 게시판 진입점은 헤더의 "질문 게시판" 링크다. 게시판 밖의 화면이 바뀔 때마다 그 링크가 보인 것으로 센다.
+  // 판정을 바꾸면 index.html 의 테마 스크립트도 함께 바꾼다.
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = inBoard || screen === 'faq' ? 'light' : 'dark';
+  }, [inBoard, screen]);
+
+  // 게시판 진입점은 헤더의 "질문 게시판" 링크다. 데스크톱은 게시판 밖의 화면이 바뀔 때마다 그 링크가 보인 것으로 센다.
+  // 모바일은 링크가 메뉴 안에 있어 메뉴를 열 때 센다(SiteHeader).
   // biome-ignore lint/correctness/useExhaustiveDependencies: 같은 화면에서 조건만 바꿀 때는 다시 세지 않는다.
   useEffect(() => {
-    if (!inBoard) {
+    if (!inBoard && window.matchMedia(DESKTOP_MEDIA).matches) {
       track('board_entry_viewed', {});
     }
   }, [pathname]);
@@ -252,9 +266,10 @@ function IntroPage({ params, search }: PageProps & { search: string }) {
   if (category === null || purpose === null) {
     return <NotFound />;
   }
-  const screens = resolveScreens(survey.data ?? { steps: [] }, {});
+  const screens = resolveScreens(survey.data ?? { steps: [], version: null }, {});
   return (
     <IntroView
+      categoryCode={category}
       purposeCode={purpose}
       onBack={() => goBack(`${PATHS.purpose}${query([['category', category]])}`, 'purpose')}
       onStart={() => {
@@ -265,10 +280,10 @@ function IntroPage({ params, search }: PageProps & { search: string }) {
       canStart={screens.length > 0}
       questionsFailed={survey.failed}
       questionsLoading={survey.data === null && !survey.failed}
-      // 답을 비워 보내면 조정 전 기본 권장 사양이 온다. 원본도 답을 무시하고 기본으로 되돌린다.
+      // 답을 비워 보내면 조정 전 기본 권장 사양이 온다. 답하지 않았으니 제품 추천 결과를 거치지 않고 맞춤 목록을 바로 연다.
       onBaseline={() => {
         saveAnswers(purpose, {});
-        go(`${PATHS.result}${search}`);
+        go(`${PATHS.matched}${search}`, { searching: true });
       }}
     />
   );
@@ -277,7 +292,8 @@ function IntroPage({ params, search }: PageProps & { search: string }) {
 function QuestionPage({ params, step }: PageProps & { step: string }) {
   const flow = flowOf(params);
   const { purpose } = flow;
-  const survey = useSurvey(purpose);
+  const { data, failed } = useSurvey(purpose);
+  const navState = useHistoryState<NavState | null>();
   const [answers, setAnswers] = useState<Answers>(() => (purpose === null ? {} : loadAnswers(purpose)));
   const number = positiveOf(step);
   const suffix = query(flowEntries(flow));
@@ -285,7 +301,7 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
   if (flow.category === null || purpose === null || number === null) {
     return <NotFound />;
   }
-  if (survey.failed) {
+  if (failed) {
     return (
       <section className="view-panel">
         <p className="notice" role="alert">
@@ -294,7 +310,7 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
       </section>
     );
   }
-  if (survey.data === null) {
+  if (data === null) {
     return (
       <section className="view-panel">
         <p className="section-description">질문을 불러오는 중입니다…</p>
@@ -302,27 +318,52 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
     );
   }
 
-  const screens = resolveScreens(survey.data, answers);
-  // 답이 바뀌어 문항이 줄었거나 없는 번호로 들어왔으면 남은 마지막 문항으로 보낸다.
-  // 옮긴 칸의 바로 앞 칸은 이전 문항이 아닐 수 있다. from 을 지워 "이전"이 기록을 되돌리지 않고 이전 문항으로 가게 한다.
-  if (number > screens.length && screens.length > 0) {
+  const current = pruneHiddenAnswers(data, answers);
+  const screens = resolveScreens(data, current);
+  const outdated = screens.findIndex((screen) =>
+    screen.questions.some(({ question }) =>
+      (answers[question.code] ?? []).some((code) => !(current[question.code] ?? []).includes(code)),
+    ),
+  );
+  const revisit = screens.findIndex(
+    (screen, index) => index === outdated || (!screen.currentSpec && !isScreenAnswered(screen, current)),
+  );
+  // 돌아간 화면의 직전 방문 기록이 이전 문항이라는 보장이 없다. 화면의 "이전"은 문항 순서를 따른다.
+  if (revisit >= 0 && revisit < number - 1) {
     return (
       <Redirect
-        to={`/questions/${screens.length}${suffix}`}
+        to={`/questions/${revisit + 1}${suffix}`}
         replace
-        state={{ ...currentNavState(), from: undefined }}
+        state={{ ...navState, from: undefined, reviewQuestion: Object.keys(answers).length > 0 }}
       />
     );
   }
 
+  // 답이 바뀌어 문항이 줄었거나 없는 번호로 들어왔으면 남은 마지막 문항으로 보낸다.
+  if (number > screens.length && screens.length > 0) {
+    return <Redirect to={`/questions/${screens.length}${suffix}`} replace state={{ ...navState, from: undefined }} />;
+  }
+
   const answer = (code: string, values: string[]) => {
     // 답이 바뀌면 딸린 질문이 사라질 수 있다. 사라진 질문의 답은 함께 지운다.
-    const next = pruneHiddenAnswers(survey.data ?? { steps: [] }, { ...answers, [code]: values });
+    const next = pruneHiddenAnswers(data, { ...current, [code]: values });
     setAnswers(next);
     saveAnswers(purpose, next);
+    if (navState?.reviewQuestion === true) {
+      const answeredScreen = resolveScreens(data, next)[number - 1];
+      if (answeredScreen !== undefined && isScreenAnswered(answeredScreen, next)) {
+        window.history.replaceState({ ...navState, reviewQuestion: undefined }, '');
+      }
+    }
+  };
+
+  const settle = () => {
+    setAnswers(current);
+    saveAnswers(purpose, current);
   };
 
   const goPrevious = () => {
+    settle();
     if (number === 1) {
       goBack(`${PATHS.intro}${suffix}`, 'intro');
       return;
@@ -331,19 +372,24 @@ function QuestionPage({ params, step }: PageProps & { step: string }) {
   };
 
   const goNext = () => {
+    settle();
     if (number < screens.length) {
       go(`/questions/${number + 1}${suffix}`);
       return;
     }
     track('onboarding_completed', flow);
-    go(`${PATHS.result}${query([...flowEntries(flow), ...answerEntries(answers)])}`);
+    go(`${PATHS.result}${query([...flowEntries(flow), ...answerEntries(current)])}`);
   };
 
   return (
     <QuestionView
+      purpose={purpose}
+      surveyVersion={data.version}
       screens={screens}
+      stepCount={data.steps.length}
       index={number - 1}
-      answers={answers}
+      answers={current}
+      outdated={outdated === number - 1 || (navState?.reviewQuestion === true && revisit === number - 1)}
       onAnswer={answer}
       onPrevious={goPrevious}
       onNext={goNext}
@@ -433,7 +479,7 @@ function ResultPage({ params }: PageProps) {
   const recommendation = useRecommendation(params);
   // 맞춤 목록과 같은 key 라 한 번만 받는다. CPU 를 고칠 때 선택지로 쓴다.
   const tiers = useFetched('cpu-tiers', fetchCpuTiers);
-  const specs = recommendation.data;
+  const specs = recommendation.data?.specs ?? null;
   const { category, purpose } = flowOf(params);
   const loaded = specs !== null;
 
@@ -447,17 +493,22 @@ function ResultPage({ params }: PageProps) {
   if (category === null || purpose === null) {
     return <NotFound />;
   }
+  const restartTo = `${PATHS.intro}${query(flowEntries(flowOf(params)))}`;
   if (specs === null) {
     return (
       <RecommendationStatus
         failed={recommendation.failed}
         error={recommendation.error}
         onRetry={recommendation.retry}
-        restartTo={`${PATHS.intro}${query(flowEntries(flowOf(params)))}`}
+        restartTo={restartTo}
         purpose={purpose}
       />
     );
   }
+  const reanswer = () => {
+    forget(surveyKeyOf(purpose));
+    go(restartTo);
+  };
   const os = resultOsOf(params, specs);
   const edits = editsOf(params);
   const withOs = (next: ResultOs) => {
@@ -486,15 +537,15 @@ function ResultPage({ params }: PageProps) {
         track('recommended_spec_edited', { category, purpose, ...properties });
       }
     }
-    // 고친 값은 이 화면의 것이다. 맞춤 목록에는 검색 조건으로 바꿔 넘기고 edit 는 넘기지 않는다.
-    // 그래야 맞춤 목록이 검색 조건 하나만 보고, 같은 사양이 주소 두 곳에 있다가 어긋나지 않는다.
+    // 고친 값은 검색 조건으로 바꿔 넘기고 edit 도 함께 넘긴다. 맞춤 목록이 OS 탭을 바꿀 때 그 OS 의 고친 사양으로 다시 채운다.
     const next = new URLSearchParams(withOs(os));
-    next.delete('edit');
     const edited = specs.map((spec) => editedSpec(spec, edits, tiers.data));
     go(`${PATHS.matched}?${withSpecCondition(next, edited)}`, { searching: true });
   };
   return (
     <ResultView
+      categoryCode={category}
+      purposeCode={purpose}
       specs={specs}
       os={os}
       edits={edits}
@@ -508,33 +559,34 @@ function ResultPage({ params }: PageProps) {
         withEdits(rest);
       }}
       onSearch={onSearch}
+      onReanswer={recommendation.data?.answersOutdated ? reanswer : undefined}
     />
   );
 }
 
-// 추천순은 권장 사양이 있는 맞춤 목록에서만 쓸 수 있다. 그때만 기본값이 추천순이다.
-function listSortOf(params: URLSearchParams, defaultSort: SortType): SortType {
-  const sort = sortOf(params) ?? defaultSort;
-  return sort === 'RECOMMENDED' && defaultSort !== 'RECOMMENDED' ? defaultSort : sort;
+const DEFAULT_SORT: SortType = 'PRICE_ASC';
+
+function listSortOf(params: URLSearchParams): SortType {
+  return sortOf(params) ?? DEFAULT_SORT;
 }
 
 /**
  * 목록의 정렬·검색 조건은 주소에, 조건 패널을 펼쳤는지는 방문 기록 칸에 둔다.
  * 조건을 바꿀 때는 기록을 쌓지 않는다. 목록의 뒤로 버튼은 이전 조건이 아니라 들어오기 전 화면으로 간다.
  */
-function useListState(search: string, defaultSort: SortType, defaultOs: string | null = null) {
+function useListState(search: string, defaultOs: string | null = null) {
   const navState = useHistoryState<NavState | null>();
   const state = useMemo<Omit<ProductListState, 'filterOpen'>>(() => {
     const parsed = new URLSearchParams(search);
-    return { sort: listSortOf(parsed, defaultSort), condition: withOs(conditionOf(parsed), defaultOs) };
-  }, [search, defaultSort, defaultOs]);
+    return { sort: listSortOf(parsed), condition: withOs(conditionOf(parsed), defaultOs) };
+  }, [search, defaultOs]);
 
   // 늘 같은 함수여야 한다. 목록이 검색어 입력을 기다리는 effect 의 의존성으로 쓴다. 그래서 값은 호출할 때 주소에서 읽는다.
   const onChangeState = useCallback(
     (update: (previous: ProductListState) => ProductListState) => {
       const current = new URLSearchParams(window.location.search);
       const next = update({
-        sort: listSortOf(current, defaultSort),
+        sort: listSortOf(current),
         condition: withOs(conditionOf(current), defaultOs),
         filterOpen: currentNavState().filterOpen === true,
       });
@@ -547,7 +599,7 @@ function useListState(search: string, defaultSort: SortType, defaultOs: string |
       }
       replace(`${window.location.pathname}?${current}`, { ...currentNavState(), filterOpen: next.filterOpen });
     },
-    [defaultSort, defaultOs],
+    [defaultOs],
   );
 
   return { state: { ...state, filterOpen: navState?.filterOpen === true }, onChangeState, navState: navState ?? {} };
@@ -588,20 +640,43 @@ function withSpecCondition(params: URLSearchParams, specs: Spec[]): URLSearchPar
 
 function MatchedListPage({ params, search }: PageProps & { search: string }) {
   const recommendation = useRecommendation(params);
-  const specs = recommendation.data ?? [];
+  const tiers = useFetched('cpu-tiers', fetchCpuTiers);
+  const edits = useMemo(() => editsOf(new URLSearchParams(search)), [search]);
+  const specs = useMemo(
+    () => (recommendation.data?.specs ?? []).map((spec) => editedSpec(spec, edits, tiers.data)),
+    [recommendation.data, edits, tiers.data],
+  );
   // 제품 추천 결과 화면에서 오면 검색 조건이 채워져 있다. 맞춤 목록의 OS 는 탭이라 늘 있으니, OS 가 없으면
   // 채우지 않고 바로 들어온 주소(예전 공유 링크 등)다. 한 번 채운 뒤 그린다. 제품 추천 결과가 없으면 채울 것이 없다.
-  const filled = params.has('os') || recommendation.data?.length === 0;
+  const filled = params.has('os') || recommendation.data?.specs.length === 0;
   useEffect(() => {
     if (!filled && recommendation.data !== null) {
-      replace(`${PATHS.matched}?${withSpecCondition(new URLSearchParams(search), recommendation.data)}`);
+      replace(`${PATHS.matched}?${withSpecCondition(new URLSearchParams(search), specs)}`);
     }
-  }, [filled, search, recommendation.data]);
-  const { state, onChangeState, navState } = useListState(
-    search,
-    'RECOMMENDED',
-    matchedOsOf(params, recommendation.data ?? []),
-  );
+  }, [filled, search, recommendation.data, specs]);
+  useEffect(() => {
+    const current = new URLSearchParams(search);
+    const os = current.get('os');
+    const cpuTier = current.get('cpuTier');
+    const spec = specs.find((each) => osValueOf(each) === os);
+    if (tiers.data === null || spec === undefined || cpuTier === null || validTier(tiers.data, os, cpuTier) !== null) {
+      return;
+    }
+    const recommended = specCondition(spec);
+    if (recommended.cpuTier === cpuTier) {
+      return;
+    }
+    for (const key of ['cpuTier', 'gpuTier'] as const) {
+      const value = recommended[key];
+      if (value === null) {
+        current.delete(key);
+      } else {
+        current.set(key, value);
+      }
+    }
+    replace(`${PATHS.matched}?${current}`);
+  }, [tiers.data, search, specs]);
+  const { state, onChangeState, navState } = useListState(search, matchedOsOf(params, specs));
   const { category, purpose } = flowOf(params);
 
   if (category === null || purpose === null) {
@@ -631,11 +706,14 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
     );
   }
 
-  // 앱 밖에서 바로 들어왔으면 이 목록의 권장 사양 화면으로 보낸다. 목록 조건은 권장 사양과 상관없어 뺀다.
+  // 앱 밖에서 바로 들어왔으면 답이 있을 때는 제품 추천 결과로, 없을 때는 기본 권장 사양 화면으로 보낸다.
+  // 목록 조건은 권장 사양과 상관없어 뺀다.
   const resultParams = new URLSearchParams(params);
   for (const [key] of listEntries(null, conditionOf(params))) {
     resultParams.delete(key);
   }
+  const baseline =
+    Object.keys(answersOf(params)).length === 0 && navState.from !== 'result' && Object.keys(edits).length === 0;
 
   return (
     <ProductListView
@@ -644,12 +722,16 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
       categoryCode={category}
       mode="MATCHED"
       specs={specs}
-      backLabel={backLabelOf(navState.from ?? 'result')}
+      baseline={baseline}
+      bothOs={resultOsOf(params, specs) === 'BOTH'}
+      backLabel={backLabelOf(navState.from ?? (baseline ? 'intro' : 'result'))}
       state={state}
       onChangeState={onChangeState}
       searching={navState.searching === true}
       onSearched={finishSearching}
-      onBack={() => goBack(`${PATHS.result}?${resultParams}`)}
+      onBack={() =>
+        goBack(baseline ? `${PATHS.intro}${query(flowEntries(flowOf(params)))}` : `${PATHS.result}?${resultParams}`)
+      }
       onDetail={(id) => go(`/products/${id}`)}
       // 보고 있던 유형 그대로 연다. 맞춤 목록의 조건은 주소에 남아 있어 돌아오면 그대로다.
       onShowAll={() => go(`${PATHS.products}${query([['category', category]])}`)}
@@ -658,14 +740,16 @@ function MatchedListPage({ params, search }: PageProps & { search: string }) {
 }
 
 function AllListPage({ params, search }: PageProps & { search: string }) {
-  const { state, onChangeState, navState } = useListState(search, 'PRICE_ASC');
+  const { state, onChangeState, navState } = useListState(search);
   const category = params.get('category');
   const onBack = () => goBack(PATHS.home);
 
   // 유형을 고르기 전에는 추천 흐름의 제품 선택과 같은 화면을 띄우고, 고르면 목록 화면으로 넘어간다.
   if (category === null) {
     return (
-      <CategoryCards
+      <SelectionView
+        categoryCode={null}
+        eyebrow="제품 목록"
         back={{ label: backLabelOf(navState.from ?? 'home'), onClick: onBack }}
         onSelect={(code) => go(`${PATHS.products}${query([['category', code]])}`)}
       />
@@ -699,6 +783,7 @@ function DetailPage({ id }: { id: number | null }) {
   return (
     <ProductDetailView
       productId={id}
+      notFound={<NotFound />}
       backLabel={backLabelOf(navState?.from ?? 'products')}
       onBack={() => goBack(PATHS.products)}
     />
@@ -728,10 +813,11 @@ function NotFound() {
   }, []);
 
   return (
-    <section className="view-panel" aria-labelledby="not-found-title">
+    <section className="error-panel" aria-labelledby="not-found-title">
+      <p className="error-panel__code">404</p>
       <h1 id="not-found-title">페이지를 찾을 수 없습니다</h1>
-      <p className="section-description">주소가 바뀌었거나 잘못 입력되었을 수 있습니다.</p>
-      <button className="button button--primary button--wide" type="button" onClick={() => go(PATHS.home)}>
+      <p className="error-panel__message">주소가 바뀌었거나 잘못 입력되었을 수 있습니다.</p>
+      <button className="button button--primary" type="button" onClick={() => go(PATHS.home)}>
         처음으로
       </button>
     </section>

@@ -10,6 +10,7 @@ export type Served = {
 type Display = {
   code: string;
   name: string;
+  shortName?: string;
   description: string;
 };
 
@@ -30,16 +31,27 @@ export const PURPOSE_DISPLAY: Display[] = [
   {
     code: 'BACKEND_DEVELOPMENT',
     name: '백엔드 개발',
+    shortName: '백엔드',
     description: '무거운 IDE 실행, 다수의 컨테이너 구동, 원활한 컴파일 작업.',
   },
   {
     code: 'FRONTEND_DEVELOPMENT',
     name: '프론트엔드 개발',
+    shortName: '프론트엔드',
     description: '개발 서버와 브라우저 여러 개, 빌드 도구를 함께 띄우는 작업.',
   },
-  { code: 'MOBILE_DEVELOPMENT', name: '모바일 개발', description: '에뮬레이터·시뮬레이터 구동, 네이티브 앱 빌드.' },
-  { code: 'DESIGN', name: '디자인', description: '대형 디자인 파일 편집, 정확한 색 표현이 필요한 작업.' },
+  {
+    code: 'MOBILE_DEVELOPMENT',
+    name: '모바일 개발',
+    shortName: '모바일',
+    description: '에뮬레이터·시뮬레이터 구동, 네이티브 앱 빌드.',
+  },
+  { code: 'DESIGN', name: '디자인', description: '대형 디자인 파일 편집, 정확한 색 표현과 3D·영상 작업.' },
 ];
+
+export function purposeShortName(purpose: Served): string {
+  return PURPOSE_DISPLAY.find((item) => item.code === purpose.code)?.shortName ?? purpose.name;
+}
 
 /**
  * 서버가 준 항목은 고를 수 있고, 표시 목록에만 있는 항목은 준비 중이다.

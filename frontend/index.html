@@ -4,12 +4,16 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=2"/>
-    <meta name="description" content="백엔드 개발 환경에 맞는 노트북 제품 추천 결과를 확인하세요."/>
+    <meta name="description" content="백엔드·프론트엔드·모바일 개발과 디자인 작업에 맞는 노트북 제품 추천 결과를 확인하세요."/>
     <meta property="og:image" content="https://devica.co.kr/og-preview.png?v=2"/>
     <meta property="og:image:type" content="image/png"/>
     <meta property="og:image:width" content="1774"/>
     <meta property="og:image:height" content="887"/>
     <meta property="og:image:alt" content="Devica 로고가 표시된 노트북 그림"/>
+    <!-- 첫 화면이 그려지기 전에 테마를 정해 다크 바탕이 잠깐 보이지 않게 한다. 판정은 App.tsx 의 테마 결정과 같게 유지한다. -->
+    <script>
+        document.documentElement.dataset.theme = /^\/(faq\/?|board(\/.*)?)$/.test(location.pathname) ? 'light' : 'dark';
+    </script>
     <title>Devica — 나에게 맞는 개발용 노트북 추천받기</title>
 </head>
 <body>

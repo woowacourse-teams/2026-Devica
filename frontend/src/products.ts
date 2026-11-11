@@ -19,11 +19,16 @@ export type CpuTier = {
   os: string;
 };
 
+export type GpuTier = CpuTier & { lowest: boolean };
+
 // 추천 알고리즘이 내는 값이다. 알고리즘이 바뀌면 여기도 함께 바뀐다.
 export const MEMORY_STEPS = [16, 24, 32, 48];
-export const STORAGE_STEPS = [256, 512, 1024];
+export const STORAGE_STEPS = [256, 512, 1024, 2048];
 
-export type SortType = 'RECOMMENDED' | 'PRICE_ASC' | 'PRICE_DESC';
+// 서버 ColorGamut 중 걸러 낼 수 있는 값과 칩 라벨이다. 가장 낮은 값은 모든 제품이 갖춰 조건으로 걸지 않는다.
+export const COLOR_GAMUT_FILTER_LABELS: Record<string, string> = { WIDE: '넓은 색 영역(DCI-P3) 화면' };
+
+export type SortType = 'PRICE_ASC' | 'PRICE_DESC';
 
 export type SearchCondition = {
   // 서버가 브랜드와 제품명을 함께 훑는다.
@@ -32,6 +37,8 @@ export type SearchCondition = {
   // OS 와 CPU 등급은 따로 걸고 따로 지운다. 등급은 OS 마다 따로 매겨진다.
   os: string | null;
   cpuTier: string | null;
+  colorGamut: string | null;
+  gpuTier: string | null;
   brand: string | null;
   memoryGb: number | null;
   storageGb: number | null;
@@ -42,6 +49,8 @@ export const EMPTY_CONDITION: SearchCondition = {
   maxPrice: null,
   os: null,
   cpuTier: null,
+  colorGamut: null,
+  gpuTier: null,
   brand: null,
   memoryGb: null,
   storageGb: null,
@@ -53,9 +62,9 @@ export function osOfTier(tiers: CpuTier[], code: string): string | null {
 }
 
 // 주소는 누구나 고칠 수 있다. 모르는 등급이나 고른 OS 의 등급이 아닌 것은 없는 것으로 본다.
-export function validTier(tiers: CpuTier[], condition: SearchCondition): string | null {
-  const os = condition.cpuTier === null ? null : osOfTier(tiers, condition.cpuTier);
-  return os !== null && (condition.os === null || os === condition.os) ? condition.cpuTier : null;
+export function validTier(tiers: CpuTier[], os: string | null, code: string | null): string | null {
+  const tierOs = code === null ? null : osOfTier(tiers, code);
+  return tierOs !== null && (os === null || tierOs === os) ? code : null;
 }
 
 export type ProductSpecItem = {
@@ -76,9 +85,11 @@ export type Product = {
 };
 
 export type Offer = {
+  id?: number;
   name: string;
   price: number;
   purchaseUrl: string;
+  checkedAt?: string | null;
 };
 
 export type ProductDetail = {
@@ -111,11 +122,36 @@ export async function fetchProductPage(
   return response.json();
 }
 
+export async function fetchMinPrice(categoryCode: string, spec: Spec): Promise<number | null> {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(specCondition(spec))) {
+    if (value !== null) {
+      query.set(key, String(value));
+    }
+  }
+  const response = await fetch(`${BASE_URL}/api/product-categories/${categoryCode}/products/min-price?${query}`, {
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) {
+    throw new Error(`최저가를 불러오지 못했습니다 (${response.status})`);
+  }
+  const { minPrice }: { minPrice: number | null } = await response.json();
+  return minPrice;
+}
+
 /** 등급을 서버에서 받는다. 등급이나 표시명을 바꿔도 화면을 고치지 않는다. */
 export async function fetchCpuTiers(): Promise<CpuTier[]> {
   const response = await fetch(`${BASE_URL}/api/cpu-tiers`, { headers: { Accept: 'application/json' } });
   if (!response.ok) {
     throw new Error(`CPU 등급을 불러오지 못했습니다 (${response.status})`);
+  }
+  return response.json();
+}
+
+export async function fetchGpuTiers(): Promise<GpuTier[]> {
+  const response = await fetch(`${BASE_URL}/api/gpu-tiers`, { headers: { Accept: 'application/json' } });
+  if (!response.ok) {
+    throw new Error(`GPU 등급을 불러오지 못했습니다 (${response.status})`);
   }
   return response.json();
 }
@@ -132,11 +168,17 @@ export async function fetchBrands(categoryCode: string, os: string | null): Prom
   return response.json();
 }
 
+export class ProductNotFoundError extends Error {}
+
 export async function fetchProduct(id: number): Promise<ProductDetail> {
   const response = await fetch(`${BASE_URL}/api/products/${id}`, {
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) {
+    const body: { code?: string } | null = await response.json().catch(() => null);
+    if (body?.code === 'LAPTOP_NOT_FOUND') {
+      throw new ProductNotFoundError();
+    }
     throw new Error(`제품 정보를 불러오지 못했습니다 (${response.status})`);
   }
   return response.json();
@@ -146,16 +188,24 @@ export async function fetchProduct(id: number): Promise<ProductDetail> {
  * 권장 사양을 검색 조건으로 옮긴다. 맞춤 목록은 이 조건을 채운 채로 열고, 사용자는 필터로 이어서 고친다.
  * 권장 사양을 따로 깔지 않아 전체 목록과 같은 규칙으로 걸린다. 고른 값 그대로라 권장보다 낮게도 찾는다.
  */
-export function specCondition(spec: Spec): Pick<SearchCondition, 'os' | 'cpuTier' | 'memoryGb' | 'storageGb'> {
+export function specCondition(
+  spec: Spec,
+): Pick<SearchCondition, 'os' | 'cpuTier' | 'colorGamut' | 'gpuTier' | 'memoryGb' | 'storageGb'> {
   const itemValue = (code: string) => spec.items.find((item) => item.code === code)?.value || null;
   const memory = itemValue('MEMORY');
   const storage = itemValue('STORAGE');
   return {
     os: itemValue('OS'),
     cpuTier: itemValue('REQUIRED_CPU'),
+    colorGamut: filterable(COLOR_GAMUT_FILTER_LABELS, itemValue('COLOR_GAMUT')),
+    gpuTier: itemValue('REQUIRED_GPU'),
     memoryGb: memory === null ? null : Number(memory),
     storageGb: storage === null ? null : Number(storage),
   };
+}
+
+export function filterable(labels: Record<string, string>, value: string | null): string | null {
+  return value !== null && Object.hasOwn(labels, value) ? value : null;
 }
 
 /** 거르기와 정렬은 서버가 한다. 같은 조건이면 같은 목록이고, 페이지만 달리해 이어 받는다. */
@@ -166,6 +216,12 @@ export function productListQuery(sort: SortType, condition: SearchCondition): UR
   }
   if (condition.cpuTier !== null) {
     query.set('cpuTier', condition.cpuTier);
+  }
+  if (condition.colorGamut !== null) {
+    query.set('colorGamut', condition.colorGamut);
+  }
+  if (condition.gpuTier !== null) {
+    query.set('gpuTier', condition.gpuTier);
   }
   if (condition.memoryGb !== null) {
     query.set('memoryGb', String(condition.memoryGb));
@@ -191,6 +247,10 @@ export function productListQuery(sort: SortType, condition: SearchCondition): UR
 export function cpuFilterLabel(tier: CpuTier): string {
   const label = tier.name;
   return label.includes(' / ') ? `${label.split(' / ')[0]}급 이상` : `${label} 이상`;
+}
+
+export function gpuFilterLabel(tier: GpuTier): string {
+  return `${tier.name} GPU 이상`;
 }
 
 // 판매 중인 판매처가 없으면 최저가가 비어 온다. 원본에는 없던 상태다.
@@ -234,6 +294,22 @@ export function editChoices(code: string, os: string, tiers: CpuTier[] | null): 
 /** 고친 값을 권장 사양에 덮는다. 주소는 누구나 고칠 수 있어, 고를 수 없는 값이나 권장 값과 같은 값은 버린다. */
 export function editedSpec(spec: Spec, edits: SpecEdits, tiers: CpuTier[] | null): Spec {
   const os = osValueOf(spec);
+  const edited = overlayEdits(spec, os, edits, tiers);
+  const cpu = edited.items.find((item) => item.code === 'REQUIRED_CPU');
+  if (os !== 'MAC' || cpu === undefined || spec.items.includes(cpu)) {
+    return edited;
+  }
+  return {
+    ...edited,
+    items: edited.items.map((item) =>
+      item.code === 'REQUIRED_GPU' && item.value !== cpu.value
+        ? { ...item, value: cpu.value, displayValue: cpu.displayValue, reasons: [] }
+        : item,
+    ),
+  };
+}
+
+function overlayEdits(spec: Spec, os: string, edits: SpecEdits, tiers: CpuTier[] | null): Spec {
   return {
     ...spec,
     items: spec.items.map((item) => {

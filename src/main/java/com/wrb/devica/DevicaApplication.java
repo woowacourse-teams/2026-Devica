@@ -7,7 +7,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class DevicaApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(DevicaApplication.class, args);
+        var context = SpringApplication.run(DevicaApplication.class, args);
+        if (context.getEnvironment().getProperty("coupang.price-refresh.run-once", Boolean.class, false)) {
+            System.exit(SpringApplication.exit(context));
+        }
     }
 
 }

@@ -1,10 +1,10 @@
-/* 칩과 칩 묶음. question-view(현재 사양)·result-view(OS 토글, 사양 수정)·feedback-view 가 공유한다. */
+/* 칩과 칩 묶음. question-view(현재 사양)·result-view(OS 토글, 사양 수정)·product-list-view(OS 탭)가 공유한다. */
 
 /* fieldset 이라 브라우저 기본 테두리·여백을 지운다. */
 .choice-group {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--density-high);
+    gap: var(--space-8);
     min-width: 0;
     margin: 0;
     border: 0;
@@ -12,73 +12,98 @@
 }
 
 .chip {
-    min-height: 40px;
-    margin: var(--density-high) var(--unit) 0 0;
-    border: 1px solid var(--on-surface);
-    border-radius: var(--radius-control);
-    padding: var(--density-high) var(--density-med);
-    color: var(--on-surface);
-    background: var(--surface-container-lowest);
-    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-8);
+    min-height: var(--control-sm);
+    border: 1.5px solid var(--control);
+    border-radius: var(--radius-pill);
+    padding: 0 var(--space-16);
+    color: var(--text);
+    background: transparent;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    text-align: left;
     cursor: pointer;
-    transition: background-color 120ms ease-out;
+    transition:
+        background-color 120ms ease-out,
+        border-color 120ms ease-out;
 }
 
-/* 선택된 칩은 아래 aria-pressed 규칙으로 이미 검정 반전이라 미선택 상태만 다룬다. */
 .chip:hover:not(:disabled):not([aria-pressed="true"]) {
-    background: var(--inverse-primary);
+    border-color: var(--accent);
 }
 
-.chip:focus-visible:not([aria-pressed="true"]) {
-    background: var(--inverse-primary);
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-}
-
+/* 고른 칩은 테두리를 굵게 하고 체크 표시를 앞에 둔다. 색만으로 구분하지 않는다. */
 .chip[aria-pressed="true"] {
-    position: relative;
-    color: var(--on-primary);
-    background: var(--primary);
+    border: 2px solid var(--accent);
+    padding-left: var(--space-12);
+    background: var(--tint);
+    font-weight: 600;
+}
+
+.chip svg {
+    flex: none;
 }
 
 .chip:disabled {
-    border-color: var(--outline-variant);
-    color: var(--outline);
-    background: var(--surface-container);
+    border-color: var(--divider);
+    color: var(--control);
     cursor: not-allowed;
 }
 
-/* 칩 사이 간격은 .choice-group 의 gap 이 맡는다. */
-.choice-group .chip {
-    margin: 0;
-}
-
-/* 인접한 칩의 테두리를 겹쳐 하나의 스위치로 읽히게 한다. */
+/* Ring 의 SegmentedControl. 하나의 스위치로 읽히도록 알약 바탕 안에 칸을 붙여 놓고, 고른 칸만 채운다. */
 .choice-group--segmented {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-auto-columns: 1fr;
+    grid-auto-flow: column;
+    align-self: flex-start;
     gap: 0;
+    padding: var(--space-4);
+    border-radius: var(--radius-pill);
+    background: var(--surface-2);
 }
 
-/* 맞닿은 면은 그대로 두고 묶음 바깥 모서리만 둥글게 한다. */
+/* 고른 칸을 채우는 막대. 칸 너비가 같아 순서만으로 자리를 정하고, 고른 칸이 바뀌면 옆으로 미끄러져 간다. */
+.choice-group__thumb {
+    position: absolute;
+    z-index: -1;
+    top: var(--space-4);
+    bottom: var(--space-4);
+    left: var(--space-4);
+    width: calc((100% - 2 * var(--space-4)) / var(--segment-count));
+    border-radius: var(--radius-pill);
+    background: var(--primary);
+    translate: calc(var(--segment-index) * 100%) 0;
+    transition: translate 280ms cubic-bezier(0.2, 0, 0, 1);
+}
+
 .choice-group--segmented .chip {
-    border-radius: 0;
+    justify-content: center;
+    border: 0;
+    padding: 0 var(--space-20);
+    font-size: 16px;
+    transition: color 200ms ease-out;
 }
 
-.choice-group--segmented .chip:first-of-type {
-    border-start-start-radius: var(--radius-control);
-    border-end-start-radius: var(--radius-control);
+.choice-group--segmented .chip:hover:not(:disabled):not([aria-pressed="true"]) {
+    background: var(--tint);
 }
 
-.choice-group--segmented .chip:last-of-type {
-    border-start-end-radius: var(--radius-control);
-    border-end-end-radius: var(--radius-control);
-}
-
-.choice-group--segmented .chip + .chip {
-    margin-left: -1px;
+.choice-group--segmented .chip[aria-pressed="true"] {
+    border: 0;
+    padding: 0 var(--space-20);
+    color: var(--on-primary);
+    background: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .chip {
+    .chip,
+    .choice-group--segmented .chip,
+    .choice-group__thumb {
         transition: none;
     }
 }

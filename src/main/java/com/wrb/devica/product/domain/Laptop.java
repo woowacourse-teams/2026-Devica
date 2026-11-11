@@ -42,11 +42,19 @@ public class Laptop extends Product {
     @Column(nullable = false, precision = 3, scale = 1)
     private BigDecimal screenSizeInch;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private ColorGamut colorGamut;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "gpu_id", nullable = false)
+    private Gpu gpu;
+
     @Builder
     private Laptop(ProductCategory category, String brand, String name, String code,
                    String description, LocalDate releasedAt, String imageKey,
                    Cpu cpu, Os os, int memoryGb, int storageGb, int weightG,
-                   BigDecimal screenSizeInch) {
+                   BigDecimal screenSizeInch, ColorGamut colorGamut, Gpu gpu) {
         super(category, brand, name, code, description, releasedAt, imageKey);
         this.cpu = cpu;
         this.os = os;
@@ -54,19 +62,23 @@ public class Laptop extends Product {
         this.storageGb = storageGb;
         this.weightG = weightG;
         this.screenSizeInch = screenSizeInch;
+        this.colorGamut = colorGamut;
+        this.gpu = gpu;
     }
 
-    public static List<SpecValue> summarySpecValues(Os os, String cpuName, int memoryGb, int storageGb) {
+    public static List<SpecValue> summarySpecValues(Os os, String cpuName, String gpuName, int memoryGb,
+                                                    int storageGb) {
         return List.of(
             new SpecValue("OS", os.name()),
             new SpecValue("CPU", cpuName),
+            new SpecValue("GPU", gpuName),
             new SpecValue("MEMORY", String.valueOf(memoryGb)),
             new SpecValue("STORAGE", String.valueOf(storageGb)));
     }
 
     public List<SpecValue> allSpecValues() {
         return Stream.concat(
-            summarySpecValues(os, cpu.getName(), memoryGb, storageGb).stream(),
+            summarySpecValues(os, cpu.getName(), gpu.getName(), memoryGb, storageGb).stream(),
             Stream.of(
                 new SpecValue("CPU_CORE", String.valueOf(cpu.getCoreCount())),
                 new SpecValue("SCREEN_SIZE", screenSizeInch.toPlainString()),

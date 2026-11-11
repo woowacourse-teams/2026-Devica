@@ -1,6 +1,6 @@
 # 성능 테스트 데이터 적재
 
-MySQL 8.4의 개발 DB에서 SQL 파일을 직접 실행해 테스트 데이터를 만든다. Python 실행이나 대용량 SQL 파일 생성은 필요 없다. 두 파일은 수동 적재용이며 Flyway 마이그레이션에 포함되지 않는다.
+MySQL 8.4의 개발 DB에서 SQL 파일을 직접 실행해 테스트 데이터를 만든다. 테스트 데이터는 측정 직전에 적재하고, 측정이 끝나면 [삭제](#제품-데이터-삭제)한다.
 
 | SQL 파일 | 기본 생성량 |
 | --- | --- |
@@ -31,22 +31,63 @@ mysql -h DB_HOST -P DB_PORT -u DB_USER -p devica < performance/data/seed-product
 
 실행 계정에는 대상 테이블의 `SELECT`, `INSERT`와 `CREATE TEMPORARY TABLES`, `CREATE ROUTINE`, `ALTER ROUTINE`, `EXECUTE` 권한이 필요하다. 프로시저 생성·삭제는 진행 중인 트랜잭션을 커밋할 수 있으므로 다른 DB 작업과 세션을 섞지 않는다. 같은 DB에서 이 파일을 동시에 실행하지 않는다.
 
+### 데이터 규모와 CPU·GPU
+
+제품 수 2만 개는 시중에 판매 중인 노트북 상품의 수다. 같은 모델이라도 CPU·GPU·메모리·스토리지 구성이 다르면 다른 상품으로 셌다. 상품마다 구성이 하나씩 정해져 있으므로, 제품 목록이 거르는 사양이 늘어도 상품 수는 늘지 않는다.
+
+CPU와 GPU는 테스트용으로 따로 적재하지 않고, 마이그레이션으로 등록된 실제 CPU·GPU를 노트북에 나눠 쓴다. 따로 적재하지 않는 이유는 두 가지다.
+
+- 제품 목록 조회는 노트북 한 대마다 기본 키로 CPU·GPU 한 행을 찾으므로, 비용은 노트북 수에 비례하고 CPU·GPU의 종류 수와는 거의 관계없다.
+- CPU·GPU 필터는 등급의 최소 점수 이상으로 거르므로, 등급마다 해당하는 CPU·GPU가 하나 이상 있으면 걸리는 노트북 수가 같다. 적재 SQL은 이 조건을 확인하고, 맞지 않으면 제품 삽입 전에 중단한다.
+
 ### 제품이 만들어지는 방식
 
 1. `LAPTOP` 카테고리, 입력값, 같은 실행 ID의 기존 제품을 확인한다. 조건이 맞지 않으면 제품 삽입 전에 중단한다.
 2. 실행 시점의 `cpu` 테이블에서 Mac용(`Apple`)과 Windows용(`Intel`, `AMD`) CPU를 각각 id 순으로 모은다. 이어서 `CpuTier`의 각 등급(`BASIC`, `PRO`, `MAX`, `U`, `P_HS`, `H`, `HX`)마다 해당 OS에 점수가 등급의 `minScore` 이상인 CPU가 있는지 확인한다. 없는 등급이 있으면 그 등급 이름을 담은 오류로 제품 삽입 전에 중단한다. 등급 점수 기준은 SQL에 적혀 있으므로 `CpuTier.java`의 점수를 바꾸면 SQL도 함께 고친다.
-3. 재귀 CTE로 배치에 사용할 0~999 범위의 번호를 임시 테이블에 만든다. 제품 수가 늘어도 재귀 깊이는 기본 제한 1,000 이내다.
-4. 프로시저의 반복문이 번호로 브랜드·사양·가격을 계산해 `INSERT … SELECT`로 저장한다. 제품마다 `laptop` 1건, `ON_SALE` 판매처 3건, 그 판매처의 최저가(`product_min_price`) 1건이 생긴다.
+3. 실행 시점의 `gpu` 테이블에서 `GpuTier`의 등급마다 점수가 맞는 GPU를 하나씩 고른다. Mac은 M 칩·M Pro 칩, Windows는 내장·RTX xx50급·RTX xx60급이다. 맞는 GPU가 없는 등급이 있으면 제품 삽입 전에 중단한다. 등급 점수 기준은 SQL에 적혀 있으므로 `GpuTier.java`의 점수를 바꾸면 SQL도 함께 고친다.
+4. 재귀 CTE로 배치에 사용할 0~999 범위의 번호를 임시 테이블에 만든다. 제품 수가 늘어도 재귀 깊이는 기본 제한 1,000 이내다.
+5. 프로시저의 반복문이 번호로 브랜드·사양·가격을 계산해 `INSERT … SELECT`로 저장한다. 제품마다 `laptop` 1건, `ON_SALE` 판매처 3건, 그 판매처의 최저가(`product_min_price`) 1건이 생긴다.
    - 5개 중 1개는 Apple 브랜드의 Mac, 나머지는 Windows 노트북이다.
-   - CPU는 제품 100개마다 해당 OS의 다음 CPU로 바뀌고, 목록 끝에 이르면 처음으로 돌아간다. 메모리(5가지)와 스토리지(4가지)는 제품 100개 안에서 OS·브랜드별로 20가지 조합을 한 번씩 거치므로, 모든 CPU가 같은 메모리·스토리지 분포를 받는다. 같은 CPU 목록과 입력값이면 항상 같은 데이터가 만들어진다.
-5. 제품 1,000개마다 커밋한다. 마지막 배치는 남은 수만큼 저장한다. 제품 ID는 DB가 부여하며, 노트북과 판매처는 고유 제품 코드로 실제 ID를 찾아 연결한다.
-6. 이번 실행의 건수를 출력하고 임시 테이블과 보조 프로시저를 정리한다.
+   - CPU는 제품 100개마다 해당 OS의 다음 CPU로 바뀌고, 목록 끝에 이르면 처음으로 돌아간다. 메모리(5가지)와 스토리지(4가지)는 제품 100개 안에서 OS·브랜드별로 20가지 조합을 한 번씩 거치므로, 모든 CPU가 같은 메모리·스토리지 분포를 받는다.
+   - GPU는 Mac이 칩 등급을 따라 M 칩 CPU에는 M 칩 GPU, M Pro 칩 이상 CPU에는 M Pro 칩 GPU를 받는다. Windows는 제품 코드의 CRC32로 세 등급을 고르게 나누므로 CPU·메모리·스토리지 분포와 겹치지 않는다.
+   - 화면 색 영역은 Mac이 모두 넓은 색 영역(`WIDE`)이고, Windows는 제품 코드의 CRC32로 표준·넓은 색 영역을 반씩 나눈다.
+6. 제품 1,000개마다 커밋한다. 마지막 배치는 남은 수만큼 저장한다. 제품 ID는 DB가 부여하며, 노트북과 판매처는 고유 제품 코드로 실제 ID를 찾아 연결한다.
+7. 이번 실행의 건수를 출력하고 임시 테이블과 보조 프로시저를 정리한다.
+
+### 같은 데이터가 만들어지는 조건
+
+사양은 DB가 매기는 제품 id가 아니라 순번과 제품 코드로 정하므로, 지우고 다시 적재해도 같은 데이터가 만들어진다. CPU·메모리·스토리지는 순번으로, Windows의 GPU·색 영역은 제품 코드의 CRC32로 정한다. 다음 셋이 같으면 항상 같은 데이터가 만들어진다.
+
+- 실행 ID: 제품 코드에 들어가므로, 바뀌면 GPU·색 영역 배정이 달라진다
+- 제품 수
+- `cpu`, `gpu` 테이블: 마이그레이션으로 CPU·GPU가 추가되면 돌려 쓰는 대상이 바뀐다
+
+측정 전 데이터 확인은 이 조건이 지난 측정과 같은지를 기준값으로 확인하는 단계다.
 
 기본값의 검증 결과는 제품 20,000건, 노트북 20,000건, 판매 중인 판매처 60,000건, 최저가 20,000건, 판매처 수가 3개가 아닌 제품 0건이다. 기존 데이터는 유지되며 검증 결과에는 이번 실행 ID의 데이터만 포함된다.
 
 SQL 오류가 나면 현재 배치를 롤백하고 오류를 전달한다. **이미 커밋한 배치는 남으므로 같은 파일을 바로 재실행하지 말고 해당 실행 ID의 데이터를 확인한다.** `mysql --force`처럼 오류 후에도 계속 실행하는 옵션은 사용하지 않는다. 오류로 보조 프로시저가 남으면 다음 파일 실행 시 교체되지만, 삽입된 제품은 자동 삭제되지 않는다.
 
 제품 사양과 가격은 반복 가능한 합성 값이며 실제 서비스의 상품 분포를 그대로 재현하지는 않는다. SQL 파일이 작아져도 DB에 저장되는 행 수와 데이터 규모는 같다.
+
+## 제품 데이터 삭제
+
+측정이 끝나면 적재한 실행 ID의 데이터를 지운다. 제품을 참조하는 테이블(최저가, 판매처, 노트북)부터 지워야 외래 키에 걸리지 않는다. `PERF-BASELINE-1-`은 실행 ID `baseline-1`의 제품 코드 접두사이므로, 다른 실행 ID로 적재했다면 바꿔 쓴다. 코드 길이까지 확인해, 접두사가 겹치는 다른 실행 ID(예: `baseline-1-extra`)의 데이터는 지우지 않는다.
+
+```sql
+DELETE m FROM product_min_price m JOIN product p ON p.id = m.product_id
+WHERE p.code LIKE 'PERF-BASELINE-1-%' AND CHAR_LENGTH(p.code) = CHAR_LENGTH('PERF-BASELINE-1-') + 6;
+DELETE o FROM product_offer o JOIN product p ON p.id = o.product_id
+WHERE p.code LIKE 'PERF-BASELINE-1-%' AND CHAR_LENGTH(p.code) = CHAR_LENGTH('PERF-BASELINE-1-') + 6;
+DELETE l FROM laptop l JOIN product p ON p.id = l.id
+WHERE p.code LIKE 'PERF-BASELINE-1-%' AND CHAR_LENGTH(p.code) = CHAR_LENGTH('PERF-BASELINE-1-') + 6;
+DELETE p FROM product p
+WHERE p.code LIKE 'PERF-BASELINE-1-%' AND CHAR_LENGTH(p.code) = CHAR_LENGTH('PERF-BASELINE-1-') + 6;
+SELECT COUNT(*) FROM product p
+WHERE p.code LIKE 'PERF-BASELINE-1-%' AND CHAR_LENGTH(p.code) = CHAR_LENGTH('PERF-BASELINE-1-') + 6;
+```
+
+마지막 쿼리가 0이면 이 실행 ID의 데이터가 남지 않은 것이다.
 
 ## 게시글 데이터
 

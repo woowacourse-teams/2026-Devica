@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { type CSSProperties, useRef } from 'react';
 import './ChoiceGroup.css';
 
 export type Choice = {
@@ -20,6 +20,7 @@ type Props = {
 
 export function ChoiceGroup({ choices, value, onChange, segmented = false, label, disabled = false }: Props) {
   const groupRef = useRef<HTMLFieldSetElement>(null);
+  const selectedIndex = choices.findIndex((choice) => choice.value === value);
 
   const select = (choice: Choice, index: number) => {
     const selected = value === choice.value;
@@ -35,7 +36,16 @@ export function ChoiceGroup({ choices, value, onChange, segmented = false, label
       className={segmented ? 'choice-group choice-group--segmented' : 'choice-group'}
       ref={groupRef}
       aria-label={label}
+      style={
+        segmented
+          ? ({
+              '--segment-count': choices.length,
+              '--segment-index': selectedIndex,
+            } as CSSProperties)
+          : undefined
+      }
     >
+      {segmented && selectedIndex >= 0 && <span className="choice-group__thumb" aria-hidden="true" />}
       {choices.map((choice, index) => (
         <button
           className="chip"
@@ -45,9 +55,28 @@ export function ChoiceGroup({ choices, value, onChange, segmented = false, label
           aria-pressed={value === choice.value}
           onClick={() => select(choice, index)}
         >
+          {!segmented && value === choice.value && <CheckIcon />}
           {choice.label}
         </button>
       ))}
     </fieldset>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M5 12l5 5L20 7" />
+    </svg>
   );
 }

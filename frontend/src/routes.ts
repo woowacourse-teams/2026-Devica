@@ -1,5 +1,14 @@
+import type { MouseEvent } from 'react';
 import { navigate } from 'wouter/use-browser-location';
-import { EMPTY_CONDITION, OSES, type SearchCondition, type SortType, type SpecEdits } from './products';
+import {
+  COLOR_GAMUT_FILTER_LABELS,
+  EMPTY_CONDITION,
+  filterable,
+  OSES,
+  type SearchCondition,
+  type SortType,
+  type SpecEdits,
+} from './products';
 import type { Answers } from './questions';
 import type { ResultOs } from './ResultView';
 
@@ -55,7 +64,8 @@ const BACK_LABELS: Record<Screen, string> = {
   boardPost: '← 질문 상세로',
 };
 
-export function screenOf(pathname: string): Screen | null {
+export function screenOf(rawPathname: string): Screen | null {
+  const pathname = rawPathname.length > 1 ? rawPathname.replace(/\/$/, '') : rawPathname;
   if (pathname === '/') {
     return 'home';
   }
@@ -94,12 +104,15 @@ export function backLabelOf(screen: Screen): string {
  * - searching: 권장 사양에서 "제품 검색"으로 막 넘어왔다. 사양 대조 화면을 한 번만 띄운다.
  * - filterOpen: 목록의 검색 조건 패널을 펼쳐 두었다. 상세를 다녀와도 그대로 둔다.
  * - scrollY: 이 화면을 떠날 때의 스크롤 위치. 뒤로 가기로 돌아오면 되살린다.
+ * - reviewQuestion: 저장한 답을 복원하다 다시 답해야 하는 질문으로 돌아왔다.
  */
 export type NavState = {
   from?: Screen;
   searching?: boolean;
   filterOpen?: boolean;
   scrollY?: number;
+  boardVisit?: number;
+  reviewQuestion?: boolean;
 };
 
 export function currentNavState(): NavState {
@@ -113,6 +126,16 @@ export function go(to: string, extra: Pick<NavState, 'searching'> = {}): void {
   const from = screenOf(window.location.pathname) ?? undefined;
   navigate(to, { state: { from, ...extra } });
 }
+
+export function navigateInside(event: MouseEvent<HTMLAnchorElement>, navigateTo: () => void): void {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    return;
+  }
+  event.preventDefault();
+  navigateTo();
+}
+
+export const DESKTOP_MEDIA = '(min-width: 768px)';
 
 /** 기록을 쌓지 않고 주소만 바꾼다. 어디서 왔는지는 그대로 둔다. */
 export function replace(to: string, state: NavState = currentNavState()): void {
@@ -223,7 +246,7 @@ export function specOsOf(params: URLSearchParams): ResultOs | null {
   return RESULT_OS.find((os) => os === value) ?? null;
 }
 
-const SORTS: SortType[] = ['RECOMMENDED', 'PRICE_ASC', 'PRICE_DESC'];
+const SORTS: SortType[] = ['PRICE_ASC', 'PRICE_DESC'];
 
 export function sortOf(params: URLSearchParams): SortType | null {
   const value = params.get('sort');
@@ -232,10 +255,10 @@ export function sortOf(params: URLSearchParams): SortType | null {
 
 function positive(value: string | null): number | null {
   const number = Number(value);
-  return value !== null && Number.isInteger(number) && number > 0 ? number : null;
+  return value !== null && Number.isSafeInteger(number) && number > 0 ? number : null;
 }
 
-// 모르는 OS 는 버린다. 등급은 서버에서 받아야 알 수 있어 목록이 받은 뒤 가린다(validTier).
+// 모르는 OS 는 버린다. CPU·GPU 등급은 서버에서 받아야 알 수 있어 목록이 받은 뒤 가린다(validTier).
 function osOf(params: URLSearchParams): string | null {
   const value = params.get('os');
   return OSES.find((os) => os === value) ?? null;
@@ -247,6 +270,8 @@ export function conditionOf(params: URLSearchParams): SearchCondition {
     maxPrice: positive(params.get('maxPrice')),
     os: osOf(params),
     cpuTier: params.get('cpuTier'),
+    colorGamut: filterable(COLOR_GAMUT_FILTER_LABELS, params.get('colorGamut')),
+    gpuTier: params.get('gpuTier'),
     brand: params.get('brand'),
     memoryGb: positive(params.get('memoryGb')),
     storageGb: positive(params.get('storageGb')),
