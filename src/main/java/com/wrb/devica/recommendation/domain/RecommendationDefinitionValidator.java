@@ -128,7 +128,11 @@ record RecommendationDefinitionValidator(Set<String> requirements, Map<String, S
     }
 
     private void validateBasis(Basis basis, List<String> errors) {
-        String where = "근거 " + basis.item() + (basis.os() == null ? "" : "(" + basis.os() + ")");
+        String where = "근거 " + basis.item();
+
+        if (basis.os() != null) {
+            where += "(" + basis.os() + ")";
+        }
 
         if (basis.summary() == null || basis.summary().isBlank()) {
             errors.add(where + ": 결론 문장이 없습니다");
