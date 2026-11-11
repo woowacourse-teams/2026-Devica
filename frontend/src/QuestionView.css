@@ -176,6 +176,21 @@
     gap: var(--space-12);
 }
 
+/* 데스크톱에서는 확인 방법을 본문 폭 바깥 오른쪽에 두어, 칸 폭은 그대로 두고 스크롤 없이 함께 보이게 한다.
+   본문(760px) 옆에 안내(220px)가 들어갈 자리가 생기는 폭부터 적용한다. */
+@media (min-width: 1280px) {
+    .current-spec-form {
+        position: relative;
+    }
+
+    .spec-guide {
+        position: absolute;
+        top: 0;
+        left: calc(100% + var(--space-24));
+        width: 220px;
+    }
+}
+
 .current-spec-field {
     display: grid;
     gap: var(--space-8);
@@ -230,6 +245,7 @@
 
 .spec-guide__screens dd {
     margin: 0;
+    word-break: keep-all;
 }
 
 .question-feedback {
