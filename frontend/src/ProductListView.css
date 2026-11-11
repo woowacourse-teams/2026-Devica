@@ -48,7 +48,8 @@
     font-size: 16px;
     transition:
         border-color 150ms ease-out,
-        background-color 150ms ease-out;
+        background-color 150ms ease-out,
+        scale 160ms var(--ease-out);
 }
 
 /* 한 줄에 120px 도 남지 않으면 필터·정렬 버튼이 다음 줄로 내려간다. */
@@ -63,6 +64,12 @@
     color: var(--text-muted);
 }
 
+.product-search:has(input:focus-visible) {
+    outline: 2px solid var(--lime);
+    outline-offset: 2px;
+}
+
+/* 입력칸 자체의 외곽선은 지웠으므로 감싼 칸에 포커스를 보인다. */
 .product-search:has(input:focus-visible) {
     outline: 2px solid var(--lime);
     outline-offset: 2px;
@@ -93,9 +100,11 @@
     cursor: pointer;
 }
 
-.product-filter-toggle:hover,
-.menu-button__trigger:hover {
-    border-color: var(--accent);
+@media (hover: hover) {
+    .product-filter-toggle:hover,
+    .menu-button__trigger:hover {
+        border-color: var(--accent);
+    }
 }
 
 .product-filter-toggle[aria-expanded="true"],
@@ -160,7 +169,7 @@
     border-radius: var(--radius-16);
     padding: var(--space-4);
     background: var(--surface-1);
-    box-shadow: 0 16px 40px rgb(0 0 0 / 0.5);
+    box-shadow: 0 16px 40px var(--menu-shadow);
     opacity: 0;
     scale: 0.96;
     translate: 0 -4px;
@@ -327,6 +336,7 @@ html:has(.product-filter-sheet[open]) {
 .product-filter-sheet__body {
     flex: 1;
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 0 var(--space-20);
 }
 
@@ -436,8 +446,10 @@ html:has(.product-filter-sheet[open]) {
     transition: border-color 150ms ease-out;
 }
 
-.product-card:hover {
-    border-color: var(--accent);
+@media (hover: hover) {
+    .product-card:hover {
+        border-color: var(--accent);
+    }
 }
 
 .product-card--skeleton {

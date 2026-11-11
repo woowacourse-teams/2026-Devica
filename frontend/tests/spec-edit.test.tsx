@@ -106,11 +106,11 @@ test('추천 결과 직접 수정을 누르면 항목을 고를 수 있고, 권�
   expect(screen.getByText('직접 수정 · 추천 24GB')).toBeTruthy();
 
   fireEvent.click(screen.getByRole('button', { name: '직접 수정' }));
-  const memory = within(screen.getByRole('group', { name: 'MEMORY' }));
+  const memory = within(screen.getByRole('group', { name: '메모리' }));
   expect(memory.getByRole('button', { name: '32GB' }).getAttribute('aria-pressed')).toBe('true');
   fireEvent.click(memory.getByRole('button', { name: '24GB · 추천' }));
   expect(onEdit).toHaveBeenLastCalledWith('MAC', 'MEMORY', null);
-  fireEvent.click(within(screen.getByRole('group', { name: 'PROCESSOR' })).getByRole('button', { name: 'M 칩' }));
+  fireEvent.click(within(screen.getByRole('group', { name: '프로세서' })).getByRole('button', { name: 'M 칩' }));
   expect(onEdit).toHaveBeenLastCalledWith('MAC', 'REQUIRED_CPU', 'BASIC');
 });
 

@@ -28,11 +28,14 @@
     cursor: pointer;
     transition:
         background-color 120ms ease-out,
-        border-color 120ms ease-out;
+        border-color 120ms ease-out,
+        scale 160ms var(--ease-out);
 }
 
-.chip:hover:not(:disabled):not([aria-pressed="true"]) {
-    border-color: var(--accent);
+@media (hover: hover) {
+    .chip:hover:not(:disabled):not([aria-pressed="true"]) {
+        border-color: var(--accent);
+    }
 }
 
 /* 고른 칩은 테두리를 굵게 하고 체크 표시를 앞에 둔다. 색만으로 구분하지 않는다. */
@@ -89,8 +92,10 @@
     transition: color 200ms ease-out;
 }
 
-.choice-group--segmented .chip:hover:not(:disabled):not([aria-pressed="true"]) {
-    background: var(--tint);
+@media (hover: hover) {
+    .choice-group--segmented .chip:hover:not(:disabled):not([aria-pressed="true"]) {
+        background: var(--tint);
+    }
 }
 
 .choice-group--segmented .chip[aria-pressed="true"] {

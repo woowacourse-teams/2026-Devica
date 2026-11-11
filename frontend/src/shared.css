@@ -108,11 +108,14 @@
     transition:
         background-color 150ms ease-out,
         border-color 150ms ease-out,
-        color 150ms ease-out;
+        color 150ms ease-out,
+        scale 160ms var(--ease-out);
 }
 
-.button:hover:not(:disabled) {
-    border-color: var(--accent);
+@media (hover: hover) {
+    .button:hover:not(:disabled) {
+        border-color: var(--accent);
+    }
 }
 
 .button:active:not(:disabled) {
@@ -125,8 +128,10 @@
     background: var(--primary);
 }
 
-.button--primary:hover:not(:disabled) {
-    background: var(--primary-bright);
+@media (hover: hover) {
+    .button--primary:hover:not(:disabled) {
+        background: var(--primary-bright);
+    }
 }
 
 .button--primary:active:not(:disabled) {
@@ -276,7 +281,7 @@
     padding: var(--space-20);
     color: var(--on-primary);
     background:
-        radial-gradient(70% 120% at 100% 0%, #5868ff 0%, rgba(40, 58, 255, 0) 60%),
+        radial-gradient(70% 120% at 100% 0%, var(--spec-panel-glow) 0%, rgba(40, 58, 255, 0) 60%),
         linear-gradient(150deg, var(--primary-bright) 0%, var(--primary) 55%, var(--primary-deep) 100%);
 }
 
@@ -319,6 +324,18 @@
     color: var(--on-primary-muted);
     font-size: 12px;
     font-weight: 600;
+}
+
+.spec-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* 아이콘은 이름보다 한 단계 흐리게 둔다. 항목을 구분하는 표지일 뿐이다. */
+.spec-icon {
+    flex: none;
+    opacity: 0.8;
 }
 
 .spec-tile dd {
@@ -413,8 +430,10 @@
     border-radius: var(--radius-16);
 }
 
-.spec-tile:has(.rationale-trigger):hover {
-    background: rgba(255, 255, 255, 0.2);
+@media (hover: hover) {
+    .spec-tile:has(.rationale-trigger):hover {
+        background: var(--on-primary-hover);
+    }
 }
 
 .spec-tile .rationale-trigger:focus-visible {
@@ -495,6 +514,7 @@ html:has(.rationale-dialog[open]) {
     flex-direction: column;
     gap: var(--space-20);
     overflow-y: auto;
+    overscroll-behavior: contain;
     padding: var(--space-20) var(--space-20) calc(var(--space-24) + env(safe-area-inset-bottom));
 }
 
@@ -563,5 +583,28 @@ html:has(.rationale-dialog[open]) {
     .rationale-trigger,
     .spec-tile:has(.rationale-trigger) {
         transition: none;
+    }
+}
+
+/* 누르는 동안 살짝 줄어 눌렸다는 것을 알린다. 떼면 같은 곡선으로 돌아온다.
+   scale 속성을 써서 각 요소가 쓰는 transform 과 겹치지 않게 한다. */
+.button:active:not(:disabled, [aria-disabled="true"]),
+.chip:active:not(:disabled),
+.select-card:active:not(:disabled),
+.question-option:active,
+.product-list-control:active,
+.result-card__button:active {
+    scale: var(--press-scale);
+}
+
+/* 동작 줄이기 설정이면 크기를 바꾸지 않는다. 색 변화로 누른 것을 알린다. */
+@media (prefers-reduced-motion: reduce) {
+    .button:active,
+    .chip:active,
+    .select-card:active,
+    .question-option:active,
+    .product-list-control:active,
+    .result-card__button:active {
+        scale: none;
     }
 }

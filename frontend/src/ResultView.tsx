@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import NumberFlow from '@number-flow/react';
+import { useState } from 'react';
 import { OsIcon, SPEC_ROWS } from './BaselineCard';
 import { ChoiceGroup } from './ChoiceGroup';
 import { type Fetched, useFetched } from './fetched';
+import { SpecLabel } from './icons';
 import {
   type CpuTier,
   editChoices,
@@ -255,38 +257,10 @@ function MinPrices({ labels, prices, scope }: MinPricesProps) {
   );
 }
 
-const ROLL_MS = 500;
-
-// 최저가가 바뀌면 이전 값에서 새 값까지 숫자를 굴린 뒤 은은하게 한 번 빛낸다. 굴러가는 숫자는 화면 읽기에서 숨기고 최종 값만 읽힌다.
+// 최저가가 바뀌면 자릿수별로 숫자를 굴린 뒤 은은하게 한 번 빛낸다(NumberFlow). 동작 줄이기 설정이면 바로 바꾼다.
+// 굴러가는 숫자는 화면 읽기에서 숨기고 최종 값만 읽힌다.
 function RollingPrice({ value }: { value: number }) {
-  const [shown, setShown] = useState(value);
   const [rolls, setRolls] = useState(0);
-  const current = useRef(value);
-
-  useEffect(() => {
-    const start = current.current;
-    if (start === value) {
-      return;
-    }
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      current.current = value;
-      setShown(value);
-      return;
-    }
-    const began = performance.now();
-    let frame = requestAnimationFrame(function tick(now) {
-      const progress = Math.min(1, Math.max(0, (now - began) / ROLL_MS));
-      const eased = 1 - (1 - progress) ** 3;
-      current.current = progress === 1 ? value : Math.round((start + (value - start) * eased) / 1000) * 1000;
-      setShown(current.current);
-      if (progress < 1) {
-        frame = requestAnimationFrame(tick);
-      } else {
-        setRolls((count) => count + 1);
-      }
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [value]);
 
   return (
     <>
@@ -295,12 +269,22 @@ function RollingPrice({ value }: { value: number }) {
         key={rolls}
         aria-hidden="true"
       >
-        {formatPrice(shown)}부터
+        <NumberFlow
+          value={value}
+          locales="ko-KR"
+          suffix="원부터"
+          spinTiming={PRICE_SPIN}
+          transformTiming={PRICE_SPIN}
+          onAnimationsFinish={() => setRolls((count) => count + 1)}
+        />
       </span>
       <span className="result-price__spoken">{formatPrice(value)}부터</span>
     </>
   );
 }
+
+// 바뀐 값을 바로 읽을 수 있게 짧게 끝낸다. 끝은 부드럽게 멈추는 ease-out 이다.
+const PRICE_SPIN = { duration: 520, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' };
 
 type SpecCardProps = {
   spec: Spec;
@@ -375,7 +359,7 @@ function SpecCard({
             return (
               <div className={editing ? 'result-edit-row' : 'spec-tile'} key={code} data-os={os}>
                 <dt className="result-row__head">
-                  {label}
+                  <SpecLabel code={code} label={label} />
                   {item !== recommended && (
                     <span className="result-row__badge">직접 수정 · 추천 {recommended.displayValue}</span>
                   )}

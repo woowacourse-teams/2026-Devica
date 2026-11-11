@@ -86,6 +86,22 @@
     --content: 1200px;
     --page-gutter: clamp(20px, 5vw, 48px);
     --header-height-mobile: 64px;
+    /* 컴포넌트가 쓰는 파생 색. Ring 의 기본 색에서 투명도만 바꾼 값이라 두 테마가 같다. */
+    --on-primary-line: rgba(255, 255, 255, 0.7);
+    --on-primary-hover: rgba(255, 255, 255, 0.2);
+    --on-primary-solid-hover: rgba(255, 255, 255, 0.88);
+    --on-primary-shade-20: rgba(0, 0, 0, 0.2);
+    --on-primary-shade-22: rgba(0, 0, 0, 0.22);
+    --on-primary-shade-28: rgba(0, 0, 0, 0.28);
+    --on-primary-shade-32: rgba(0, 0, 0, 0.32);
+    --spec-panel-glow: #5868ff;
+    --primary-glow: rgba(0, 16, 240, 0.55);
+    --menu-shadow: rgb(0 0 0 / 0.5);
+    /* 판매처 로고는 어느 테마에서나 흰 바탕 위에 둔다. */
+    --logo-plate: #ffffff;
+    /* 누름 반응. 빠르게 시작해 부드럽게 멈추는 곡선으로, 누른 즉시 줄어든 것이 보이게 한다. */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --press-scale: 0.97;
     --font-sans:
         "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui,
         sans-serif;

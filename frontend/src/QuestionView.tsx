@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { ChoiceGroup } from './ChoiceGroup';
+import { CheckIcon } from './icons';
 import { type Answers, isScreenAnswered, type Question, type Screen } from './questions';
 import './QuestionView.css';
 
@@ -291,19 +292,7 @@ function QuestionGroup({ question, label, chosen, onAnswer, onPick }: GroupProps
           onClick={() => (onPick ? onPick(option.code) : toggle(option.code))}
         >
           <span className="question-option__mark" aria-hidden="true">
-            <svg
-              aria-hidden="true"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M5 12l5 5L20 7" />
-            </svg>
+            <CheckIcon />
           </span>
           <span className="question-option__text">
             <span className="question-option__title">{option.content}</span>

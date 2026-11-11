@@ -154,7 +154,7 @@
     height: 28px;
     border-radius: var(--radius-8);
     padding: 3px;
-    background: #ffffff;
+    background: var(--logo-plate);
     object-fit: contain;
 }
 

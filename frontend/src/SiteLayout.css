@@ -28,11 +28,40 @@
     padding-bottom: var(--space-24);
 }
 
+/* 평소에는 숨기고 키보드로 닿으면 왼쪽 위에 나타난다. */
+.skip-link {
+    position: absolute;
+    z-index: 100;
+    top: var(--space-8);
+    left: var(--space-8);
+    border-radius: var(--radius-8);
+    padding: var(--space-12) var(--space-16);
+    color: var(--on-primary);
+    background: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+    transform: translateY(-200%);
+}
+
+.skip-link:focus-visible {
+    transform: none;
+}
+
+/* 건너뛰기로 옮긴 초점은 본문 전체를 감싸 외곽선을 그리지 않는다. */
+#main-content:focus {
+    outline: none;
+}
+
 .site-logo {
     color: var(--text);
     font-size: 24px;
     font-weight: 700;
     text-decoration: none;
+}
+
+/* 인트로가 글자마다 위치를 옮길 수 있게 칸을 나눈다. 평소 모습은 이어 쓴 글자와 같다. */
+.site-logo__letter {
+    display: inline-block;
 }
 
 .site-nav {
@@ -98,8 +127,10 @@
     text-decoration: none;
 }
 
-.site-footer a:hover {
-    color: var(--text);
+@media (hover: hover) {
+    .site-footer a:hover {
+        color: var(--text);
+    }
 }
 
 .site-footer__contact {

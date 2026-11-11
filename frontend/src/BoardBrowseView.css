@@ -105,8 +105,10 @@
     font-weight: 600;
 }
 
-.board-browse__nav--category .board-browse__tab:hover:not(:disabled):not([aria-current="page"]) {
-    background: var(--surface-2);
+@media (hover: hover) {
+    .board-browse__nav--category .board-browse__tab:hover:not(:disabled):not([aria-current="page"]) {
+        background: var(--surface-2);
+    }
 }
 
 .board-browse__nav--purpose {

@@ -81,9 +81,11 @@
     overflow-wrap: anywhere;
 }
 
-.board-list__link:hover .board-list__title {
-    text-decoration: underline;
-    text-underline-offset: 4px;
+@media (hover: hover) {
+    .board-list__link:hover .board-list__title {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
 }
 
 .board-list__arrow {

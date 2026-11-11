@@ -1,6 +1,7 @@
 import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from 'react';
 import { ChoiceGroup } from './ChoiceGroup';
 import { useFetched, usePaged } from './fetched';
+import { CheckIcon, ChevronIcon, CloseIcon, FilterIcon, SearchIcon, SortIcon } from './icons';
 import { ProductImage } from './ProductImage';
 import {
   COLOR_GAMUT_FILTER_LABELS,
@@ -618,7 +619,7 @@ function MenuButton({ id, label, options, value, display, onChange }: MenuButton
         onClick={() => setOpen(!open)}
       >
         {display}
-        <ChevronIcon />
+        <ChevronIcon className="menu-button__chevron" />
       </button>
       <div
         className="menu-button__menu"
@@ -860,111 +861,4 @@ function specItem(product: Product, code: string): ProductSpecItem | undefined {
 
 function specValue(product: Product, code: string): string {
   return specItem(product, code)?.displayValue ?? '';
-}
-
-function SearchIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-    >
-      <circle cx="11" cy="11" r="7" />
-      <path d="M20 20l-3.5-3.5" />
-    </svg>
-  );
-}
-
-function SortIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M7 4v16M3 8l4-4 4 4M17 20V4M13 16l4 4 4-4" />
-    </svg>
-  );
-}
-
-function FilterIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-    >
-      <path d="M4 6h16M7 12h10M10 18h4" />
-    </svg>
-  );
-}
-
-export function CloseIcon({ size }: { size: number }) {
-  return (
-    <svg
-      aria-hidden="true"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.4"
-      strokeLinecap="round"
-    >
-      <path d="M6 6l12 12M18 6L6 18" />
-    </svg>
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <svg
-      className="menu-button__chevron"
-      aria-hidden="true"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M6 9l6 6 6-6" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M5 12l5 5L20 7" />
-    </svg>
-  );
 }

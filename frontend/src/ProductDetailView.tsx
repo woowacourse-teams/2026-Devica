@@ -3,17 +3,18 @@ import apple from './assets/sellers/apple.png';
 import coupang from './assets/sellers/coupang.png';
 import daangn from './assets/sellers/daangn.png';
 import univstore from './assets/sellers/univstore.png';
+import { SpecLabel } from './icons';
 import { ProductImage } from './ProductImage';
 import { fetchProduct, formatPrice, type Offer, type ProductDetail, ProductNotFoundError } from './products';
 import './ProductDetailView.css';
 
 // 원본 상세는 GPU 를 뺀 넷만 보여준다. 서버는 코어 수·화면 크기·무게까지 주지만 원본에 없는 항목이다.
 const DETAIL_SPECS: { code: string; label: string }[] = [
-  { code: 'CPU', label: 'PROCESSOR' },
-  { code: 'GPU', label: 'GPU' },
-  { code: 'MEMORY', label: 'MEMORY' },
-  { code: 'STORAGE', label: 'STORAGE' },
-  { code: 'OS', label: 'OS' },
+  { code: 'CPU', label: '프로세서' },
+  { code: 'GPU', label: '그래픽' },
+  { code: 'MEMORY', label: '메모리' },
+  { code: 'STORAGE', label: '저장 공간' },
+  { code: 'OS', label: '운영체제' },
 ];
 
 const SELLER_LOGOS: Record<string, string> = {
@@ -143,7 +144,9 @@ export function ProductDetailView({ productId, notFound, backLabel, onBack }: Pr
           <dl className="product-detail__specs">
             {DETAIL_SPECS.map(({ code, label }) => (
               <div className="product-detail__spec" key={code}>
-                <dt>{label}</dt>
+                <dt>
+                  <SpecLabel code={code} label={label} />
+                </dt>
                 <dd>{product.specs.find((item) => item.code === code)?.displayValue ?? ''}</dd>
               </div>
             ))}

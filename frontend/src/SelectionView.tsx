@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { SelectIcon } from './icons';
 import {
   CATEGORY_DISPLAY,
   fetchCategories,
@@ -8,58 +9,6 @@ import {
   toCards,
 } from './selection';
 import './SelectionView.css';
-
-const ICON_PATHS: Record<string, string[]> = {
-  LAPTOP: ['M5.5 5h13A1.5 1.5 0 0 1 20 6.5V16H4V6.5A1.5 1.5 0 0 1 5.5 5z', 'M2 19h20'],
-  MONITOR: [
-    'M4.5 4h15A1.5 1.5 0 0 1 21 5.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 14.5v-9A1.5 1.5 0 0 1 4.5 4z',
-    'M9 20h6M12 16v4',
-  ],
-  MOUSE: ['M12 3a5 5 0 0 1 5 5v8a5 5 0 0 1-10 0V8a5 5 0 0 1 5-5z', 'M12 7v4'],
-  KEYBOARD: [
-    'M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z',
-    'M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10',
-  ],
-  BACKEND_DEVELOPMENT: [
-    'M5.5 4h13A1.5 1.5 0 0 1 20 5.5v3a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 8.5v-3A1.5 1.5 0 0 1 5.5 4z',
-    'M5.5 14h13a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-3A1.5 1.5 0 0 1 5.5 14z',
-    'M8 7h.01M8 17h.01M12 7h4M12 17h4',
-  ],
-  FRONTEND_DEVELOPMENT: [
-    'M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
-    'M3 8h18M10 12l-2 2 2 2M14 12l2 2-2 2',
-  ],
-  MOBILE_DEVELOPMENT: [
-    'M9.5 2.5h5A2.5 2.5 0 0 1 17 5v14a2.5 2.5 0 0 1-2.5 2.5h-5A2.5 2.5 0 0 1 7 19V5a2.5 2.5 0 0 1 2.5-2.5z',
-    'M11 18.5h2',
-  ],
-  DESIGN: ['M12 3l7 7-7 11-7-11z', 'M12 9.4a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2z', 'M12 12.6V21'],
-};
-
-function SelectIcon({ code, size }: { code: string; size: number }) {
-  const paths = ICON_PATHS[code];
-  if (paths === undefined) {
-    return null;
-  }
-  return (
-    <svg
-      className="select-card__icon"
-      aria-hidden="true"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      {paths.map((d) => (
-        <path key={d} d={d} />
-      ))}
-    </svg>
-  );
-}
 
 type Props = {
   // 제품 유형을 아직 고르지 않았으면 제품 선택, 골랐으면 그 유형의 사용 목적 선택을 보여준다.
