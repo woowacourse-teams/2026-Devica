@@ -214,6 +214,16 @@
     font-weight: 600;
 }
 
+/* 12px 라벨에 맞춰 아이콘을 줄이고 줄 기준선 여백을 없애, 칸 높이가 라벨만 있을 때와 같게 한다. */
+.current-spec-field legend .spec-label {
+    display: flex;
+}
+
+.current-spec-field legend .spec-icon {
+    width: 14px;
+    height: 14px;
+}
+
 .choice-notice {
     margin: 0;
     font-size: 14px;
