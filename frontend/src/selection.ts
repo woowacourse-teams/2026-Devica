@@ -49,6 +49,10 @@ export const PURPOSE_DISPLAY: Display[] = [
   { code: 'DESIGN', name: '디자인', description: '대형 디자인 파일 편집, 정확한 색 표현과 3D·영상 작업.' },
 ];
 
+export function purposeShortName(purpose: Served): string {
+  return PURPOSE_DISPLAY.find((item) => item.code === purpose.code)?.shortName ?? purpose.name;
+}
+
 /**
  * 서버가 준 항목은 고를 수 있고, 표시 목록에만 있는 항목은 준비 중이다.
  * 서버가 새 항목을 지원하기 시작하면 프론트엔드를 고치지 않아도 고를 수 있게 된다.

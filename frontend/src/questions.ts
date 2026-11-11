@@ -45,6 +45,8 @@ export async function fetchSurvey(purposeCode: string): Promise<Survey> {
 export type Answers = Record<string, string[]>;
 
 export type Screen = {
+  // 설문 단계에서의 위치다. 답에 따라 화면이 빠져도 바뀌지 않아 진행률을 잰다.
+  step: number;
   title: string;
   description: string | null;
   currentSpec: boolean;
@@ -69,7 +71,7 @@ function isVisible(question: Question, answers: Answers): boolean {
  * 화면에 보이는 질문이 하나도 없으면 그 화면은 건너뛴다.
  */
 export function resolveScreens(survey: Survey, answers: Answers): Screen[] {
-  return survey.steps.flatMap((step) => {
+  return survey.steps.flatMap((step, index) => {
     const visible = step.questions.filter((question) => isVisible(question, answers));
 
     if (visible.length === 0) {
@@ -79,6 +81,7 @@ export function resolveScreens(survey: Survey, answers: Answers): Screen[] {
     const single = step.title === null && visible.length === 1;
     return [
       {
+        step: index,
         title: step.title ?? visible[0].title,
         description: single ? visible[0].description : null,
         currentSpec: step.layout === 'CURRENT_SPEC',

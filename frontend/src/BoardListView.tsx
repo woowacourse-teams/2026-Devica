@@ -5,7 +5,7 @@ import { BoardByline } from './BoardShared';
 import { BOARD_POSTS_CACHE, type BoardPostSummary, type BoardScope, fetchBoardPosts } from './board';
 import { keepLatestStartingWith, usePaged } from './fetched';
 import { boardUrl, currentNavState, type NavState, PATHS, query } from './routes';
-import type { Served } from './selection';
+import { purposeShortName, type Served } from './selection';
 import { useBoardRequest } from './useBoardRequest';
 import { useCompact } from './useCompact';
 
@@ -31,7 +31,7 @@ export function BoardListView({ scope, page }: { scope: ListScope; page: number 
     <div className="board-toolbar">
       <p className="board-browse__scope">
         <b>
-          {category.name} / {purpose.name}
+          {category.name} / {purposeShortName(purpose)}
         </b>
         <span className="board-meta">최신순</span>
       </p>
@@ -58,7 +58,7 @@ export function BoardListView({ scope, page }: { scope: ListScope; page: number 
     </div>
   );
   return (
-    <section className="board-browse__posts" aria-label={`${category.name} ${purpose.name} 질문 목록`}>
+    <section className="board-browse__posts" aria-label={`${category.name} ${purposeShortName(purpose)} 질문 목록`}>
       {compact && page === 0 ? (
         <ScrollingPosts key={`${category.code}:${purpose.code}`} scope={scope} toolbar={toolbar} />
       ) : (

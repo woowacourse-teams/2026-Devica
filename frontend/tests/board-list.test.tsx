@@ -181,3 +181,13 @@ test('목록에서 연 작성 화면의 두 목록으로 버튼은 기록을 되
   fireEvent.click(screen.getByRole('link', { name: '목록으로' }));
   expect(back).toHaveBeenCalledTimes(2);
 });
+
+test('게시판은 사용 목적을 짧은 이름으로 표시한다', async () => {
+  const list = render(<BoardListView scope={SCOPE} page={0} />);
+  expect(await screen.findByRole('region', { name: '노트북 백엔드 질문 목록' })).toBeTruthy();
+  expect(screen.getByText('노트북 / 백엔드')).toBeTruthy();
+  list.unmount();
+
+  render(<BoardWriteView scope={SCOPE} />);
+  expect(screen.getByText('노트북 / 백엔드')).toBeTruthy();
+});

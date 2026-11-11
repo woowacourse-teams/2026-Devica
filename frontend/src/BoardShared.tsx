@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link } from 'wouter';
 import { type BoardScope, boardDate } from './board';
 import { PATHS } from './routes';
+import { purposeShortName } from './selection';
 import './BoardView.css';
 
 export function BoardMessage({
@@ -47,7 +48,7 @@ export function BoardScopeInfo({ scope }: { scope: BoardScope }) {
   return (
     <p className="board-scope">
       {scope.category.name}
-      {scope.purpose && <> / {scope.purpose.name}</>}
+      {scope.purpose && <> / {purposeShortName(scope.purpose)}</>}
     </p>
   );
 }

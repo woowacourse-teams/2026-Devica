@@ -35,6 +35,7 @@ const item = (code: string, value: string, displayValue: string) => ({
   displayName: code,
   value,
   displayValue,
+  basis: null,
   reasons: [`${code} 근거`],
 });
 

@@ -6,7 +6,14 @@ import type { Spec } from '../src/recommendation';
 
 vi.mock('../src/analytics', () => ({ track: vi.fn() }));
 
-const item = (code: string, value: string) => ({ code, displayName: code, value, displayValue: value, reasons: [] });
+const item = (code: string, value: string) => ({
+  code,
+  displayName: code,
+  value,
+  displayValue: value,
+  basis: null,
+  reasons: [],
+});
 
 const spec = (os: string, memory: string): Spec => ({
   preferred: false,

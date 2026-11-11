@@ -237,6 +237,34 @@ class RecommendationDefinitionValidatorTest {
     }
 
     @Test
+    void 근거에_결론이_없거나_요점과_더_필요한_경우의_개수가_맞지_않으면_오류를_낸다() {
+        // given
+        RecommendationDefinitionValidator validator = new RecommendationDefinitionValidator(Set.of(), Map.of());
+        RecommendationDefinition definition = read("""
+            survey:
+              steps:
+                - questions:
+                    - { code: OS, options: [ { code: MAC } ] }
+            rules: []
+            mappings: []
+            basis:
+              - { item: MEMORY, summary: 결론, points: [ 요점 ], upgrade: [ 더 ] }
+              - { item: OS, os: MAC, points: [] }
+              - { item: STORAGE, summary: 결론, points: [ 하나, 둘, 셋, 넷 ], upgrade: [ 하나, 둘, 셋 ] }
+            """);
+
+        // when
+        List<String> errors = validator.validate(definition);
+
+        // then
+        assertThat(errors).containsExactly(
+            "근거 OS(MAC): 결론 문장이 없습니다",
+            "근거 OS(MAC): 요점은 1~3개여야 합니다",
+            "근거 STORAGE: 요점은 1~3개여야 합니다",
+            "근거 STORAGE: 더 필요한 경우는 2개까지 적습니다");
+    }
+
+    @Test
     void 지운_코드_줄이_지금_설문과_맞으면_오류가_없다() {
         // given
         RecommendationDefinitionValidator validator = new RecommendationDefinitionValidator(Set.of(), Map.of());

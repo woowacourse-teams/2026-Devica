@@ -55,7 +55,7 @@ class LaptopRecommenderTest {
         assertThat(((LaptopSpec) atFour.get(0).spec()).cpuTier()).isEqualTo(CpuTier.PRO);
         assertThat(((LaptopSpec) atFive.get(0).spec()).cpuTier()).isEqualTo(CpuTier.PRO);
         assertThat(atFive.get(0).itemReasons().get("REQUIRED_CPU"))
-            .contains("예산을 고려해 Mac 권장 CPU 는 M Pro 칩으로 제한했습니다.");
+            .contains("예산을 고려해 Mac 권장 CPU는 M Pro 칩으로 제한했어요.");
     }
 
     @Test
@@ -84,7 +84,7 @@ class LaptopRecommenderTest {
 
         // then
         assertThat(((LaptopSpec) mac.spec()).memoryGb()).isEqualTo(48);
-        assertThat(mac.itemReasons().get("MEMORY")).contains("M Pro 칩에서는 32GB 를 고를 수 없어 바로 위 용량인 48GB 를 권합니다.");
+        assertThat(mac.itemReasons().get("MEMORY")).contains("M Pro 칩에서는 32GB를 고를 수 없어 바로 위 용량인 48GB를 권해요.");
         assertThat(((LaptopSpec) windows.spec()).memoryGb()).isEqualTo(32);
     }
 
@@ -116,8 +116,8 @@ class LaptopRecommenderTest {
         // then
         assertThat(((LaptopSpec) mac.spec()).cpuTier()).isEqualTo(CpuTier.PRO);
         assertThat(mac.itemReasons().get("REQUIRED_CPU"))
-            .contains("지금 쓰는 M Max 칩보다 낮지만, 이 작업에는 M Pro 칩이면 충분해 예산을 고려해 제한했습니다.")
-            .doesNotContain("예산을 고려해 Mac 권장 CPU 는 M Pro 칩으로 제한했습니다.");
+            .contains("지금 쓰는 M Max 칩보다 낮지만, 이 작업에는 M Pro 칩이면 충분해 예산을 고려해 제한했어요.")
+            .doesNotContain("예산을 고려해 Mac 권장 CPU는 M Pro 칩으로 제한했어요.");
     }
 
     @Test
@@ -133,7 +133,7 @@ class LaptopRecommenderTest {
         // then
         assertThat(((LaptopSpec) mac.spec()).cpuTier()).isEqualTo(CpuTier.PRO);
         assertThat(mac.itemReasons().get("REQUIRED_CPU"))
-            .contains("지금과 같은 M Pro 칩이라도 최신 세대를 고르면 성능이 오릅니다.");
+            .contains("지금과 같은 M Pro 칩이라도 최신 세대를 고르면 성능이 올라요.");
     }
 
     @ParameterizedTest(name = "메모리 점수 {0} → {1}GB")
@@ -178,21 +178,23 @@ class LaptopRecommenderTest {
         // then
         assertThat(((LaptopSpec) atSix.spec()).storageGb()).isEqualTo(1024);
         assertThat(((LaptopSpec) atSeven.spec()).storageGb()).isEqualTo(2048);
-        assertThat(atSeven.itemReasons().get("STORAGE")).containsExactly("권장 저장 공간은 2TB 입니다.");
     }
 
     @Test
-    void 요구_항목의_근거_뒤에_결과_문장을_붙인다() {
+    void 답으로_걸린_근거와_기본_권장_사양의_근거를_따로_담는다() {
         // given
         LaptopRecommender recommender = new LaptopRecommender();
+        Basis basis = new Basis("MEMORY", null, "기본 근거", List.of("요점"), null, null);
         Requirements requirements = new Requirements(
-            Map.of("MEMORY", 2), Map.of("MEMORY", List.of("자주 느려집니다.")), List.of());
+            Map.of("MEMORY", 2), Map.of("MEMORY", List.of("자주 느려집니다.")), List.of())
+            .withBasis(Map.of("MEMORY", basis));
 
         // when
         RecommendedSpec mac = recommender.recommend(INTERPRETATION, os -> requirements, Map.of()).get(0);
 
         // then
-        assertThat(mac.itemReasons().get("MEMORY")).containsExactly("자주 느려집니다.", "권장 메모리는 24GB 입니다.");
+        assertThat(mac.itemReasons().get("MEMORY")).containsExactly("자주 느려집니다.");
+        assertThat(mac.itemBasis().get("MEMORY")).isEqualTo(basis);
     }
 
     @Test
@@ -244,10 +246,6 @@ class LaptopRecommenderTest {
         assertThat(mac.colorGamut()).isEqualTo(ColorGamut.WIDE);
         assertThat(mac.gpuTier()).isEqualTo(GpuTier.PRO);
         assertThat(windows.gpuTier()).isEqualTo(GpuTier.XX50);
-        assertThat(specs.get(0).itemReasons().get("REQUIRED_GPU"))
-            .containsExactly("권장 GPU 는 " + GpuTier.PRO.getDisplayName() + " 입니다.");
-        assertThat(specs.get(1).itemReasons().get("REQUIRED_GPU"))
-            .containsExactly("권장 GPU 는 " + GpuTier.XX50.getDisplayName() + " 입니다.");
     }
 
     @Test
@@ -263,8 +261,8 @@ class LaptopRecommenderTest {
         RecommendedSpec mac = specs.get(0);
         assertThat(((LaptopSpec) mac.spec()).cpuTier()).isEqualTo(CpuTier.PRO);
         assertThat(((LaptopSpec) mac.spec()).memoryGb()).isEqualTo(24);
-        assertThat(mac.itemReasons().get("REQUIRED_CPU")).contains("GPU 로 M Pro 칩이 필요해 CPU 도 M Pro 칩을 권합니다.");
-        assertThat(mac.itemReasons().get("MEMORY")).contains("M Pro 칩에서는 16GB 를 고를 수 없어 바로 위 용량인 24GB 를 권합니다.");
+        assertThat(mac.itemReasons().get("REQUIRED_CPU")).contains("GPU로 M Pro 칩이 필요해 CPU도 M Pro 칩을 권해요.");
+        assertThat(mac.itemReasons().get("MEMORY")).contains("M Pro 칩에서는 16GB를 고를 수 없어 바로 위 용량인 24GB를 권해요.");
         assertThat(((LaptopSpec) specs.get(1).spec()).cpuTier()).isEqualTo(CpuTier.P_HS);
     }
 
@@ -280,7 +278,7 @@ class LaptopRecommenderTest {
         // then
         RecommendedSpec mac = specs.get(0);
         assertThat(((LaptopSpec) mac.spec()).gpuTier()).isEqualTo(GpuTier.PRO);
-        assertThat(mac.itemReasons().get("REQUIRED_GPU")).contains("CPU 와 같은 칩이라 GPU 도 M Pro 칩입니다.");
+        assertThat(mac.itemReasons().get("REQUIRED_GPU")).contains("CPU와 같은 칩이라 GPU도 M Pro 칩이에요.");
         assertThat(((LaptopSpec) specs.get(1).spec()).gpuTier()).isEqualTo(GpuTier.INTEGRATED);
     }
 
