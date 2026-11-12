@@ -36,8 +36,11 @@ public record SpecMatchResponse(
             exceeded.add(SpecItemView.COLOR_GAMUT);
         }
 
-        SpecMatchStatus status = exceeded.isEmpty() ? SpecMatchStatus.EXACT : SpecMatchStatus.EXCEEDED;
-        return new SpecMatchResponse(status, List.copyOf(exceeded));
+        if (exceeded.isEmpty()) {
+            return new SpecMatchResponse(SpecMatchStatus.EXACT, List.of());
+        }
+
+        return new SpecMatchResponse(SpecMatchStatus.EXCEEDED, List.copyOf(exceeded));
     }
 
     private static boolean hasSpecCondition(LaptopSearchCondition condition) {
