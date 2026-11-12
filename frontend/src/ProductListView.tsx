@@ -52,7 +52,9 @@ const SORT_LABELS: { value: SortType; label: string }[] = [
   { value: 'PRICE_DESC', label: '가격 높은 순' },
 ];
 
-const CARD_SPECS = ['CPU', 'GPU', 'MEMORY', 'STORAGE'];
+const CARD_SPECS = ['CPU', 'GPU', 'MEMORY', 'STORAGE', 'COLOR_GAMUT'];
+
+const CARD_COLOR_GAMUT_LABELS: Record<string, string> = { STANDARD: 'sRGB', WIDE: 'DCI-P3' };
 
 const OS_GROUP_LABELS: Record<string, string> = { MAC: 'Mac', WINDOWS: 'Windows' };
 
@@ -526,7 +528,7 @@ export function ProductListView({
           <ul className="product-list">
             {items.map((product) => (
               <li key={product.id}>
-                <ProductCard product={product} onDetail={onDetail} />
+                <ProductCard product={product} showsMatch={matchedMode} onDetail={onDetail} />
               </li>
             ))}
           </ul>
@@ -651,10 +653,19 @@ function MenuButton({ id, label, options, value, display, onChange }: MenuButton
   );
 }
 
-function ProductCard({ product, onDetail }: { product: Product; onDetail: (productId: number) => void }) {
-  const specs = CARD_SPECS.map((code) => specValue(product, code))
-    .filter((value) => value !== '')
-    .join(' · ');
+function ProductCard({
+  product,
+  showsMatch,
+  onDetail,
+}: {
+  product: Product;
+  showsMatch: boolean;
+  onDetail: (productId: number) => void;
+}) {
+  const match = showsMatch ? product.specMatch : null;
+  const specs = CARD_SPECS.map((code) => ({ code, label: cardSpecLabel(product, code) })).filter(
+    ({ label }) => label !== '',
+  );
   return (
     <a
       className="product-card"
@@ -663,11 +674,33 @@ function ProductCard({ product, onDetail }: { product: Product; onDetail: (produ
     >
       <ProductImage imageUrl={product.imageUrl} name={product.name} className="product-card__image-frame" />
       <div className="product-card__body">
-        <span className="product-card__maker">
-          {product.brand} · {specValue(product, 'OS')}
-        </span>
+        <div className="product-card__head">
+          <span className="product-card__maker">
+            {product.brand} · {specValue(product, 'OS')}
+          </span>
+          {match?.status === 'EXACT' && (
+            <span className="product-card__match">
+              <CheckIcon />딱 맞는 사양
+            </span>
+          )}
+        </div>
         <h3 className="product-card__name">{product.name}</h3>
-        <span className="product-card__specs">{specs}</span>
+        <ul className="product-card__specs">
+          {specs.map(({ code, label }) =>
+            match?.exceededSpecs.includes(code) ? (
+              <li className="product-card__spec--up" key={code}>
+                {label}
+                {'\u2060'}
+                <span className="product-card__up-mark" aria-hidden="true">
+                  ↑
+                </span>
+                <span className="product-card__sr">, 필터보다 높음</span>
+              </li>
+            ) : (
+              <li key={code}>{label}</li>
+            ),
+          )}
+        </ul>
         <p className="product-card__price">
           <span>최저가</span>
           <strong>{formatPrice(product.minPrice)}</strong>
@@ -675,6 +708,13 @@ function ProductCard({ product, onDetail }: { product: Product; onDetail: (produ
       </div>
     </a>
   );
+}
+
+function cardSpecLabel(product: Product, code: string): string {
+  if (code === 'COLOR_GAMUT') {
+    return CARD_COLOR_GAMUT_LABELS[specItem(product, code)?.value ?? ''] ?? '';
+  }
+  return specValue(product, code);
 }
 
 type FilterSheetProps = {

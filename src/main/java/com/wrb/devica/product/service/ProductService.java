@@ -10,6 +10,7 @@ import com.wrb.devica.product.dto.LaptopSearchCondition;
 import com.wrb.devica.product.dto.PageCondition;
 import com.wrb.devica.product.dto.ProductSummaryResponse;
 import com.wrb.devica.product.dto.ProductSummaryRow;
+import com.wrb.devica.product.dto.SpecMatchResponse;
 import com.wrb.devica.product.repository.LaptopRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +38,12 @@ public class ProductService {
             pageCondition.sort(),
             PageRequest.of(pageCondition.page(), pageCondition.size())
         );
-        return rows.map(row -> ProductSummaryResponse.from(row, imageUrlResolver.resolve(row.imageKey())));
+
+        return rows.map(row -> ProductSummaryResponse.from(
+            row,
+            imageUrlResolver.resolve(row.imageKey()),
+            SpecMatchResponse.of(condition, row.matchBasis())
+        ));
     }
 
     public Long findMinPrice(String categoryCode, LaptopSearchCondition condition) {

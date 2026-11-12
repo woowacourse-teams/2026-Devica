@@ -82,6 +82,13 @@ export type Product = {
   // 판매 중인 판매처가 없으면 비어 온다.
   minPrice: number | null;
   specs: ProductSpecItem[];
+  // 사양 조건 없이 조회하면 비어 온다.
+  specMatch: SpecMatch | null;
+};
+
+export type SpecMatch = {
+  status: 'EXACT' | 'EXCEEDED';
+  exceededSpecs: string[];
 };
 
 export type Offer = {

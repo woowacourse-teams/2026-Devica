@@ -49,4 +49,40 @@ class GpuTierTest {
             GpuTier.INTEGRATED, GpuTier.XX50, GpuTier.XX60,
             GpuTier.BASIC, GpuTier.PRO, GpuTier.MAX);
     }
+
+    @Test
+    void 같은_OS_안에서_점수가_바로_위인_등급으로_올린다() {
+        // when & then
+        assertThat(GpuTier.INTEGRATED.stepUp()).isEqualTo(GpuTier.XX50);
+        assertThat(GpuTier.BASIC.stepUp()).isEqualTo(GpuTier.PRO);
+    }
+
+    @ParameterizedTest
+    @EnumSource(Os.class)
+    void 가장_높은_등급은_더_올라가지_않는다(Os os) {
+        // given
+        GpuTier highest = Arrays.stream(GpuTier.values())
+            .filter(tier -> tier.getOs() == os)
+            .max((left, right) -> Integer.compare(left.getMinScore(), right.getMinScore()))
+            .orElseThrow();
+
+        // when & then
+        assertThat(highest.stepUp()).isEqualTo(highest);
+    }
+
+    @Test
+    void 점수가_바로_위_등급의_최소_점수_이상이면_조건을_넘는다() {
+        // given
+        int nextMinScore = GpuTier.XX50.getMinScore();
+
+        // when & then
+        assertThat(GpuTier.INTEGRATED.isExceededBy(nextMinScore - 1)).isFalse();
+        assertThat(GpuTier.INTEGRATED.isExceededBy(nextMinScore)).isTrue();
+    }
+
+    @Test
+    void 가장_높은_등급은_점수가_아무리_높아도_넘지_않는다() {
+        // when & then
+        assertThat(GpuTier.MAX.isExceededBy(Integer.MAX_VALUE)).isFalse();
+    }
 }

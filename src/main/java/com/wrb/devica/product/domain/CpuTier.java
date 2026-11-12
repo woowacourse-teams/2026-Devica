@@ -58,6 +58,11 @@ public enum CpuTier {
             .orElse(this);
     }
 
+    public boolean isExceededBy(int score) {
+        CpuTier above = stepUp();
+        return above != this && score >= above.minScore;
+    }
+
     public boolean isHigherThan(CpuTier other) {
         return minScore > other.minScore;
     }

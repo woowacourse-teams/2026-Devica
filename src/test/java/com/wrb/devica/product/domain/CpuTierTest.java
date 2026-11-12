@@ -66,4 +66,20 @@ class CpuTierTest {
         assertThat(CpuTier.P_HS.isHigherThan(CpuTier.H)).isFalse();
         assertThat(CpuTier.H.isHigherThan(CpuTier.H)).isFalse();
     }
+
+    @Test
+    void 점수가_바로_위_등급의_최소_점수_이상이면_조건을_넘는다() {
+        // given
+        int nextMinScore = CpuTier.PRO.getMinScore();
+
+        // when & then
+        assertThat(CpuTier.BASIC.isExceededBy(nextMinScore - 1)).isFalse();
+        assertThat(CpuTier.BASIC.isExceededBy(nextMinScore)).isTrue();
+    }
+
+    @Test
+    void 가장_높은_등급은_점수가_아무리_높아도_넘지_않는다() {
+        // when & then
+        assertThat(CpuTier.MAX.isExceededBy(Integer.MAX_VALUE)).isFalse();
+    }
 }

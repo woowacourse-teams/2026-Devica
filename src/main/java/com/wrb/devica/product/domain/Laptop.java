@@ -67,18 +67,19 @@ public class Laptop extends Product {
     }
 
     public static List<SpecValue> summarySpecValues(Os os, String cpuName, String gpuName, int memoryGb,
-                                                    int storageGb) {
+                                                    int storageGb, ColorGamut colorGamut) {
         return List.of(
             new SpecValue("OS", os.name()),
             new SpecValue("CPU", cpuName),
             new SpecValue("GPU", gpuName),
             new SpecValue("MEMORY", String.valueOf(memoryGb)),
-            new SpecValue("STORAGE", String.valueOf(storageGb)));
+            new SpecValue("STORAGE", String.valueOf(storageGb)),
+            new SpecValue("COLOR_GAMUT", colorGamut.name()));
     }
 
     public List<SpecValue> allSpecValues() {
         return Stream.concat(
-            summarySpecValues(os, cpu.getName(), gpu.getName(), memoryGb, storageGb).stream(),
+            summarySpecValues(os, cpu.getName(), gpu.getName(), memoryGb, storageGb, colorGamut).stream(),
             Stream.of(
                 new SpecValue("CPU_CORE", String.valueOf(cpu.getCoreCount())),
                 new SpecValue("SCREEN_SIZE", screenSizeInch.toPlainString()),
