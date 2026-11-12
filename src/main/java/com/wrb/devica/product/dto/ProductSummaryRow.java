@@ -1,6 +1,7 @@
 package com.wrb.devica.product.dto;
 
 import com.querydsl.core.annotations.QueryProjection;
+import com.wrb.devica.product.domain.ColorGamut;
 import com.wrb.devica.product.domain.Laptop;
 import com.wrb.devica.product.domain.Os;
 import java.util.List;
@@ -16,8 +17,9 @@ public record ProductSummaryRow(
 
     @QueryProjection
     public ProductSummaryRow(Long id, String brand, String name, String imageKey, Long minPrice,
-                             Os os, String cpuName, String gpuName, int memoryGb, int storageGb) {
+                             Os os, String cpuName, String gpuName, int memoryGb, int storageGb,
+                             ColorGamut colorGamut) {
         this(id, brand, name, imageKey, minPrice,
-            SpecItemResponse.from(Laptop.summarySpecValues(os, cpuName, gpuName, memoryGb, storageGb)));
+            SpecItemResponse.from(Laptop.summarySpecValues(os, cpuName, gpuName, memoryGb, storageGb, colorGamut)));
     }
 }

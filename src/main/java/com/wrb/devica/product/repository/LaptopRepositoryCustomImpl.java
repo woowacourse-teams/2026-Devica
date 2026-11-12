@@ -146,7 +146,8 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             cpu.name,
             gpu.name,
             laptop.memoryGb,
-            laptop.storageGb
+            laptop.storageGb,
+            laptop.colorGamut
         ));
     }
 

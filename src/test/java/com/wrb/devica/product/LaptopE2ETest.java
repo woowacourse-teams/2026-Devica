@@ -109,9 +109,9 @@ class LaptopE2ETest extends E2ETest {
             .then().statusCode(200)
             .body("content.size()", is(1))
             .body("content[0].name", is("gram Pro 16"))
-            .body("content[0].specs.code", contains("OS", "CPU", "GPU", "MEMORY", "STORAGE"))
+            .body("content[0].specs.code", contains("OS", "CPU", "GPU", "MEMORY", "STORAGE", "COLOR_GAMUT"))
             .body("content[0].specs.displayValue",
-                contains("Windows", "Intel Core Ultra 7 255H", "Intel Arc 140V", "32GB", "1TB"))
+                contains("Windows", "Intel Core Ultra 7 255H", "Intel Arc 140V", "32GB", "1TB", "표준 색 영역(sRGB)"))
             .body("content[0].minPrice", is(2_850_000));
     }
 
@@ -426,7 +426,7 @@ class LaptopE2ETest extends E2ETest {
             .when().get("/api/products/" + laptop.getId())
             .then().statusCode(200)
             .body("name", is("gram Pro 16"))
-            .body("specs.code", contains("OS", "CPU", "GPU", "MEMORY", "STORAGE", "CPU_CORE", "SCREEN_SIZE", "WEIGHT"))
+            .body("specs.code", contains("OS", "CPU", "GPU", "MEMORY", "STORAGE", "COLOR_GAMUT", "CPU_CORE", "SCREEN_SIZE", "WEIGHT"))
             .body("specs[2].displayValue", is("Intel Arc 140V"))
             .body("offers.price", contains(2_850_000, 2_990_000))
             .body("offers[0].purchaseUrl", is("https://example.com/" + laptop.getCode()))
