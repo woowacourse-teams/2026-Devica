@@ -467,7 +467,7 @@ html:has(.product-filter-sheet[open]) {
     gap: var(--space-8);
     align-items: center;
     justify-content: space-between;
-    min-height: 22px;
+    min-height: 26px;
 }
 
 .product-card__maker {
@@ -735,17 +735,6 @@ html:has(.product-filter-sheet[open]) {
     .product-card__body {
         gap: var(--space-12);
         padding: var(--space-20);
-    }
-
-    .product-card__head {
-        flex-direction: column-reverse;
-        gap: var(--space-12);
-        align-items: flex-start;
-        min-height: 0;
-    }
-
-    .product-card__maker {
-        max-width: 100%;
     }
 
     .product-card__maker,
