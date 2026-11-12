@@ -57,7 +57,7 @@ public class FlywayMigrationTest {
             FROM product_offer o
             JOIN product p ON p.id = o.product_id
             JOIN laptop l ON l.id = p.id
-            WHERE o.name = '쿠팡'
+            WHERE o.seller = 'COUPANG'
             ORDER BY p.code
             """);
 
@@ -110,12 +110,7 @@ public class FlywayMigrationTest {
                 """, productId);
 
             // when & then
-            // 실패한 연결의 임시 테이블이 커넥션 풀에 남지 않도록 별도 연결로 적용한다.
-            Flyway isolated = Flyway.configure()
-                .configuration(flyway.getConfiguration())
-                .dataSource(datasourceUrl, datasourceUsername, datasourcePassword)
-                .load();
-            assertThatThrownBy(isolated::migrate)
+            assertThatThrownBy(this::migrateOnSeparateConnection)
                 .isInstanceOf(FlywayException.class)
                 .hasMessageContaining("Duplicate entry '16Z90TS-GU7WK'");
             assertThat(jdbcTemplate.queryForList("""
@@ -129,6 +124,81 @@ public class FlywayMigrationTest {
             flyway.clean();
             flyway.migrate();
         }
+    }
+
+    @Test
+    void 판매처_이름을_판매처_코드로_채운다() {
+        // when
+        var sellers = jdbcTemplate.queryForList("SELECT DISTINCT name, seller FROM product_offer ORDER BY seller");
+
+        // then
+        assertThat(sellers).containsExactly(
+            Map.of("name", "Apple 공홈", "seller", "APPLE_STORE"),
+            Map.of("name", "쿠팡", "seller", "COUPANG"),
+            Map.of("name", "당근", "seller", "DAANGN"),
+            Map.of("name", "학생복지스토어", "seller", "STUDENT_STORE"));
+    }
+
+    @Test
+    void 판매처_코드로_바꿀_수_없는_이름이_있으면_이름을_알리고_컬럼을_바꾸기_전에_중단한다() {
+        try {
+            // given
+            migrateTo("1.29");
+            long productId = saveProduct("UNKNOWN-SELLER");
+            jdbcTemplate.update("""
+                INSERT INTO product_offer (product_id, name, price, purchase_url, status, created_at, updated_at)
+                VALUES (?, '알 수 없는 판매처', 1000000, 'https://example.com', 'ON_SALE', NOW(), NOW())
+                """, productId);
+
+            // when & then
+            assertThatThrownBy(this::migrateOnSeparateConnection)
+                .isInstanceOf(FlywayException.class)
+                .hasMessageContaining("Duplicate entry '알 수 없는 판매처'");
+            assertThat(hasSellerColumn()).isFalse();
+        } finally {
+            flyway.clean();
+            flyway.migrate();
+        }
+    }
+
+    @Test
+    void 같은_제품_판매처_판매상품_ID_행이_이미_여럿이면_모델_코드를_알리고_컬럼을_바꾸기_전에_중단한다() {
+        try {
+            // given: 15번 제품에 V1.29로 보정한 쿠팡 판매상품이 한 번 더 등록돼 있다.
+            migrateTo("1.29");
+            jdbcTemplate.update("""
+                INSERT INTO product_offer
+                    (product_id, name, price, external_item_id, purchase_url, status, created_at, updated_at)
+                SELECT product_id, name, price, external_item_id, purchase_url, status, NOW(), NOW()
+                FROM product_offer
+                WHERE product_id = (SELECT id FROM product WHERE code = '16Z90TS-GU7WK') AND name = '쿠팡'
+                """);
+
+            // when & then
+            assertThatThrownBy(this::migrateOnSeparateConnection)
+                .isInstanceOf(FlywayException.class)
+                .hasMessageContaining("Duplicate entry '16Z90TS-GU7WK'");
+            assertThat(hasSellerColumn()).isFalse();
+        } finally {
+            flyway.clean();
+            flyway.migrate();
+        }
+    }
+
+    // 실패한 마이그레이션의 임시 테이블이 커넥션 풀에 남지 않도록 별도 연결로 적용한다.
+    private void migrateOnSeparateConnection() {
+        Flyway.configure()
+            .configuration(flyway.getConfiguration())
+            .dataSource(datasourceUrl, datasourceUsername, datasourcePassword)
+            .load()
+            .migrate();
+    }
+
+    private boolean hasSellerColumn() {
+        return jdbcTemplate.queryForObject("""
+            SELECT COUNT(*) FROM information_schema.columns
+            WHERE table_schema = DATABASE() AND table_name = 'product_offer' AND column_name = 'seller'
+            """, Integer.class) > 0;
     }
 
     private void migrateTo(String version) {
@@ -148,10 +218,11 @@ public class FlywayMigrationTest {
         return jdbcTemplate.queryForObject("SELECT id FROM product WHERE code = ?", Long.class, code);
     }
 
+    // 이후 V1.31이 판매처 코드로 바꿀 수 있도록 실제 판매처 이름을 쓴다.
     private void saveOffer(long productId, long price, String status) {
         jdbcTemplate.update("""
             INSERT INTO product_offer (product_id, name, price, purchase_url, status, created_at, updated_at)
-            VALUES (?, '판매처', ?, 'https://example.com', ?, NOW(), NOW())
+            VALUES (?, '학생복지스토어', ?, 'https://example.com', ?, NOW(), NOW())
             """, productId, price, status);
     }
 

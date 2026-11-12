@@ -3,6 +3,7 @@ package com.wrb.devica.product.service;
 import com.wrb.devica.common.config.CacheConfig;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.ProductOffer;
+import com.wrb.devica.product.domain.Seller;
 import com.wrb.devica.product.dto.PriceRefreshTarget;
 import com.wrb.devica.product.repository.ProductMinPriceRepository;
 import com.wrb.devica.product.repository.ProductOfferRepository;
@@ -109,7 +110,7 @@ public class ProductOfferService {
     }
 
     private boolean isUnchangedTarget(ProductOffer offer, PriceRefreshTarget target, LocalDate observedAt) {
-        return offer != null && "쿠팡".equals(offer.getName())
+        return offer != null && offer.getSeller() == Seller.COUPANG
             && hasRefreshableStatus(offer)
             && offer.getStatus() == target.status() && offer.getPrice() == target.price()
             && hasMatchingVendorItem(offer, target)

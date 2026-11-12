@@ -17,7 +17,7 @@ public interface ProductOfferRepository extends JpaRepository<ProductOffer, Long
         SELECT o.id, o.productId, p.code, o.externalItemId, o.purchaseUrl, o.price, o.status
         FROM ProductOffer o
         JOIN Product p ON p.id = o.productId
-        WHERE o.name = '쿠팡'
+        WHERE o.seller = com.wrb.devica.product.domain.Seller.COUPANG
           AND o.status IN :statuses
           AND o.externalItemId IS NOT NULL AND TRIM(o.externalItemId) <> ''
         ORDER BY o.id
