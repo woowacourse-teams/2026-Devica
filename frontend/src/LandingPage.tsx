@@ -17,7 +17,7 @@ const PRODUCT_LIST_METRICS = [
     before: 7523,
     after: 85,
     max: 7523,
-    format: (value: number) => `${value.toLocaleString()}ms`,
+    unit: 'ms',
   },
   {
     name: '응답 실패',
@@ -25,10 +25,15 @@ const PRODUCT_LIST_METRICS = [
     before: 23,
     after: 0,
     max: 100,
-    format: (value: number) => `${value}%`,
+    unit: '%',
   },
-  { name: 'DB 사용률', hint: '몰릴 때 최대', before: 99, after: 28, max: 100, format: (value: number) => `${value}%` },
+  { name: 'DB 사용률', hint: '몰릴 때 최대', before: 99, after: 28, max: 100, unit: '%' },
 ];
+
+// 개선 전 대비 줄어든 비율. 0으로 줄었으면 100%다.
+function reduction({ before, after }: { before: number; after: number }): number {
+  return Math.round((1 - after / before) * 100);
+}
 
 export function LandingPage() {
   const pageRef = useLandingReveal();
@@ -78,7 +83,6 @@ export function LandingPage() {
       </section>
       <section className="landing-section landing-how" id="how" aria-labelledby="landing-how-title">
         <div className="landing-section-heading" data-landing-reveal="">
-          <p className="landing-eyebrow">DEVICA 사용법</p>
           <h2 id="landing-how-title">필요한 도움부터 시작하세요.</h2>
         </div>
         <nav className="landing-routes" aria-label="서비스 바로가기" data-landing-reveal="">
@@ -151,7 +155,6 @@ export function LandingPage() {
         >
           <div className="landing-tech__pin">
             <div className="landing-section-heading" data-landing-reveal="">
-              <p className="landing-eyebrow">DEVICA 기술 소개</p>
               <h2 id="landing-tech-title">써 볼수록 더 잘 맞는 제품 추천</h2>
             </div>
             <section
@@ -262,7 +265,10 @@ export function LandingPage() {
                     {PRODUCT_LIST_METRICS.map((metric) => (
                       <div className="landing-chart__metric" key={metric.name}>
                         <p className="landing-chart__name">
-                          {metric.name} <span className="landing-chart__hint">{metric.hint}</span>
+                          <span>
+                            {metric.name} <span className="landing-chart__hint">{metric.hint}</span>
+                          </span>
+                          <span className="landing-chart__delta">{reduction(metric)}% 줄었어요</span>
                         </p>
                         {(['before', 'after'] as const).map((when) => (
                           <div className={`landing-chart__row landing-chart__row--${when}`} key={when}>
@@ -278,7 +284,10 @@ export function LandingPage() {
                                 }
                               />
                             </span>
-                            <span className="landing-chart__value">{metric.format(metric[when])}</span>
+                            <span className="landing-chart__value">
+                              {/* 막대가 자라는 동안 값도 0에서 같은 속도로 올라간다. 지연은 막대 CSS 와 같다. */}
+                              <CountUp to={metric[when]} suffix={metric.unit} delay={when === 'before' ? 250 : 650} />
+                            </span>
                           </div>
                         ))}
                       </div>

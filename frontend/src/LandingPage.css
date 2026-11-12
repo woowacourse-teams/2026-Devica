@@ -110,8 +110,10 @@ html:has(.landing-page) {
     background: var(--lime);
 }
 
-.landing-cta--lime:hover {
-    background: color-mix(in srgb, var(--lime) 85%, var(--text));
+@media (hover: hover) {
+    .landing-cta--lime:hover {
+        background: color-mix(in srgb, var(--lime) 85%, var(--text));
+    }
 }
 
 /* 주 버튼 위로 몇 초마다 빛줄기가 한 번 지나간다. */
@@ -155,8 +157,10 @@ html:has(.landing-page) {
     background: var(--primary);
 }
 
-.landing-cta--primary:hover {
-    background: var(--primary-bright);
+@media (hover: hover) {
+    .landing-cta--primary:hover {
+        background: var(--primary-bright);
+    }
 }
 
 .landing-cta--outline {
@@ -164,8 +168,10 @@ html:has(.landing-page) {
     color: var(--text);
 }
 
-.landing-cta--outline:hover {
-    border-color: var(--text);
+@media (hover: hover) {
+    .landing-cta--outline:hover {
+        border-color: var(--text);
+    }
 }
 
 .landing-textlink {
@@ -175,8 +181,10 @@ html:has(.landing-page) {
     font-weight: 600;
 }
 
-.landing-textlink:hover {
-    color: var(--text);
+@media (hover: hover) {
+    .landing-textlink:hover {
+        color: var(--text);
+    }
 }
 
 /* 히어로 */
@@ -578,12 +586,6 @@ html:has(.landing-page) {
     gap: var(--space-16);
 }
 
-.landing-eyebrow {
-    color: var(--accent);
-    font-size: 14px;
-    font-weight: 600;
-}
-
 .landing-section h2 {
     font-size: 48px;
     font-weight: 700;
@@ -750,9 +752,11 @@ html:has(.landing-page) {
     --route-color: var(--lime);
 }
 
-.landing-routes a:hover {
-    border-color: color-mix(in srgb, var(--route-color) 50%, transparent);
-    transform: translateY(-2px);
+@media (hover: hover) {
+    .landing-routes a:hover {
+        border-color: color-mix(in srgb, var(--route-color) 50%, transparent);
+        transform: translateY(-2px);
+    }
 }
 
 .landing-routes__icon {
@@ -878,8 +882,10 @@ html:has(.landing-page) {
         color 300ms ease;
 }
 
-.landing-board__step:hover {
-    color: var(--text);
+@media (hover: hover) {
+    .landing-board__step:hover {
+        color: var(--text);
+    }
 }
 
 .landing-board__step[aria-pressed="true"] {
@@ -1251,14 +1257,28 @@ html:has(.landing-page) {
 }
 
 .landing-chart__name {
+    display: flex;
+    gap: var(--space-12);
+    align-items: baseline;
+    justify-content: space-between;
     font-size: 16px;
     font-weight: 600;
+    word-break: keep-all;
 }
 
 .landing-chart__hint {
     color: var(--on-primary-muted);
     font-size: 12px;
     font-weight: 400;
+}
+
+/* 줄어든 비율은 '후' 막대와 같은 색으로 이어 읽힌다. */
+.landing-chart__delta {
+    flex: none;
+    color: var(--lime);
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
 
 .landing-chart__row {
@@ -1277,7 +1297,19 @@ html:has(.landing-page) {
     flex: 1;
     height: 12px;
     border-radius: var(--radius-pill);
-    background: color-mix(in srgb, var(--on-primary) 15%, transparent);
+    /* 25·50·75% 눈금. 막대 길이를 어림할 수 있게 한다. */
+    background:
+        linear-gradient(
+            90deg,
+            transparent calc(25% - 0.5px),
+            color-mix(in srgb, var(--on-primary) 22%, transparent) calc(25% - 0.5px) calc(25% + 0.5px),
+            transparent calc(25% + 0.5px) calc(50% - 0.5px),
+            color-mix(in srgb, var(--on-primary) 22%, transparent) calc(50% - 0.5px) calc(50% + 0.5px),
+            transparent calc(50% + 0.5px) calc(75% - 0.5px),
+            color-mix(in srgb, var(--on-primary) 22%, transparent) calc(75% - 0.5px) calc(75% + 0.5px),
+            transparent calc(75% + 0.5px)
+        ),
+        color-mix(in srgb, var(--on-primary) 15%, transparent);
 }
 
 .landing-chart__bar {
@@ -1475,8 +1507,10 @@ html:has(.landing-page) {
     cursor: pointer;
 }
 
-.landing-arrows button:not(:disabled):hover {
-    background: var(--primary-bright);
+@media (hover: hover) {
+    .landing-arrows button:not(:disabled):hover {
+        background: var(--primary-bright);
+    }
 }
 
 .landing-arrows button:disabled {
@@ -1623,8 +1657,10 @@ html:has(.landing-page) {
     color: var(--on-primary);
 }
 
-.landing-closing .landing-cta--outline:hover {
-    border-color: var(--on-primary);
+@media (hover: hover) {
+    .landing-closing .landing-cta--outline:hover {
+        border-color: var(--on-primary);
+    }
 }
 
 /* 태블릿 폭에서는 노트북 그림을 줄이고, 글은 그림 왼쪽까지만 쓴다. */

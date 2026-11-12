@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { ChoiceGroup } from './ChoiceGroup';
+import { CheckIcon, SpecLabel } from './icons';
 import { type Answers, isScreenAnswered, type Question, type Screen } from './questions';
 import './QuestionView.css';
 
@@ -198,31 +199,46 @@ export function QuestionView({
   );
 }
 
+// 현재 사양 문항의 이름. 설문 데이터의 label(OS·PROCESSOR 등)은 그대로 두고, 화면에는 결과·상세와 같은 아이콘과 한국어 이름을 쓴다.
+// 설문 데이터를 고치면 설문 버전이 바뀌므로 표시만 여기서 바꾼다. 모르는 문항은 데이터의 label 을 그대로 쓴다.
+function currentSpecLabel(questionCode: string, fallback: string | null): { code: string; label: string } | null {
+  if (questionCode === 'CURRENT_OS') return { code: 'OS', label: '운영체제' };
+  if (questionCode.endsWith('_CPU')) return { code: 'CPU', label: '프로세서' };
+  if (questionCode === 'CURRENT_MEMORY') return { code: 'MEMORY', label: '메모리' };
+  if (questionCode === 'CURRENT_STORAGE') return { code: 'STORAGE', label: '저장 공간' };
+  return fallback === null ? null : { code: questionCode, label: fallback };
+}
+
 // 현재 사양은 레이블만 달린 칩 목록이다. OS 를 고르기 전에는 프로세서 선택지가 없다.
 function CurrentSpecFields({ screen, answers, onAnswer }: Pick<Props, 'answers' | 'onAnswer'> & { screen: Screen }) {
   const hasCpu = screen.questions.some(({ question }) => question.code.endsWith('_CPU'));
 
   return (
     <>
-      {screen.questions.map(({ question, label }, order) => (
-        <Fragment key={question.code}>
-          <fieldset className="current-spec-field">
-            <legend>{label}</legend>
-            <ChoiceGroup
-              choices={question.options.map((option) => ({ value: option.code, label: option.content }))}
-              value={answers[question.code]?.[0] ?? null}
-              onChange={(value) => onAnswer(question.code, value === null ? [] : [value])}
-            />
-          </fieldset>
-          {/* 프로세서는 OS 다음 자리다. 고르기 전이라 선택지가 없어도 자리는 지킨다. */}
-          {order === 0 && !hasCpu && (
+      {screen.questions.map(({ question, label }, order) => {
+        const shown = currentSpecLabel(question.code, label);
+        return (
+          <Fragment key={question.code}>
             <fieldset className="current-spec-field">
-              <legend>PROCESSOR</legend>
-              <p className="choice-notice">OS를 먼저 선택해 주세요</p>
+              <legend>{shown !== null && <SpecLabel code={shown.code} label={shown.label} />}</legend>
+              <ChoiceGroup
+                choices={question.options.map((option) => ({ value: option.code, label: option.content }))}
+                value={answers[question.code]?.[0] ?? null}
+                onChange={(value) => onAnswer(question.code, value === null ? [] : [value])}
+              />
             </fieldset>
-          )}
-        </Fragment>
-      ))}
+            {/* 프로세서는 OS 다음 자리다. 고르기 전이라 선택지가 없어도 자리는 지킨다. */}
+            {order === 0 && !hasCpu && (
+              <fieldset className="current-spec-field">
+                <legend>
+                  <SpecLabel code="CPU" label="프로세서" />
+                </legend>
+                <p className="choice-notice">운영체제를 먼저 선택해 주세요</p>
+              </fieldset>
+            )}
+          </Fragment>
+        );
+      })}
     </>
   );
 }
@@ -291,19 +307,7 @@ function QuestionGroup({ question, label, chosen, onAnswer, onPick }: GroupProps
           onClick={() => (onPick ? onPick(option.code) : toggle(option.code))}
         >
           <span className="question-option__mark" aria-hidden="true">
-            <svg
-              aria-hidden="true"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M5 12l5 5L20 7" />
-            </svg>
+            <CheckIcon />
           </span>
           <span className="question-option__text">
             <span className="question-option__title">{option.content}</span>

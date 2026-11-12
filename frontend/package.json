@@ -14,6 +14,9 @@
     "prepare": "cd .. && husky"
   },
   "dependencies": {
+    "@number-flow/react": "0.6.2",
+    "animejs": "4.5.0",
+    "lucide-react": "1.63.0",
     "posthog-js": "^1.435.5",
     "pretendard": "1.3.9",
     "react": "^19.3.0",

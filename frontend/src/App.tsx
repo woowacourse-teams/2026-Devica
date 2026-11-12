@@ -143,7 +143,7 @@ export function App() {
         productListActive={screen === 'products' || screen === 'matched' || screen === 'detail'}
         guideActive={screen === 'faq'}
       />
-      <main className={screen === 'home' ? 'probe probe--home' : 'probe'} id="main-content">
+      <main className={screen === 'home' ? 'probe probe--home' : 'probe'} id="main-content" tabIndex={-1}>
         <Switch>
           <Route path={PATHS.home}>
             <LegacyRedirect params={params} />

@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname, useSearch } from 'wouter/use-browser-location';
 import { track } from './analytics';
+import { CloseIcon, MenuIcon } from './icons';
 import { DESKTOP_MEDIA, go, navigateInside, PATHS } from './routes';
 import { ServiceEntryLink } from './ServiceEntryLink';
+import { useLogoIntro } from './useLogoIntro';
 import './SiteLayout.css';
+
+const LOGO_LETTERS = [...'DEVICA'];
 
 type Props = {
   onGuide: () => void;
@@ -27,6 +31,8 @@ export function SiteHeader({
   const pathname = usePathname();
   const search = useSearch();
   const menuButton = useRef<HTMLButtonElement>(null);
+  const logoRef = useRef<HTMLAnchorElement>(null);
+  useLogoIntro(logoRef, pathname === PATHS.home);
   const [menuOpen, setMenuOpen] = useState(false);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: 화면이 바뀌면 메뉴를 닫는다.
@@ -68,9 +74,18 @@ export function SiteHeader({
 
   return (
     <header className="site-header" data-menu-open={menuOpen}>
+      {/* 키보드 사용자가 메뉴를 건너 본문으로 바로 간다. 본문(main)은 tabIndex=-1 이라 초점을 받는다. */}
+      <a className="skip-link" href="#main-content">
+        본문으로 건너뛰기
+      </a>
       <div className="site-header__inner">
-        <a className="site-logo" href="/">
-          DEVICA
+        <a className="site-logo" href="/" ref={logoRef} aria-label="DEVICA" translate="no">
+          {LOGO_LETTERS.map((letter, index) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: 글자는 고정이고 순서가 바뀌지 않는다.
+            <span className="site-logo__letter" aria-hidden="true" key={index}>
+              {letter}
+            </span>
+          ))}
         </a>
         <button
           className="site-menu-button"
@@ -81,18 +96,7 @@ export function SiteHeader({
           aria-controls="site-nav"
           onClick={toggleMenu}
         >
-          <svg
-            aria-hidden="true"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          >
-            <path d={menuOpen ? 'M6 6l12 12M18 6L6 18' : 'M4 7h16M4 12h16M4 17h16'} />
-          </svg>
+          {menuOpen ? <CloseIcon size={24} /> : <MenuIcon />}
         </button>
         {/* 누르면 앱 안에서 화면을 옮긴다. 새 탭으로 열 때를 위해 href 는 실제 주소를 둔다. */}
         <nav

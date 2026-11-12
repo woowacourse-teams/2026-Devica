@@ -20,7 +20,7 @@
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(0, 16, 240, 0.55) 0%, rgba(0, 16, 240, 0) 70%);
+    background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
 }
 
 /* 로딩 표시가 회전으로 읽히도록 원형을 유지한다. */

@@ -103,6 +103,7 @@ export function IntroView({
             onClick={onBaseline}
           >
             기본 권장 사양으로 제품 보기
+            <span aria-hidden="true">→</span>
           </button>
         </div>
       </div>

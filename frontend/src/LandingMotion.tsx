@@ -1,10 +1,24 @@
+import NumberFlow from '@number-flow/react';
 import { type RefObject, useEffect, useRef, useState } from 'react';
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function CountUp({ to, from = 0, decimals = 0 }: { to: number; from?: number; decimals?: number }) {
+// 화면에 들어오면 from 에서 to 로 자릿수를 굴린다(NumberFlow). 동작 줄이기 설정이면 처음부터 to 를 보여 준다.
+export function CountUp({
+  to,
+  from = 0,
+  decimals = 0,
+  suffix,
+  delay = 0,
+}: {
+  to: number;
+  from?: number;
+  decimals?: number;
+  suffix?: string;
+  delay?: number;
+}) {
   const ref = useRef<HTMLSpanElement>(null);
   const [value, setValue] = useState(to);
 
@@ -12,38 +26,43 @@ export function CountUp({ to, from = 0, decimals = 0 }: { to: number; from?: num
     const element = ref.current;
     if (element === null || typeof IntersectionObserver === 'undefined' || prefersReducedMotion()) return;
     setValue(from);
-    let frame = 0;
+    let timer = 0;
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting) return;
         observer.disconnect();
-        const start = performance.now();
-        const step = (now: number) => {
-          const progress = Math.min((now - start) / 1400, 1);
-          const eased = 1 - (1 - progress) ** 3;
-          setValue(from + (to - from) * eased);
-          if (progress < 1) frame = requestAnimationFrame(step);
-        };
-        frame = requestAnimationFrame(step);
+        timer = window.setTimeout(() => setValue(to), delay);
       },
       { threshold: 0.6 },
     );
     observer.observe(element);
     return () => {
       observer.disconnect();
-      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
     };
-  }, [to, from]);
+  }, [to, from, delay]);
 
   return (
     <>
       <span ref={ref} aria-hidden="true">
-        {value.toFixed(decimals)}
+        <NumberFlow
+          value={value}
+          format={{ minimumFractionDigits: decimals, maximumFractionDigits: decimals }}
+          suffix={suffix}
+          spinTiming={COUNT_SPIN}
+          transformTiming={COUNT_SPIN}
+        />
       </span>
-      <span className="landing-sr-only">{to.toFixed(decimals)}</span>
+      <span className="landing-sr-only">
+        {to.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
+        {suffix}
+      </span>
     </>
   );
 }
+
+// 지표가 바뀌었다는 것을 보여 주는 한 번의 동작이다. 결과 최저가보다 길게, 끝은 천천히 멈춘다.
+const COUNT_SPIN = { duration: 1100, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' };
 
 export function usePointerTilt(targetRef: RefObject<HTMLElement | null>) {
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { useId, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { CloseIcon } from './ProductListView';
+import { CloseIcon } from './icons';
 import type { SpecItem } from './recommendation';
 
 type Props = {
