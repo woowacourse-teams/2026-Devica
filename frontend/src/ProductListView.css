@@ -462,10 +462,41 @@ html:has(.product-filter-sheet[open]) {
     min-width: 0;
 }
 
+.product-card__head {
+    display: flex;
+    gap: var(--space-8);
+    align-items: center;
+    justify-content: space-between;
+    min-height: 22px;
+}
+
 .product-card__maker {
+    min-width: 0;
+    overflow: hidden;
     color: var(--accent);
     font-size: 12px;
     font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.product-card__match {
+    display: inline-flex;
+    flex: none;
+    gap: var(--space-4);
+    align-items: center;
+    border-radius: var(--radius-pill);
+    padding: var(--space-4) 10px;
+    color: var(--on-primary);
+    background: var(--primary);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.product-card__match svg {
+    width: 12px;
+    height: 12px;
 }
 
 .product-card__name {
@@ -476,8 +507,40 @@ html:has(.product-filter-sheet[open]) {
 }
 
 .product-card__specs {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
     color: var(--text-muted);
     font-size: 14px;
+    list-style: none;
+}
+
+.product-card__specs li:not(:last-child)::after {
+    content: "·";
+    padding: 0 6px;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.product-card__spec--up {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.product-card__up-mark {
+    padding-left: 2px;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.product-card__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
 }
 
 .product-card__price {
@@ -672,6 +735,17 @@ html:has(.product-filter-sheet[open]) {
     .product-card__body {
         gap: var(--space-12);
         padding: var(--space-20);
+    }
+
+    .product-card__head {
+        flex-direction: column-reverse;
+        gap: var(--space-12);
+        align-items: flex-start;
+        min-height: 0;
+    }
+
+    .product-card__maker {
+        max-width: 100%;
     }
 
     .product-card__maker,

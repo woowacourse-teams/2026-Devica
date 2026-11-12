@@ -18,6 +18,7 @@ async function show(price: number | null) {
     imageUrl: null,
     specs: [],
     minPrice: price,
+    specMatch: null,
   };
   vi.stubGlobal(
     'fetch',
