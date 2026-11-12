@@ -89,3 +89,60 @@ test('화면 색 영역은 카드에서 짧은 이름으로 보여 준다', asyn
   // then
   expect(screen.getByText('DCI-P3')).toBeTruthy();
 });
+
+test('필터를 바꾸면 새 조건의 판정 결과로 표시를 다시 그린다', async () => {
+  // given
+  forget('products:LAPTOP?sort=PRICE_ASC&memoryGb=16');
+  forget('products:LAPTOP?sort=PRICE_ASC&memoryGb=32');
+  const product = (specMatch: SpecMatch): Product => ({
+    id: 1,
+    brand: 'Apple',
+    name: '테스트 노트북',
+    imageUrl: null,
+    minPrice: 1_000_000,
+    specs: [item('OS', 'MAC', 'Mac'), item('MEMORY', '32', '32GB')],
+    specMatch,
+  });
+  const fetch = vi.fn(async (url: string) => ({
+    ok: true,
+    json: async () =>
+      url.includes('/products?')
+        ? {
+            content: [
+              product(
+                url.includes('memoryGb=32')
+                  ? { status: 'EXACT', exceededSpecs: [] }
+                  : { status: 'EXCEEDED', exceededSpecs: ['MEMORY'] },
+              ),
+            ],
+            hasNext: false,
+          }
+        : [],
+  }));
+  vi.stubGlobal('fetch', fetch);
+  const view = (memoryGb: number) => (
+    <ProductListView
+      categoryCode="LAPTOP"
+      mode="MATCHED"
+      specs={[]}
+      backLabel="뒤로"
+      state={{ sort: 'PRICE_ASC', condition: { ...EMPTY_CONDITION, memoryGb }, filterOpen: false }}
+      searching={false}
+      onChangeState={vi.fn()}
+      onSearched={vi.fn()}
+      onBack={vi.fn()}
+      onDetail={vi.fn()}
+      onShowAll={vi.fn()}
+    />
+  );
+  const { rerender } = render(view(16));
+  await screen.findByText('↑');
+
+  // when
+  rerender(view(32));
+
+  // then
+  await screen.findByText('딱 맞는 사양');
+  expect(fetch.mock.calls.some(([url]) => String(url).includes('memoryGb=32'))).toBe(true);
+  expect(screen.queryByText('↑')).toBeNull();
+});
