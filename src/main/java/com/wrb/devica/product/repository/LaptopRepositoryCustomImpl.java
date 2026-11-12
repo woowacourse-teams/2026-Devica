@@ -144,7 +144,9 @@ public class LaptopRepositoryCustomImpl implements LaptopRepositoryCustom {
             productMinPrice.minPrice,
             laptop.os,
             cpu.name,
+            cpu.score,
             gpu.name,
+            gpu.score,
             laptop.memoryGb,
             laptop.storageGb,
             laptop.colorGamut

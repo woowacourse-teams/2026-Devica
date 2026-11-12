@@ -8,9 +8,11 @@ public record ProductSummaryResponse(
     String name,
     String imageUrl,
     Long minPrice,
-    List<SpecItemResponse> specs
+    List<SpecItemResponse> specs,
+    SpecMatchResponse specMatch
 ) {
-    public static ProductSummaryResponse from(ProductSummaryRow row, String imageUrl) {
-        return new ProductSummaryResponse(row.id(), row.brand(), row.name(), imageUrl, row.minPrice(), row.specs());
+    public static ProductSummaryResponse from(ProductSummaryRow row, String imageUrl, SpecMatchResponse specMatch) {
+        return new ProductSummaryResponse(
+            row.id(), row.brand(), row.name(), imageUrl, row.minPrice(), row.specs(), specMatch);
     }
 }

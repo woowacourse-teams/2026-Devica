@@ -32,6 +32,18 @@ public enum GpuTier {
             .toList();
     }
 
+    public GpuTier stepUp() {
+        return Arrays.stream(values())
+            .filter(tier -> tier.os == os && tier.minScore > minScore)
+            .min(Comparator.comparingInt(GpuTier::getMinScore))
+            .orElse(this);
+    }
+
+    public boolean isExceededBy(int score) {
+        GpuTier above = stepUp();
+        return above != this && score >= above.minScore;
+    }
+
     public boolean isLowest() {
         return Arrays.stream(values()).noneMatch(tier -> tier.os == os && tier.minScore < minScore);
     }

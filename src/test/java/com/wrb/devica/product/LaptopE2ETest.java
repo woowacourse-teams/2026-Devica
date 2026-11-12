@@ -112,7 +112,23 @@ class LaptopE2ETest extends E2ETest {
             .body("content[0].specs.code", contains("OS", "CPU", "GPU", "MEMORY", "STORAGE", "COLOR_GAMUT"))
             .body("content[0].specs.displayValue",
                 contains("Windows", "Intel Core Ultra 7 255H", "Intel Arc 140V", "32GB", "1TB", "표준 색 영역(sRGB)"))
+            .body("content[0].specMatch", nullValue())
             .body("content[0].minPrice", is(2_850_000));
+    }
+
+    @Test
+    void 사양_조건으로_목록을_조회하면_조건보다_높은_항목을_함께_받는다() {
+        // given
+        laptopRepository.save(laptop().category(category).cpu(cpu).gpu(gpu).memoryGb(32).storageGb(512).build());
+
+        // when & then
+        given()
+            .queryParam("memoryGb", 16)
+            .queryParam("storageGb", 512)
+            .when().get(PATH)
+            .then().statusCode(200)
+            .body("content[0].specMatch.status", is("EXCEEDED"))
+            .body("content[0].specMatch.exceededSpecs", contains("MEMORY"));
     }
 
     @Test

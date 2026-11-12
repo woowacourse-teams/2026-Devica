@@ -25,6 +25,7 @@ import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.Os;
 import com.wrb.devica.product.dto.LaptopSearchCondition;
 import com.wrb.devica.product.dto.ProductSummaryRow;
+import com.wrb.devica.product.dto.ProductSummaryRow.MatchBasis;
 import com.wrb.devica.product.dto.SortType;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -148,6 +149,20 @@ class LaptopRepositoryCustomTest {
 
         // then
         assertThat(found.getContent()).extracting(ProductSummaryRow::name).containsExactly("넓음", "모름");
+    }
+
+    @Test
+    void 조회하면_사양_일치_판정에_쓸_값을_함께_담는다() {
+        // given
+        onSaleLaptop(laptop().memoryGb(32).storageGb(1024).colorGamut(ColorGamut.WIDE),
+            saveCpu(21000), saveGpu(6500), DEFAULT_PRICE);
+
+        // when
+        Slice<ProductSummaryRow> found = findLaptops(condition().build());
+
+        // then
+        assertThat(found.getContent()).extracting(ProductSummaryRow::matchBasis)
+            .containsExactly(new MatchBasis(21000, 6500, 32, 1024, ColorGamut.WIDE));
     }
 
     @Test

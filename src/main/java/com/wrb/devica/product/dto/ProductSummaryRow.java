@@ -12,14 +12,18 @@ public record ProductSummaryRow(
     String name,
     String imageKey,
     Long minPrice,
-    List<SpecItemResponse> specs
+    List<SpecItemResponse> specs,
+    MatchBasis matchBasis
 ) {
 
     @QueryProjection
-    public ProductSummaryRow(Long id, String brand, String name, String imageKey, Long minPrice,
-                             Os os, String cpuName, String gpuName, int memoryGb, int storageGb,
-                             ColorGamut colorGamut) {
+    public ProductSummaryRow(Long id, String brand, String name, String imageKey, Long minPrice, Os os, String cpuName,
+        int cpuScore, String gpuName, int gpuScore, int memoryGb, int storageGb, ColorGamut colorGamut) {
         this(id, brand, name, imageKey, minPrice,
-            SpecItemResponse.from(Laptop.summarySpecValues(os, cpuName, gpuName, memoryGb, storageGb, colorGamut)));
+            SpecItemResponse.from(Laptop.summarySpecValues(os, cpuName, gpuName, memoryGb, storageGb, colorGamut)),
+            new MatchBasis(cpuScore, gpuScore, memoryGb, storageGb, colorGamut));
+    }
+
+    public record MatchBasis(int cpuScore, int gpuScore, int memoryGb, int storageGb, ColorGamut colorGamut) {
     }
 }
