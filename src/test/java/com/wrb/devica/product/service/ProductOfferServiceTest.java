@@ -15,6 +15,7 @@ import com.wrb.devica.common.JpaSliceTest;
 import com.wrb.devica.product.domain.Laptop;
 import com.wrb.devica.product.domain.OfferStatus;
 import com.wrb.devica.product.domain.ProductOffer;
+import com.wrb.devica.product.domain.Seller;
 import com.wrb.devica.product.dto.PriceRefreshTarget;
 import com.wrb.devica.product.repository.CpuRepository;
 import com.wrb.devica.product.repository.GpuRepository;
@@ -96,15 +97,28 @@ class ProductOfferServiceTest {
     void 판매_중이거나_숨겨진_기준_ID가_있는_쿠팡_오퍼를_조회한다() {
         // given
         Laptop laptop = saveLaptop();
-        ProductOffer target = productOfferRepository.save(coupangOffer(laptop).build());
-        ProductOffer hidden = productOfferRepository.save(coupangOffer(laptop).status(OfferStatus.HIDDEN).build());
-        productOfferRepository.save(coupangOffer(laptop).name("다른 판매처").build());
-        productOfferRepository.save(coupangOffer(laptop).status(OfferStatus.SOLD_OUT).build());
+        ProductOffer target = productOfferRepository.save(coupangOffer(laptop).externalItemId("1").build());
+        ProductOffer hidden = productOfferRepository.save(coupangOffer(laptop).externalItemId("2")
+            .status(OfferStatus.HIDDEN).build());
+        productOfferRepository.save(coupangOffer(laptop).externalItemId("3").seller(Seller.STUDENT_STORE).build());
+        productOfferRepository.save(coupangOffer(laptop).externalItemId("4").status(OfferStatus.SOLD_OUT).build());
         productOfferRepository.save(coupangOffer(laptop).externalItemId(null).build());
         productOfferRepository.save(coupangOffer(laptop).externalItemId("   ").build());
 
         // when & then
         assertThat(productOfferService.findCoupangPriceRefreshTargets()).containsExactly(target(laptop, target), target(laptop, hidden));
+    }
+
+    @Test
+    void 쿠팡_오퍼는_화면_표시_이름이_아니라_판매처_코드로_구분한다() {
+        // given
+        Laptop laptop = saveLaptop();
+        ProductOffer renamed = productOfferRepository.save(coupangOffer(laptop).externalItemId("1")
+            .name("쿠팡 로켓배송").build());
+        productOfferRepository.save(coupangOffer(laptop).externalItemId("2").seller(Seller.STUDENT_STORE).build());
+
+        // when & then
+        assertThat(productOfferService.findCoupangPriceRefreshTargets()).containsExactly(target(laptop, renamed));
     }
 
     @ParameterizedTest
@@ -132,8 +146,9 @@ class ProductOfferServiceTest {
         // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).build());
-        productOfferRepository.save(coupangOffer(laptop).name("다른 판매처").price(900_000L).build());
-        productOfferRepository.save(coupangOffer(laptop).status(OfferStatus.SOLD_OUT).price(500_000L).build());
+        productOfferRepository.save(coupangOffer(laptop).seller(Seller.STUDENT_STORE).name("다른 판매처").price(900_000L).build());
+        productOfferRepository.save(coupangOffer(laptop).externalItemId("67890").status(OfferStatus.SOLD_OUT)
+            .price(500_000L).build());
         initializeMinPrice(laptop);
 
         // when
@@ -196,11 +211,11 @@ class ProductOfferServiceTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"다른 판매처, ON_SALE", "쿠팡, SOLD_OUT", "쿠팡, DISCONTINUED"})
-    void 판매처나_판매_상태가_바뀌면_갱신하지_않는다(String seller, OfferStatus status) {
+    @CsvSource({"STUDENT_STORE, ON_SALE", "COUPANG, SOLD_OUT", "COUPANG, DISCONTINUED"})
+    void 판매처나_판매_상태가_바뀌면_갱신하지_않는다(Seller seller, OfferStatus status) {
         // given
         Laptop laptop = saveLaptop();
-        ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).name(seller).status(status).build());
+        ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).seller(seller).status(status).build());
 
         // when
         PriceRefreshResult result = productOfferService.refreshCoupangPrice(target(laptop, offer), 900_000L, CHECKED_ON);
@@ -343,7 +358,8 @@ class ProductOfferServiceTest {
         // given
         Laptop laptop = saveLaptop();
         ProductOffer offer = productOfferRepository.save(coupangOffer(laptop).build());
-        productOfferRepository.save(coupangOffer(laptop).name("다른 판매처").price(1_200_000L).build());
+        productOfferRepository.save(coupangOffer(laptop).seller(Seller.STUDENT_STORE).name("다른 판매처").price(1_200_000L)
+            .build());
         initializeMinPrice(laptop);
 
         // when
@@ -413,6 +429,7 @@ class ProductOfferServiceTest {
     private ProductOffer.ProductOfferBuilder coupangOffer(Laptop laptop) {
         return ProductOffer.builder()
             .productId(laptop.getId())
+            .seller(Seller.COUPANG)
             .name("쿠팡")
             .price(1_000_000L)
             .externalItemId("12345")
